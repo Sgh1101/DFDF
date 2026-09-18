@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>짭로란트</title>
+<title>13</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0d12">
 <meta name="description" content="오리지널 요원 7명과 무기 20종으로 즐기는 5대5 전술 FPS">
-<meta property="og:title" content="짭로란트">
-<meta property="og:description" content="세 개의 사이트를 두고 벌이는 5대5 전술 교전. 브라우저에서 바로 플레이.">
+<meta property="og:title" content="13">
+<meta property="og:description" content="네 개의 전장에서 벌이는 5대5 전술 교전. 브라우저에서 바로 플레이.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,23 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--void);color:var(--ink);font-family:var(--fb);-webkit-font-smoothing:antialiased;
 background-image:radial-gradient(ellipse 90% 55% at 50% 0%,#17202f 0%,transparent 65%)}
+/* 히어로 배경: 전부 CSS — 외부 이미지 없음 */
+.bg{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.bg-grid{position:absolute;left:50%;top:38%;width:260vw;height:150vh;transform:translateX(-50%) perspective(340px) rotateX(64deg);
+background-image:linear-gradient(rgba(56,189,248,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.16) 1px,transparent 1px);
+background-size:58px 58px;mask-image:radial-gradient(ellipse 52% 62% at 50% 34%,#000 0%,transparent 78%);
+-webkit-mask-image:radial-gradient(ellipse 52% 62% at 50% 34%,#000 0%,transparent 78%);animation:gridRun 14s linear infinite}
+@keyframes gridRun{to{background-position:0 58px,0 0}}
+.bg-beam{position:absolute;top:-12%;width:2px;height:70vh;background:linear-gradient(180deg,transparent,rgba(255,59,78,.5),transparent);
+filter:blur(1px);animation:beamPulse 6s ease-in-out infinite}
+.bg-beam:nth-child(2){left:18%;animation-delay:-1.5s}
+.bg-beam:nth-child(3){left:47%;height:56vh;animation-delay:-3.4s;background:linear-gradient(180deg,transparent,rgba(34,211,238,.45),transparent)}
+.bg-beam:nth-child(4){left:79%;height:62vh;animation-delay:-4.8s}
+@keyframes beamPulse{0%,100%{opacity:.25}50%{opacity:.85}}
+.bg-haze{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 12%,rgba(255,59,78,.13),transparent 70%),
+radial-gradient(ellipse 50% 35% at 82% 60%,rgba(34,211,238,.10),transparent 72%)}
+.bg-vig{position:absolute;inset:0;background:radial-gradient(ellipse 78% 68% at 50% 42%,transparent 40%,rgba(10,13,18,.92) 100%)}
+@media(prefers-reduced-motion:reduce){.bg-grid,.bg-beam{animation:none}}
 .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
 header{padding-block:clamp(56px,11vw,104px);text-align:center}
 h1{font-family:var(--fd);font-weight:900;font-size:clamp(42px,10vw,92px);letter-spacing:.05em;line-height:.98;
@@ -65,13 +82,14 @@ footer{padding-block:40px;border-top:1px solid var(--line);text-align:center;fon
 </style>
 </head>
 <body>
+<div class="bg"><div class="bg-grid"></div><div class="bg-beam"></div><div class="bg-beam"></div><div class="bg-beam"></div><div class="bg-haze"></div><div class="bg-vig"></div></div>
 <div class="wrap">
 
 <header>
-  <h1>짭로란트</h1>
+  <h1>13</h1>
   <div class="sub">JJAB · TACTICAL SHOOTER</div>
   <div class="rule"></div>
-  <p class="lead">세 개의 사이트를 두고 벌이는 5대5 전술 교전. 일곱 요원의 능력으로 각을 열고,
+  <p class="lead">빙하에서 사막 지하도시까지, 네 개의 전장에서 벌이는 5대5 전술 교전. 일곱 요원의 능력으로 각을 열고,
   연막으로 시야를 지우고, 스파이크로 승부를 낸다.</p>
   <div class="cta">
     <a class="btn go" href="./play.html">교전 시작</a>
@@ -96,7 +114,7 @@ footer{padding-block:40px;border-top:1px solid var(--line);text-align:center;fon
   <div class="stats">
     <div class="stat"><b>7</b><span>오리지널 요원<br>각 4개 능력</span></div>
     <div class="stat"><b>20</b><span>무기<br>전부 다른 3D 형상</span></div>
-    <div class="stat"><b>3</b><span>사이트<br>A · B · C 회전 구조</span></div>
+    <div class="stat"><b>4</b><span>전장<br>설원 · 사막 · 화물선 · 고층</span></div>
     <div class="stat"><b>13</b><span>라운드 선취<br>12라운드 후 진영 교대</span></div>
   </div>
 </section>
@@ -104,12 +122,12 @@ footer{padding-block:40px;border-top:1px solid var(--line);text-align:center;fon
 <section>
   <h2>특징</h2>
   <ul class="feat">
-    <li><b>한국식 정원 맵</b> — 단청 기둥과 기와 처마를 올린 정자, 홍살문, 연못, 대나무.</li>
-    <li><b>고지대 전투</b> — 계단으로 올라가는 플랫폼과 모래주머니 엄폐물.</li>
+    <li><b>네 개의 전장</b> — 빙하 관측소, 모래무덤, 강철 항로, 네온 정점. 구조와 분위기가 전부 다르다.</li>
+    <li><b>궁극기 연출</b> — 전용 컷인과 슬로우모션. 연출 강도는 설정에서 조절.</li>
     <li><b>전술 지도</b> — 좌상단 실시간 확대 지도와 팀원 체력·무기·방향 패널.</li>
     <li><b>스파이크</b> — 설치 4초, 해제 7초, 절반 해제 지점에서 재개.</li>
     <li><b>모바일 지원</b> — 가상 조이스틱과 터치 버튼, 반응형 HUD.</li>
-    <li><b>절차적 제작</b> — 텍스처·초상화·사운드를 외부 파일 없이 코드로 생성.</li>
+    <li><b>절차적 제작</b> — 텍스처·초상화·사운드를 외부 파일 없이 코드로 생성. 무기 20종이 전부 다른 발사음.</li>
   </ul>
 </section>
 
