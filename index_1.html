@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>13</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d12">
+<meta name="description" content="오리지널 요원 7명과 무기 20종으로 즐기는 5대5 전술 FPS">
+<meta property="og:title" content="13">
+<meta property="og:description" content="네 개의 전장에서 벌이는 5대5 전술 교전. 브라우저에서 바로 플레이.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--void:#0a0d12;--void2:#0d1118;--panel:#141922;--panel2:#1b222e;--line:#2a3444;
+--steel:#8a97ab;--dim:#5b6879;--ink:#e8edf4;--red:#ff3b4e;--gold:#ffc849;
+--fd:'Orbitron',system-ui,sans-serif;--fb:'Noto Sans KR',system-ui,sans-serif;--pill:999px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--void);color:var(--ink);font-family:var(--fb);-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(ellipse 90% 55% at 50% 0%,#17202f 0%,transparent 65%)}
+/* 히어로 배경: 전부 CSS — 외부 이미지 없음 */
+.bg{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.bg-grid{position:absolute;left:50%;top:38%;width:260vw;height:150vh;transform:translateX(-50%) perspective(340px) rotateX(64deg);
+background-image:linear-gradient(rgba(56,189,248,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.16) 1px,transparent 1px);
+background-size:58px 58px;mask-image:radial-gradient(ellipse 52% 62% at 50% 34%,#000 0%,transparent 78%);
+-webkit-mask-image:radial-gradient(ellipse 52% 62% at 50% 34%,#000 0%,transparent 78%);animation:gridRun 14s linear infinite}
+@keyframes gridRun{to{background-position:0 58px,0 0}}
+.bg-beam{position:absolute;top:-12%;width:2px;height:70vh;background:linear-gradient(180deg,transparent,rgba(255,59,78,.5),transparent);
+filter:blur(1px);animation:beamPulse 6s ease-in-out infinite}
+.bg-beam:nth-child(2){left:18%;animation-delay:-1.5s}
+.bg-beam:nth-child(3){left:47%;height:56vh;animation-delay:-3.4s;background:linear-gradient(180deg,transparent,rgba(34,211,238,.45),transparent)}
+.bg-beam:nth-child(4){left:79%;height:62vh;animation-delay:-4.8s}
+@keyframes beamPulse{0%,100%{opacity:.25}50%{opacity:.85}}
+.bg-haze{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 12%,rgba(255,59,78,.13),transparent 70%),
+radial-gradient(ellipse 50% 35% at 82% 60%,rgba(34,211,238,.10),transparent 72%)}
+.bg-vig{position:absolute;inset:0;background:radial-gradient(ellipse 78% 68% at 50% 42%,transparent 40%,rgba(10,13,18,.92) 100%)}
+@media(prefers-reduced-motion:reduce){.bg-grid,.bg-beam{animation:none}}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+header{padding-block:clamp(56px,11vw,104px);text-align:center}
+h1{font-family:var(--fd);font-weight:900;font-size:clamp(42px,10vw,92px);letter-spacing:.05em;line-height:.98;
+background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-family:var(--fd);font-size:clamp(10px,2.1vw,14px);letter-spacing:.48em;color:var(--red);
+margin-top:16px;text-indent:.48em;text-shadow:0 0 26px rgba(255,59,78,.5)}
+.rule{width:min(320px,62vw);height:1px;margin:22px auto 0;
+background:linear-gradient(90deg,transparent,var(--line) 18%,var(--dim) 50%,var(--line) 82%,transparent)}
+.lead{color:var(--steel);font-size:15px;line-height:1.8;max-width:46ch;margin:24px auto 0}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.btn{font-family:var(--fd);font-weight:700;font-size:13px;letter-spacing:.13em;padding:16px 38px;
+border:1px solid var(--line);border-radius:var(--pill);background:linear-gradient(180deg,var(--panel2),var(--panel));
+color:var(--ink);text-decoration:none;transition:.2s cubic-bezier(.2,.7,.3,1);
+box-shadow:0 4px 16px -6px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
+.btn:hover{transform:translateY(-2px);border-color:var(--dim)}
+.go{background:linear-gradient(180deg,#ff5566,var(--red));border-color:#ff6673;color:#fff;
+box-shadow:0 10px 30px -8px rgba(255,59,78,.7),inset 0 1px 0 rgba(255,255,255,.22)}
+.go:hover{background:linear-gradient(180deg,#ff6675,#ff4356)}
+section{padding-block:clamp(40px,7vw,72px);border-top:1px solid var(--line)}
+h2{font-family:var(--fd);font-size:13px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:24px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}
+.card{position:relative;padding:18px 16px 16px;border:1px solid var(--line);border-radius:22px;overflow:hidden;
+background:linear-gradient(160deg,var(--panel2),var(--panel) 62%)}
+.card::before{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--ac);box-shadow:0 0 14px var(--ac)}
+.card::after{content:'';position:absolute;inset:0;pointer-events:none;
+background:radial-gradient(circle at 50% 12%,color-mix(in srgb,var(--ac) 22%,transparent),transparent 64%)}
+.role{position:relative;z-index:1;font-family:var(--fd);font-size:9px;letter-spacing:.16em;color:var(--ac)}
+.name{position:relative;z-index:1;font-family:var(--fd);font-weight:900;font-size:26px;margin-top:4px}
+.quote{position:relative;z-index:1;font-size:11.5px;color:var(--steel);margin-top:7px;line-height:1.55}
+.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:20px}
+.stat b{display:block;font-family:var(--fd);font-weight:900;font-size:32px;color:var(--gold)}
+.stat span{display:block;font-size:12px;color:var(--steel);margin-top:6px;line-height:1.6}
+ul.feat{list-style:none;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+ul.feat li{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+font-size:13px;color:var(--steel);line-height:1.65}
+ul.feat b{color:var(--ink);font-weight:700}
+.keys{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.keyrow{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px 16px;
+font-size:12.5px;color:var(--steel);line-height:1.9}
+kbd{font-family:var(--fd);font-size:10px;font-weight:700;color:var(--ink);background:var(--panel2);
+border:1px solid var(--line);border-radius:6px;padding:2px 7px;margin-right:6px}
+footer{padding-block:40px;border-top:1px solid var(--line);text-align:center;font-size:11.5px;color:var(--dim);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="bg"><div class="bg-grid"></div><div class="bg-beam"></div><div class="bg-beam"></div><div class="bg-beam"></div><div class="bg-haze"></div><div class="bg-vig"></div></div>
+<div class="wrap">
+
+<header>
+  <h1>13</h1>
+  <div class="sub">JJAB · TACTICAL SHOOTER</div>
+  <div class="rule"></div>
+  <p class="lead">빙하에서 사막 지하도시까지, 네 개의 전장에서 벌이는 5대5 전술 교전. 일곱 요원의 능력으로 각을 열고,
+  연막으로 시야를 지우고, 스파이크로 승부를 낸다.</p>
+  <div class="cta">
+    <a class="btn go" href="./play.html">교전 시작</a>
+  </div>
+</header>
+
+<section>
+  <h2>요원</h2>
+  <div class="grid">
+    <div class="card" style="--ac:#ff5a3c"><div class="role">타격대</div><div class="name">화령</div><div class="quote">불은 길을 묻지 않는다.</div></div>
+    <div class="card" style="--ac:#4fc3f7"><div class="role">감시자</div><div class="name">서린</div><div class="quote">기다리는 쪽이 이긴다.</div></div>
+    <div class="card" style="--ac:#ab47bc"><div class="role">척후대</div><div class="name">무영</div><div class="quote">네가 보는 건 이미 지나간 나다.</div></div>
+    <div class="card" style="--ac:#ffa726"><div class="role">타격대</div><div class="name">강철</div><div class="quote">문은 부수라고 있는 거다.</div></div>
+    <div class="card" style="--ac:#66bb6a"><div class="role">전략가</div><div class="name">연화</div><div class="quote">숨 쉴 곳은 내가 정한다.</div></div>
+    <div class="card" style="--ac:#ffd54f"><div class="role">전략가</div><div class="name">노은</div><div class="quote">회로 하나면 충분해.</div></div>
+    <div class="card" style="--ac:#e0e0e0"><div class="role">감시자</div><div class="name">백호</div><div class="quote">한 발이면 끝난다.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>규모</h2>
+  <div class="stats">
+    <div class="stat"><b>7</b><span>오리지널 요원<br>각 4개 능력</span></div>
+    <div class="stat"><b>20</b><span>무기<br>전부 다른 3D 형상</span></div>
+    <div class="stat"><b>4</b><span>전장<br>설원 · 사막 · 화물선 · 고층</span></div>
+    <div class="stat"><b>13</b><span>라운드 선취<br>12라운드 후 진영 교대</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>특징</h2>
+  <ul class="feat">
+    <li><b>네 개의 전장</b> — 빙하 관측소, 모래무덤, 강철 항로, 네온 정점. 구조와 분위기가 전부 다르다.</li>
+    <li><b>궁극기 연출</b> — 전용 컷인과 슬로우모션. 연출 강도는 설정에서 조절.</li>
+    <li><b>전술 지도</b> — 좌상단 실시간 확대 지도와 팀원 체력·무기·방향 패널.</li>
+    <li><b>스파이크</b> — 설치 4초, 해제 7초, 절반 해제 지점에서 재개.</li>
+    <li><b>모바일 지원</b> — 가상 조이스틱과 터치 버튼, 반응형 HUD.</li>
+    <li><b>절차적 제작</b> — 텍스처·초상화·사운드를 외부 파일 없이 코드로 생성. 무기 20종이 전부 다른 발사음.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>조작</h2>
+  <div class="keys">
+    <div class="keyrow">
+      <kbd>WASD</kbd>이동<br>
+      <kbd>SHIFT</kbd>걷기<br>
+      <kbd>SPACE</kbd>점프
+    </div>
+    <div class="keyrow">
+      <kbd>좌클릭</kbd>사격<br>
+      <kbd>우클릭</kbd>조준<br>
+      <kbd>R</kbd>재장전
+    </div>
+    <div class="keyrow">
+      <kbd>Q E C X</kbd>능력<br>
+      <kbd>1 2</kbd>무기 전환<br>
+      <kbd>F</kbd>설치 / 해제
+    </div>
+    <div class="keyrow">
+      <kbd>B</kbd>상점<br>
+      <kbd>ESC</kbd>일시정지<br>
+      모바일은 화면 조이스틱
+    </div>
+  </div>
+</section>
+
+<footer>
+  오리지널 요원과 맵으로 제작된 팬 게임입니다<br>
+  브라우저에서 바로 실행 · 데스크톱 마우스/키보드, 모바일 터치 지원
+</footer>
+
+</div>
+</body>
+</html>
