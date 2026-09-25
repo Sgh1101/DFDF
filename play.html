@@ -5800,6 +5800,9 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
   };
   const _toa = takeOverAlly;
   takeOverAlly = function () {
+    // respawn modes bring you back yourself; taking a bot there left your own
+    // body to respawn with nobody driving it, frozen in the spawn
+    if (respawnMode()) return !1;
     const r = _toa.apply(this, arguments);
     try {
       if (r && "client" !== NET.mode) {
@@ -5887,11 +5890,30 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
     } catch (e) {}
   }
 
+  // host: nothing alive may be left without a driver
+  let orphanAcc = 0;
+  function freeOrphans(dt) {
+    if (!isHost() || !world.actors) return;
+    orphanAcc += dt;
+    if (orphanAcc < 0.5) return;
+    orphanAcc = 0;
+    for (const a of world.actors) {
+      if (!a.alive) continue;
+      const gone = "dead" === a.ctrl || (a.ctrl && "me" !== a.ctrl && "ai" !== a.ctrl && "host" === NET.mode && !NET.conns.has(a.ctrl));
+      if (!gone) continue;
+      releaseToAI(a.id);
+      a._releaseName && ((a.name = a._releaseName), (a._releaseName = null));
+      "host" === NET.mode && sendEventAll({ t: "ctrl", id: a.id, ctrl: "ai", name: a.name });
+      window.ORPHANS_FREED = (window.ORPHANS_FREED || 0) + 1;
+    }
+  }
+
   const _ns = netStep;
   netStep = function (dt) {
     const r = _ns.apply(this, arguments);
     try {
       guestRetry();
+      freeOrphans(dt || 0.016);
       hostSync(dt || 0.016);
       guestPredict(dt || 0.016);
     } catch (e) {}
