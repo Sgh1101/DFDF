@@ -159,6 +159,30 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
 @media (max-width:700px) and (min-height:501px){#mode-board{right:10px;top:80px;width:118px;font-size:10.5px;padding:5px 8px}}
 @media (max-height:500px){#mode-board{left:50%;right:auto;top:64px;transform:translateX(-50%);width:auto;display:flex;gap:12px;padding:3px 12px;border-radius:999px;font-size:10.5px}.mb-row{padding:0;gap:5px}.mb-row span{max-width:64px}}
 @media (max-width:700px){.sel-mid{order:-1;flex:1 1 100%;align-items:stretch;gap:6px}.sel-mid .lb-maps{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;padding-bottom:2px}.sel-mid .lb-maps::-webkit-scrollbar{display:none}.sel-mid .lb-map{flex:none}.sel-moderow{flex-direction:column;align-items:stretch;gap:6px}#sel-mode-sub{text-align:center}.sel-foot>.btn{flex:1}}
+
+.tt-left,.tt-right{position:relative;z-index:2}
+.tt-vig{position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(7,9,13,.55) 0%,transparent 22%,transparent 70%,rgba(7,9,13,.8) 100%),radial-gradient(ellipse 120% 90% at 70% 50%,transparent 45%,rgba(7,9,13,.55) 100%)}
+.tt-fade{position:absolute;inset:0;z-index:1;pointer-events:none;background:#07090d;opacity:0;transition:opacity .55s ease}
+.tt-fade.on{opacity:1}
+.tt-show img{-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 16%,#000 62%,transparent 94%),linear-gradient(90deg,transparent 11%,#000 35%,#000 65%,transparent 89%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,#000 16%,#000 62%,transparent 94%),linear-gradient(90deg,transparent 11%,#000 35%,#000 65%,transparent 89%);mask-composite:intersect}
+.tt-meta{bottom:3%}
+.tt-abil{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;max-width:440px}
+.tt-abil span{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 5px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(7,9,13,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:11.5px;color:#c9d2de;white-space:nowrap}
+.tt-abil b{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--ac) 30%,transparent);border:1px solid color-mix(in srgb,var(--ac) 70%,transparent);font-family:var(--f-display);font-size:9.5px;color:#fff}
+.tt-abil span.ult{border-color:color-mix(in srgb,var(--ac) 55%,transparent);color:#fff}
+.tt-abil span.ult b{background:var(--ac)}
+.tt-news{position:absolute;z-index:3;top:clamp(20px,4vh,36px);right:clamp(20px,3vw,40px);width:250px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(7,9,13,.66);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.tn-lbl{font-family:var(--f-display);font-size:9.5px;letter-spacing:.24em;color:var(--gold);margin-bottom:6px}
+.tt-news ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.tt-news li b{display:block;font-size:12px;color:var(--ink)}
+.tt-news li span{display:block;font-size:10.5px;line-height:1.5;color:var(--steel)}
+.tt-bg{position:absolute;z-index:3;right:clamp(20px,3vw,40px);bottom:clamp(14px,3vh,26px);display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.08em;color:rgba(200,210,224,.62)}
+.tt-bg i{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:ttRec 1.6s infinite}
+@keyframes ttRec{50%{opacity:.25}}
+@media (max-width:1180px){.tt-news{display:none}}
+@media (max-width:900px){.tt-bg{display:none}#s-title .title-sub,#s-title .title-desc,#s-title .title-foot{text-shadow:0 1px 10px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.8)}#s-title{background:linear-gradient(180deg,rgba(7,9,13,.62) 0%,rgba(7,9,13,.5) 40%,rgba(7,9,13,.82) 100%)}.tt-vig{background:none}}
+@media (max-height:560px) and (min-width:600px){#s-title{background:linear-gradient(90deg,rgba(7,9,13,.72) 0%,rgba(7,9,13,.5) 45%,rgba(7,9,13,.72) 100%)}}
+@media (max-height:560px){.tt-news,.tt-bg{display:none}}
 </style>
 <div id="app">
   <canvas id="cv"></canvas>
@@ -477,12 +501,23 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
   </div>
   <!-- ══════ 타이틀 ══════ -->
   <div class="screen" id="s-title">
+    <div class="tt-vig" aria-hidden="true"></div>
+    <div class="tt-fade" id="tt-fade" aria-hidden="true"></div>
+    <aside class="tt-news">
+      <div class="tn-lbl">새로워진 점</div>
+      <ul>
+        <li><b>게임 모드 5종</b><span>신속플레이 · 스파이크 돌격 · 팀 데스매치 · 데스매치</span></li>
+        <li><b>맵 장치</b><span>순간이동 발판 · 여닫이 문 · 집라인</span></li>
+        <li><b>맵 디테일</b><span>10개 맵 전부 새로 꾸몄습니다</span></li>
+      </ul>
+    </aside>
+    <div class="tt-bg" aria-hidden="true"><i></i><span id="tt-bgname"></span></div>
     <div class="tt-left">
       <div class="title-mark">13</div>
       <div class="title-sub">JJAB · TACTICAL SHOOTER</div>
       <p class="title-desc">사이트를 두고 벌이는 5대5 전술 교전. 열네 요원의 능력으로 각을 열고, 연막으로 시야를 지우고, 스파이크로 승부를 낸다.</p>
       <nav class="tt-menu">
-        <button class="tt-item tt-primary" id="go-play"><span><b>혼자 하기</b><small>AI와 5대5 · 맵 10종</small></span><i>›</i></button>
+        <button class="tt-item tt-primary" id="go-play"><span><b>혼자 하기</b><small>AI 대전 · 모드 5종 · 맵 10종</small></span><i>›</i></button>
         <button class="tt-item" id="go-host"><span><b>커스텀 게임 만들기</b><small>친구를 초대하고 빈자리는 AI로 채웁니다</small></span><i>›</i></button>
         <div class="tt-item tt-join">
           <span><b>초대 코드로 참가</b><small class="tj-err" id="join-err" hidden></small></span>
@@ -497,12 +532,12 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
           <button class="tt-item tt-mini" id="go-set"><b>설정</b></button>
         </div>
       </nav>
-      <p class="title-foot">13라운드 선취 · 라운드당 1분 40초 · 화면을 클릭하면 시야가 고정됩니다<br><span>오리지널 요원과 맵으로 제작된 팬 게임입니다</span></p>
+      <p class="title-foot">요원 14명 · 모드 5종 · 맵 10종 · 게임 중 화면을 클릭하면 시야가 고정됩니다<br><span>오리지널 요원과 맵으로 제작된 팬 게임입니다</span></p>
     </div>
     <div class="tt-right">
       <button class="tt-show" id="tt-show" aria-label="이 요원으로 시작">
         <img id="tt-img" alt="">
-        <div class="tt-meta"><div class="tt-role" id="tt-role"></div><div class="tt-name" id="tt-name"></div><div class="tt-quote" id="tt-quote"></div></div>
+        <div class="tt-meta"><div class="tt-role" id="tt-role"></div><div class="tt-name" id="tt-name"></div><div class="tt-quote" id="tt-quote"></div><div class="tt-abil" id="tt-abil"></div></div>
         <span class="tt-hint">이 요원으로 시작 ›</span>
       </button>
       <div class="title-roster" id="title-roster"></div>
@@ -3007,5 +3042,88 @@ const SFX=(()=>{let e=null,t=null;function o(){if("object"==typeof SETTINGS&&SET
   try {
     CUR_MAP_KEY && build(CUR_MAP_KEY);
   } catch (e) {}
+})();
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const title = $("s-title");
+  if (!title) return;
+
+  // ── featured agent: show the four abilities under the quote ──
+  const abil = $("tt-abil");
+  const paintAbil = () => {
+    const a = AGENTS.find((x) => x.name === $("tt-name").textContent);
+    if (!a || !abil) return;
+    abil.innerHTML = a.abilities.map((b) => `<span${b.ult ? ' class="ult"' : ""}><b>${b.key}</b>${b.name}</span>`).join("");
+  };
+  new MutationObserver(paintAbil).observe($("tt-name"), { childList: !0, characterData: !0, subtree: !0 });
+  paintAbil();
+
+  // ── background: slow low orbits around the sites of a random map ──
+  const rnd = (a, b) => a + (b - a) * Math.random();
+  const S = { shot: null, t: 0, n: 0, fading: !1 };
+  function mapName() {
+    const m = (typeof MAP_LIST !== "undefined" ? MAP_LIST : []).find((x) => x.key === CUR_MAP_KEY);
+    return m ? m.name : "";
+  }
+  function planShot() {
+    const b = MAP.bounds;
+    const spots = MAP.sites.map((s) => ({ x: s.x, z: s.z, n: s.id + " 사이트" }));
+    spots.push({ x: (b.minX + b.maxX) / 2, z: (b.minZ + b.maxZ) / 2, n: "중앙" });
+    let best = null;
+    // keep the camera above whatever it passes over during the shot
+    for (let k = 0; k < 14; k++) {
+      const p = spots[Math.floor(Math.random() * spots.length)],
+        s = { cx: p.x, cz: p.z, n: p.n, r: rnd(24, 38), h: rnd(8, 13), a0: rnd(0, 6.283), dir: Math.random() < 0.5 ? -1 : 1 };
+      let top = 0;
+      for (let t = 0; t <= 12; t += 1) {
+        const a = s.a0 + s.dir * 0.055 * t;
+        top = Math.max(top, blockerTopAt(s.cx + s.r * Math.sin(a), s.cz + s.r * Math.cos(a), 0, 1.5));
+      }
+      const score = s.h - top;
+      if (!best || score > best.score) best = Object.assign(s, { score });
+      if (score > 2.5) break;
+    }
+    return best;
+  }
+  function nextShot() {
+    S.n++;
+    // every third shot, while the title is on screen, switch to another map
+    if (S.n % 3 === 0 && !title.hidden && typeof MAP_LIST !== "undefined") {
+      const others = MAP_LIST.filter((m) => m.key !== CUR_MAP_KEY);
+      try {
+        loadMap(others[Math.floor(Math.random() * others.length)].key);
+      } catch (e) {}
+    }
+    S.shot = planShot();
+    S.key = CUR_MAP_KEY;
+    S.t = 0;
+    const l = $("tt-bgname");
+    l && (l.textContent = mapName() + " · " + S.shot.n);
+  }
+  const fade = $("tt-fade");
+  titleCam = function (dt) {
+    if ("menu" !== world.phase) return;
+    // the map may have changed under us (a match, the map viewer)
+    if (!S.shot || S.key !== CUR_MAP_KEY) (S.n = 0), nextShot();
+    S.t += dt;
+    if (S.t > 11.4 && !S.fading) (S.fading = !0), fade && fade.classList.add("on");
+    if (S.t > 12) nextShot(), (S.fading = !1), fade && fade.classList.remove("on");
+    const s = S.shot,
+      a = s.a0 + s.dir * 0.055 * S.t;
+    camera.position.set(s.cx + s.r * Math.sin(a), s.h + 0.5 * Math.sin(S.t * 0.35), s.cz + s.r * Math.cos(a));
+    camera.lookAt(s.cx, 1.2, s.cz);
+  };
+
+  // first background: a random map, unless a room link is opening the lobby
+  let linked = !1;
+  try {
+    linked = !!new URLSearchParams(location.search).get("room");
+  } catch (e) {}
+  if (!linked && typeof MAP_LIST !== "undefined")
+    try {
+      loadMap(MAP_LIST[Math.floor(Math.random() * MAP_LIST.length)].key);
+    } catch (e) {}
 })();
 </script>
