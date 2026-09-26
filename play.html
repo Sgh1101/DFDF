@@ -6473,12 +6473,15 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
       // a fixed-size marker over the head, so far enemies are not lost as specks
       if (on && !g._xrDot) {
         const d = new T.Sprite(new T.SpriteMaterial({ map: glowTex(), color: 0xff2e44, depthTest: !1, depthWrite: !1, transparent: !0, sizeAttenuation: !1 }));
-        d.scale.setScalar(0.035);
+        d.scale.setScalar(0.065);
         d.position.y = 2.35;
         d.renderOrder = 997;
         d.userData.noMerge = !0;
-        g.add(d);
-        g._xrDot = d;
+        // inside its own group: the reveal code resets depthTest on direct children
+        const w = new T.Group();
+        w.add(d);
+        g.add(w);
+        g._xrDot = w;
       }
       g._xrDot && (g._xrDot.visible = on);
       if (g._xr === on) continue;
