@@ -6133,7 +6133,7 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
   document.head.appendChild(st);
 })();
 </script>
-<script>window.AB_R=1.4;window.AB_D=1.35;window.AB_SM=1.25;window.AB_SP=1.25;
+<script>window.AB_R=1.8;window.AB_D=1.7;window.AB_SM=1.4;window.AB_SP=1.4;
 (() => {
   // Ability reach and areas, scaled up for the wide maps. Every ability goes
   // through these helpers, so one multiplier covers throws, aim points,
@@ -6205,4 +6205,4 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
       ab.desc && !ab._rs && ((ab._rs = 1), (ab.desc = ab.desc.replace(/(\d+(?:\.\d+)?)m/g, (m, n) => fmt(+n * (/앞|거리|사거리|날아|멀리/.test(ab.desc) ? D : R)) + "m")));
 })();
 </script>
-<script>window.BLINK_RANGE=40;for(const g of AGENTS)for(const b of g.abilities)"blink"===b.type&&(b.desc="조준한 곳으로 최대 40m 순간이동.");</script>
+<script>window.BLINK_RANGE=90;for(const g of AGENTS)for(const b of g.abilities)"blink"===b.type&&(b.desc="조준한 곳으로 최대 90m 순간이동.");</script>
