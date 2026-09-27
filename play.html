@@ -7427,6 +7427,26 @@ body.touching #chk-chip.flash{animation:none}
 </script>
 <script>
 (() => {
+  // (the shop grid squeezed its rows to the screen height on phones, so the
+  //  columns spilled into each other; rows now take their content height
+  //  and the grid scrolls — see the style block)
+
+  // 0. Turning touch controls off and on again bound every touch button a
+  //    second time (the settings gear then opened and closed on one tap).
+  //    Bind once; later calls only show the controls again.
+  const _et = enableTouch;
+  let bound = !1;
+  enableTouch = function () {
+    if (!bound) return (bound = !0), _et.apply(this, arguments);
+    if (touch.on) return;
+    touch.on = !0;
+    const t = document.getElementById("touch");
+    t && (t.hidden = !1);
+  };
+  try {
+    touch.on && (bound = !0);
+  } catch (e) {}
+
   // 1. Touch controls start off. The old M shortcut flipped them on by
   //    accident and the choice was saved, so clear that once for everyone;
   //    after this, whatever is picked in settings sticks.
@@ -7438,7 +7458,8 @@ body.touching #chk-chip.flash{animation:none}
     }
   } catch (e) {}
 
-  // 2. a small settings button right under the minimap
+  // 2. a small settings button right under the minimap (touch controls
+  //    already have a gear in the top-right strip, so only without them)
   const mini = document.getElementById("mini");
   if (!mini) return;
   const b = document.createElement("button");
@@ -7456,11 +7477,11 @@ body.touching #chk-chip.flash{animation:none}
   // in <body> above the "click to play" cover, below the pause screen
   document.body.appendChild(b);
   const shop = document.getElementById("shop");
-  let last = "";
+  let last = null;
   (function place() {
     requestAnimationFrame(place);
     const r = mini.getBoundingClientRect();
-    const show = r.width > 0 && getComputedStyle(mini).display !== "none" && "menu" !== world.phase && !(shop && !shop.hidden);
+    const show = r.width > 0 && getComputedStyle(mini).display !== "none" && "menu" !== world.phase && !(shop && !shop.hidden) && !IS_TOUCH;
     const key = show ? `${Math.round(r.left)},${Math.round(r.bottom)},${Math.round(r.width)}` : "";
     if (key === last) return;
     last = key;
@@ -7475,7 +7496,10 @@ body.touching #chk-chip.flash{animation:none}
 #mini-set{position:fixed;transform:translateX(-50%);z-index:36;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(8,11,16,.72);color:#aeb9c9;font:600 10.5px/1.2 'Noto Sans KR',sans-serif;cursor:pointer;pointer-events:auto;white-space:nowrap}
 #mini-set:hover{color:#fff;border-color:rgba(255,255,255,.3)}
 #mini-set svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-#mini-set[hidden]{display:none}`;
+#mini-set[hidden]{display:none}
+#shop .shop-grid{grid-template-rows:none!important;grid-auto-rows:max-content!important;align-content:start;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#shop .shop-col{min-height:max-content}
+@media (max-width:379px) and (orientation:portrait){body.touching #hud #mini{width:74px!important;height:74px!important}body.touching #hud #stick{width:calc(100px*var(--mbs))!important;height:calc(100px*var(--mbs))!important;left:calc(env(safe-area-inset-left) + 3%)!important}}`;
   document.head.appendChild(st);
 })();
 </script>
