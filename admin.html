@@ -61,7 +61,7 @@ td .acts button{padding:3px 8px;font-size:12px}
 <body>
 <div class="login" id="login">
   <h1>운영자 전용</h1>
-  <p>최고 관리자 비밀번호</p>
+  <p>최고 관리자 비밀번호 (한글 자판 상태로 쳐도 됩니다)</p>
   <input id="pw" type="password" autocomplete="current-password" autofocus>
   <button class="go" id="go">들어가기</button>
   <div class="err" id="lerr"></div>
@@ -96,9 +96,13 @@ async function call(a, b = {}) {
   if (!j.ok) { if (r.status === 401 && a.startsWith("a_")) logout(); throw new Error(j.error || "실패"); }
   return j;
 }
+// typed with the Korean keyboard on: 박현서 → the keys that were pressed
+const CHO = "r R s e E f a q Q t T d w W c z x v g".split(" "), JUNG = "k o i O j p u P h hk ho hl y n nj np nl b m ml l".split(" "), JONG = ",r,R,rt,s,sw,sg,e,f,fr,fa,fq,ft,fx,fv,fg,a,q,qt,t,T,d,w,c,z,x,v,g".split(",");
+const JAMO = { ㄱ: "r", ㄲ: "R", ㄳ: "rt", ㄴ: "s", ㄵ: "sw", ㄶ: "sg", ㄷ: "e", ㄸ: "E", ㄹ: "f", ㄺ: "fr", ㄻ: "fa", ㄼ: "fq", ㄽ: "ft", ㄾ: "fx", ㄿ: "fv", ㅀ: "fg", ㅁ: "a", ㅂ: "q", ㅃ: "Q", ㅄ: "qt", ㅅ: "t", ㅆ: "T", ㅇ: "d", ㅈ: "w", ㅉ: "W", ㅊ: "c", ㅋ: "z", ㅌ: "x", ㅍ: "v", ㅎ: "g", ㅏ: "k", ㅐ: "o", ㅑ: "i", ㅒ: "O", ㅓ: "j", ㅔ: "p", ㅕ: "u", ㅖ: "P", ㅗ: "h", ㅘ: "hk", ㅙ: "ho", ㅚ: "hl", ㅛ: "y", ㅜ: "n", ㅝ: "nj", ㅞ: "np", ㅟ: "nl", ㅠ: "b", ㅡ: "m", ㅢ: "ml", ㅣ: "l" };
+const keysOf = (s) => [...s].map((c) => { const n = c.charCodeAt(0) - 0xac00; if (n >= 0 && n < 11172) return CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)] + JONG[n % 28]; return JAMO[c] || c; }).join("");
 async function login() {
   $("#lerr").textContent = "";
-  try { const j = await call("admin_login", { pw: $("#pw").value }); AT = j.token; sessionStorage.setItem("adm_t", AT); start(); }
+  try { const j = await call("admin_login", { pw: keysOf($("#pw").value.trim()) }); AT = j.token; sessionStorage.setItem("adm_t", AT); start(); }
   catch (e) { $("#lerr").textContent = e.message; }
 }
 function logout() { AT = ""; sessionStorage.removeItem("adm_t"); $("#app").hidden = !0; $("#login").hidden = !1; }
