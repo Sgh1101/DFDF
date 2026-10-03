@@ -106,7 +106,7 @@ async function login() {
   catch (e) { $("#lerr").textContent = e.message; }
 }
 function logout() { AT = ""; sessionStorage.removeItem("adm_t"); $("#app").hidden = !0; $("#login").hidden = !1; }
-$("#go").onclick = login; $("#pw").onkeydown = (e) => e.key === "Enter" && login(); $("#out").onclick = logout;
+$("#go").onclick = login; $("#pw").onkeydown = (e) => { if (e.key === "Enter") login(); }; $("#out").onclick = logout;
 let view = "dash", timer = null;
 $("#nav").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; view = b.dataset.v; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x === b)); show(); };
 function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); }
@@ -157,7 +157,7 @@ VIEWS.users = async () => {
       await call("a_user_set", p); toast("적용했습니다"); load();
     };
   };
-  $("#us").onclick = load; $("#uq").onkeydown = (e) => e.key === "Enter" && load();
+  $("#us").onclick = load; $("#uq").onkeydown = (e) => { if (e.key === "Enter") load(); };
   await load();
 };
 VIEWS.rooms = async () => {
@@ -201,7 +201,7 @@ VIEWS.logs = async () => {
   $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;
   const load = async () => { const j = await call("a_logs", { type: $("#lt").value, q: $("#lq").value, limit: 2000 });
     $("#ll").innerHTML = `<table class="log"><tr><th>시각</th><th>종류</th><th>내용</th><th>IP</th></tr>${j.logs.map((r) => `<tr><td>${when(r.t)}</td><td><span class="tag">${esc(r.type)}</span></td><td>${esc(r.msg)}</td><td>${esc(r.ip || "")}</td></tr>`).join("")}</table>`; };
-  $("#lr").onclick = load; $("#lt").onchange = load; $("#lq").onkeydown = (e) => e.key === "Enter" && load();
+  $("#lr").onclick = load; $("#lt").onchange = load; $("#lq").onkeydown = (e) => { if (e.key === "Enter") load(); };
   $("#lc").onclick = async () => { if (confirm("로그를 모두 지울까요?")) { await call("a_logs_clear"); load(); } };
   await load();
 };

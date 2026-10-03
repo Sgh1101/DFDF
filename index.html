@@ -200,6 +200,10 @@ function paintLang() {
 }
 $("#lang").onclick = () => { L = L === "ko" ? "en" : "ko"; localStorage.setItem("lgp_lang", L); paintLang(); };
 
+// a password typed with the Korean keyboard on counts as the keys pressed (박현서 = qkrgustj)
+const CHO = "r R s e E f a q Q t T d w W c z x v g".split(" "), JUNG = "k o i O j p u P h hk ho hl y n nj np nl b m ml l".split(" "), JONG = ",r,R,rt,s,sw,sg,e,f,fr,fa,fq,ft,fx,fv,fg,a,q,qt,t,T,d,w,c,z,x,v,g".split(",");
+const JAMO = { ㄱ: "r", ㄲ: "R", ㄳ: "rt", ㄴ: "s", ㄵ: "sw", ㄶ: "sg", ㄷ: "e", ㄸ: "E", ㄹ: "f", ㄺ: "fr", ㄻ: "fa", ㄼ: "fq", ㄽ: "ft", ㄾ: "fx", ㄿ: "fv", ㅀ: "fg", ㅁ: "a", ㅂ: "q", ㅃ: "Q", ㅄ: "qt", ㅅ: "t", ㅆ: "T", ㅇ: "d", ㅈ: "w", ㅉ: "W", ㅊ: "c", ㅋ: "z", ㅌ: "x", ㅍ: "v", ㅎ: "g", ㅏ: "k", ㅐ: "o", ㅑ: "i", ㅒ: "O", ㅓ: "j", ㅔ: "p", ㅕ: "u", ㅖ: "P", ㅗ: "h", ㅘ: "hk", ㅙ: "ho", ㅚ: "hl", ㅛ: "y", ㅜ: "n", ㅝ: "nj", ㅞ: "np", ㅟ: "nl", ㅠ: "b", ㅡ: "m", ㅢ: "ml", ㅣ: "l" };
+const keysOf = (s) => [...s].map((c) => { const n = c.charCodeAt(0) - 0xac00; if (n >= 0 && n < 11172) return CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)] + JONG[n % 28]; return JAMO[c] || c; }).join("");
 const device = (() => { let d = localStorage.getItem("lgp_device"); if (!d) { d = "d" + crypto.getRandomValues(new Uint32Array(3)).join("").slice(0, 24); localStorage.setItem("lgp_device", d); } return d; })();
 let S = null; try { S = JSON.parse(localStorage.getItem("lgp_session") || "null"); } catch (e) {}
 let CFG = null, OFFLINE = !1, ROOMS = [], CH = localStorage.getItem("lgp_ch") || "";
@@ -251,7 +255,7 @@ function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("rea
 async function auth(guest) {
   $("#aerr").textContent = "";
   try {
-    const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: $("#upw").value, device });
+    const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
     save({ token: j.token, user: j.user });
     enter();
   } catch (e) {
@@ -261,7 +265,7 @@ async function auth(guest) {
   }
 }
 $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
-$("#upw").onkeydown = (e) => e.key === "Enter" && auth(!1);
+$("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
 let roomTimer = null;
 async function loadRooms() { try { ROOMS = (await api("rooms")).rooms; } catch (e) { ROOMS = []; } drawChannels(); drawRooms(); }
 function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInterval(roomTimer); roomTimer = setInterval(loadRooms, 6000); }
