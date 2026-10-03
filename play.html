@@ -4,6 +4,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0d12">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
@@ -7824,6 +7827,36 @@ body.touching #chk-chip.flash{animation:none}
     const dm = GAME_MODES.dm;
     dm.noAbil = !1;
     dm.sub = "개인전 40킬 · 부활 · 능력 사용";
+  } catch (e) {}
+})();
+</script>
+<script>
+(() => {
+  // Installed as an app (Play Store / home screen): register the service
+  // worker, and on a phone's first launch turn the touch controls on, since
+  // nobody plays the app with a mouse. After that the settings switch rules.
+  try {
+    "serviceWorker" in navigator && /^https?:/.test(location.protocol) && navigator.serviceWorker.register("/sw.js").catch(() => {});
+  } catch (e) {}
+  const isApp = () => {
+    try {
+      return (
+        matchMedia("(display-mode: fullscreen)").matches ||
+        matchMedia("(display-mode: standalone)").matches ||
+        /^android-app:\/\//.test(document.referrer || "") ||
+        /[?&]source=app\b/.test(location.search)
+      );
+    } catch (e) {
+      return !1;
+    }
+  };
+  window.IS_APP = isApp();
+  try {
+    const touchy = (navigator.maxTouchPoints || 0) > 0 && matchMedia("(pointer: coarse)").matches;
+    if (window.IS_APP && touchy && !localStorage.getItem("lgp_app_touch")) {
+      localStorage.setItem("lgp_app_touch", "1");
+      IS_TOUCH || setTouchMode(!0);
+    }
   } catch (e) {}
 })();
 </script>
