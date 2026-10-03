@@ -8599,6 +8599,11 @@ body.touching #chk-chip.flash{animation:none}
   // r: round token, v: code version, b: wall index of the building
   const HUNT = { r: 0, v: 0, code: "", b: -1, key: "", unlocked: !1 };
   const OK = new Set(); // host: guests whose code was accepted this round
+  // the owner's rules (admin page → /api/v1 config), with the built-in defaults
+  const CDEF = { enabled: !0, codeLength: 4, startAtMiddle: !0, moveAfterUse: !0, resetEachRound: !0, wrongWaitSec: 2, refillSec: 5, ultInfinite: !1, allow: {}, maxSpeed: 3, maxFastFire: 10 };
+  const C = () => Object.assign({}, CDEF, (window.SERVER_CFG && window.SERVER_CFG.cheat) || {});
+  const allowed = (k) => !1 !== (C().allow || {})[k];
+  const LEN = () => Math.max(3, Math.min(6, C().codeLength | 0 || 4));
 
   const rnd = () => {
     try {
@@ -8607,7 +8612,11 @@ body.touching #chk-chip.flash{animation:none}
       return (Math.random() * 4294967296) >>> 0;
     }
   };
-  const newCode = () => String(rnd() % 10000).padStart(4, "0");
+  const newCode = () => {
+    let s = "";
+    for (let i = 0; i < LEN(); i++) s += rnd() % 10;
+    return s;
+  };
 
   // ── buildings that can carry the digits ──
   const free = (x, z, r) => !MAP.walls.some((w) => Math.abs(x - w.x) < w.w / 2 + r && Math.abs(z - w.z) < w.d / 2 + r);
@@ -8698,14 +8707,14 @@ body.touching #chk-chip.flash{animation:none}
   }
   function placeSigns() {
     removeSigns();
-    if (!HUNT.code || !MAP || !MAP.walls || CUR_MAP_KEY !== HUNT.key || ("object" == typeof FLY && FLY.on)) return;
+    if (!HUNT.code || !C().enabled || !MAP || !MAP.walls || CUR_MAP_KEY !== HUNT.key || ("object" == typeof FLY && FLY.on)) return;
     const w = MAP.walls[HUNT.b];
     if (!w) return;
     const f = faces(w);
     if (!f.length) return;
     // one digit per side; a building with fewer free sides takes them in a row
     const per = f.map(() => []);
-    for (let i = 0; i < 4; i++) per[i % f.length].push(i);
+    for (let i = 0; i < HUNT.code.length; i++) per[i % f.length].push(i);
     const y = Math.max(1.2, Math.min(2.2, w.h - 0.95));
     per.forEach((idxs, k) => {
       const s = f[k],
@@ -8745,12 +8754,15 @@ body.touching #chk-chip.flash{animation:none}
     for (const a of world.actors || []) "me" !== a.ctrl && a._kit && a.agent && A2.setKit(a, a.agent);
   }
   const sendHunt = () => isHostNet() && HUNT.r && sendEventAll({ t: "hunt", r: HUNT.r, v: HUNT.v, c: HUNT.code, b: HUNT.b, k: HUNT.key });
+  let matchNew = !0;
   function newRound() {
+    if (!C().resetEachRound && !matchNew && HUNT.code) return;
+    matchNew = !1;
     HUNT.r = rnd() || 1;
     HUNT.v = 1;
     HUNT.code = newCode();
     HUNT.key = CUR_MAP_KEY;
-    HUNT.b = middleBuilding();
+    HUNT.b = C().startAtMiddle ? middleBuilding() : otherBuilding(-1);
     dropGuests();
     relock();
     placeSigns();
@@ -8763,6 +8775,11 @@ body.touching #chk-chip.flash{animation:none}
     placeSigns();
     sendHunt();
   }
+  const _ls = lobbyStart;
+  lobbyStart = function () {
+    matchNew = !0;
+    return _ls.apply(this, arguments);
+  };
   const _sr = startRound;
   startRound = function () {
     const r = _sr.apply(this, arguments);
@@ -8793,12 +8810,13 @@ body.touching #chk-chip.flash{animation:none}
   function refill(a) {
     if (!a || !a.alive || !a.abilities) return;
     for (const x of a.abilities) x.def && !x.def.ult && ((x.cd = 0), (x.charges = Math.max(x.charges || 0, x.def.charges || 1)));
+    C().ultInfinite && (a.ultCharge = a.ultMax || 5);
   }
   const _st = step;
   step = function (dt) {
     const r = _st.apply(this, arguments);
     try {
-      if ("menu" !== world.phase && (cheatT += dt || 0) >= 5) {
+      if ("menu" !== world.phase && (cheatT += dt || 0) >= Math.max(0, +C().refillSec || 0)) {
         cheatT = 0;
         if (!isClient()) for (const a of world.actors || []) { const f = A2.flagsFor(a); f && f.cheat && refill(a); }
         else A2.P.cheat && refill(myActor());
@@ -8822,8 +8840,8 @@ body.touching #chk-chip.flash{animation:none}
       if (e.ok && e.r === HUNT.r) {
         HUNT.unlocked = !0;
         refresh(!0);
-        banner("치트가 열렸습니다 · 이번 라운드만", "#ffc849");
-      } else wrongCode(e.late ? "한발 늦었습니다. 비밀번호가 다른 곳으로 옮겨졌습니다" : "틀렸습니다");
+        banner(E("치트가 열렸습니다 · 이번 라운드만", "Cheats unlocked · this round only"), "#ffc849");
+      } else wrongCode(e.late ? E("한발 늦었습니다. 비밀번호가 다른 곳으로 옮겨졌습니다", "Too late — the code has moved somewhere else") : E("틀렸습니다", "Wrong code"));
       return;
     }
     return _oe(e);
@@ -8831,10 +8849,10 @@ body.touching #chk-chip.flash{animation:none}
   const _oa = NET.onAction;
   NET.onAction = (peer, msg) => {
     if (msg && "hunt-try" === msg.t) {
-      const ok = msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
+      const ok = C().enabled && msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
       const late = !ok && msg.r === HUNT.r && msg.v !== HUNT.v;
       sendEventTo(peer, { t: "hunt-ans", ok, late, r: HUNT.r });
-      if (ok) OK.add(peer), rotate();
+      if (ok) OK.add(peer), C().moveAfterUse && rotate();
       return;
     }
     // cheat switches from a guest the host has not let in do nothing
@@ -8842,8 +8860,27 @@ body.touching #chk-chip.flash{animation:none}
       A2.PEERS.delete(peer);
       return;
     }
+    if (msg && "padm" === msg.t && msg.p) msg = Object.assign({}, msg, { p: tame(Object.assign({}, msg.p)) });
     return _oa(peer, msg);
   };
+  function tame(p) {
+    const c = C();
+    for (const k in DEF) allowed(k) || (p[k] = DEF[k]);
+    null != p.speed && (p.speed = Math.min(+p.speed || 1, c.maxSpeed));
+    null != p.fastFire && (p.fastFire = Math.min(+p.fastFire || 1, c.maxFastFire));
+    return p;
+  }
+  // my own switches too (checked every second)
+  setInterval(() => {
+    try {
+      const P = A2.P,
+        want = tame(Object.assign({}, P));
+      let ch = !1;
+      for (const k in DEF) P[k] !== want[k] && (A2.setPersonal(k, want[k]), (ch = !0));
+      !C().enabled && HUNT.unlocked && relock();
+      ch && A2.afterChange();
+    } catch (e) {}
+  }, 1000);
   let acc = 0;
   const _ns = netStep;
   netStep = function (dt) {
@@ -8865,6 +8902,7 @@ body.touching #chk-chip.flash{animation:none}
     tabBtn("me").innerHTML = "치트 <small>비밀번호</small>";
     tabBtn("global").innerHTML = "관리자 <small>🔒</small>";
   }
+  const E = (ko, en) => ("en" === window.GAME_LANG ? en : ko);
   const inMatch = () => "menu" !== world.phase && !!HUNT.code;
   openAdmin = function () {
     $("admin").hidden = !1;
@@ -8880,7 +8918,7 @@ body.touching #chk-chip.flash{animation:none}
   window.adminPassOk = () => !1;
   let waitT = 0;
   function wrongCode(msg) {
-    waitT = performance.now() + 2000;
+    waitT = performance.now() + 1000 * Math.max(0, +C().wrongWaitSec || 0);
     const err = $("ht-err");
     err && ((err.hidden = !1), (err.textContent = msg || "틀렸습니다"));
     const p = $("ht-pass");
@@ -8894,18 +8932,18 @@ body.touching #chk-chip.flash{animation:none}
       sendAction({ t: "hunt-try", r: HUNT.r, v: HUNT.v, c: v });
       return;
     }
-    if (v === HUNT.code) {
+    if (C().enabled && v === HUNT.code) {
       HUNT.unlocked = !0;
-      rotate();
+      C().moveAfterUse && rotate();
       refresh(!0);
-      banner("치트가 열렸습니다 · 이번 라운드만", "#ffc849");
-    } else wrongCode("틀렸습니다");
+      banner(E("치트가 열렸습니다 · 이번 라운드만", "Cheats unlocked · this round only"), "#ffc849");
+    } else wrongCode(E("틀렸습니다", "Wrong code"));
   }
   function lockBox() {
     const d = document.createElement("div");
     d.className = "ht-lock";
     d.innerHTML =
-      '<div class="ht-nums"><b>①</b><b>②</b><b>③</b><b>④</b></div><div class="ht-row"><input id="ht-pass" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"><button class="btn btn-go" id="ht-go">열기</button></div><div class="ht-err" id="ht-err" hidden>틀렸습니다</div>';
+      `<div class="ht-nums">${"①②③④⑤⑥".slice(0, LEN()).split("").map((c) => "<b>" + c + "</b>").join("")}</div><div class="ht-row"><input id="ht-pass" type="password" inputmode="numeric" maxlength="${LEN()}" autocomplete="off" placeholder="${"•".repeat(LEN())}"><button class="btn btn-go" id="ht-go">열기</button></div><div class="ht-err" id="ht-err" hidden>틀렸습니다</div>`;
     const inp = d.querySelector("#ht-pass");
     d.querySelector("#ht-go").onclick = () => tryCode(inp.value);
     inp.addEventListener("keydown", (e) => {
@@ -8936,25 +8974,45 @@ body.touching #chk-chip.flash{animation:none}
       def = $("ad-default");
     out && ((out.hidden = "me" !== t || !HUNT.unlocked), (out.textContent = "치트 잠그기"));
     def && (def.hidden = "me" !== t || !HUNT.unlocked);
+    if ("global" === t && window.ADMIN_GRANTED) {
+      note && (note.innerHTML = E("<b>관리자 모드</b> · 운영자가 열어 준 기간 동안 쓸 수 있습니다. ", "<b>Admin mode</b> · open for the period the operator granted. ") + (isClient() ? E("방 설정은 방장만 바꿀 수 있습니다.", "Only the host can change room settings.") : E("방 전체에 적용됩니다.", "Applies to the whole room.")));
+      return;
+    }
     if ("global" === t) {
-      // admin mode: nobody, for now
+      // admin mode: nobody unless the owner opened it for this account
       $("ad-panel").classList.remove("ad-locked");
       grid && (grid.innerHTML = "");
       tg && (tg.innerHTML = "");
-      note && (note.innerHTML = "<b>관리자 모드는 잠겨 있습니다.</b> 이용권(한 달)으로 열리게 될 예정입니다.");
+      note && (note.innerHTML = E("<b>관리자 모드는 잠겨 있습니다.</b> 운영자가 열어 준 계정만 쓸 수 있습니다.", "<b>Admin mode is locked.</b> Only accounts the operator opened it for can use it."));
       return;
     }
     if (HUNT.unlocked) {
-      note && (note.innerHTML = "<b>이번 라운드에만</b> 열려 있습니다. 나에게만 적용되고 다른 사람 화면에는 아무 표시도 없습니다. 다음 라운드에는 비밀번호를 다시 찾아야 합니다.");
+      // switches the owner has not allowed are not offered
+      const NAMES = { radar: "작은 지도에 적 표시", wall: "벽 너머 적 보기", cheat: "치트 모드", god: "무적", oneShot: "한 방 처치", infAmmo: "탄약 무제한", noRecoil: "반동 없음", speed: "내 이동 속도", fastFire: "내 연사 속도" };
+      for (const k in NAMES) {
+        if (allowed(k)) continue;
+        document.querySelectorAll("#ad-toggles .ad-tg, #ad-grid .ad-item").forEach((n) => n.textContent.includes(NAMES[k]) && n.remove());
+      }
+      note && (note.innerHTML = E("<b>이번 라운드에만</b> 열려 있습니다. 나에게만 적용되고 다른 사람 화면에는 아무 표시도 없습니다. 다음 라운드에는 비밀번호를 다시 찾아야 합니다.", "Open <b>for this round only</b>. Only you are affected and nobody else sees anything. Next round you have to find the code again."));
       return;
     }
     grid && (grid.innerHTML = "");
     tg && (tg.innerHTML = "");
     if (!note) return;
-    if (!inMatch()) note.innerHTML = "경기를 시작하면 맵 한가운데 건물에 <b>치트 비밀번호</b>가 그려집니다.";
+    if (!C().enabled) note.innerHTML = E("<b>운영자가 치트를 꺼 두었습니다.</b>", "<b>The operator has switched cheats off.</b>");
+    else if (!inMatch()) note.innerHTML = E("경기를 시작하면 맵 한가운데 건물에 <b>치트 비밀번호</b>가 그려집니다.", "Once a match starts, the <b>cheat code</b> is painted on the building in the middle of the map.");
     else {
       note.innerHTML =
-        "치트 비밀번호 4자리는 <b>맵 어딘가의 건물 벽</b>에 ①②③④로 그려져 있습니다. 라운드가 시작되면 맵 한가운데 건물에 있고, <b>누가 한 번 쓰면 번호가 바뀌어 다른 건물로 옮겨갑니다.</b> 라운드마다 초기화됩니다.";
+        E(
+          `치트 비밀번호 ${LEN()}자리는 <b>맵 어딘가의 건물 벽</b>에 ${"①②③④⑤⑥".slice(0, LEN())}로 그려져 있습니다. ` +
+            (C().startAtMiddle ? "라운드가 시작되면 맵 한가운데 건물에 있고, " : "") +
+            (C().moveAfterUse ? "<b>누가 한 번 쓰면 번호가 바뀌어 다른 건물로 옮겨갑니다.</b> " : "") +
+            (C().resetEachRound ? "라운드마다 초기화됩니다." : "경기마다 새로 정해집니다."),
+          `The ${LEN()}-digit cheat code is painted as ${"①②③④⑤⑥".slice(0, LEN())} <b>on the walls of a building</b>. ` +
+            (C().startAtMiddle ? "Each round it starts on the building in the middle of the map; " : "") +
+            (C().moveAfterUse ? "<b>once someone uses it, it changes and moves to another building.</b> " : "") +
+            (C().resetEachRound ? "It resets every round." : "It is new every match.")
+        );
       grid && grid.appendChild(lockBox());
     }
   }
@@ -8990,5 +9048,363 @@ body.touching #chk-chip.flash{animation:none}
 #ad-lockout[hidden],#ad-default[hidden]{display:none}`;
   document.head.appendChild(st);
   window.HUNT_STATE = () => ({ r: HUNT.r, v: HUNT.v, b: HUNT.b, key: HUNT.key, unlocked: HUNT.unlocked, signs: signs.length, guestsOk: OK.size });
+})();
+</script>
+<script>
+(() => {
+  // Accounts and the owner, on the game side: the signed-in name, the owner's
+  // settings (cheat rules, forced room rules, maintenance, notice), bans, the
+  // public room list (a host reports its room every few seconds and picks up
+  // the owner's commands: kick, move, message, close), experience after each
+  // match, a room opened from the homepage, and English text.
+  const API = "/api/v1";
+  const $ = (id) => document.getElementById(id);
+  const online = /^https?:/.test(location.protocol);
+  let S = null;
+  try {
+    S = JSON.parse(localStorage.getItem("lgp_session") || "null");
+  } catch (e) {}
+  const token = () => (S && S.token) || "";
+  async function api(a, b) {
+    const r = await fetch(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : void 0 });
+    const j = await r.json().catch(() => ({ ok: !1, error: "offline" }));
+    if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban });
+    return j;
+  }
+  const params = new URLSearchParams(location.search);
+
+  // ── English ──
+  const LANG = (() => {
+    try {
+      return localStorage.getItem("lgp_lang") || "ko"; // the homepage stores the choice
+    } catch (e) {
+      return "ko";
+    }
+  })();
+  window.GAME_LANG = LANG;
+  const DICT = {"휠":"Wheel","뒤로":"Back","확인":"OK","장전":"Reload","시점":"View","처치":"Kills","참가":"Join","조작":"Controls","사격":"Fire","사망":"Deaths","공격":"Attack","닫기":"Close","권총":"Pistol","승리":"Victory","모드":"Mode","조준":"Aim","설정":"Settings","점프":"Jump","상점":"Shop","소리":"Sound","준비":"Ready","체력":"Health","수비":"Defense","재장전":"Reload","좌클릭":"Left click","명중률":"Accuracy","우클릭":"Right click","마우스":"Mouse","그래픽":"Graphics","피해량":"Damage","방어구":"Armor","기본값":"Default","잠그기":"Lock","효과음":"Sound effects","라운드":"Round","나가기":"Leave","관리자":"Admin","맵 구경":"Map tour","하강 ·":"Down ·","처음으로":"Home","맵 장치":"Map gadgets","원점으로":"Reset view","사망 시":"When dead","걷기 ·":"Walk ·","무기 ·":"Weapons ·","사격 ·":"Fire ·","이동 ·":"Move ·","일시정지":"Paused","조준 ·":"Aim ·","능력 ·":"Abilities ·","계속하기":"Resume","상점 ·":"Shop ·","상승 ·":"Up ·","링크 복사":"Copy link","혼자 하기":"Play solo","전술 지도":"Tactical map","맵 바꾸기":"Change map","코드 복사":"Copy code","요원 선택":"Choose agent","피해 숫자":"Damage numbers","초대 코드":"Invite code","화면 연출":"Effects","장비 구매":"Buy gear","연출 강도":"Effect strength","터치 감도":"Touch sensitivity","AI 자리":"AI slot","설치/해제":"Plant/Defuse","교전 시작":"Start match","전투 투입":"Deploy","맵 디테일":"Map detail","다시 하기":"Play again","AI 난이도":"AI difficulty","새로워진 점":"What's new","사격 연습장":"Shooting range","커스텀 게임":"Custom game","전부 기본값":"Reset all","궁극기 컷인":"Ultimate cut-in","모바일 조작":"Mobile controls","관리자 모드":"Admin mode","FPS 표시":"Show FPS","화면 흔들림":"Screen shake","총성·처치음":"Gunshot & kill sounds","동적 해상도":"Dynamic resolution","마우스 감도":"Mouse sensitivity","닫기 (B)":"Close (B)","관전 준비 중":"Getting ready to spectate","속도 조절 ·":"Speed ·","관리자 조절판":"Admin panel","조준 시 감도":"Aim sensitivity","게임 모드 5종":"5 game modes","AI 전부 빼기":"Remove all AI","스파이크 설치 중":"Planting spike","초대 코드로 참가":"Join with code","나가기 (ESC)":"Leave (ESC)","이 요원으로 시작":"Start with this agent","화면을 클릭하세요":"Click the screen","길게 — 설치/해제":"Hold — plant/defuse","빈 자리 전부 AI":"Fill empty slots with AI","커스텀 게임 만들기":"Create custom game","시점 고정/해제 ·":"Lock/unlock view ·","이 요원으로 시작 ›":"Start with this agent ›","팀 안에서 중복 불가":"No duplicates within a team","비밀번호를 입력하세요":"Enter the password","비밀번호가 틀렸습니다":"Wrong password","클릭으로 아군 시점 전환":"Click to switch to a teammate's view","궁 사용 시 전체 화면 연출":"Full-screen effect on ultimates","화면 왼쪽 위에 초당 프레임":"Frames per second in the top left","피격·폭발 시 카메라 흔들림":"Camera shake on hits and blasts","숫자를 직접 입력해도 됩니다":"You can type numbers directly","빈 자리를 눌러 팀을 옮기고,":"Tap an empty slot to switch teams,","설정 (감도 · 모바일 조작)":"Settings (sensitivity · mobile controls)","마우스 대신 모바일 조작 쓰기":"Use mobile controls instead of a mouse","열네 명 중 한 명을 고르십시오":"Pick your agent","10개 맵 전부 새로 꾸몄습니다":"All maps redecorated","구매 단계에만 이용할 수 있습니다":"Only available during the buy phase","마우스를 고정해야 시야가 돌아갑니다":"Lock the mouse to look around","AI 대전 · 모드 5종 · 맵 10종":"Versus AI · 5 modes · 40 maps","순간이동 발판 · 여닫이 문 · 집라인":"Teleport pads · doors · ziplines","끄면 조이스틱과 터치 버튼이 사라집니다":"Turn off to hide the joystick and touch buttons","친구를 초대하고 빈자리는 AI로 채웁니다":"Invite friends; AI fills empty slots","오리지널 요원과 맵으로 제작된 팬 게임입니다":"A game with original agents and maps","맞힌 적 위로 준 피해가 뜬다 (머리는 노란색)":"Damage shows over enemies you hit (headshots in yellow)","프레임이 떨어지면 해상도를 잠깐 낮춰 끊김을 막는다":"Lowers resolution briefly when frames drop","신속플레이 · 스파이크 돌격 · 팀 데스매치 · 데스매치":"Swift · Spike Rush · Team Deathmatch · Deathmatch","좌클릭 / 우클릭 · 다음 아군 시점  ·  라운드 종료까지 대기":"Left / right click · next teammate · wait for the round to end","칸을 눌러 봇을 켜고 끕니다. 비워둔 자리는 아무도 안 들어갑니다.":"Tap a slot to toggle a bot. Empty slots stay empty.","요원 14명 · 모드 5종 · 맵 10종 · 게임 중 화면을 클릭하면 시야가 고정됩니다":"24 agents · 5 modes · 40 maps · click the screen in game to lock the view","사이트를 두고 벌이는 5대5 전술 교전. 열네 요원의 능력으로 각을 열고, 연막으로 시야를 지우고, 스파이크로 승부를 낸다.":"5v5 tactical fights over the sites. Open angles with abilities, blind with smokes, settle it with the spike.","점":"Dot","원":"Circle","색":"Color","플":"Plus","앉기":"Crouch","모양":"Shape","십자":"Cross","T자":"T-shape","길이":"Length","두께":"Thickness","간격":"Gap","장비":"Gear","무료":"Free","기본":"Basic","빡셈":"Brutal","빼기":"Remove","순한맛":"Mild","불투명도":"Opacity","비밀번호":"Password","AI 봇":"AI bot","가운데 점":"Center dot","요원 변경":"Change agent","신속플레이":"Swift play","₩ 무제한":"₩ Unlimited","검은 테두리":"Black outline","🎲 무작위":"🎲 Random","M · 닫기":"M · Close","경량 방어구":"Light armor","중형 방어구":"Heavy armor","선택한 요원":"Selected agent","조준점 기본값":"Default crosshair","치트 비밀번호":"Cheat code","근접 · 보조":"Melee · Sidearm","터치 버튼 크기":"Touch button size","움직이면 벌어짐":"Spreads when moving","요원 자동 배정":"Auto-assign agents","터치 버튼 투명도":"Touch button opacity","기관총 · 저격총":"Machine guns · Snipers","기관단총 · 산탄총":"SMGs · Shotguns","맵 40종 · 요원 24명":"40 maps · 24 agents","스물네 명 중 한 명을 고르십시오":"Pick one of 24 agents","AI 대전 · 모드 5종 · 맵 40종":"Versus AI · 5 modes · 40 maps","새 맵 30개와 새 요원 10명이 추가되었습니다":"30 new maps and 10 new agents","요원 24명 · 모드 5종 · 맵 40종 · 게임 중 화면을 클릭하면 시야가 고정됩니다":"24 agents · 5 modes · 40 maps · click the screen in game to lock the view","사이트를 두고 벌이는 5대5 전술 교전. 스물네 요원의 능력으로 각을 열고, 연막으로 시야를 지우고, 스파이크로 승부를 낸다.":"5v5 tactical fights over the sites. Open angles with 24 agents' abilities, blind with smokes, settle it with the spike.","구매 단계나 쓰러져 있을 때는 바로 바뀝니다. 교전 중에 고르면 다음 라운드(부활)부터 바뀝니다. 아군이 쓰는 요원은 고를 수 없고, 아군 AI가 쓰고 있으면 서로 바꿉니다.":"Changes at once during the buy phase or while dead; otherwise from the next round. You can't take a teammate's agent; a teammate bot swaps with you.","일반전":"Standard","신속전":"Swift","스파이크 돌격":"Spike Rush","팀 데스매치":"Team Deathmatch","데스매치":"Deathmatch","타격대":"Duelist","감시자":"Sentinel","척후대":"Initiator","전략가":"Controller","구매 단계":"Buy phase","교전 중":"Live","라운드 승리":"Round won","라운드 패배":"Round lost","승리!":"Victory!","패배":"Defeat","무승부":"Draw","스파이크 설치됨":"Spike planted","스파이크 해제됨":"Spike defused","스파이크 폭발":"Spike detonated","공격 시작":"Attackers start","수비 시작":"Defenders start","치트":"Cheats","방 설정":"Room settings","열기":"Open","틀렸습니다":"Wrong","치트 잠그기":"Lock cheats","치트가 열렸습니다 · 이번 라운드만":"Cheats unlocked · this round only","작은 지도에 적 표시":"Enemies on minimap","벽 너머 적 보기":"See enemies through walls","치트 모드":"Cheat mode","무적":"God mode","한 방 처치":"One-shot kills","탄약 무제한":"Unlimited ammo","반동 없음":"No recoil","내 이동 속도":"My move speed","내 연사 속도":"My fire rate","조준점":"Crosshair","감도":"Sensitivity","화질":"Quality","낮음":"Low","보통":"Normal","높음":"High","쉬움":"Easy","어려움":"Hard","켜기":"On","끄기":"Off","주무기":"Primary","보조무기":"Secondary","기관단총":"SMG","산탄총":"Shotgun","소총":"Rifle","저격총":"Sniper","기관총":"Machine gun","보조":"Sidearm","무제한":"Unlimited","대기실":"Lobby","방장":"Host","게스트":"Guest","플레이어":"Player","점수판":"Scoreboard","전투 기록":"Combat log"};
+  const PAT = [
+    [/^(\d+) 라운드 · 구매 단계$/, "Round $1 · Buy phase"],
+    [/^(\d+) 라운드$/, "Round $1"],
+    [/^라운드 승리 · (.+)$/, "Round won · $1"],
+    [/^라운드 패배 · (.+)$/, "Round lost · $1"],
+    [/^(\d+)초$/, "$1s"],
+    [/^피해 (\S+) · 연사 (\d+) · 탄창 (\d+)( · 보유중)?$/, (m, d, r, g, o) => `Dmg ${d} · RPM ${r} · Mag ${g}${o ? " · Owned" : ""}`],
+    [/^방어구 (\d+)$/, "Armor $1"],
+    [/^보유 (\d+)\/(\d+)$/, "Owned $1/$2"],
+    [/^재사용 (\d+)초$/, "Cooldown $1s"],
+    [/^궁극기 · 충전 (\d+)$/, "Ultimate · $1 points"],
+    [/^최대 (\d+)회$/, "Up to $1"],
+    [/^(\d+)선취$/, "First to $1"],
+    [/^(\d+)선승 · (\d+):(\d+)면 서든데스$/, "First to $1 · sudden death at $2:$3"],
+    [/^(.+) \(나\)$/, "$1 (me)"],
+    [/^(.+) · ([A-C]) 사이트$/, "$1 · Site $2"],
+    [/^(타격대|감시자|척후대|전략가) · (.+)$/, (m, r, x) => ({ 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" })[r] + " · " + x],
+  ];
+  const HANGUL = /[가-힣]/;
+  const NORM = {};
+  for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
+  function tr(s) {
+    const t = s.trim();
+    if (!t || !HANGUL.test(t)) return null;
+    if (DICT[t]) return s.replace(t, DICT[t]);
+    const nt = t.replace(/\s+/g, " ");
+    if (NORM[nt]) return s.replace(t, NORM[nt]);
+    for (const [re, to] of PAT) if (re.test(t)) return s.replace(t, t.replace(re, to));
+    return null;
+  }
+  function walk(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) {
+      const p = n.parentNode;
+      if (p && (p.nodeName === "SCRIPT" || p.nodeName === "STYLE")) continue;
+      const v = tr(n.nodeValue);
+      v && v !== n.nodeValue && (n.nodeValue = v);
+    }
+    root.querySelectorAll && root.querySelectorAll("[placeholder],[title]").forEach((e) => ["placeholder", "title"].forEach((a) => { const v = e.getAttribute(a); const t = v && tr(v); t && e.setAttribute(a, t); }));
+  }
+  if ("en" === LANG) {
+    document.documentElement.lang = "en";
+    walk(document.body);
+    new MutationObserver((ms) => {
+      for (const m of ms) {
+        if ("characterData" === m.type) {
+          const v = tr(m.target.nodeValue);
+          v && v !== m.target.nodeValue && (m.target.nodeValue = v);
+        } else m.addedNodes.forEach((n) => (3 === n.nodeType ? (() => { const v = tr(n.nodeValue); v && (n.nodeValue = v); })() : 1 === n.nodeType && walk(n)));
+      }
+    }).observe(document.body, { childList: !0, subtree: !0, characterData: !0 });
+  }
+  const L = (ko, en) => ("en" === LANG ? en : ko);
+
+  // ── a full-screen notice (ban, maintenance) ──
+  function wall(title, text) {
+    let d = $("acct-wall");
+    if (!d) {
+      d = document.createElement("div");
+      d.id = "acct-wall";
+      d.style.cssText = "position:fixed;inset:0;z-index:999;background:rgba(6,8,12,.96);display:flex;align-items:center;justify-content:center;text-align:center;color:#e8edf4;font-family:inherit;padding:20px";
+      document.body.appendChild(d);
+    }
+    d.innerHTML = `<div style="max-width:420px"><div style="font-size:22px;font-weight:900;color:#ff9aa5">${title}</div><p style="color:#8a97ab;margin:12px 0 18px;line-height:1.7">${text}</p><a href="./" style="color:#ffc849">${L("처음 화면으로", "Back to home")}</a></div>`;
+    try {
+      typeof netShutdown === "function" && NET.mode !== "solo" && netShutdown();
+      world.phase = "menu";
+      document.exitPointerLock();
+    } catch (e) {}
+  }
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const banText = (b) => (b.reason ? L("사유: ", "Reason: ") + esc(b.reason) + "<br>" : "") + (b.until ? new Date(b.until).toLocaleString() + L(" 까지", "") : L("영구", "Permanent"));
+
+  // ── the owner's settings ──
+  function applyCfg(c) {
+    window.SERVER_CFG = c;
+    if (!c || !c.game) return;
+    if (c.game.maintenance) wall(L("점검 중", "Maintenance"), esc(c.game.maintenanceMsg));
+    let n = $("acct-notice");
+    if (c.game.announcement) {
+      if (!n) {
+        n = document.createElement("div");
+        n.id = "acct-notice";
+        n.style.cssText = "position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;max-width:min(680px,92vw);padding:7px 14px;border-radius:10px;background:rgba(20,16,4,.88);border:1px solid #5c4b1f;color:#ffc849;font-size:12.5px;pointer-events:none";
+        document.body.appendChild(n);
+      }
+      n.textContent = "📢 " + c.game.announcement;
+    } else n && n.remove();
+  }
+  async function loadCfg() {
+    try {
+      applyCfg((await api("config")).config);
+    } catch (e) {}
+  }
+  // the notice only on the title and lobby screens
+  setInterval(() => {
+    const n = $("acct-notice");
+    n && (n.style.display = "menu" === world.phase ? "" : "none");
+  }, 700);
+
+  // ── who am I ──
+  async function checkMe() {
+    if (!token()) return;
+    try {
+      const j = await api("me", { token: token() });
+      S.user = j.user;
+      localStorage.setItem("lgp_session", JSON.stringify(S));
+      localStorage.setItem("lgp_name", j.user.id);
+      window.ADMIN_GRANTED = !!j.user.admin;
+    } catch (e) {
+      e.ban && wall(L("이용이 제한되었습니다", "Access restricted"), banText(e.ban));
+    }
+  }
+  if (S && S.user && S.user.id) {
+    try {
+      localStorage.setItem("lgp_name", S.user.id);
+    } catch (e) {}
+  }
+  if (online) {
+    loadCfg();
+    checkMe();
+    setInterval(loadCfg, 60000);
+    setInterval(checkMe, 120000);
+  }
+
+  // ── a room opened from the homepage ──
+  const META = { name: params.get("rn") || "", ch: params.get("ch") || "s1", priv: "1" === params.get("priv") };
+  if ("1" === params.get("create")) {
+    const go = () => {
+      if (typeof createRoom !== "function" || typeof MAP_LIST === "undefined") return setTimeout(go, 300);
+      setTimeout(() => createRoom(), 500);
+    };
+    go();
+  }
+
+  // ── the room list: report, and take the owner's orders ──
+  let reported = null,
+    hb = 0;
+  const memberByName = (n) => {
+    for (const [peer, m] of room.members) if (m.name === n) return peer;
+    return null;
+  };
+  function kick(peer, why) {
+    if (!peer) return;
+    if (peer === NET.id) return closeRoom(why);
+    try {
+      sendEventTo(peer, { t: "kicked", msg: why });
+    } catch (e) {}
+    setTimeout(() => {
+      try {
+        const c = NET.conns.get(peer);
+        c && c.close();
+      } catch (e) {}
+      try {
+        room.started ? leaveInProgress(peer) : lobbyRemove(peer);
+        room.started || (sendEventAll(lobbySnapshot()), renderLobby(lobbySnapshot()));
+      } catch (e) {}
+    }, 300);
+  }
+  function closeRoom(why) {
+    try {
+      sendEventAll({ t: "kicked", msg: why });
+    } catch (e) {}
+    setTimeout(() => {
+      try {
+        netShutdown();
+      } catch (e) {}
+      world.phase = "menu";
+      try {
+        $("lobby").hidden = !0;
+        hideAll();
+        show("s-title");
+        netAlert(why);
+      } catch (e) {}
+    }, 300);
+  }
+  function move(peer, team) {
+    if (!peer || room.started || !room.slots[team]) return;
+    let i = room.slots[team].indexOf(null);
+    if (i < 0) (i = room.slots[team].indexOf("ai")), i >= 0 && (room.slots[team][i] = null);
+    if (i < 0) return;
+    lobbyMove(peer, team, i) && (sendEventAll(lobbySnapshot()), renderLobby(lobbySnapshot()));
+  }
+  function runCmd(c) {
+    const who = c.name ? memberByName(c.name) : null;
+    switch (c.cmd) {
+      case "kick":
+        kick(who, L("운영자가 방에서 내보냈습니다", "You were removed from the room by the operator"));
+        break;
+      case "move":
+        move(who, "def" === c.team ? "def" : "atk");
+        break;
+      case "msg":
+        try {
+          sendEventAll({ t: "round", msg: "📢 " + c.text, color: "#ffc849" });
+        } catch (e) {}
+        banner("📢 " + c.text, "#ffc849");
+        break;
+      case "close":
+        closeRoom(L("운영자가 방을 닫았습니다", "The operator closed this room"));
+        break;
+    }
+  }
+  async function beat() {
+    if (!online || "host" !== NET.mode || !NET.room || "open" !== NET.status || !token()) return;
+    const players = [...room.members.values()].map((m) => m.name);
+    try {
+      const j = await api("room_up", {
+        token: token(),
+        code: NET.room,
+        name: META.name || L(myName() + "의 방", myName() + "'s room"),
+        ch: META.ch,
+        private: META.priv,
+        mode: room.mode,
+        map: room.map,
+        players,
+        max: 10,
+        state: room.started ? "live" : "lobby",
+      });
+      reported = NET.room;
+      j.config && applyCfg(Object.assign({}, window.SERVER_CFG || {}, j.config));
+      (j.cmds || []).forEach(runCmd);
+      (j.banned || []).forEach((n) => kick(memberByName(n), L("이용이 제한된 계정입니다", "This account is restricted")));
+    } catch (e) {}
+  }
+  setInterval(() => {
+    (hb += 1) >= ("host" === NET.mode && reported !== NET.room ? 1 : 8) && ((hb = 0), beat());
+  }, 1000);
+  const down = () => {
+    if (!reported || !token()) return;
+    const body = JSON.stringify({ token: token(), code: reported });
+    try {
+      navigator.sendBeacon ? navigator.sendBeacon(API + "?a=room_down", body) : api("room_down", JSON.parse(body));
+    } catch (e) {}
+    reported = null;
+  };
+  const _sd = netShutdown;
+  netShutdown = function () {
+    "host" === NET.mode && down();
+    return _sd.apply(this, arguments);
+  };
+  addEventListener("pagehide", down);
+  // a guest the owner removed
+  const _oe = NET.onEvent;
+  NET.onEvent = (e) => {
+    if (e && "kicked" === e.t) {
+      try {
+        netShutdown();
+      } catch (x) {}
+      world.phase = "menu";
+      try {
+        $("lobby").hidden = !0;
+        hideAll();
+        show("s-title");
+        netAlert(e.msg || "");
+      } catch (x) {}
+      return;
+    }
+    return _oe(e);
+  };
+
+  // ── room rules the owner forces on every host ──
+  const _sr = startRound;
+  startRound = function () {
+    const r = _sr.apply(this, arguments);
+    try {
+      const R = window.SERVER_CFG && window.SERVER_CFG.room;
+      if (R && R.force && "client" !== NET.mode && window.ADMIN2) {
+        const G = ADMIN2.G;
+        R.roundT > 0 && (G.roundT = R.roundT);
+        R.buyT > 0 && (G.buyT = R.buyT);
+        R.matchT > 0 && (G.matchT = R.matchT);
+        G.infAll = !!R.infAll;
+        if (R.run > 0) (ADMIN.run = R.run), (ADMIN.walk = +((R.run * 4.3) / 10.6).toFixed(2)), (ADMIN.crouch = +((R.run * 4.7) / 10.6).toFixed(2));
+        R.jumpV > 0 && (ADMIN.jumpV = R.jumpV);
+        R.gravity > 0 && (ADMIN.gravity = R.gravity);
+        R.aiSpeed > 0 && (ADMIN.aiSpeed = R.aiSpeed);
+        ADMIN.freezeAI = !!R.freezeAI;
+        ADMIN2.afterChange();
+      }
+    } catch (e) {}
+    return r;
+  };
+
+  // ── experience after each match ──
+  let lastPhase = "";
+  setInterval(() => {
+    try {
+      const ph = world.phase;
+      if ("over" === ph && "over" !== lastPhase && token()) {
+        const head = $("ov-head"),
+          win = !!head && /승리|Victory/.test(head.textContent);
+        const kills = (world.stats && world.stats.kills) || 0;
+        api("progress", { token: token(), kills, win })
+          .then((j) => {
+            S.user = j.user;
+            localStorage.setItem("lgp_session", JSON.stringify(S));
+            banner(j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP`, j.levelUp ? "#ffc849" : "#8a97ab");
+          })
+          .catch(() => {});
+      }
+      lastPhase = ph;
+    } catch (e) {}
+  }, 1000);
+
+  // the level next to my name on the title screen
+  setInterval(() => {
+    try {
+      if (!S || !S.user || "menu" !== world.phase) return;
+      let b = $("acct-chip");
+      if (!b) {
+        b = document.createElement("a");
+        b.id = "acct-chip";
+        b.href = "./";
+        b.style.cssText = "position:fixed;top:10px;right:12px;z-index:40;padding:6px 12px;border-radius:99px;background:rgba(20,25,34,.8);border:1px solid #2a3444;color:#e8edf4;font-size:12px;text-decoration:none";
+        document.body.appendChild(b);
+      }
+      b.textContent = `${S.user.id} · Lv.${S.user.level || 1}`;
+      b.style.display = $("s-title") && !$("s-title").hidden && getComputedStyle($("s-title")).display !== "none" ? "" : "none";
+    } catch (e) {}
+  }, 1000);
+  window.ACCOUNT = { api, beat, runCmd, session: () => S };
 })();
 </script>
