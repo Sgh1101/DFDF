@@ -6250,7 +6250,7 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
     ADMIN.infAmmo = P.infAmmo;
     ADMIN.noRecoil = P.noRecoil;
     ADMIN.fastFire = P.fastFire;
-    ADMIN.infAbil = P.cheat || G.infAll;
+    ADMIN.infAbil = G.infAll; // cheat mode refills on its own clock (hunt module)
   }
 
   // ── who has what (host side) ──
@@ -6346,7 +6346,8 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
     a.abilities = kitOf(ag);
     const u = ag.abilities.find((d) => d.ult);
     a.ultMax = u ? u.ult : 5;
-    a.ultCharge = a.ultMax;
+    // a set change must not hand out a free ultimate
+    a.ultCharge = Math.min(a.ultCharge || 0, a.ultMax);
     a._kit = ag === a.agent ? null : ag.key;
     if (a === me()) {
       $("skills") && ($("skills").dataset.key = "");
@@ -6547,7 +6548,7 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
         for (const a of world.actors) {
           if (!a.alive) continue;
           const f = flagsFor(a),
-            inf = G.infAll || (f && f.cheat);
+            inf = G.infAll;
           if (inf && a.abilities) {
             for (const x of a.abilities) (x.cd = 0), (x.charges = Math.max(x.charges || 0, x.def.charges || 1));
             a.ultCharge = a.ultMax || 5;
@@ -6592,7 +6593,7 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
   const PERSONAL_T = [
     ["radar", "작은 지도에 적 표시", "보이든 안 보이든 모든 적의 위치가 미니맵에 빨간 점으로 뜹니다"],
     ["wall", "벽 너머 적 보기", "벽 뒤에 있는 적도 빨간 발광으로 보입니다"],
-    ["cheat", "치트 모드", "능력 무제한. ← → 로 다른 요원의 능력 4개 세트로 바꾸고 ↓ 로 원래대로 (겉모습은 그대로)"],
+    ["cheat", "치트 모드", "능력이 5초마다 다시 찹니다 (궁극기는 그대로). ← → 로 다른 요원의 능력 4개 세트로 바꾸고 ↓ 로 원래대로 (겉모습은 그대로)"],
     ["god", "무적", "어떤 피해도 받지 않습니다"],
     ["oneShot", "한 방 처치", "내가 맞히면 무조건 쓰러집니다"],
     ["infAmmo", "탄약 무제한", "재장전 없이 탄창이 항상 가득"],
@@ -8582,81 +8583,98 @@ body.touching #chk-chip.flash{animation:none}
 </script>
 <script>
 (() => {
-  // The admin code is no longer written in the page: only a hash of it is.
-  // Its four digits are painted on walls in four maps, each with its place
-  // in the order (①-④); the lock screen says so.
-  const HASH = "0a47cd8dc12f8c17d91a8f6bec26f209233d301bf97e445f02b2ee7425ed8320";
-  // small SHA-256 (works on file:// and http, where crypto.subtle may not)
-  function sha256(str) {
-    const K = [],
-      H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
-    for (let i = 0, n = 2; i < 64; n++) {
-      let p = !0;
-      for (let d = 2; d * d <= n; d++) if (n % d === 0) p = !1;
-      p && (K[i++] = (Math.cbrt(n) * 2 ** 32) | 0);
+  // Cheat code hunt. A four-digit code is painted around one building, ①-④
+  // on its sides; at the start of every round it sits on the building nearest
+  // the middle of the map. Whoever enters it first gets cheats for the rest of
+  // the round, and the code changes and moves whole to another building. The
+  // host owns the code: guests ask it, and a guest's cheat switches only count
+  // once the host has accepted its code. Admin mode is closed to everyone
+  // (it is meant to open with a paid pass, not built yet).
+  const $ = (id) => document.getElementById(id);
+  const A2 = window.ADMIN2;
+  if (!A2 || "undefined" == typeof NET) return;
+  const isClient = () => "client" === NET.mode;
+  const isHostNet = () => "host" === NET.mode;
+  const DEF = { radar: !1, wall: !1, cheat: !1, god: !1, oneShot: !1, infAmmo: !1, noRecoil: !1, speed: 1, fastFire: 1 };
+  // r: round token, v: code version, b: wall index of the building
+  const HUNT = { r: 0, v: 0, code: "", b: -1, key: "", unlocked: !1 };
+  const OK = new Set(); // host: guests whose code was accepted this round
+
+  const rnd = () => {
+    try {
+      return crypto.getRandomValues(new Uint32Array(1))[0];
+    } catch (e) {
+      return (Math.random() * 4294967296) >>> 0;
     }
-    const b = new TextEncoder().encode(str),
-      l = b.length,
-      words = [];
-    for (let i = 0; i < l; i++) words[i >> 2] |= b[i] << (24 - (i % 4) * 8);
-    words[l >> 2] |= 0x80 << (24 - (l % 4) * 8);
-    const n = (((l + 8) >> 6) + 1) * 16;
-    for (let i = words.length; i < n; i++) words[i] = words[i] | 0;
-    words[n - 1] = l * 8;
-    const r = (x, k) => (x >>> k) | (x << (32 - k));
-    for (let j = 0; j < n; j += 16) {
-      const w = words.slice(j, j + 16);
-      let [a, bb, c, d, e, f, g, h] = H;
-      for (let i = 0; i < 64; i++) {
-        if (i >= 16) {
-          const s0 = r(w[i - 15], 7) ^ r(w[i - 15], 18) ^ (w[i - 15] >>> 3),
-            s1 = r(w[i - 2], 17) ^ r(w[i - 2], 19) ^ (w[i - 2] >>> 10);
-          w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
-        }
-        const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0,
-          t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & bb) ^ (a & c) ^ (bb & c))) | 0;
-        h = g;
-        g = f;
-        f = e;
-        e = (d + t1) | 0;
-        d = c;
-        c = bb;
-        bb = a;
-        a = (t1 + t2) | 0;
-      }
-      H[0] = (H[0] + a) | 0;
-      H[1] = (H[1] + bb) | 0;
-      H[2] = (H[2] + c) | 0;
-      H[3] = (H[3] + d) | 0;
-      H[4] = (H[4] + e) | 0;
-      H[5] = (H[5] + f) | 0;
-      H[6] = (H[6] + g) | 0;
-      H[7] = (H[7] + h) | 0;
+  };
+  const newCode = () => String(rnd() % 10000).padStart(4, "0");
+
+  // ── buildings that can carry the digits ──
+  const free = (x, z, r) => !MAP.walls.some((w) => Math.abs(x - w.x) < w.w / 2 + r && Math.abs(z - w.z) < w.d / 2 + r);
+  function faces(w) {
+    const out = [];
+    for (const [nx, nz, ry] of [[0, 1, 0], [0, -1, Math.PI], [1, 0, Math.PI / 2], [-1, 0, -Math.PI / 2]]) {
+      const fx = w.x + (nx * w.w) / 2,
+        fz = w.z + (nz * w.d) / 2;
+      if (free(fx + nx * 1.8, fz + nz * 1.8, 0.7)) out.push({ fx, fz, nx, nz, ry, len: nz ? w.w : w.d });
     }
-    return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+    return out;
   }
-  window.adminPassOk = (v) => sha256("13|" + String(v || "").trim() + "|admin") === HASH;
-
-  // lock screen: where to look
-  try {
-    const lock = document.getElementById("ad-lock"),
-      p = lock && lock.querySelector("p");
-    if (p && !document.getElementById("ad-hint")) {
-      p.textContent = "비밀번호를 입력하세요";
-      const h = document.createElement("div");
-      h.id = "ad-hint";
-      h.innerHTML = "비밀번호는 <b>전장 곳곳에 숨겨져</b> 있습니다.<br>벽에 그려진 <b>①②③④</b> 숫자를 찾아 순서대로 넣으세요.";
-      p.after(h);
-      const st = document.createElement("style");
-      st.textContent = "#ad-hint{margin:6px 0 12px;font-size:12px;line-height:1.6;color:#8a97ab}#ad-hint b{color:#ffc849}";
-      document.head.appendChild(st);
+  // real buildings (5 m and up) when the map has them, smaller blocks if not
+  function buildings() {
+    for (const [h, size] of [[3.5, 5], [3, 3]]) {
+      const l = blocks(h, size);
+      if (l.length >= 2) return l;
     }
-  } catch (e) {}
+    return blocks(2.2, 2);
+  }
+  function blocks(minH, minSize) {
+    const B = MAP.bounds,
+      out = [];
+    MAP.walls.forEach((w, i) => {
+      if (w.window || w.deck || w.stair || w.parapet || w.h < minH || w.w < minSize || w.d < minSize) return;
+      if (w.x - w.w / 2 <= B.minX + 3 || w.x + w.w / 2 >= B.maxX - 3 || w.z - w.d / 2 <= B.minZ + 3 || w.z + w.d / 2 >= B.maxZ - 3) return;
+      const f = faces(w);
+      f.length && out.push({ i, w, n: f.length });
+    });
+    return out;
+  }
+  // the round's first building: the one nearest the middle (prefer one with
+  // room on several sides)
+  function middleBuilding() {
+    const B = MAP.bounds,
+      cx = (B.minX + B.maxX) / 2,
+      cz = (B.minZ + B.maxZ) / 2;
+    let best = null,
+      bd = 1e9;
+    for (const c of buildings()) {
+      const d = Math.hypot(c.w.x - cx, c.w.z - cz) - 6 * Math.min(c.n, 3);
+      d < bd && ((bd = d), (best = c));
+    }
+    return best ? best.i : -1;
+  }
+  function otherBuilding(not) {
+    const list = buildings().filter((c) => c.i !== not);
+    if (!list.length) return not;
+    const prev = MAP.walls[not];
+    // somewhere else on the map, not next door
+    const far = prev ? list.filter((c) => Math.hypot(c.w.x - prev.x, c.w.z - prev.z) > 25) : [];
+    const pool = far.length ? far : list;
+    return pool[rnd() % pool.length].i;
+  }
 
-  // the painted digits: one per map, on a building wall away from the spawns
-  const HINTS = { g05: [1, "1"], g12: [2, "1"], g19: [3, "0"], g26: [4, "1"] };
-  let sign = null;
-  const texFor = (idx, digit) => {
+  // ── the painted digits ──
+  let signs = [];
+  function removeSigns() {
+    for (const m of signs) {
+      scene.remove(m);
+      m.geometry.dispose();
+      m.material.map && m.material.map.dispose();
+      m.material.dispose();
+    }
+    signs = [];
+  }
+  function texFor(idx, digit) {
     const c = document.createElement("canvas");
     c.width = c.height = 256;
     const g = c.getContext("2d");
@@ -8672,62 +8690,305 @@ body.touching #chk-chip.flash{animation:none}
     g.fillText(String(idx), 62, 66);
     g.font = "900 190px sans-serif";
     g.fillText(digit, 158, 150);
-    // paint drips
     g.globalAlpha = 0.7;
     for (const x of [120, 168, 196]) g.fillRect(x, 208, 6, 26 + ((x * 7) % 20));
     const t = new THREE.CanvasTexture(c);
     t.anisotropy = 4;
     return t;
-  };
-  function place(key) {
-    if (sign) {
-      scene.remove(sign);
-      sign.geometry.dispose();
-      sign.material.map && sign.material.map.dispose();
-      sign.material.dispose();
-      sign = null;
-    }
-    const hint = HINTS[key];
-    if (!hint || !MAP || !MAP.walls) return;
-    const B = MAP.bounds,
-      far = (x, z, p, d) => Math.hypot(x - p.x, z - p.z) > d;
-    const cands = [];
-    for (const w of MAP.walls) {
-      if (w.cover || w.window || w.h < 5 || w.w < 5 || w.d < 5) continue;
-      if (w.x - w.w / 2 <= B.minX + 4 || w.x + w.w / 2 >= B.maxX - 4 || w.z - w.d / 2 <= B.minZ + 4 || w.z + w.d / 2 >= B.maxZ - 4) continue;
-      for (const [nx, nz, ry] of [[0, 1, 0], [0, -1, Math.PI], [1, 0, Math.PI / 2], [-1, 0, -Math.PI / 2]]) {
-        const fx = w.x + (nx * w.w) / 2,
-          fz = w.z + (nz * w.d) / 2;
-        const ox = fx + nx * 1.8,
-          oz = fz + nz * 1.8;
-        if (collideXZ(ox, oz, 0, 0.7)) continue;
-        if (!far(fx, fz, MAP.attackSpawn, 35) || !far(fx, fz, MAP.defendSpawn, 35)) continue;
-        if (MAP.sites.some((s) => !far(fx, fz, s, s.r + 8))) continue;
-        cands.push([fx + nx * 0.04, fz + nz * 0.04, ry]);
-      }
-    }
-    if (!cands.length) return;
-    let hsh = 0;
-    for (const ch of key) hsh = (hsh * 31 + ch.charCodeAt(0)) | 0;
-    const [x, z, ry] = cands[Math.abs(hsh) % cands.length];
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.7, 1.7),
-      new THREE.MeshBasicMaterial({ map: texFor(hint[0], hint[1]), transparent: !0, depthWrite: !1, polygonOffset: !0, polygonOffsetFactor: -2 })
-    );
-    m.position.set(x, 2.2, z);
-    m.rotation.y = ry;
-    m.userData.adminHint = hint[0];
-    scene.add(m);
-    sign = m;
-    window.ADMIN_HINT_AT = { key, x: +x.toFixed(1), z: +z.toFixed(1) };
   }
-  const _lm = loadMap;
-  loadMap = function (key) {
-    const r = _lm.apply(this, arguments);
+  function placeSigns() {
+    removeSigns();
+    if (!HUNT.code || !MAP || !MAP.walls || CUR_MAP_KEY !== HUNT.key || ("object" == typeof FLY && FLY.on)) return;
+    const w = MAP.walls[HUNT.b];
+    if (!w) return;
+    const f = faces(w);
+    if (!f.length) return;
+    // one digit per side; a building with fewer free sides takes them in a row
+    const per = f.map(() => []);
+    for (let i = 0; i < 4; i++) per[i % f.length].push(i);
+    const y = Math.max(1.2, Math.min(2.2, w.h - 0.95));
+    per.forEach((idxs, k) => {
+      const s = f[k],
+        tx = -s.nz,
+        tz = s.nx,
+        step = Math.min(1.9, (s.len - 0.4) / idxs.length);
+      idxs.forEach((i, j) => {
+        const off = (j - (idxs.length - 1) / 2) * step,
+          size = Math.min(1.7, step - 0.1);
+        const m = new THREE.Mesh(
+          new THREE.PlaneGeometry(size, size),
+          new THREE.MeshBasicMaterial({ map: texFor(i + 1, HUNT.code[i]), transparent: !0, depthWrite: !1, polygonOffset: !0, polygonOffsetFactor: -2 })
+        );
+        m.position.set(s.fx + s.nx * 0.04 + tx * off, y, s.fz + s.nz * 0.04 + tz * off);
+        m.rotation.y = s.ry;
+        m.userData.hunt = { i: i + 1, d: HUNT.code[i] };
+        m.userData.noMerge = !0;
+        scene.add(m);
+        signs.push(m);
+      });
+    });
+  }
+
+  // ── host / solo: a fresh code every round, a new one each time it is used ──
+  function relock() {
+    HUNT.unlocked = !1;
+    const P = A2.P;
+    if (Object.keys(DEF).some((k) => P[k] !== DEF[k])) {
+      for (const k in DEF) A2.setPersonal(k, DEF[k]);
+      A2.afterChange();
+    }
+    refresh();
+  }
+  function dropGuests() {
+    OK.clear();
+    A2.PEERS.clear();
+    for (const a of world.actors || []) "me" !== a.ctrl && a._kit && a.agent && A2.setKit(a, a.agent);
+  }
+  const sendHunt = () => isHostNet() && HUNT.r && sendEventAll({ t: "hunt", r: HUNT.r, v: HUNT.v, c: HUNT.code, b: HUNT.b, k: HUNT.key });
+  function newRound() {
+    HUNT.r = rnd() || 1;
+    HUNT.v = 1;
+    HUNT.code = newCode();
+    HUNT.key = CUR_MAP_KEY;
+    HUNT.b = middleBuilding();
+    dropGuests();
+    relock();
+    placeSigns();
+    sendHunt();
+  }
+  function rotate() {
+    HUNT.v++;
+    HUNT.code = newCode();
+    HUNT.b = otherBuilding(HUNT.b);
+    placeSigns();
+    sendHunt();
+  }
+  const _sr = startRound;
+  startRound = function () {
+    const r = _sr.apply(this, arguments);
     try {
-      place(CUR_MAP_KEY || key);
+      isClient() || newRound();
     } catch (e) {}
     return r;
   };
+  const _lm = loadMap;
+  loadMap = function () {
+    const r = _lm.apply(this, arguments);
+    try {
+      placeSigns();
+    } catch (e) {}
+    return r;
+  };
+  if ("function" == typeof enterFly) {
+    const _ef = enterFly;
+    enterFly = function () {
+      const r = _ef.apply(this, arguments);
+      removeSigns();
+      return r;
+    };
+  }
+
+  // ── cheats: abilities come back every 5 s, the ultimate never refills ──
+  let cheatT = 0;
+  function refill(a) {
+    if (!a || !a.alive || !a.abilities) return;
+    for (const x of a.abilities) x.def && !x.def.ult && ((x.cd = 0), (x.charges = Math.max(x.charges || 0, x.def.charges || 1)));
+  }
+  const _st = step;
+  step = function (dt) {
+    const r = _st.apply(this, arguments);
+    try {
+      if ("menu" !== world.phase && (cheatT += dt || 0) >= 5) {
+        cheatT = 0;
+        if (!isClient()) for (const a of world.actors || []) { const f = A2.flagsFor(a); f && f.cheat && refill(a); }
+        else A2.P.cheat && refill(myActor());
+      }
+    } catch (e) {}
+    return r;
+  };
+
+  // ── network ──
+  const _oe = NET.onEvent;
+  NET.onEvent = (e) => {
+    if (e && "hunt" === e.t) {
+      const newR = e.r !== HUNT.r,
+        moved = newR || e.v !== HUNT.v;
+      Object.assign(HUNT, { r: e.r, v: e.v, code: String(e.c || ""), b: e.b | 0, key: e.k });
+      newR && relock();
+      (moved || !signs.length) && placeSigns();
+      return;
+    }
+    if (e && "hunt-ans" === e.t) {
+      if (e.ok && e.r === HUNT.r) {
+        HUNT.unlocked = !0;
+        refresh(!0);
+        banner("치트가 열렸습니다 · 이번 라운드만", "#ffc849");
+      } else wrongCode(e.late ? "한발 늦었습니다. 비밀번호가 다른 곳으로 옮겨졌습니다" : "틀렸습니다");
+      return;
+    }
+    return _oe(e);
+  };
+  const _oa = NET.onAction;
+  NET.onAction = (peer, msg) => {
+    if (msg && "hunt-try" === msg.t) {
+      const ok = msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
+      const late = !ok && msg.r === HUNT.r && msg.v !== HUNT.v;
+      sendEventTo(peer, { t: "hunt-ans", ok, late, r: HUNT.r });
+      if (ok) OK.add(peer), rotate();
+      return;
+    }
+    // cheat switches from a guest the host has not let in do nothing
+    if (msg && ("padm" === msg.t || "kit" === msg.t) && !OK.has(peer)) {
+      A2.PEERS.delete(peer);
+      return;
+    }
+    return _oa(peer, msg);
+  };
+  let acc = 0;
+  const _ns = netStep;
+  netStep = function (dt) {
+    const r = _ns.apply(this, arguments);
+    try {
+      (acc += dt || 0.016) > 3 && ((acc = 0), "menu" !== world.phase && sendHunt());
+    } catch (e) {}
+    return r;
+  };
+
+  // ── the panel: 치트 (code) and 관리자 (closed) ──
+  const tabsEl = document.querySelector("#ad-panel .ad-tabs");
+  const tabBtn = (t) => tabsEl && tabsEl.querySelector(`button[data-t="${t}"]`);
+  const curTab = () => {
+    const b = tabsEl && tabsEl.querySelector("button.on");
+    return b ? b.dataset.t : "me";
+  };
+  if (tabBtn("me") && tabBtn("global")) {
+    tabBtn("me").innerHTML = "치트 <small>비밀번호</small>";
+    tabBtn("global").innerHTML = "관리자 <small>🔒</small>";
+  }
+  const inMatch = () => "menu" !== world.phase && !!HUNT.code;
+  openAdmin = function () {
+    $("admin").hidden = !1;
+    try {
+      document.exitPointerLock();
+    } catch (e) {}
+    $("ad-lock").hidden = !0;
+    $("ad-panel").hidden = !1;
+    const b = tabBtn("me");
+    b ? b.click() : buildAdminUI();
+  };
+  tryAdminPass = () => tryCode(($("ht-pass") || {}).value);
+  window.adminPassOk = () => !1;
+  let waitT = 0;
+  function wrongCode(msg) {
+    waitT = performance.now() + 2000;
+    const err = $("ht-err");
+    err && ((err.hidden = !1), (err.textContent = msg || "틀렸습니다"));
+    const p = $("ht-pass");
+    p && ((p.value = ""), p.focus());
+  }
+  function tryCode(v) {
+    v = String(v || "").trim();
+    if (performance.now() < waitT || !inMatch() || !v) return;
+    if (isClient()) {
+      waitT = performance.now() + 800;
+      sendAction({ t: "hunt-try", r: HUNT.r, v: HUNT.v, c: v });
+      return;
+    }
+    if (v === HUNT.code) {
+      HUNT.unlocked = !0;
+      rotate();
+      refresh(!0);
+      banner("치트가 열렸습니다 · 이번 라운드만", "#ffc849");
+    } else wrongCode("틀렸습니다");
+  }
+  function lockBox() {
+    const d = document.createElement("div");
+    d.className = "ht-lock";
+    d.innerHTML =
+      '<div class="ht-nums"><b>①</b><b>②</b><b>③</b><b>④</b></div><div class="ht-row"><input id="ht-pass" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"><button class="btn btn-go" id="ht-go">열기</button></div><div class="ht-err" id="ht-err" hidden>틀렸습니다</div>';
+    const inp = d.querySelector("#ht-pass");
+    d.querySelector("#ht-go").onclick = () => tryCode(inp.value);
+    inp.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      "Enter" === e.key && tryCode(inp.value);
+    });
+    setTimeout(() => {
+      try {
+        IS_TOUCH || inp.focus();
+      } catch (e) {}
+    }, 60);
+    return d;
+  }
+  const _bui = buildAdminUI;
+  buildAdminUI = function () {
+    const r = _bui.apply(this, arguments);
+    try {
+      decorate();
+    } catch (e) {}
+    return r;
+  };
+  function decorate() {
+    const t = curTab(),
+      note = document.querySelector("#ad-panel .ad-note"),
+      grid = $("ad-grid"),
+      tg = $("ad-toggles"),
+      out = $("ad-lockout"),
+      def = $("ad-default");
+    out && ((out.hidden = "me" !== t || !HUNT.unlocked), (out.textContent = "치트 잠그기"));
+    def && (def.hidden = "me" !== t || !HUNT.unlocked);
+    if ("global" === t) {
+      // admin mode: nobody, for now
+      $("ad-panel").classList.remove("ad-locked");
+      grid && (grid.innerHTML = "");
+      tg && (tg.innerHTML = "");
+      note && (note.innerHTML = "<b>관리자 모드는 잠겨 있습니다.</b> 이용권(한 달)으로 열리게 될 예정입니다.");
+      return;
+    }
+    if (HUNT.unlocked) {
+      note && (note.innerHTML = "<b>이번 라운드에만</b> 열려 있습니다. 나에게만 적용되고 다른 사람 화면에는 아무 표시도 없습니다. 다음 라운드에는 비밀번호를 다시 찾아야 합니다.");
+      return;
+    }
+    grid && (grid.innerHTML = "");
+    tg && (tg.innerHTML = "");
+    if (!note) return;
+    if (!inMatch()) note.innerHTML = "경기를 시작하면 맵 한가운데 건물에 <b>치트 비밀번호</b>가 그려집니다.";
+    else {
+      note.innerHTML =
+        "치트 비밀번호 4자리는 <b>맵 어딘가의 건물 벽</b>에 ①②③④로 그려져 있습니다. 라운드가 시작되면 맵 한가운데 건물에 있고, <b>누가 한 번 쓰면 번호가 바뀌어 다른 건물로 옮겨갑니다.</b> 라운드마다 초기화됩니다.";
+      grid && grid.appendChild(lockBox());
+    }
+  }
+  function refresh(force) {
+    try {
+      ADMIN_UNLOCKED = HUNT.unlocked;
+      const open = $("admin") && !$("admin").hidden && !$("ad-panel").hidden;
+      open && (force || !(document.activeElement && "ht-pass" === document.activeElement.id)) && buildAdminUI();
+    } catch (e) {}
+  }
+  $("ad-lockout") &&
+    ($("ad-lockout").onclick = () => {
+      relock();
+      buildAdminUI();
+      banner("치트를 잠갔습니다", "#8a97ab");
+    });
+  // the settings tab is the way in to cheats now
+  setInterval(() => {
+    try {
+      ADMIN_UNLOCKED = HUNT.unlocked;
+      const b = $("pz-adtab");
+      b && b.lastChild && 3 === b.lastChild.nodeType && "치트" !== b.lastChild.textContent && (b.lastChild.textContent = "치트");
+    } catch (e) {}
+  }, 500);
+  const st = document.createElement("style");
+  st.textContent = `
+.ht-lock{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px 6px}
+.ht-nums{display:flex;gap:10px}
+.ht-nums b{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;border:2px solid #ffd54f;color:#ffd54f;font-size:15px}
+.ht-row{display:flex;gap:8px;align-items:center}
+.ht-row input{width:130px;padding:10px 12px;border-radius:10px;border:1px solid var(--line,#2a3140);background:rgba(255,255,255,.04);color:#fff;font-family:inherit;font-size:20px;font-weight:700;letter-spacing:8px;text-align:center}
+.ht-err{font-size:12px;color:#ff6b6b}
+#ad-lockout[hidden],#ad-default[hidden]{display:none}`;
+  document.head.appendChild(st);
+  window.HUNT_STATE = () => ({ r: HUNT.r, v: HUNT.v, b: HUNT.b, key: HUNT.key, unlocked: HUNT.unlocked, signs: signs.length, guestsOk: OK.size });
 })();
 </script>
