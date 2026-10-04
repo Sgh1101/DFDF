@@ -9889,6 +9889,18 @@ body.touching #chk-chip.flash{animation:none}
         c.send(e);
       } catch (x) {}
   };
+  // a message still in flight when the guest has already left (kicked,
+  // closed, quit): ignore it instead of starting a match with no link
+  const _ev = NET.onEvent;
+  NET.onEvent = function () {
+    if ("client" !== NET.mode || !NET.peer) return;
+    return _ev.apply(this, arguments);
+  };
+  const _sn = NET.onSnapshot;
+  NET.onSnapshot = function () {
+    if ("client" !== NET.mode || !NET.peer) return;
+    return _sn.apply(this, arguments);
+  };
   // dropped in the lobby: dial back in too
   const _hg = NET.onHostGone;
   NET.onHostGone = function () {
