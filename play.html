@@ -9188,6 +9188,11 @@ body.touching #chk-chip.flash{animation:none}
   // r: round token, v: code version, b: wall index of the building
   const HUNT = { r: 0, v: 0, code: "", b: -1, key: "", unlocked: !1 };
   const OK = new Set(); // host: guests whose code was accepted this round
+  const GRANT = new Set(); // host: guests the owner gave cheats to (kept between rounds)
+  const OWNP = new Set(); // host: guests the server confirmed as the owner
+  // the owner, or a player the owner gave cheats to: always open, nothing clamped
+  const boss = () => !!window.IS_OWNER || !!HUNT.granted;
+  const free2 = (peer) => GRANT.has(peer) || OWNP.has(peer);
   // the owner's rules (admin page → /api/v1 config), with the built-in defaults
   const CDEF = { enabled: !0, codeLength: 4, startAtMiddle: !0, moveAfterUse: !0, resetEachRound: !0, wrongWaitSec: 2, refillSec: 5, ultInfinite: !1, allow: {}, maxSpeed: 3, maxFastFire: 10 };
   const C = () => Object.assign({}, CDEF, (window.SERVER_CFG && window.SERVER_CFG.cheat) || {});
@@ -9329,6 +9334,10 @@ body.touching #chk-chip.flash{animation:none}
 
   // ── host / solo: a fresh code every round, a new one each time it is used ──
   function relock() {
+    if (boss()) {
+      HUNT.unlocked = !0;
+      return refresh();
+    }
     HUNT.unlocked = !1;
     const P = A2.P;
     if (Object.keys(DEF).some((k) => P[k] !== DEF[k])) {
@@ -9339,8 +9348,8 @@ body.touching #chk-chip.flash{animation:none}
   }
   function dropGuests() {
     OK.clear();
-    A2.PEERS.clear();
-    for (const a of world.actors || []) "me" !== a.ctrl && a._kit && a.agent && A2.setKit(a, a.agent);
+    for (const p of [...A2.PEERS.keys()]) free2(p) || A2.PEERS.delete(p);
+    for (const a of world.actors || []) "me" !== a.ctrl && !free2(a.ctrl) && a._kit && a.agent && A2.setKit(a, a.agent);
   }
   const sendHunt = () => isHostNet() && HUNT.r && sendEventAll({ t: "hunt", r: HUNT.r, v: HUNT.v, c: HUNT.code, b: HUNT.b, k: HUNT.key });
   let matchNew = !0;
@@ -9445,11 +9454,11 @@ body.touching #chk-chip.flash{animation:none}
       return;
     }
     // cheat switches from a guest the host has not let in do nothing
-    if (msg && ("padm" === msg.t || "kit" === msg.t) && !OK.has(peer)) {
+    if (msg && ("padm" === msg.t || "kit" === msg.t) && !OK.has(peer) && !free2(peer)) {
       A2.PEERS.delete(peer);
       return;
     }
-    if (msg && "padm" === msg.t && msg.p) msg = Object.assign({}, msg, { p: tame(Object.assign({}, msg.p)) });
+    if (msg && "padm" === msg.t && msg.p && !free2(peer)) msg = Object.assign({}, msg, { p: tame(Object.assign({}, msg.p)) });
     return _oa(peer, msg);
   };
   function tame(p) {
@@ -9462,6 +9471,10 @@ body.touching #chk-chip.flash{animation:none}
   // my own switches too (checked every second)
   setInterval(() => {
     try {
+      if (boss()) {
+        HUNT.unlocked || ((HUNT.unlocked = !0), refresh());
+        return;
+      }
       const P = A2.P,
         want = tame(Object.assign({}, P));
       let ch = !1;
@@ -9579,8 +9592,12 @@ body.touching #chk-chip.flash{animation:none}
       // switches the owner has not allowed are not offered
       const NAMES = { radar: "작은 지도에 적 표시", wall: "벽 너머 적 보기", cheat: "치트 모드", god: "무적", oneShot: "한 방 처치", infAmmo: "탄약 무제한", noRecoil: "반동 없음", speed: "내 이동 속도", fastFire: "내 연사 속도" };
       for (const k in NAMES) {
-        if (allowed(k)) continue;
+        if (allowed(k) || boss()) continue;
         document.querySelectorAll("#ad-toggles .ad-tg, #ad-grid .ad-item").forEach((n) => n.textContent.includes(NAMES[k]) && n.remove());
+      }
+      if (boss()) {
+        note && (note.innerHTML = window.IS_OWNER ? E("<b>운영자</b> · 모든 치트가 항상 열려 있고 제한이 없습니다.", "<b>Owner</b> · every cheat is always open, no limits.") : E("<b>운영자가 치트를 열어 주었습니다.</b> 운영자가 거둘 때까지 열려 있습니다.", "<b>The owner gave you cheats</b> until they take them back."));
+        return;
       }
       note && (note.innerHTML = E("<b>이번 라운드에만</b> 열려 있습니다. 나에게만 적용되고 다른 사람 화면에는 아무 표시도 없습니다. 다음 라운드에는 비밀번호를 다시 찾아야 합니다.", "Open <b>for this round only</b>. Only you are affected and nobody else sees anything. Next round you have to find the code again."));
       return;
@@ -9636,6 +9653,7 @@ body.touching #chk-chip.flash{animation:none}
 .ht-err{font-size:12px;color:#ff6b6b}
 #ad-lockout[hidden],#ad-default[hidden]{display:none}`;
   document.head.appendChild(st);
+  window.HUNTX = { HUNT, OK, GRANT, OWNP, relock, refresh, isClient, E };
   window.HUNT_STATE = () => ({ r: HUNT.r, v: HUNT.v, b: HUNT.b, key: HUNT.key, unlocked: HUNT.unlocked, signs: signs.length, guestsOk: OK.size });
 })();
 </script>
@@ -9787,6 +9805,9 @@ body.touching #chk-chip.flash{animation:none}
       localStorage.setItem("lgp_session", JSON.stringify(S));
       localStorage.setItem("lgp_name", j.user.id);
       window.ADMIN_GRANTED = !!j.user.admin;
+      window.IS_OWNER = !!j.user.owner;
+      S.atoken = j.atoken || "";
+      localStorage.setItem("lgp_session", JSON.stringify(S));
     } catch (e) {
       e.ban && wall(L("이용이 제한되었습니다", "Access restricted"), banText(e.ban));
     }
@@ -10156,5 +10177,446 @@ body.touching #chk-chip.flash{animation:none}
     if (inLobby && !rc.busy && !rc.quit && !rc.bye && typeof netRedial === "function") return void netRedial();
     return _hg.apply(this, arguments);
   };
+})();
+</script>
+<script>
+(() => {
+  // Area attacks you can see standing up. A zone used to be a flat ring on
+  // the floor (and a faint low wall), which is a thin line at eye height.
+  // Every zone now also gets a glowing curtain up to head height that fades
+  // upward, and blasts throw a short column of light, so the edge of the
+  // danger reads from anywhere.
+  if ("undefined" == typeof makeZone || "undefined" == typeof T) return;
+  let tex = null;
+  function fadeTex() {
+    if (tex) return tex;
+    const c = document.createElement("canvas");
+    c.width = 4;
+    c.height = 64;
+    const g = c.getContext("2d"),
+      gr = g.createLinearGradient(0, 0, 0, 64);
+    gr.addColorStop(0, "rgba(255,255,255,0)");
+    gr.addColorStop(0.55, "rgba(255,255,255,.18)");
+    gr.addColorStop(0.9, "rgba(255,255,255,.75)");
+    gr.addColorStop(1, "rgba(255,255,255,1)");
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 4, 64);
+    tex = new T.CanvasTexture(c);
+    return tex;
+  }
+  const H = 2.3;
+  function curtain(r, h, col) {
+    const m = new T.Mesh(
+      new T.CylinderGeometry(r, r, h, 48, 1, !0),
+      new T.MeshBasicMaterial({ map: fadeTex(), color: new T.Color(col).multiplyScalar(1.25), transparent: !0, opacity: 0.6, side: T.DoubleSide, depthWrite: !1, blending: T.AdditiveBlending })
+    );
+    m.position.y = h / 2;
+    m.renderOrder = 2;
+    return m;
+  }
+  const _mz = makeZone;
+  makeZone = function () {
+    const z = _mz.apply(this, arguments);
+    try {
+      if (z && z.mesh && z.r > 0.3) {
+        const col = arguments[5];
+        const c = curtain(z.r, Math.max(H, Math.min(z.h || 0, 3)), null != col ? col : 0xffffff);
+        // a brighter, thicker edge on the floor too
+        const e = new T.Mesh(new T.RingGeometry(z.r * 0.88, z.r * 1.01, 56), new T.MeshBasicMaterial({ color: new T.Color(null != col ? col : 0xffffff).multiplyScalar(1.4), transparent: !0, opacity: 0.8, side: T.DoubleSide, depthWrite: !1, blending: T.AdditiveBlending }));
+        e.rotation.x = -Math.PI / 2;
+        e.position.y = 0.06;
+        z.mesh.add(c, e);
+        z._vis = [c, e];
+      }
+    } catch (er) {}
+    return z;
+  };
+  if ("function" == typeof animateZone) {
+    const _az = animateZone;
+    animateZone = function (z, dt) {
+      const r = _az.apply(this, arguments);
+      if (z && z._vis) {
+        const f = Math.max(0, Math.min(1, z.life / Math.max(0.001, z.maxLife))),
+          k = Math.min(1, 4 * (z._t || 0)),
+          p = 0.5 + 0.12 * Math.sin(3.1 * (z._t || 0));
+        // last second: fade out
+        const end = Math.min(1, (z.life || 0) / 1);
+        z._vis[0].material.opacity = p * k * end * (0.6 + 0.4 * f);
+        z._vis[1].material.opacity = 0.8 * k * end;
+      }
+      return r;
+    };
+  }
+  // blasts: a column of light the size of the hit
+  if ("function" == typeof explode && "function" == typeof addFx) {
+    const _ex = explode;
+    explode = function (x, z, r, dmg, min, col) {
+      const out = _ex.apply(this, arguments);
+      try {
+        if (r > 0.5) {
+          const c = curtain(r, 3, null != col ? col : 0xffab40);
+          c.position.set(x, 1.5, z);
+          addFx(c, 0.55, (m, t) => {
+            const s = 0.55 + 0.45 * Math.min(1, t * 3);
+            m.scale.set(s, 1 - 0.4 * t, s);
+            m.material.opacity = 0.9 * (1 - t);
+          });
+        }
+      } catch (er) {}
+      return out;
+    };
+  }
+  window.ZONEVIS = { H };
+})();
+</script>
+<script>
+(() => {
+  // The owner account. Signing in with the owner's id (checked on the server,
+  // with the master password) opens the whole admin panel: every cheat with no
+  // limits, room-wide settings even as a guest, and a 플레이어 tab to set any
+  // player's health, kill them, make them unkillable, pin them in place, give
+  // or take back cheats, move them to the other team, kick or ban them.
+  // The host runs everything; a guest owner is confirmed through the server
+  // before the host takes orders from it.
+  const X = window.HUNTX,
+    A2 = window.ADMIN2,
+    AC = window.ACCOUNT;
+  if (!X || !A2 || !AC || "undefined" == typeof NET) return;
+  const $ = (id) => document.getElementById(id);
+  const E = X.E;
+  const isClient = () => "client" === NET.mode;
+  const sess = () => AC.session() || {};
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const OWN = { god: new Set(), bind: new Set() };
+
+  // ── becoming the owner ──
+  let was = !1;
+  setInterval(() => {
+    const on = !!window.IS_OWNER;
+    if (on && !was) {
+      window.ADMIN_GRANTED = !0;
+      X.relock();
+      addTab();
+    }
+    was = on;
+    on && hello();
+  }, 1000);
+
+  // a guest owner says who it is; the host asks the server
+  let helloKey = "";
+  function hello() {
+    if (!isClient() || "open" !== NET.status || !sess().token) return;
+    const k = NET.room + "|" + (NET.peer && NET.peer.id);
+    if (k === helloKey) return;
+    helloKey = k;
+    sendAction({ t: "own-hi", token: sess().token });
+  }
+
+  // ── host: what each op does ──
+  const actorById = (id) => (world.actors || []).find((a) => String(a.id) === String(id));
+  const memberName = (a) => (a && ((a.ctrl && room.members && room.members.get && room.members.get(a.ctrl) && room.members.get(a.ctrl).name) || a.name)) || "";
+  // cheats given by name, so they survive a dropped and redialled link
+  const GRANTN = new Set();
+  setInterval(() => {
+    if (isClient() || !GRANTN.size) return;
+    for (const a of world.actors || []) {
+      if (!a.ctrl || "me" === a.ctrl || "ai" === a.ctrl || X.GRANT.has(a.ctrl) || !GRANTN.has(memberName(a))) continue;
+      X.GRANT.add(a.ctrl);
+      sendEventTo(a.ctrl, { t: "own-grant", on: !0 });
+    }
+  }, 1000);
+  function run(m, from) {
+    const a = null != m.id ? actorById(m.id) : null;
+    switch (m.op) {
+      case "hp":
+        a && a.alive && (a.hp = Math.max(1, Math.min(999, +m.v || 100)));
+        break;
+      case "armor":
+        a && a.alive && (a.armor = Math.max(0, Math.min(200, +m.v || 0)));
+        break;
+      case "kill":
+        a && a.alive && killActor(a, from || null);
+        break;
+      case "god":
+        a && (m.v ? OWN.god.add(a.id) : OWN.god.delete(a.id));
+        break;
+      case "bind":
+        a && (m.v ? OWN.bind.add(a.id) : (OWN.bind.delete(a.id), (a.root = 0)));
+        break;
+      case "cheat":
+        if (!a || !a.ctrl || "me" === a.ctrl || "ai" === a.ctrl) break;
+        if (m.v) X.GRANT.add(a.ctrl), GRANTN.add(memberName(a));
+        else {
+          GRANTN.delete(memberName(a));
+          X.GRANT.delete(a.ctrl);
+          X.OK.delete(a.ctrl);
+          A2.PEERS.delete(a.ctrl);
+          a._kit && a.agent && A2.setKit(a, a.agent);
+        }
+        sendEventTo(a.ctrl, { t: "own-grant", on: !!m.v });
+        break;
+      case "team":
+        AC.runCmd({ cmd: "move", name: memberName(a), team: m.v });
+        break;
+      case "kick":
+        a && "me" !== a.ctrl && AC.runCmd({ cmd: "kick", name: memberName(a) });
+        break;
+      case "msg":
+        m.text && AC.runCmd({ cmd: "msg", text: String(m.text).slice(0, 120) });
+        break;
+      case "g": {
+        const g = m.g || {};
+        for (const k of ["run", "walk", "crouch", "jumpV", "gravity", "aiSpeed"]) null != g[k] && isFinite(g[k]) && (ADMIN[k] = +g[k]);
+        null != g.freezeAI && (ADMIN.freezeAI = !!g.freezeAI);
+        null != g.infAll && (A2.G.infAll = !!g.infAll);
+        for (const k of ["roundT", "buyT", "matchT"]) null != g[k] && isFinite(g[k]) && (A2.G[k] = +g[k]);
+        A2.afterChange();
+        break;
+      }
+    }
+  }
+  const order = (m) => (isClient() ? sendAction(Object.assign({ t: "own" }, m)) : run(m, myActor && myActor()));
+
+  // unkillable and pinned players, kept up by the host
+  const _dd = dealDamage;
+  dealDamage = function (e) {
+    if (e && OWN.god.has(e.id) && "client" !== NET.mode) return;
+    return _dd.apply(this, arguments);
+  };
+  const _st = step;
+  step = function () {
+    const r = _st.apply(this, arguments);
+    if (OWN.bind.size && "client" !== NET.mode) for (const a of world.actors || []) OWN.bind.has(a.id) && a.alive && (a.root = Math.max(a.root || 0, 0.3));
+    return r;
+  };
+
+  const _oa = NET.onAction;
+  NET.onAction = (peer, msg) => {
+    if (msg && "own-hi" === msg.t) {
+      AC.api("owner_check", { token: msg.token })
+        .then((j) => {
+          if (!j.owner) return;
+          X.OWNP.add(peer);
+          sendEventTo(peer, { t: "own-ok" });
+        })
+        .catch(() => {});
+      return;
+    }
+    if (msg && "own" === msg.t) {
+      X.OWNP.has(peer) && run(msg, world.actors.find((a) => a.ctrl === peer));
+      return;
+    }
+    return _oa(peer, msg);
+  };
+  const _oe = NET.onEvent;
+  NET.onEvent = (e) => {
+    if (e && "own-ok" === e.t) {
+      OWNP_ME = !0;
+      try {
+        A2.afterChange();
+      } catch (er) {}
+      banner(E("운영자로 확인됨 · 방장이 명령을 받습니다", "Confirmed as owner · the host takes your orders"), "#ffc849");
+      return;
+    }
+    if (e && "own-grant" === e.t) {
+      X.HUNT.granted = !!e.on;
+      if (e.on) {
+        const again = X.HUNT.unlocked;
+        X.HUNT.unlocked = !0;
+        X.refresh(!0);
+        try {
+          A2.afterChange(); // tell the host my switches (again, after a redial)
+        } catch (er) {}
+        if (again) return;
+        banner(E("운영자가 치트를 열어 주었습니다", "The owner gave you cheats"), "#ffc849");
+      } else {
+        X.relock();
+        banner(E("운영자가 치트를 거두었습니다", "The owner took your cheats back"), "#8a97ab");
+      }
+      return;
+    }
+    return _oe(e);
+  };
+  let OWNP_ME = !1;
+
+  // ── the panel ──
+  let ON = !1; // the 플레이어 tab is showing
+  let tabsEl = null;
+  function addTab() {
+    tabsEl = document.querySelector("#ad-panel .ad-tabs");
+    if (!tabsEl || tabsEl.querySelector('[data-t="own"]')) return;
+    const b = document.createElement("button");
+    b.dataset.t = "own";
+    b.innerHTML = E("플레이어 <small>운영자</small>", "Players <small>owner</small>");
+    b.onclick = () => ((ON = !0), buildAdminUI());
+    tabsEl.appendChild(b);
+    // any other tab closes this one (capture: before their own handlers)
+    tabsEl.addEventListener("click", (e) => {
+      const t = e.target.closest("button");
+      t && (ON = "own" === t.dataset.t);
+    }, !0);
+  }
+  const _bui = buildAdminUI;
+  buildAdminUI = function () {
+    const r = _bui.apply(this, arguments);
+    try {
+      if (!window.IS_OWNER) return r;
+      tabsEl = tabsEl || document.querySelector("#ad-panel .ad-tabs");
+      if (tabsEl) {
+        const me = tabsEl.querySelector('[data-t="me"]'),
+          gl = tabsEl.querySelector('[data-t="global"]');
+        me && (me.innerHTML = E("개인 설정 <small>나만</small>", "Personal <small>me</small>"));
+        gl && (gl.innerHTML = E("전체 설정 <small>방 전체</small>", "Room <small>everyone</small>"));
+      }
+      if (ON) {
+        tabsEl && tabsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("on", "own" === b.dataset.t));
+        renderPlayers(!0);
+      } else if (isClient() && tabsEl && tabsEl.querySelector('[data-t="global"].on')) {
+        // a guest owner can change the room too: the host gets the values
+        $("ad-panel").classList.remove("ad-locked");
+        document.querySelectorAll("#ad-grid input, #ad-toggles .ad-tg").forEach((x) => ((x.disabled = !1), x.classList.remove("locked")));
+        const note = document.querySelector("#ad-panel .ad-note");
+        note && (note.innerHTML = E("<b>운영자</b> · 방장에게 보내 방 전체에 적용합니다.", "<b>Owner</b> · sent to the host and applied to the whole room."));
+      }
+    } catch (e) {}
+    return r;
+  };
+  // guest owner: room settings go to the host after each change
+  let dirty = 0;
+  const markDirty = (e) => window.IS_OWNER && isClient() && !ON && e.target.closest("#ad-grid, #ad-toggles") && document.querySelector('#ad-panel .ad-tabs [data-t="global"].on') && (dirty = Date.now());
+  document.addEventListener("input", markDirty, !0);
+  document.addEventListener("click", markDirty, !0);
+  setInterval(() => {
+    if (!dirty || Date.now() - dirty < 250) return;
+    dirty = 0;
+    const g = {};
+    for (const k of ["run", "walk", "crouch", "jumpV", "gravity", "aiSpeed", "freezeAI"]) g[k] = ADMIN[k];
+    for (const k of ["infAll", "roundT", "buyT", "matchT"]) g[k] = A2.G[k];
+    sendAction({ t: "own", op: "g", g });
+  }, 150);
+
+  const teamName = (t) => ("atk" === t ? E("공격", "ATK") : "def" === t ? E("수비", "DEF") : t || "");
+  function rowHTML(a) {
+    const human = a.ctrl && "ai" !== a.ctrl,
+      guest = human && "me" !== a.ctrl,
+      nm = a.name || (a.agent && a.agent.name) || "#" + a.id,
+      hp = Math.max(0, Math.round(a.hp || 0));
+    const b = (op, label, v, cls) => `<button data-op="${op}" data-id="${esc(a.id)}"${null != v ? ` data-v="${esc(v)}"` : ""} class="${cls || ""}">${label}</button>`;
+    return (
+      `<div class="ow-row${a.alive ? "" : " dead"}" data-id="${esc(a.id)}">` +
+      `<div class="ow-who"><b class="ow-${esc(a.team)}">${esc(nm)}</b><small>${esc(teamName(a.team))} · ${esc(a.agent ? a.agent.name : "")} · ${"me" === a.ctrl ? E("나", "me") : guest ? E("플레이어", "player") : E("봇", "bot")}</small></div>` +
+      `<div class="ow-hp"><span class="ow-hpv">${a.alive ? hp : E("사망", "dead")}</span><i style="width:${Math.min(100, hp)}%"></i></div>` +
+      `<div class="ow-ctl">` +
+      `<input type="number" min="1" max="999" value="${hp || 100}" data-hpin="${esc(a.id)}">` +
+      b("hp", E("체력", "HP")) +
+      b("kill", E("즉사", "Kill"), null, "red") +
+      b("god", OWN.god.has(a.id) ? E("무적 끄기", "Unprotect") : E("무적", "God"), OWN.god.has(a.id) ? 0 : 1, OWN.god.has(a.id) ? "on" : "") +
+      b("bind", OWN.bind.has(a.id) ? E("풀기", "Release") : E("묶기", "Pin"), OWN.bind.has(a.id) ? 0 : 1, OWN.bind.has(a.id) ? "on" : "") +
+      (guest ? b("cheat", X.GRANT.has(a.ctrl) || cheatShown.has(a.id) ? E("치트 회수", "Take cheats") : E("치트 부여", "Give cheats"), X.GRANT.has(a.ctrl) || cheatShown.has(a.id) ? 0 : 1, X.GRANT.has(a.ctrl) || cheatShown.has(a.id) ? "on" : "") : "") +
+      (human ? b("team", E("팀 이동", "Swap team"), "atk" === a.team ? "def" : "atk") : "") +
+      (guest ? b("kick", E("추방", "Kick"), null, "red") : "") +
+      (guest && sess().atoken ? b("ban", E("차단", "Ban"), null, "red") : "") +
+      `</div></div>`
+    );
+  }
+  const cheatShown = new Set(); // a guest owner's view of who it gave cheats to
+  function renderPlayers(full) {
+    const grid = $("ad-grid"),
+      tg = $("ad-toggles"),
+      note = document.querySelector("#ad-panel .ad-note");
+    if (!grid) return;
+    $("ad-panel").classList.remove("ad-locked");
+    tg && (tg.innerHTML = "");
+    note && (note.innerHTML = isClient() ? E("<b>운영자</b> · 방장이 대신 실행합니다." + (OWNP_ME ? "" : " (확인 중…)"), "<b>Owner</b> · the host carries these out." + (OWNP_ME ? "" : " (checking…)")) : E("<b>운영자</b> · 이 방의 모든 플레이어와 봇.", "<b>Owner</b> · every player and bot in this room."));
+    const list = (world.actors || []).slice().sort((p, q) => (p.team > q.team ? 1 : p.team < q.team ? -1 : 0));
+    let box = grid.querySelector(".ow-list");
+    if (full || !box) {
+      grid.innerHTML =
+        `<div class="ow-list"><div class="ow-top"><input id="ow-msg" maxlength="120" placeholder="${E("모두에게 공지", "Announce to everyone")}"><button data-op="msg">${E("보내기", "Send")}</button></div>` +
+        (list.length ? list.map(rowHTML).join("") : `<div class="ow-empty">${E("경기를 시작하면 플레이어가 여기 나옵니다.", "Players show up here once a match starts.")}</div>`) +
+        `</div>`;
+      box = grid.querySelector(".ow-list");
+      box.onclick = click;
+      return;
+    }
+    // light refresh: health only, so typing is not lost
+    for (const a of list) {
+      const r = box.querySelector(`.ow-row[data-id="${CSS.escape(String(a.id))}"]`);
+      if (!r) return renderPlayers(!0);
+      r.classList.toggle("dead", !a.alive);
+      r.querySelector(".ow-hpv").textContent = a.alive ? Math.round(a.hp) : E("사망", "dead");
+      r.querySelector(".ow-hp i").style.width = Math.min(100, Math.max(0, a.hp)) + "%";
+    }
+  }
+  async function click(e) {
+    const btn = e.target.closest("button[data-op]");
+    if (!btn) return;
+    const op = btn.dataset.op,
+      id = btn.dataset.id,
+      v = btn.dataset.v;
+    const a = id != null ? actorById(id) : null;
+    if ("msg" === op) {
+      const t = $("ow-msg").value.trim();
+      t && (order({ op: "msg", text: t }), ($("ow-msg").value = ""));
+      return;
+    }
+    if ("hp" === op) {
+      const inp = btn.parentNode.querySelector("[data-hpin]");
+      order({ op: "hp", id, v: +inp.value || 100 });
+    } else if ("kill" === op) order({ op: "kill", id });
+    else if ("god" === op || "bind" === op) {
+      // a guest owner keeps its own view of these
+      const s = OWN[op];
+      +v ? s.add(isNaN(+id) ? id : +id) : s.delete(isNaN(+id) ? id : +id);
+      order({ op, id, v: +v });
+    } else if ("cheat" === op) {
+      +v ? cheatShown.add(a && a.id) : cheatShown.delete(a && a.id);
+      order({ op, id, v: +v });
+    } else if ("team" === op) order({ op, id, v });
+    else if ("kick" === op) {
+      if (!confirm(E(`${a && a.name} 님을 방에서 내보낼까요?`, `Kick ${a && a.name}?`))) return;
+      order({ op, id });
+    } else if ("ban" === op) {
+      const name = a && a.name;
+      const days = prompt(E(`${name} 계정을 며칠 차단할까요? (0 = 영구)`, `Ban ${name} for how many days? (0 = forever)`), "1");
+      if (null === days) return;
+      try {
+        await AC.api("a_user_set", { atoken: sess().atoken, id: name, op: "ban", days: +days || 0, reason: E("운영자 차단", "Banned by the owner") });
+        banner(E("차단했습니다: ", "Banned: ") + name, "#ff6b6b");
+      } catch (er) {
+        banner(E("차단 실패: ", "Ban failed: ") + (er.message || er), "#ff6b6b");
+      }
+      order({ op: "kick", id });
+    }
+    setTimeout(() => renderPlayers(!0), 120);
+  }
+  setInterval(() => {
+    const open = ON && $("admin") && !$("admin").hidden;
+    open && !(document.activeElement && document.activeElement.closest && document.activeElement.closest(".ow-list")) && renderPlayers(!1);
+  }, 700);
+
+  const st = document.createElement("style");
+  st.textContent = `
+.ow-list{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.ow-top{display:flex;gap:6px;margin-bottom:4px}
+.ow-top input{flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#2a3140);background:rgba(255,255,255,.04);color:#fff;font-family:inherit}
+.ow-row{display:grid;grid-template-columns:minmax(110px,1.1fr) 90px 3fr;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--line,#2a3140);border-radius:10px;background:rgba(255,255,255,.02)}
+.ow-row.dead{opacity:.5}
+.ow-who{display:flex;flex-direction:column;min-width:0}
+.ow-who b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ow-who small{font-size:10px;color:var(--steel-dim,#7d8899)}
+.ow-atk{color:#ff7a59}.ow-def{color:#38bdf8}
+.ow-hp{position:relative;height:18px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ow-hp i{position:absolute;left:0;top:0;bottom:0;background:rgba(76,175,80,.45)}
+.ow-hp span{position:relative}
+.ow-ctl{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ow-ctl input{width:54px;padding:5px 6px;border-radius:8px;border:1px solid var(--line,#2a3140);background:rgba(255,255,255,.04);color:#fff;font-family:inherit}
+.ow-list button{padding:5px 8px;border-radius:8px;border:1px solid var(--line,#2a3140);background:rgba(255,255,255,.04);color:var(--ink,#fff);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.ow-list button.red{border-color:rgba(255,80,80,.5);color:#ff8a8a}
+.ow-list button.on{border-color:var(--gold,#ffc849);color:var(--gold,#ffc849);background:rgba(255,200,73,.1)}
+.ow-empty{padding:14px;text-align:center;color:var(--steel-dim,#7d8899);font-size:12px}
+@media (max-width:640px){.ow-row{grid-template-columns:1fr 80px}.ow-ctl{grid-column:1/-1}}`;
+  document.head.appendChild(st);
+  window.OWNER_UI = { run, order, OWN, renderPlayers };
 })();
 </script>

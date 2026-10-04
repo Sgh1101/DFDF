@@ -8,6 +8,11 @@ const crypto = require("crypto");
 const RURL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
 const RTOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
 const MASTER = process.env.ADMIN_MASTER_PASS || "";
+// The owner's own game account: this id signs in only with the master
+// password and gets every power in game. Kept out of the repository too.
+const OWNER_ID = String(process.env.OWNER_ID || "").trim().toLowerCase();
+const isOwnerId = (id) => !!OWNER_ID && String(id || "").toLowerCase() === OWNER_ID;
+const masterOk = (pw) => !!MASTER && crypto.timingSafeEqual(crypto.createHash("sha256").update(String(pw || "")).digest(), crypto.createHash("sha256").update(MASTER).digest());
 const SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update("13|" + MASTER + "|" + RTOK).digest("hex");
 
 // ── redis over REST ──
@@ -162,7 +167,7 @@ async function banOf(user, device, ip) {
 }
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.adminUntil && u.adminUntil > now()), adminUntil: u.adminUntil || 0, created: u.created };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -211,6 +216,24 @@ A.auth = async (q, b, req) => {
   if (await limited("auth:" + ip, 20, 600)) throw fail(429, "잠시 후 다시 시도하세요");
   let u = await getJ(userKey(id)),
     created = !1;
+  if (isOwnerId(id)) {
+    // the owner: only the master password, never a stored one; never banned
+    if (await limited("adm:" + ip, 8, 900)) throw fail(429, "너무 많이 시도했습니다. 15분 뒤에 다시");
+    if (!masterOk(pw)) {
+      await log("admin", "운영자 계정 로그인 실패", { ip });
+      throw fail(401, "비밀번호가 틀렸습니다");
+    }
+    if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
+    u.owner = !0;
+    u.pass = hashPw(crypto.randomBytes(24).toString("hex"));
+    delete u.ban;
+    u.lastSeen = now();
+    u.lastIp = ip;
+    u.dev = String(b.device || "").slice(0, 64);
+    await saveUser(u);
+    await log("admin", "운영자 계정 로그인: " + id, { ip, user: id });
+    return { token: sign({ k: "p", id, o: 1, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created };
+  }
   if (u) {
     if (!checkPw(pw, u.pass)) {
       await log("auth", "비밀번호 틀림: " + id, { ip });
@@ -253,9 +276,15 @@ A.me = async (q, b, req) => {
   const c = await loadConfig(),
     u = await who(b.token || q.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.owner && isOwnerId(u.id)) return { user: publicUser(u, c.xp.perLevel), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }) };
   const ban = await banOf(u, u.dev, ipOf(req));
   if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
   return { user: publicUser(u, c.xp.perLevel) };
+};
+// a room host asks whether a guest really is the owner
+A.owner_check = async (q, b) => {
+  const u = await who(b.token);
+  return { owner: !!(u && u.owner && isOwnerId(u.id)), id: u ? u.id : null };
 };
 A.progress = async (q, b) => {
   const c = await loadConfig(),

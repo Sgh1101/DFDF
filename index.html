@@ -225,7 +225,7 @@ function drawNotices() {
 function drawMe() {
   if (!S) return;
   const u = S.user;
-  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
+  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
   $("#meLv").textContent = "Lv." + u.level;
   $("#meXp").style.width = Math.round((100 * u.into) / Math.max(1, u.need)) + "%";
   $("#meXpT").textContent = t("lvNext", u.into, u.need);
@@ -256,7 +256,7 @@ async function auth(guest) {
   $("#aerr").textContent = "";
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
-    save({ token: j.token, user: j.user });
+    save({ token: j.token, user: j.user, atoken: j.atoken || "" });
     enter();
   } catch (e) {
     if (e.ban) return showBan(e.ban);
@@ -274,7 +274,7 @@ function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInt
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
   drawNotices();
   if (S && S.token) {
-    try { const j = await api("me", { token: S.token }); S.user = j.user; save(S); enter(); }
+    try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; save(S); enter(); }
     catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else enter(); }
   } else if (S && OFFLINE) enter();
   else view("auth");
