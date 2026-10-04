@@ -11,8 +11,21 @@ const MASTER = process.env.ADMIN_MASTER_PASS || "";
 const SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update("13|" + MASTER + "|" + RTOK).digest("hex");
 
 // ── redis over REST ──
+// commands are counted (in memory, written out every ~100) so the owner can
+// see roughly how much of the monthly free allowance is used
+let used = 0;
+const month = () => new Date().toISOString().slice(0, 7);
+async function flushUse(force) {
+  if (!used || (!force && used < 100)) return;
+  const n = used;
+  used = 0;
+  try {
+    await fetch(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify([["INCRBY", "usage:" + month(), String(n + 1)], ["EXPIRE", "usage:" + month(), String(40 * 86400)]]) });
+  } catch (e) {}
+}
 async function redis(cmd) {
   if (!RURL) throw Object.assign(new Error("저장소가 연결되지 않았습니다"), { code: 503 });
+  used++;
   const r = await fetch(RURL, { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
   const j = await r.json();
   if (j.error) throw new Error(j.error);
@@ -21,6 +34,7 @@ async function redis(cmd) {
 async function pipe(cmds) {
   if (!cmds.length) return [];
   if (!RURL) throw Object.assign(new Error("저장소가 연결되지 않았습니다"), { code: 503 });
+  used += cmds.length;
   const r = await fetch(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmds) });
   const j = await r.json();
   return j.map((x) => x.result);
@@ -71,7 +85,13 @@ function merge(base, over) {
   for (const k in over) out[k] = k in base ? (isObj(base[k]) ? merge(base[k], over[k]) : typeof over[k] === typeof base[k] || Array.isArray(base[k]) ? over[k] : base[k]) : out[k];
   return out;
 }
-const loadConfig = async () => merge(DEFAULT_CONFIG, (await getJ("config")) || {});
+let cfgCache = null;
+const loadConfig = async () => {
+  if (cfgCache && cfgCache.until > Date.now()) return cfgCache.c;
+  const c = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
+  cfgCache = { c, until: Date.now() + 20000 };
+  return c;
+};
 
 // ── helpers ──
 const now = () => Date.now();
@@ -287,14 +307,18 @@ A.ice = async () => {
   return { iceServers: list, relay: !0 };
 };
 // the room list (rooms report themselves every few seconds while open)
-const ROOM_TTL = 45;
+const ROOM_TTL = 70;
+let roomsCache = null;
 A.rooms = async () => {
   const c = await loadConfig();
   if (!c.game.roomListOpen) return { rooms: [] };
+  if (roomsCache && roomsCache.until > now()) return { rooms: roomsCache.rooms };
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(now() - ROOM_TTL * 1000)]);
   const codes = await redis(["ZRANGE", "rooms", "0", "199"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
-  return { rooms: rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created }) => ({ code, name, ch, mode, map, n: (players || []).length, max, state, host, created })) };
+  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created }) => ({ code, name, ch, mode, map, n: (players || []).length, max, state, host, created }));
+  roomsCache = { rooms, until: now() + 5000 };
+  return { rooms };
 };
 A.room_up = async (q, b, req) => {
   const c = await loadConfig(),
@@ -319,7 +343,12 @@ A.room_up = async (q, b, req) => {
     ip: ipOf(req),
     created: (prev && prev.created) || now(),
     seen: now(),
+    banAt: (prev && prev.banAt) || 0,
   };
+  const fresh = players.filter((p) => !(prev && (prev.players || []).includes(p)));
+  const checkAll = now() - room.banAt > 60000;
+  checkAll && (room.banAt = now());
+  const toCheck = checkAll ? players : fresh;
   await pipe([
     ["SET", "room:" + code, JSON.stringify(room), "EX", String(ROOM_TTL * 4)],
     ["ZADD", "rooms", String(now()), code],
@@ -331,12 +360,12 @@ A.room_up = async (q, b, req) => {
     ["DEL", "cmd:" + code],
   ]);
   const banned = [];
-  if (players.length) {
-    const recs = await pipe(players.map((p) => ["GET", userKey(p)]));
+  if (toCheck.length) {
+    const recs = await pipe(toCheck.map((p) => ["GET", userKey(p)]));
     recs.forEach((r, i) => {
       if (!r) return;
       const x = JSON.parse(r);
-      x.ban && (!x.ban.until || x.ban.until > now()) && banned.push(players[i]);
+      x.ban && (!x.ban.until || x.ban.until > now()) && banned.push(toCheck[i]);
     });
   }
   return { cmds: (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room } };
@@ -376,7 +405,9 @@ ADMIN.stats = async () => {
   const [users, rooms, logs, devBans, ipBans] = await pipe([["ZCARD", "users"], ["ZCARD", "rooms"], ["LLEN", "logs"], ["KEYS", "ban:dev:*"], ["KEYS", "ban:ip:*"]]);
   const day = now() - 864e5;
   const recent = await redis(["ZCOUNT", "users", String(day), "+inf"]);
-  return { users, rooms, logs, newToday: recent, bans: (devBans || []).length + (ipBans || []).length };
+  await flushUse(!0);
+  const usage = +(await redis(["GET", "usage:" + month()])) || 0;
+  return { users, rooms, logs, newToday: recent, bans: (devBans || []).length + (ipBans || []).length, usage, usageLimit: 500000, month: month() };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -490,11 +521,13 @@ ADMIN.config_set = async (q, b) => {
   if (!isObj(b.config)) throw fail(400, "설정이 없습니다");
   const c = merge(DEFAULT_CONFIG, b.config);
   await setJ("config", c);
+  cfgCache = null;
   await log("admin", "설정 저장");
   return { config: c };
 };
 ADMIN.config_reset = async () => {
   await redis(["DEL", "config"]);
+  cfgCache = null;
   await log("admin", "설정 초기화");
   return { config: DEFAULT_CONFIG };
 };
@@ -519,6 +552,7 @@ module.exports = async (req, res) => {
       if (!fn) throw fail(404, "없는 기능");
       out = await fn(q, b, req);
     }
+    RURL && (await flushUse());
     res.statusCode = 200;
     res.end(JSON.stringify(Object.assign({ ok: !0 }, out)));
   } catch (e) {

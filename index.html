@@ -268,7 +268,7 @@ $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
 let roomTimer = null;
 async function loadRooms() { try { ROOMS = (await api("rooms")).rooms; } catch (e) { ROOMS = []; } drawChannels(); drawRooms(); }
-function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInterval(roomTimer); roomTimer = setInterval(loadRooms, 6000); }
+function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInterval(roomTimer); roomTimer = setInterval(() => document.hidden || loadRooms(), 10000); }
 (async () => {
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }

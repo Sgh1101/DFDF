@@ -122,8 +122,9 @@ VIEWS.dash = async () => {
     <div class="card"><div class="n">${s.rooms}</div><div class="l">지금 열린 방</div></div>
     <div class="card"><div class="n">${r.rooms.reduce((n, x) => n + (x.players || []).length, 0)}</div><div class="l">방에 있는 사람</div></div>
     <div class="card"><div class="n">${s.bans}</div><div class="l">기기·IP 차단</div></div>
-    <div class="card"><div class="n">${s.logs}</div><div class="l">로그 줄 수</div></div></div>
-    <p class="muted" style="margin-top:14px">계정 차단은 '가입자'에서, 기기·IP 차단은 '차단'에서 합니다. 방 목록은 10초마다 새로 고칩니다.</p>`;
+    <div class="card"><div class="n">${s.logs}</div><div class="l">로그 줄 수</div></div>
+    <div class="card" style="grid-column:span 2"><div class="n">${Math.round((100 * s.usage) / s.usageLimit)}%</div><div class="l">이번 달(${esc(s.month)}) 저장소 사용량 · 약 ${s.usage.toLocaleString()} / ${s.usageLimit.toLocaleString()}회 (무료 한도)</div><div style="height:6px;background:#0d121a;border-radius:9px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100, (100 * s.usage) / s.usageLimit)}%;background:${s.usage > 0.8 * s.usageLimit ? "var(--red)" : "var(--gold)"}"></i></div></div></div>
+    <p class="muted" style="margin-top:14px">계정 차단은 '가입자'에서, 기기·IP 차단은 '차단'에서 합니다. '서버·방' 화면은 10초마다 새로 고칩니다. 방 정보는 방장 게임이 20초마다 보내서, 운영 명령은 20초 안에 전달됩니다.</p>`;
 };
 VIEWS.users = async () => {
   $("#main").innerHTML = `<div class="bar"><input id="uq" placeholder="아이디 검색"><button id="us">검색</button><span class="muted" id="ut"></span></div><div id="ul"></div>`;
@@ -166,7 +167,7 @@ VIEWS.rooms = async () => {
     const chName = (id) => (config.channels.find((c) => c.id === id) || { name: id }).name;
     const by = {};
     rooms.forEach((r) => (by[r.ch] = by[r.ch] || []).push(r));
-    $("#main").innerHTML = `<div class="bar"><span class="muted">서버(채널) 목록과 이름은 '게임 설정' 아래쪽에서 바꿉니다. 명령은 방장 화면에 10초 안에 전달됩니다.</span></div>` +
+    $("#main").innerHTML = `<div class="bar"><span class="muted">서버(채널) 목록과 이름은 '게임 설정' 아래쪽에서 바꿉니다. 명령은 방장 화면에 20초 안에 전달됩니다.</span></div>` +
       (config.channels.map((c) => `<div class="sec"><h3>${esc(c.name)} <span class="muted">${esc(c.id)}</span></h3>${(by[c.id] || []).map(roomHtml).join("") || '<p class="muted">열린 방 없음</p>'}</div>`).join("")) +
       Object.keys(by).filter((k) => !config.channels.some((c) => c.id === k)).map((k) => `<div class="sec"><h3>${esc(chName(k))}</h3>${by[k].map(roomHtml).join("")}</div>`).join("");
   };
