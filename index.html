@@ -225,7 +225,7 @@ function drawNotices() {
 function drawMe() {
   if (!S) return;
   const u = S.user;
-  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
+  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold);text-decoration:none">운영자 페이지 ›</a>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
   $("#meLv").textContent = "Lv." + u.level;
   $("#meXp").style.width = Math.round((100 * u.into) / Math.max(1, u.need)) + "%";
   $("#meXpT").textContent = t("lvNext", u.into, u.need);

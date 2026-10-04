@@ -6210,6 +6210,10 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
 </script>
 <script>window.BLINK_RANGE=90;for(const g of AGENTS)for(const b of g.abilities)"blink"===b.type&&(b.desc="조준한 곳으로 최대 90m 순간이동.");</script>
 <script>
+// the very first admin panel, kept for the owner's 원래 관리자 tab
+window.__ADMIN_V1 = buildAdminUI;
+</script>
+<script>
 (() => {
   // Admin, rebuilt around two tabs.
   //  · Personal (only whoever unlocked it on this device): enemies on the
@@ -7825,7 +7829,7 @@ body.touching #chk-chip.flash{animation:none}
   //    spike blast take health without going through dealDamage. Guard the
   //    health value itself: a god's hp never goes down and it cannot die.
   const isGod = (a) => {
-    if (!a) return !1;
+    if (!a || a._ownForce) return !1; // the owner's own order wins over god mode
     if ("me" === a.ctrl && ADMIN.god) return !0;
     try {
       const f = window.ADMIN2 && ADMIN2.flagsFor(a);
@@ -9931,6 +9935,9 @@ body.touching #chk-chip.flash{animation:none}
       case "close":
         closeRoom(L("운영자가 방을 닫았습니다", "The operator closed this room"));
         break;
+      default:
+        // health, kill, unkillable, pin, cheats: the owner module does these
+        window.OWNER_UI && OWNER_UI.byName(c);
     }
   }
   async function beat() {
@@ -10329,13 +10336,20 @@ body.touching #chk-chip.flash{animation:none}
     const a = null != m.id ? actorById(m.id) : null;
     switch (m.op) {
       case "hp":
-        a && a.alive && (a.hp = Math.max(1, Math.min(999, +m.v || 100)));
+        a && a.alive && ((a._ownForce = 1), (a.hp = Math.max(1, Math.min(999, +m.v || 100))), (a._ownForce = 0));
         break;
       case "armor":
         a && a.alive && (a.armor = Math.max(0, Math.min(200, +m.v || 0)));
         break;
       case "kill":
-        a && a.alive && killActor(a, from || null);
+        if (a && a.alive) {
+          a._ownForce = 1;
+          try {
+            killActor(a, from || null);
+          } finally {
+            a._ownForce = 0;
+          }
+        }
         break;
       case "god":
         a && (m.v ? OWN.god.add(a.id) : OWN.god.delete(a.id));
@@ -10441,6 +10455,7 @@ body.touching #chk-chip.flash{animation:none}
 
   // ── the panel ──
   let ON = !1; // the 플레이어 tab is showing
+  let V1 = !1; // the 원래 관리자 tab (the very first panel) is showing
   let tabsEl = null;
   function addTab() {
     tabsEl = document.querySelector("#ad-panel .ad-tabs");
@@ -10448,12 +10463,19 @@ body.touching #chk-chip.flash{animation:none}
     const b = document.createElement("button");
     b.dataset.t = "own";
     b.innerHTML = E("플레이어 <small>운영자</small>", "Players <small>owner</small>");
-    b.onclick = () => ((ON = !0), buildAdminUI());
+    b.onclick = () => ((ON = !0), (V1 = !1), buildAdminUI());
     tabsEl.appendChild(b);
+    if ("function" == typeof window.__ADMIN_V1) {
+      const v = document.createElement("button");
+      v.dataset.t = "v1";
+      v.innerHTML = E("원래 관리자 <small>처음 그대로</small>", "Classic <small>original</small>");
+      v.onclick = () => ((V1 = !0), (ON = !1), buildAdminUI());
+      tabsEl.appendChild(v);
+    }
     // any other tab closes this one (capture: before their own handlers)
     tabsEl.addEventListener("click", (e) => {
       const t = e.target.closest("button");
-      t && (ON = "own" === t.dataset.t);
+      t && ((ON = "own" === t.dataset.t), (V1 = "v1" === t.dataset.t));
     }, !0);
   }
   const _bui = buildAdminUI;
@@ -10471,6 +10493,13 @@ body.touching #chk-chip.flash{animation:none}
       if (ON) {
         tabsEl && tabsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("on", "own" === b.dataset.t));
         renderPlayers(!0);
+      } else if (V1) {
+        tabsEl && tabsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("on", "v1" === b.dataset.t));
+        $("ad-panel").classList.remove("ad-locked");
+        $("ad-presets").hidden = !1;
+        window.__ADMIN_V1();
+        const note = document.querySelector("#ad-panel .ad-note");
+        note && (note.innerHTML = E("<b>처음 만든 관리자 모드 그대로</b> · 프리셋과 모든 수치. " + (isClient() ? "방장에게 보내 방 전체에 적용합니다." : "방 전체에 적용됩니다."), "<b>The original admin mode</b> · presets and every value. " + (isClient() ? "Sent to the host for the whole room." : "Applies to the whole room.")));
       } else if (isClient() && tabsEl && tabsEl.querySelector('[data-t="global"].on')) {
         // a guest owner can change the room too: the host gets the values
         $("ad-panel").classList.remove("ad-locked");
@@ -10481,6 +10510,26 @@ body.touching #chk-chip.flash{animation:none}
     } catch (e) {}
     return r;
   };
+  // classic panel → the rebuilt panel's state, then out to the room
+  let v1Dirty = 0;
+  const v1Mark = (e) => V1 && window.IS_OWNER && e.target.closest && e.target.closest("#ad-presets, #ad-grid, #ad-toggles") && (v1Dirty = Date.now());
+  document.addEventListener("input", v1Mark, !0);
+  document.addEventListener("click", v1Mark, !0);
+  setInterval(() => {
+    if (!v1Dirty || Date.now() - v1Dirty < 200) return;
+    v1Dirty = 0;
+    try {
+      for (const k of ["god", "oneShot", "infAmmo", "noRecoil", "fastFire"]) null != ADMIN[k] && k in A2.P && (A2.P[k] = ADMIN[k]);
+      A2.G.infAll = !!ADMIN.infAbil;
+      A2.afterChange();
+      if (isClient()) {
+        const g = {};
+        for (const k of ["run", "walk", "crouch", "jumpV", "gravity", "aiSpeed", "freezeAI"]) g[k] = ADMIN[k];
+        g.infAll = A2.G.infAll;
+        sendAction({ t: "own", op: "g", g });
+      }
+    } catch (er) {}
+  }, 120);
   // guest owner: room settings go to the host after each change
   let dirty = 0;
   const markDirty = (e) => window.IS_OWNER && isClient() && !ON && e.target.closest("#ad-grid, #ad-toggles") && document.querySelector('#ad-panel .ad-tabs [data-t="global"].on') && (dirty = Date.now());
@@ -10617,6 +10666,12 @@ body.touching #chk-chip.flash{animation:none}
 .ow-empty{padding:14px;text-align:center;color:var(--steel-dim,#7d8899);font-size:12px}
 @media (max-width:640px){.ow-row{grid-template-columns:1fr 80px}.ow-ctl{grid-column:1/-1}}`;
   document.head.appendChild(st);
-  window.OWNER_UI = { run, order, OWN, renderPlayers };
+  // the owner page sends commands by account name (through the room heartbeat)
+  function byName(c) {
+    if (isClient() || !c || !c.name) return;
+    const a = (world.actors || []).find((x) => memberName(x) === c.name);
+    a && run({ op: c.cmd, id: a.id, v: null != c.v ? c.v : 1 });
+  }
+  window.OWNER_UI = { run, order, OWN, renderPlayers, byName };
 })();
 </script>

@@ -524,9 +524,9 @@ ADMIN.rooms = async () => {
 };
 ADMIN.room_cmd = async (q, b) => {
   const code = String(b.code || "").toUpperCase().slice(0, 6);
-  const ok = ["kick", "move", "msg", "close", "settings", "cheat"];
+  const ok = ["kick", "move", "msg", "close", "settings", "cheat", "hp", "kill", "god", "bind"];
   if (!ok.includes(b.cmd)) throw fail(400, "알 수 없는 명령");
-  const cmd = { cmd: b.cmd, name: b.name ? String(b.name).slice(0, 20) : undefined, team: b.team, text: b.text ? String(b.text).slice(0, 200) : undefined, set: isObj(b.set) ? b.set : undefined, at: now() };
+  const cmd = { cmd: b.cmd, name: b.name ? String(b.name).slice(0, 20) : undefined, team: b.team, text: b.text ? String(b.text).slice(0, 200) : undefined, set: isObj(b.set) ? b.set : undefined, v: null != b.v && isFinite(+b.v) ? +b.v : undefined, at: now() };
   await pipe([
     ["RPUSH", "cmd:" + code, JSON.stringify(cmd)],
     ["EXPIRE", "cmd:" + code, "300"],

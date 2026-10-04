@@ -50,7 +50,7 @@ td .acts button{padding:3px 8px;font-size:12px}
 .room{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .room h4{font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.pl span{display:inline-flex;gap:4px;align-items:center;background:#0f141d;border:1px solid var(--line);border-radius:99px;padding:3px 4px 3px 10px;font-size:12px}
+.pl span{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;background:#0f141d;border:1px solid var(--line);border-radius:12px;padding:4px 6px 4px 10px;font-size:12px}
 .pl span button{padding:1px 6px;font-size:11px;border-radius:99px}
 .log{font-family:ui-monospace,monospace;font-size:12px}
 .log td:first-child{white-space:nowrap;color:var(--dim)}
@@ -86,6 +86,8 @@ td .acts button{padding:3px 8px;font-size:12px}
 <script>
 const API = "/api/v1";
 let AT = sessionStorage.getItem("adm_t") || "";
+// signed in on the homepage with the owner account: no second password
+try { const ss = JSON.parse(localStorage.getItem("lgp_session") || "null"); if (!AT && ss && ss.user && ss.user.owner && ss.atoken) AT = ss.atoken; } catch (e) {}
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const when = (t) => (t ? new Date(t).toLocaleString("ko-KR", { hour12: !1 }) : "-");
@@ -173,12 +175,16 @@ VIEWS.rooms = async () => {
   };
   const roomHtml = (r) => `<div class="room" data-code="${esc(r.code)}"><h4>${esc(r.name)} <span class="tag">${esc(r.code)}</span> <span class="tag">${esc(r.mode)} · ${esc(r.map)}</span> <span class="tag ${r.state === "lobby" ? "" : "green"}">${r.state === "lobby" ? "대기실" : "경기 중"}</span>${r.private ? '<span class="tag gold">비공개</span>' : ""}</h4>
     <div class="muted">방장 ${esc(r.host)} · ${esc(r.ip)} · 열린 시각 ${when(r.created)} · 마지막 신호 ${Math.round((Date.now() - r.seen) / 1000)}초 전</div>
-    <div class="pl">${(r.players || []).map((p) => `<span>${esc(p)} <button data-c="move" data-n="${esc(p)}" data-t="atk">공격</button><button data-c="move" data-n="${esc(p)}" data-t="def">수비</button><button data-c="kick" data-n="${esc(p)}" class="bad">내보내기</button></span>`).join("")}</div>
+    <div class="pl">${(r.players || []).map((p) => `<span>${esc(p)} <button data-c="move" data-n="${esc(p)}" data-t="atk">공격</button><button data-c="move" data-n="${esc(p)}" data-t="def">수비</button><button data-c="hp" data-n="${esc(p)}">체력</button><button data-c="kill" data-n="${esc(p)}" class="bad">즉사</button><button data-c="god" data-n="${esc(p)}" data-v="1">무적</button><button data-c="god" data-n="${esc(p)}" data-v="0">무적 끄기</button><button data-c="bind" data-n="${esc(p)}" data-v="1">묶기</button><button data-c="bind" data-n="${esc(p)}" data-v="0">풀기</button><button data-c="cheat" data-n="${esc(p)}" data-v="1">치트 부여</button><button data-c="cheat" data-n="${esc(p)}" data-v="0">치트 회수</button><button data-c="kick" data-n="${esc(p)}" class="bad">내보내기</button></span>`).join("")}</div>
     <div class="acts" style="display:flex;gap:6px;flex-wrap:wrap"><button data-c="msg">공지 보내기</button><button data-c="close" class="bad">방 닫기</button></div></div>`;
   $("#main").onclick = async (e) => {
     const b = e.target.closest("button[data-c]"); if (!b) return;
     const code = b.closest(".room").dataset.code, cmd = b.dataset.c, p = { code, cmd };
-    if (cmd === "kick" || cmd === "move") (p.name = b.dataset.n), (p.team = b.dataset.t);
+    if (b.dataset.n) p.name = b.dataset.n;
+    if (cmd === "move") p.team = b.dataset.t;
+    if (b.dataset.v != null) p.v = +b.dataset.v;
+    if (cmd === "hp") { const v = prompt(b.dataset.n + " 체력을 몇으로? (1~999)", "100"); if (v === null) return; p.v = +v || 100; }
+    if (cmd === "kill" && !confirm(b.dataset.n + " 즉사시킬까요?")) return;
     if (cmd === "msg") { p.text = prompt("방 전체에 보낼 말"); if (!p.text) return; }
     if (cmd === "close" && !confirm(code + " 방을 닫을까요?")) return;
     await call("a_room_cmd", p); toast("보냈습니다");
