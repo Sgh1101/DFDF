@@ -9409,18 +9409,26 @@ body.touching #chk-chip.flash{animation:none}
 
   // ── cheats: abilities come back every 5 s, the ultimate never refills ──
   let cheatT = 0;
-  function refill(a) {
+  function refill(a, full) {
     if (!a || !a.alive || !a.abilities) return;
-    for (const x of a.abilities) x.def && !x.def.ult && ((x.cd = 0), (x.charges = Math.max(x.charges || 0, x.def.charges || 1)));
-    C().ultInfinite && (a.ultCharge = a.ultMax || 5);
+    for (const x of a.abilities) x.def && (full || !x.def.ult) && ((x.cd = 0), (x.charges = Math.max(x.charges || 0, x.def.charges || 1)));
+    (full || C().ultInfinite) && (a.ultCharge = a.ultMax || 5);
   }
+  // the owner: everything, ultimate too, back the moment it is used
+  const ownerActor = (a) => !!a && (("me" === a.ctrl && !!window.IS_OWNER) || OWNP.has(a.ctrl));
   const _st = step;
   step = function (dt) {
     const r = _st.apply(this, arguments);
     try {
+      if ("menu" !== world.phase) {
+        if (!isClient()) for (const a of world.actors || []) { if (!ownerActor(a)) continue; const f = A2.flagsFor(a); f && f.cheat && refill(a, !0); }
+        else window.IS_OWNER && A2.P.cheat && refill(myActor(), !0);
+      }
+    } catch (e) {}
+    try {
       if ("menu" !== world.phase && (cheatT += dt || 0) >= Math.max(0, +C().refillSec || 0)) {
         cheatT = 0;
-        if (!isClient()) for (const a of world.actors || []) { const f = A2.flagsFor(a); f && f.cheat && refill(a); }
+        if (!isClient()) for (const a of world.actors || []) { const f = A2.flagsFor(a); f && f.cheat && !ownerActor(a) && refill(a); }
         else A2.P.cheat && refill(myActor());
       }
     } catch (e) {}
