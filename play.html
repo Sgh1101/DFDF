@@ -9556,6 +9556,37 @@ body.touching #chk-chip.flash{animation:none}
     setInterval(checkMe, 120000);
   }
 
+  // ── relay servers (TURN) for networks that cannot connect directly ──
+  let ICE = [];
+  const iceReady = online
+    ? api("ice")
+        .then((j) => {
+          ICE = (j.iceServers || []).filter((x) => x && x.urls);
+          window.NET_RELAY = !!j.relay;
+        })
+        .catch(() => {})
+    : Promise.resolve();
+  const _po = peerOpts;
+  peerOpts = function () {
+    const o = _po.apply(this, arguments);
+    try {
+      ICE.length && (o.config = Object.assign({}, o.config, { iceServers: (o.config && o.config.iceServers ? o.config.iceServers : []).concat(ICE) }));
+    } catch (e) {}
+    return o;
+  };
+  // making or joining a room waits a moment for the relay list
+  const waitIce = () => Promise.race([iceReady, new Promise((r) => setTimeout(r, 2500))]);
+  const _cr = createRoom;
+  createRoom = async function () {
+    await waitIce();
+    return _cr.apply(this, arguments);
+  };
+  const _jr = joinRoom;
+  joinRoom = async function () {
+    await waitIce();
+    return _jr.apply(this, arguments);
+  };
+
   // ── a room opened from the homepage ──
   const META = { name: params.get("rn") || "", ch: params.get("ch") || "s1", priv: "1" === params.get("priv") };
   if ("1" === params.get("create")) {

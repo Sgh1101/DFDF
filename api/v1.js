@@ -255,6 +255,37 @@ A.progress = async (q, b) => {
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   return { gain, user: p, levelUp: p.level > before };
 };
+// relay servers for players whose networks cannot connect directly (Cloudflare
+// TURN). The key stays here; players get credentials that expire in a day,
+// and one set is shared for an hour so Cloudflare is asked rarely.
+const TURN_ID = process.env.CF_TURN_KEY_ID || "",
+  TURN_TOKEN = process.env.CF_TURN_API_TOKEN || "";
+let iceCache = null;
+A.ice = async () => {
+  if (!TURN_ID || !TURN_TOKEN) return { iceServers: [], relay: !1 };
+  if (iceCache && iceCache.until > now()) return { iceServers: iceCache.list, relay: !0 };
+  const base = "https://rtc.live.cloudflare.com/v1/turn/keys/" + TURN_ID + "/credentials/";
+  const hdr = { Authorization: "Bearer " + TURN_TOKEN, "Content-Type": "application/json" };
+  let list = null;
+  try {
+    const r = await fetch(base + "generate-ice-servers", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+    if (r.ok) list = (await r.json()).iceServers;
+  } catch (e) {}
+  if (!list)
+    try {
+      const r = await fetch(base + "generate", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+      if (r.ok) {
+        const j = await r.json();
+        list = j.iceServers ? [].concat(j.iceServers) : null;
+      }
+    } catch (e) {}
+  if (!list || !list.length) {
+    await log("error", "TURN 접속표 발급 실패");
+    return { iceServers: [], relay: !1 };
+  }
+  iceCache = { list, until: now() + 36e5 };
+  return { iceServers: list, relay: !0 };
+};
 // the room list (rooms report themselves every few seconds while open)
 const ROOM_TTL = 45;
 A.rooms = async () => {
