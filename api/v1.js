@@ -57,6 +57,7 @@ const DEFAULT_CONFIG = {
     maintenanceMsg: "점검 중입니다. 잠시 후 다시 접속해 주세요.",
     announcement: "",
     guestAllowed: !0,
+    mobileServer: !0, // a server only phones and the app can play on
     registerOpen: !0,
     maxRoomPlayers: 10,
     roomListOpen: !0,
@@ -81,6 +82,7 @@ const DEFAULT_CONFIG = {
     { id: "s1", name: "서버 1", en: "Server 1" },
     { id: "s2", name: "서버 2", en: "Server 2" },
     { id: "free", name: "자유 서버", en: "Casual" },
+    { id: "mobile", name: "모바일 전용", en: "Mobile only", mobile: !0 },
   ],
 };
 const isObj = (v) => v && "object" == typeof v && !Array.isArray(v);
@@ -94,6 +96,9 @@ let cfgCache = null;
 const loadConfig = async () => {
   if (cfgCache && cfgCache.until > Date.now()) return cfgCache.c;
   const c = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
+  // the mobile-only server: there when switched on (also in older saved settings), gone when off
+  c.channels = (c.channels || []).filter((x) => c.game.mobileServer || !x.mobile);
+  c.game.mobileServer && !c.channels.some((x) => x.mobile) && c.channels.push({ id: "mobile", name: "모바일 전용", en: "Mobile only", mobile: !0 });
   cfgCache = { c, until: Date.now() + 20000 };
   return c;
 };

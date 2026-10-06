@@ -10282,6 +10282,56 @@ body.touching #chk-chip.flash{animation:none}
 
   // ── a room opened from the homepage ──
   const META = { name: params.get("rn") || "", ch: params.get("ch") || "s1", priv: "1" === params.get("priv") };
+
+  // ── the mobile-only server: phones and the app only ──
+  const IS_MOBILE = (() => {
+    try {
+      if ("app" === params.get("source")) sessionStorage.setItem("lgp_app", "1");
+      return (
+        "1" === sessionStorage.getItem("lgp_app") ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) ||
+        matchMedia("(pointer: coarse)").matches ||
+        matchMedia("(display-mode: standalone)").matches ||
+        matchMedia("(display-mode: fullscreen)").matches ||
+        document.referrer.startsWith("android-app://")
+      );
+    } catch (e) {
+      return !1;
+    }
+  })();
+  window.IS_MOBILE = IS_MOBILE;
+  const chMobile = (id) => {
+    const c = ((window.SERVER_CFG && SERVER_CFG.channels) || []).find((x) => x.id === id);
+    return c ? !!c.mobile : "mobile" === id;
+  };
+  if (chMobile(META.ch) && !IS_MOBILE) {
+    // a PC cannot open a room there
+    META.ch = "s1";
+    setTimeout(() => banner(L("모바일 전용 서버는 폰·앱에서만 방을 만들 수 있어 서버 1에 열었습니다", "Mobile-only server is for phones and the app; opened on Server 1"), "#ffc849"), 2500);
+  }
+  // a guest says what it plays on; a mobile-only host turns PCs away
+  const _sa = sendAction;
+  sendAction = function (m) {
+    if (m && "hello" === m.t) m = Object.assign({}, m, { mob: IS_MOBILE });
+    return _sa.call(this, m);
+  };
+  const _oaM = NET.onAction;
+  NET.onAction = (peer, msg) => {
+    if (msg && "hello" === msg.t && "host" === NET.mode && chMobile(META.ch) && !msg.mob) {
+      try {
+        sendEventTo(peer, { t: "kicked", why: "mobile", msg: L("📱 모바일 전용 서버의 방입니다. 폰이나 앱으로 들어와 주세요.", "📱 This room is on the mobile-only server. Join from a phone or the app.") });
+      } catch (e) {}
+      setTimeout(() => {
+        try {
+          const c = NET.conns.get(peer);
+          c && c.close();
+        } catch (e) {}
+      }, 400);
+      return;
+    }
+    return _oaM(peer, msg);
+  };
   if ("1" === params.get("create")) {
     const go = () => {
       if (typeof createRoom !== "function" || typeof MAP_LIST === "undefined") return setTimeout(go, 300);
@@ -10414,6 +10464,14 @@ body.touching #chk-chip.flash{animation:none}
         show("s-title");
         netAlert(e.msg || "");
       } catch (x) {}
+      // turned away from a mobile-only room: keep the reason on screen
+      "mobile" === e.why &&
+        setTimeout(() => {
+          try {
+            window.NET_RC && (NET_RC.quit = !0);
+          } catch (x) {}
+          wall(L("📱 모바일 전용 서버", "📱 Mobile-only server"), esc(e.msg || ""));
+        }, 600);
       return;
     }
     return _oe(e);

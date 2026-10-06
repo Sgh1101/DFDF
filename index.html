@@ -164,6 +164,7 @@ const T = {
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
     logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", createRoom: "방 만들기", solo: "혼자 연습", join: "참가", codePh: "방 코드 6자리",
+    mobOnly: "📱 모바일(폰·앱) 전용 서버입니다. PC에서는 방을 만들거나 들어갈 수 없습니다.", mobHere: "📱 모바일 전용 서버 · 폰·앱 유저끼리만 만납니다", mobPc: "PC 불가",
     servers: "서버", noRooms: "열린 방이 없습니다. 방을 만들어 보세요.", players: "명", inGame: "경기 중", lobby: "대기", full: "가득 참",
     roomName: "방 이름", server: "서버", private: "비공개 (코드로만 참가)", cancel: "취소", open: "열기",
     banned: "이용이 제한되었습니다", until: "까지", forever: "영구", reason: "사유",
@@ -176,6 +177,7 @@ const T = {
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
     logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", createRoom: "Create room", solo: "Practice alone", join: "Join", codePh: "6-letter room code",
+    mobOnly: "📱 Mobile-only server (phones and the app). It can't be joined or hosted from a PC.", mobHere: "📱 Mobile-only server · phone and app players only", mobPc: "No PC",
     servers: "Servers", noRooms: "No open rooms. Create one!", players: "", inGame: "In game", lobby: "Lobby", full: "Full",
     roomName: "Room name", server: "Server", private: "Private (join by code only)", cancel: "Cancel", open: "Open",
     banned: "Your access is restricted", until: "until", forever: "permanently", reason: "Reason",
@@ -233,25 +235,29 @@ function drawMe() {
   $("#meXpT").textContent = t("lvNext", u.into, u.need);
   $("#meK").textContent = u.kills; $("#meW").textContent = u.wins; $("#meM").textContent = u.matches;
 }
+// a phone, a tablet or the app (the store app opens the game with ?source=app)
+const IS_MOBILE = (() => { try { return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) || matchMedia("(pointer: coarse)").matches || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || document.referrer.startsWith("android-app://"); } catch (e) { return !1; } })();
+const chMobile = (id) => !!(((CFG && CFG.channels) || []).find((c) => c.id === id) || {}).mobile;
 const chName = (c) => (L === "en" ? c.en || c.name : c.name);
 function drawChannels() {
   const chs = (CFG && CFG.channels) || [];
   if (!chs.some((c) => c.id === CH)) CH = chs[0] ? chs[0].id : "";
-  $("#chs").innerHTML = chs.map((c) => `<button class="chip ${c.id === CH ? "on" : ""}" data-ch="${esc(c.id)}">${esc(chName(c))} <span style="color:var(--dim)">${ROOMS.filter((r) => r.ch === c.id).length}</span></button>`).join("");
-  $("#rCh").innerHTML = chs.map((c) => `<option value="${esc(c.id)}" ${c.id === CH ? "selected" : ""}>${esc(chName(c))}</option>`).join("");
+  $("#chs").innerHTML = chs.map((c) => `<button class="chip ${c.id === CH ? "on" : ""}" data-ch="${esc(c.id)}">${c.mobile ? "📱 " : ""}${esc(chName(c))} <span style="color:var(--dim)">${ROOMS.filter((r) => r.ch === c.id).length}</span></button>`).join("");
+  $("#rCh").innerHTML = chs.map((c) => `<option value="${esc(c.id)}" ${c.id === CH && (IS_MOBILE || !c.mobile) ? "selected" : ""} ${c.mobile && !IS_MOBILE ? "disabled" : ""}>${c.mobile ? "📱 " : ""}${esc(chName(c))}${c.mobile && !IS_MOBILE ? " (" + t("mobPc") + ")" : ""}</option>`).join("");
 }
 $("#chs").onclick = (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; CH = b.dataset.ch; localStorage.setItem("lgp_ch", CH); drawChannels(); drawRooms(); };
 const MODES = { std: ["일반전", "Standard"], swift: ["신속전", "Swift"], rush: ["스파이크 돌격", "Spike Rush"], tdm: ["팀 데스매치", "Team DM"], dm: ["데스매치", "Deathmatch"] };
 function drawRooms() {
   const list = ROOMS.filter((r) => r.ch === CH);
-  $("#rooms").innerHTML = list.length ? list.map((r) => `<div class="rm"><div class="t"><b>${esc(r.name)}</b><span>${esc(r.host)} · ${esc((MODES[r.mode] || [r.mode, r.mode])[L === "en" ? 1 : 0])}${r.state !== "lobby" ? `<span class="tag live">${t("inGame")}</span>` : `<span class="tag">${t("lobby")}</span>`}</span></div><div class="n">${r.n}/${r.max}</div><button class="btn" data-code="${esc(r.code)}" ${r.n >= r.max ? "disabled" : ""}>${r.n >= r.max ? t("full") : t("join")}</button></div>`).join("") : `<div class="empty">${esc(t("noRooms"))}</div>`;
+  const mob = chMobile(CH), pcBlocked = mob && !IS_MOBILE;
+  $("#rooms").innerHTML = (mob ? `<div class="notice">${esc(t(pcBlocked ? "mobOnly" : "mobHere"))}</div>` : "") + (list.length ? list.map((r) => `<div class="rm"><div class="t"><b>${esc(r.name)}</b><span>${esc(r.host)} · ${esc((MODES[r.mode] || [r.mode, r.mode])[L === "en" ? 1 : 0])}${r.state !== "lobby" ? `<span class="tag live">${t("inGame")}</span>` : `<span class="tag">${t("lobby")}</span>`}</span></div><div class="n">${r.n}/${r.max}</div><button class="btn" data-code="${esc(r.code)}" ${r.n >= r.max || pcBlocked ? "disabled" : ""}>${pcBlocked ? t("mobPc") : r.n >= r.max ? t("full") : t("join")}</button></div>`).join("") : `<div class="empty">${esc(t("noRooms"))}</div>`);
 }
 $("#rooms").onclick = (e) => { const b = e.target.closest("[data-code]"); b && go("./play.html?room=" + b.dataset.code); };
 const go = (u) => (location.href = u);
 $("#joinCode").onclick = () => { const c = $("#code").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); c.length === 6 && go("./play.html?room=" + c); };
 $("#mkRoom").onclick = () => { $("#rName").value = t("myRoom", S ? S.user.id : ""); drawChannels(); $("#dlg").showModal(); };
 $("#rCancel").onclick = () => $("#dlg").close();
-$("#rGo").onclick = () => { const p = new URLSearchParams({ create: "1", rn: $("#rName").value, ch: $("#rCh").value, priv: $("#rPriv").checked ? "1" : "0" }); go("./play.html?" + p); };
+$("#rGo").onclick = () => { if (!IS_MOBILE && chMobile($("#rCh").value)) return alert(t("mobOnly")); const p = new URLSearchParams({ create: "1", rn: $("#rName").value, ch: $("#rCh").value, priv: $("#rPriv").checked ? "1" : "0" }); go("./play.html?" + p); };
 $("#logout").onclick = () => { save(null); view("auth"); };
 function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("reason") + ": " + b.reason + " · " : "") + (b.until ? new Date(b.until).toLocaleString() + " " + t("until") : t("forever")); }
 async function auth(guest) {

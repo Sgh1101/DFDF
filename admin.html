@@ -219,6 +219,7 @@ const LABELS = {
   "game.maintenanceMsg": ["점검 안내 문구"],
   "game.announcement": ["공지", "홈페이지와 게임 첫 화면 위에 뜹니다 (비우면 없음)"],
   "game.guestAllowed": ["게스트 입장 허용"],
+  "game.mobileServer": ["모바일 전용 서버", "폰·앱으로만 들어갈 수 있는 서버(채널)를 켭니다. PC는 그 서버의 방을 만들거나 들어갈 수 없습니다"],
   "game.registerOpen": ["새 가입 허용"],
   "game.maxRoomPlayers": ["방 최대 인원"],
   "game.roomListOpen": ["방 목록 공개", "끄면 홈페이지 방 목록이 비어 보입니다"],
@@ -250,7 +251,7 @@ VIEWS.config = async () => {
     const inp = typeof v === "boolean" ? `<input type="checkbox" data-k="${key}" ${v ? "checked" : ""}>` : typeof v === "number" ? `<input type="number" step="any" data-k="${key}" value="${v}">` : `<input type="text" data-k="${key}" value="${esc(v)}">`;
     return `<div class="f ${typeof v === "string" ? "wide" : ""}"><label>${esc(name)}${desc ? `<small>${esc(desc)}</small>` : ""}</label>${inp}</div>`;
   }).join("");
-  $("#main").innerHTML = form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">홈페이지에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code></div><textarea id="chs" rows="5" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].join(", ")).join("\n"))}</textarea></div>
+  $("#main").innerHTML = form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">홈페이지에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code>. 끝에 <code>, 모바일</code>을 붙이면 폰·앱 전용 서버가 됩니다.</div><textarea id="chs" rows="6" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].concat(c.mobile ? ["모바일"] : []).join(", ")).join("\n"))}</textarea></div>
     <div class="save"><button class="bad" id="crst">전부 기본값</button><button class="go" id="csave">저장</button></div>`;
   $("#csave").onclick = async () => {
     const c = JSON.parse(JSON.stringify(config));
@@ -259,7 +260,7 @@ VIEWS.config = async () => {
       const last = path[path.length - 1];
       o[last] = el.type === "checkbox" ? el.checked : el.type === "number" ? +el.value : el.value;
     });
-    c.channels = $("#chs").value.split("\n").map((l) => l.split(",").map((s) => s.trim())).filter((a) => a[0]).map(([id, name, en]) => ({ id, name: name || id, en: en || name || id }));
+    c.channels = $("#chs").value.split("\n").map((l) => l.split(",").map((s) => s.trim())).filter((a) => a[0]).map(([id, name, en, m]) => Object.assign({ id, name: name || id, en: en || name || id }, /^(모바일|mobile|1)$/i.test(m || "") ? { mobile: !0 } : {}));
     await call("a_config_set", { config: c }); toast("저장했습니다. 게임에는 다음 접속·다음 신호 때 적용됩니다");
   };
   $("#crst").onclick = async () => { if (confirm("모든 설정을 기본값으로 되돌릴까요?")) { await call("a_config_reset"); VIEWS.config(); } };
