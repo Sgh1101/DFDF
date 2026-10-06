@@ -213,7 +213,9 @@ async function api(a, b) {
   if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban });
   return j;
 }
-function save(sess) { S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else localStorage.removeItem("lgp_session"); }
+function save(sess) { S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
+// a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
+const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
 function view(v) { ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; }
 function drawNotices() {
   const n = [];
@@ -257,6 +259,7 @@ async function auth(guest) {
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
     save({ token: j.token, user: j.user, atoken: j.atoken || "" });
+    try { sessionStorage.setItem("lgp_gate", j.token); } catch (e) {}
     enter();
   } catch (e) {
     if (e.ban) return showBan(e.ban);
@@ -273,7 +276,11 @@ function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInt
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
   drawNotices();
-  if (S && S.token) {
+  if (S && S.token && !gatePassed()) {
+    // ask again; the last id is filled in
+    view("auth");
+    try { $("#uid").value = S.user && !S.user.guest ? S.user.id : localStorage.getItem("lgp_name") || ""; $("#uid").value && $("#upw").focus(); } catch (e) {}
+  } else if (S && S.token) {
     try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; save(S); enter(); }
     catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else enter(); }
   } else if (S && OFFLINE) enter();
