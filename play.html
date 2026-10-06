@@ -14170,6 +14170,21 @@ body.touching #chk-chip.flash{animation:none}
       joinInProgress = function (peer) {
         const r = _jF.apply(this, arguments);
         tried = { peer, ok: !!r };
+        // A body is taken over only into a seat marked "ai", but a player who
+        // dropped mid-match leaves an empty seat. With no other bot on the
+        // team (every 1v1, any all-human team) the one who dials back in, or
+        // takes that body over, drove it without a seat: the room list
+        // counted one person fewer, owner commands could not find them, and
+        // the next lobby had no seat for them. Seat them in the empty one.
+        try {
+          if (r && !room.members.has(peer)) {
+            const team = r._baseTeam || r.team,
+              seats = room.slots[team],
+              n = N(),
+              i = seats ? seats.findIndex((v, k) => k < n && (null === v || "ai" === v)) : -1;
+            i >= 0 && ((seats[i] = peer), room.members.set(peer, { name: r.name, team, slot: i, agentKey: r.agent ? r.agent.key : null, ready: !0, actorId: r.id }));
+          }
+        } catch (e) {}
         return r;
       };
     }
