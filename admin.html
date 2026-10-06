@@ -98,7 +98,7 @@ async function call(a, b = {}) {
   if (!j.ok) { if (r.status === 401 && a.startsWith("a_")) logout(); throw new Error(j.error || "실패"); }
   return j;
 }
-// typed with the Korean keyboard on: 박현서 → the keys that were pressed
+// typed with the Korean keyboard on: 한글 → gksrmf, the keys that were pressed
 const CHO = "r R s e E f a q Q t T d w W c z x v g".split(" "), JUNG = "k o i O j p u P h hk ho hl y n nj np nl b m ml l".split(" "), JONG = ",r,R,rt,s,sw,sg,e,f,fr,fa,fq,ft,fx,fv,fg,a,q,qt,t,T,d,w,c,z,x,v,g".split(",");
 const JAMO = { ㄱ: "r", ㄲ: "R", ㄳ: "rt", ㄴ: "s", ㄵ: "sw", ㄶ: "sg", ㄷ: "e", ㄸ: "E", ㄹ: "f", ㄺ: "fr", ㄻ: "fa", ㄼ: "fq", ㄽ: "ft", ㄾ: "fx", ㄿ: "fv", ㅀ: "fg", ㅁ: "a", ㅂ: "q", ㅃ: "Q", ㅄ: "qt", ㅅ: "t", ㅆ: "T", ㅇ: "d", ㅈ: "w", ㅉ: "W", ㅊ: "c", ㅋ: "z", ㅌ: "x", ㅍ: "v", ㅎ: "g", ㅏ: "k", ㅐ: "o", ㅑ: "i", ㅒ: "O", ㅓ: "j", ㅔ: "p", ㅕ: "u", ㅖ: "P", ㅗ: "h", ㅘ: "hk", ㅙ: "ho", ㅚ: "hl", ㅛ: "y", ㅜ: "n", ㅝ: "nj", ㅞ: "np", ㅟ: "nl", ㅠ: "b", ㅡ: "m", ㅢ: "ml", ㅣ: "l" };
 const keysOf = (s) => [...s].map((c) => { const n = c.charCodeAt(0) - 0xac00; if (n >= 0 && n < 11172) return CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)] + JONG[n % 28]; return JAMO[c] || c; }).join("");
@@ -222,7 +222,7 @@ const LABELS = {
   "game.mobileServer": ["모바일 전용 서버", "폰·앱으로만 들어갈 수 있는 서버(채널)를 켭니다. PC는 그 서버의 방을 만들거나 들어갈 수 없습니다"],
   "game.registerOpen": ["새 가입 허용"],
   "game.maxRoomPlayers": ["방 최대 인원"],
-  "game.roomListOpen": ["방 목록 공개", "끄면 홈페이지 방 목록이 비어 보입니다"],
+  "game.roomListOpen": ["방 목록 공개", "끄면 게임의 같이 하기 화면에서 방 목록이 비어 보입니다"],
   cheat: ["치트", "숨은 비밀번호로 여는 치트의 모든 규칙"],
   "cheat.enabled": ["치트 사용", "끄면 비밀번호가 그려지지 않고 아무도 못 엽니다"],
   "cheat.codeLength": ["비밀번호 자릿수", "3~6"],
@@ -251,7 +251,7 @@ VIEWS.config = async () => {
     const inp = typeof v === "boolean" ? `<input type="checkbox" data-k="${key}" ${v ? "checked" : ""}>` : typeof v === "number" ? `<input type="number" step="any" data-k="${key}" value="${v}">` : `<input type="text" data-k="${key}" value="${esc(v)}">`;
     return `<div class="f ${typeof v === "string" ? "wide" : ""}"><label>${esc(name)}${desc ? `<small>${esc(desc)}</small>` : ""}</label>${inp}</div>`;
   }).join("");
-  $("#main").innerHTML = form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">홈페이지에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code>. 끝에 <code>, 모바일</code>을 붙이면 폰·앱 전용 서버가 됩니다.</div><textarea id="chs" rows="6" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].concat(c.mobile ? ["모바일"] : []).join(", ")).join("\n"))}</textarea></div>
+  $("#main").innerHTML = form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">게임의 같이 하기 화면에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code>. 끝에 <code>, 모바일</code>을 붙이면 폰·앱 전용 서버가 됩니다.</div><textarea id="chs" rows="6" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].concat(c.mobile ? ["모바일"] : []).join(", ")).join("\n"))}</textarea></div>
     <div class="save"><button class="bad" id="crst">전부 기본값</button><button class="go" id="csave">저장</button></div>`;
   $("#csave").onclick = async () => {
     const c = JSON.parse(JSON.stringify(config));

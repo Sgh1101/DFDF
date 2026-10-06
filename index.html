@@ -53,34 +53,60 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .or{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:12px;margin:12px 0}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 .err{color:#ff8a95;font-size:12.5px;min-height:18px;margin-top:6px;text-align:center}
-.dash{display:grid;grid-template-columns:300px 1fr;gap:16px;margin:10px 0 40px}
-@media(max-width:820px){.dash{grid-template-columns:1fr}}
-.me .nm{font-size:20px;font-weight:900}
-.lv{display:flex;align-items:center;gap:10px;margin-top:10px}
-.lv b{font-family:var(--fd);color:var(--gold);font-size:22px}
-.xpbar{flex:1;height:8px;background:#0d121a;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
-.xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ff8a3c)}
-.me .st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px;text-align:center}
-.me .st div{background:#0f141d;border:1px solid var(--line);border-radius:10px;padding:8px 4px;font-size:11px;color:var(--steel)}
-.me .st b{display:block;color:var(--ink);font-size:16px}
-.acts{display:grid;gap:8px;margin-top:14px}
-.row{display:flex;gap:8px}
-.row .in{margin:0}
+.card{max-width:440px;margin:0 auto 40px;padding:24px 22px 20px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 55% at 18% 0%,rgba(255,200,73,.13),transparent 70%);pointer-events:none}
+.pf{display:flex;align-items:center;gap:18px;position:relative}
+.ring{position:relative;width:104px;height:104px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:8}
+.ring .bgc{stroke:#0d121a}
+.ring .fg{stroke:url(#xpg);stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.2,.7,.3,1)}
+.lvl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.lvl small{font-family:var(--fd);font-size:10px;letter-spacing:.3em;color:var(--steel);margin-left:.3em}
+.lvl b{font-family:var(--fd);font-size:34px;font-weight:900;color:var(--gold);margin-top:2px}
+.who{min-width:0;flex:1}
+.nm{font-size:21px;font-weight:900;word-break:break-all;line-height:1.3}
+.rank{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:99px;border:1px solid #5c4b1f;color:var(--gold);background:rgba(255,200,73,.07)}
+.xpt{margin-top:8px;font-size:12px;color:var(--steel)}
+.xpbar{height:6px;margin-top:6px;background:#0d121a;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.xpbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#ff8a3c);transition:width 1s cubic-bezier(.2,.7,.3,1)}
+.st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:18px;text-align:center}
+.st div{background:#0f141d;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;color:var(--steel)}
+.st b{display:block;color:var(--ink);font-size:18px;font-family:var(--fd);margin-bottom:2px}
+.inv{margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid #1f5c36;background:rgba(74,222,128,.07);color:var(--green);font-size:13px;text-align:center}
+.inv b{font-family:var(--fd);letter-spacing:.18em;margin-left:6px}
+.enter{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:16px;padding:17px;border-radius:14px;font-size:17px;font-weight:900;letter-spacing:.04em;color:#fff;text-decoration:none;
+background:linear-gradient(180deg,#ff5b6b,#e0303f);border:1px solid rgba(255,140,150,.6);box-shadow:0 16px 36px -14px rgba(255,59,78,.9),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .15s,filter .15s}
+.enter:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.enter:active{transform:translateY(1px)}
+.enter i{font-style:normal;font-size:24px;line-height:1;margin-top:-2px}
+.hint{margin-top:10px;text-align:center;font-size:12px;color:var(--dim)}
+.skip{display:block;margin-top:8px;text-align:center;font-size:12px;color:var(--steel)}
+.tag{font-size:10.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--steel);margin-left:6px;vertical-align:middle;text-decoration:none}
+@media(max-width:420px){.pf{gap:14px}.ring{width:88px;height:88px}.lvl b{font-size:28px}.st{grid-template-columns:repeat(2,1fr)}}
+@media(max-height:560px){.hero{padding:16px 0 12px}.hero h1{font-size:52px}.hero p{display:none}.card{padding:16px 18px 14px}}
+@media(max-height:560px) and (min-width:640px){
+  .top{padding:8px 0}
+  .stage{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:24px;align-items:center;min-height:calc(100vh - 52px);padding-bottom:12px}
+  .hero{text-align:left;padding:0}
+  .hero h1{font-size:clamp(56px,10vh,84px)}
+  .hero .sub{letter-spacing:.32em;margin-top:8px}
+  .auth,.card{margin:0;max-width:none}
+  .auth .d{display:none}
+  .auth h3{margin-bottom:10px}
+  .in{padding:10px 12px;margin-bottom:8px}
+  .or{margin:8px 0}
+  .card{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.62fr);gap:16px;align-items:center;padding:16px}
+  .ring{width:76px;height:76px}.lvl b{font-size:24px}.lvl small{font-size:8px}
+  .pf{gap:12px}.nm{font-size:17px}.rank{margin-top:3px}.xpt{margin-top:5px}
+  .st{grid-template-columns:repeat(4,1fr);margin-top:12px;gap:5px}.st div{padding:7px 2px}.st b{font-size:15px}
+  .inv{margin:0 0 10px;padding:8px;font-size:12px}
+  .enter{margin:0;padding:22px 10px;font-size:16px}
+  .hint{font-size:11px}
+  section{padding-top:24px}
+}
+[hidden]{display:none!important}
 h2{font-family:var(--fd);font-size:12px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin:0 0 12px}
-.chs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.rooms{display:grid;gap:8px}
-.rm{display:flex;align-items:center;gap:12px;background:#0f141d;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-.rm .t{flex:1;min-width:0}.rm .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rm .t span{font-size:12px;color:var(--steel)}
-.rm .n{font-family:var(--fd);font-size:13px;color:var(--steel)}
-.tag{font-size:10.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--steel);margin-left:6px}
-.tag.live{color:var(--green);border-color:#1f5c36}
-.empty{color:var(--dim);font-size:13px;padding:22px;text-align:center;border:1px dashed var(--line);border-radius:14px}
-dialog{margin:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(380px,92vw)}
-dialog::backdrop{background:rgba(0,0,0,.6)}
-dialog h3{margin-bottom:12px}
-dialog label{display:block;font-size:12px;color:var(--steel);margin:4px 0}
-.ck{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0 14px}
 section{padding:36px 0;border-top:1px solid var(--line)}
 .feat{list-style:none;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 .feat li{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;font-size:13px;color:var(--steel);line-height:1.65}
@@ -102,8 +128,10 @@ footer a{color:var(--steel)}
   </div>
   <div id="notices"></div>
 
+  <div class="stage">
+  <div class="hero" id="hero"><h1>13</h1><div class="sub">TACTICAL SHOOTER</div><p data-t="lead"></p></div>
+  <div class="views">
   <div id="v-auth" hidden>
-    <div class="hero"><h1>13</h1><div class="sub">TACTICAL SHOOTER</div><p data-t="lead"></p></div>
     <div class="box auth">
       <h3 data-t="signin"></h3>
       <div class="d" data-t="signinDesc"></div>
@@ -117,29 +145,32 @@ footer a{color:var(--steel)}
   </div>
 
   <div id="v-dash" hidden>
-    <div class="dash">
-      <div>
-        <div class="box me">
+    <div class="box card">
+      <div class="me">
+      <div class="pf">
+        <div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="xpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc849"/><stop offset="1" stop-color="#ff8a3c"/></linearGradient></defs><circle class="bgc" cx="60" cy="60" r="52"/><circle class="fg" id="ringFg" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+          <div class="lvl"><small>LV</small><b id="meLv">1</b></div></div>
+        <div class="who">
           <div class="nm" id="meName"></div>
-          <div class="lv"><b id="meLv"></b><div class="xpbar"><i id="meXp"></i></div></div>
-          <div class="muted" style="font-size:11px;color:var(--dim);margin-top:4px" id="meXpT"></div>
-          <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div></div>
-          <div class="acts">
-            <button class="btn gold" id="mkRoom" data-t="createRoom"></button>
-            <a class="btn" href="./play.html" id="solo" data-t="solo"></a>
-            <div class="row"><input class="in" id="code" maxlength="6" data-p="codePh"><button class="btn" id="joinCode" data-t="join"></button></div>
-          </div>
+          <span class="rank" id="meRank"></span>
+          <div class="xpbar"><i id="meXp"></i></div>
+          <div class="xpt" id="meXpT"></div>
         </div>
       </div>
-      <div class="box">
-        <h2 data-t="servers"></h2>
-        <div class="chs" id="chs"></div>
-        <div class="rooms" id="rooms"></div>
+      <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
+      </div>
+      <div class="go">
+      <div class="inv" id="inv" hidden></div>
+      <a class="enter" id="enter" href="./play.html"><span id="enterT" data-t="enter"></span><i>›</i></a>
+      <div class="hint" id="hint" data-t="enterHint"></div>
+      <a class="skip" id="skip" href="./play.html" hidden data-t="skipInvite"></a>
       </div>
     </div>
   </div>
 
   <div id="v-ban" hidden class="banned box"><b data-t="banned"></b><p id="banWhy" style="color:var(--steel);margin-top:10px"></p></div>
+  </div>
+  </div>
 
   <section>
     <h2 data-t="about"></h2>
@@ -148,13 +179,6 @@ footer a{color:var(--steel)}
   <footer><a href="./privacy.html" data-t="privacy"></a> · 13</footer>
 </div>
 
-<dialog id="dlg">
-  <h3 data-t="createRoom"></h3>
-  <label data-t="roomName"></label><input class="in" id="rName" maxlength="30">
-  <label data-t="server"></label><select class="in" id="rCh"></select>
-  <label class="ck"><input type="checkbox" id="rPriv"> <span data-t="private"></span></label>
-  <div class="row"><button class="btn" id="rCancel" data-t="cancel"></button><button class="btn gold" id="rGo" style="flex:1" data-t="open"></button></div>
-</dialog>
 
 <script>
 const API = "/api/v1";
@@ -163,27 +187,25 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", createRoom: "방 만들기", solo: "혼자 연습", join: "참가", codePh: "방 코드 6자리",
-    mobOnly: "📱 모바일(폰·앱) 전용 서버입니다. PC에서는 방을 만들거나 들어갈 수 없습니다.", mobHere: "📱 모바일 전용 서버 · 폰·앱 유저끼리만 만납니다", mobPc: "PC 불가",
-    servers: "서버", noRooms: "열린 방이 없습니다. 방을 만들어 보세요.", players: "명", inGame: "경기 중", lobby: "대기", full: "가득 참",
-    roomName: "방 이름", server: "서버", private: "비공개 (코드로만 참가)", cancel: "취소", open: "열기",
+    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률",
+    enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
     banned: "이용이 제한되었습니다", until: "까지", forever: "영구", reason: "사유",
-    offline: "지금은 계정 서버에 연결할 수 없습니다. 혼자 연습과 방 코드 참가는 그대로 됩니다.",
-    about: "게임", privacy: "개인정보처리방침", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`, myRoom: (n) => `${n}의 방`,
-    feat: ["<b>5대5 전술전</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치", "<b>요원 60명</b> — 요원마다 능력 4개, 궁극기 연출", "<b>전장 40곳</b> — 고지대와 계단이 있는 맵 20곳", "<b>총 30종</b> — 전부 다른 모양과 소리", "<b>숨은 치트</b> — 맵 어딘가에 그려진 비밀번호를 찾아라", "<b>모바일</b> — 터치 조작과 앱 설치 지원"],
+    offline: "지금은 계정 서버에 연결할 수 없습니다. 게스트로 들어가면 혼자 하기와 코드 참가는 그대로 됩니다.",
+    about: "게임", privacy: "개인정보처리방침", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
+    ranks: ["신병", "요원", "정예 요원", "베테랑", "에이스", "전설"],
+    feat: ["<b>5대5 전술전</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치", "<b>요원 36명</b> — 능력 144개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 40곳</b> — 고지대와 계단이 있는 맵 20곳", "<b>총 30종</b> — 전부 다른 모양과 소리", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
   },
   en: {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", createRoom: "Create room", solo: "Practice alone", join: "Join", codePh: "6-letter room code",
-    mobOnly: "📱 Mobile-only server (phones and the app). It can't be joined or hosted from a PC.", mobHere: "📱 Mobile-only server · phone and app players only", mobPc: "No PC",
-    servers: "Servers", noRooms: "No open rooms. Create one!", players: "", inGame: "In game", lobby: "Lobby", full: "Full",
-    roomName: "Room name", server: "Server", private: "Private (join by code only)", cancel: "Cancel", open: "Open",
+    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate",
+    enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
     banned: "Your access is restricted", until: "until", forever: "permanently", reason: "Reason",
-    offline: "The account server is not reachable right now. Practice and joining by code still work.",
-    about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`, myRoom: (n) => `${n}'s room`,
-    feat: ["<b>5v5 tactics</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch", "<b>60 agents</b> — four abilities each, cinematic ultimates", "<b>40 maps</b> — 20 with high ground and stairs", "<b>30 guns</b> — each with its own look and sound", "<b>Hidden cheats</b> — find the code painted somewhere on the map", "<b>Mobile</b> — touch controls, installable app"],
+    offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
+    about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
+    ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
+    feat: ["<b>5v5 tactics</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch", "<b>36 agents</b> — 144 abilities, no two alike", "<b>40 maps</b> — 20 with high ground and stairs", "<b>30 guns</b> — each with its own look and sound", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
   },
 };
 let L = localStorage.getItem("lgp_lang") || ((navigator.language || "ko").startsWith("ko") ? "ko" : "en");
@@ -191,24 +213,30 @@ try { localStorage.setItem("lgp_lang", L); } catch (e) {}
 const t = (k, ...a) => (typeof T[L][k] === "function" ? T[L][k](...a) : T[L][k] ?? k);
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// where "enter" goes: the game, with the room of an invite link and the app flag
+const Q = new URLSearchParams(location.search);
+const ROOM = (Q.get("room") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+try { if (Q.get("source") === "app") sessionStorage.setItem("lgp_app", "1"); } catch (e) {}
+const APP = (() => { try { return sessionStorage.getItem("lgp_app") === "1"; } catch (e) { return !1; } })();
+const gameUrl = (room) => { const o = new URLSearchParams(); room && o.set("room", room); APP && o.set("source", "app"); return "./play.html" + (o.toString() ? "?" + o : ""); };
 function paintLang() {
   document.documentElement.lang = L;
   document.querySelectorAll("[data-t]").forEach((e) => (e.textContent = t(e.dataset.t)));
-  document.querySelectorAll("[data-p]").forEach((e) => (e.placeholder = t(e.dataset.p)));
   $("#uid").placeholder = t("idPh"); $("#upw").placeholder = t("pwPh");
   $("#lang").textContent = L === "ko" ? "English" : "한국어";
   $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x}</li>`).join("");
-  CFG && (drawChannels(), drawRooms(), drawMe(), drawNotices());
+  drawEnter();
+  CFG && (drawMe(), drawNotices());
 }
 $("#lang").onclick = () => { L = L === "ko" ? "en" : "ko"; localStorage.setItem("lgp_lang", L); paintLang(); };
 
-// a password typed with the Korean keyboard on counts as the keys pressed (박현서 = qkrgustj)
+// a password typed with the Korean keyboard on counts as the keys pressed (한글 = gksrmf)
 const CHO = "r R s e E f a q Q t T d w W c z x v g".split(" "), JUNG = "k o i O j p u P h hk ho hl y n nj np nl b m ml l".split(" "), JONG = ",r,R,rt,s,sw,sg,e,f,fr,fa,fq,ft,fx,fv,fg,a,q,qt,t,T,d,w,c,z,x,v,g".split(",");
 const JAMO = { ㄱ: "r", ㄲ: "R", ㄳ: "rt", ㄴ: "s", ㄵ: "sw", ㄶ: "sg", ㄷ: "e", ㄸ: "E", ㄹ: "f", ㄺ: "fr", ㄻ: "fa", ㄼ: "fq", ㄽ: "ft", ㄾ: "fx", ㄿ: "fv", ㅀ: "fg", ㅁ: "a", ㅂ: "q", ㅃ: "Q", ㅄ: "qt", ㅅ: "t", ㅆ: "T", ㅇ: "d", ㅈ: "w", ㅉ: "W", ㅊ: "c", ㅋ: "z", ㅌ: "x", ㅍ: "v", ㅎ: "g", ㅏ: "k", ㅐ: "o", ㅑ: "i", ㅒ: "O", ㅓ: "j", ㅔ: "p", ㅕ: "u", ㅖ: "P", ㅗ: "h", ㅘ: "hk", ㅙ: "ho", ㅚ: "hl", ㅛ: "y", ㅜ: "n", ㅝ: "nj", ㅞ: "np", ㅟ: "nl", ㅠ: "b", ㅡ: "m", ㅢ: "ml", ㅣ: "l" };
 const keysOf = (s) => [...s].map((c) => { const n = c.charCodeAt(0) - 0xac00; if (n >= 0 && n < 11172) return CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)] + JONG[n % 28]; return JAMO[c] || c; }).join("");
 const device = (() => { let d = localStorage.getItem("lgp_device"); if (!d) { d = "d" + crypto.getRandomValues(new Uint32Array(3)).join("").slice(0, 24); localStorage.setItem("lgp_device", d); } return d; })();
 let S = null; try { S = JSON.parse(localStorage.getItem("lgp_session") || "null"); } catch (e) {}
-let CFG = null, OFFLINE = !1, ROOMS = [], CH = localStorage.getItem("lgp_ch") || "";
+let CFG = null, OFFLINE = !1;
 async function api(a, b) {
   const r = await fetch(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined });
   const j = await r.json().catch(() => ({ ok: !1, error: "offline" }));
@@ -218,7 +246,7 @@ async function api(a, b) {
 function save(sess) { S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
-function view(v) { ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; }
+function view(v) { ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -226,42 +254,31 @@ function drawNotices() {
   if (CFG && CFG.game.announcement) n.push(`<div class="notice">📢 ${esc(CFG.game.announcement)}</div>`);
   $("#notices").innerHTML = n.join("");
 }
+const rankOf = (lv) => T[L].ranks[lv >= 50 ? 5 : lv >= 30 ? 4 : lv >= 20 ? 3 : lv >= 10 ? 2 : lv >= 5 ? 1 : 0];
 function drawMe() {
   if (!S) return;
-  const u = S.user;
-  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold);text-decoration:none">운영자 페이지 ›</a>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
-  $("#meLv").textContent = "Lv." + u.level;
-  $("#meXp").style.width = Math.round((100 * u.into) / Math.max(1, u.need)) + "%";
-  $("#meXpT").textContent = t("lvNext", u.into, u.need);
-  $("#meK").textContent = u.kills; $("#meW").textContent = u.wins; $("#meM").textContent = u.matches;
+  const u = S.user, lv = u.level || 1, k = Math.max(0, Math.min(1, (u.into || 0) / Math.max(1, u.need || 1)));
+  $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold)">운영자 페이지 ›</a>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
+  $("#meLv").textContent = lv;
+  $("#meRank").textContent = rankOf(lv);
+  $("#meXp").style.width = Math.round(100 * k) + "%";
+  $("#ringFg").style.strokeDashoffset = String(326.7 * (1 - k));
+  $("#meXpT").textContent = t("lvNext", u.into || 0, u.need || 100);
+  $("#meK").textContent = u.kills || 0; $("#meW").textContent = u.wins || 0; $("#meM").textContent = u.matches || 0;
+  $("#meR").textContent = u.matches ? Math.round((100 * (u.wins || 0)) / u.matches) + "%" : "-";
 }
-// a phone, a tablet or the app (the store app opens the game with ?source=app)
-const IS_MOBILE = (() => { try { return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) || matchMedia("(pointer: coarse)").matches || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || document.referrer.startsWith("android-app://"); } catch (e) { return !1; } })();
-const chMobile = (id) => !!(((CFG && CFG.channels) || []).find((c) => c.id === id) || {}).mobile;
-const chName = (c) => (L === "en" ? c.en || c.name : c.name);
-function drawChannels() {
-  const chs = (CFG && CFG.channels) || [];
-  if (!chs.some((c) => c.id === CH)) CH = chs[0] ? chs[0].id : "";
-  $("#chs").innerHTML = chs.map((c) => `<button class="chip ${c.id === CH ? "on" : ""}" data-ch="${esc(c.id)}">${c.mobile ? "📱 " : ""}${esc(chName(c))} <span style="color:var(--dim)">${ROOMS.filter((r) => r.ch === c.id).length}</span></button>`).join("");
-  $("#rCh").innerHTML = chs.map((c) => `<option value="${esc(c.id)}" ${c.id === CH && (IS_MOBILE || !c.mobile) ? "selected" : ""} ${c.mobile && !IS_MOBILE ? "disabled" : ""}>${c.mobile ? "📱 " : ""}${esc(chName(c))}${c.mobile && !IS_MOBILE ? " (" + t("mobPc") + ")" : ""}</option>`).join("");
+function drawEnter() {
+  $("#enter").href = gameUrl(ROOM);
+  $("#enterT").textContent = ROOM ? t("joinInvite", ROOM) : t("enter");
+  $("#inv").hidden = !ROOM; $("#inv").innerHTML = ROOM ? `${esc(t("invited"))}<b>${esc(ROOM)}</b>` : "";
+  $("#skip").hidden = !ROOM; $("#skip").href = gameUrl("");
+  $("#hint").hidden = !!ROOM;
 }
-$("#chs").onclick = (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; CH = b.dataset.ch; localStorage.setItem("lgp_ch", CH); drawChannels(); drawRooms(); };
-const MODES = { std: ["일반전", "Standard"], swift: ["신속전", "Swift"], rush: ["스파이크 돌격", "Spike Rush"], tdm: ["팀 데스매치", "Team DM"], dm: ["데스매치", "Deathmatch"] };
-function drawRooms() {
-  const list = ROOMS.filter((r) => r.ch === CH);
-  const mob = chMobile(CH), pcBlocked = mob && !IS_MOBILE;
-  $("#rooms").innerHTML = (mob ? `<div class="notice">${esc(t(pcBlocked ? "mobOnly" : "mobHere"))}</div>` : "") + (list.length ? list.map((r) => `<div class="rm"><div class="t"><b>${esc(r.name)}</b><span>${esc(r.host)} · ${esc((MODES[r.mode] || [r.mode, r.mode])[L === "en" ? 1 : 0])}${r.state !== "lobby" ? `<span class="tag live">${t("inGame")}</span>` : `<span class="tag">${t("lobby")}</span>`}</span></div><div class="n">${r.n}/${r.max}</div><button class="btn" data-code="${esc(r.code)}" ${r.n >= r.max || pcBlocked ? "disabled" : ""}>${pcBlocked ? t("mobPc") : r.n >= r.max ? t("full") : t("join")}</button></div>`).join("") : `<div class="empty">${esc(t("noRooms"))}</div>`);
-}
-$("#rooms").onclick = (e) => { const b = e.target.closest("[data-code]"); b && go("./play.html?room=" + b.dataset.code); };
-const go = (u) => (location.href = u);
-$("#joinCode").onclick = () => { const c = $("#code").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); c.length === 6 && go("./play.html?room=" + c); };
-$("#mkRoom").onclick = () => { $("#rName").value = t("myRoom", S ? S.user.id : ""); drawChannels(); $("#dlg").showModal(); };
-$("#rCancel").onclick = () => $("#dlg").close();
-$("#rGo").onclick = () => { if (!IS_MOBILE && chMobile($("#rCh").value)) return alert(t("mobOnly")); const p = new URLSearchParams({ create: "1", rn: $("#rName").value, ch: $("#rCh").value, priv: $("#rPriv").checked ? "1" : "0" }); go("./play.html?" + p); };
 $("#logout").onclick = () => { save(null); view("auth"); };
 function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("reason") + ": " + b.reason + " · " : "") + (b.until ? new Date(b.until).toLocaleString() + " " + t("until") : t("forever")); }
 async function auth(guest) {
   $("#aerr").textContent = "";
+  $("#doAuth").disabled = $("#doGuest").disabled = !0;
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
     save({ token: j.token, user: j.user, atoken: j.atoken || "" });
@@ -269,19 +286,24 @@ async function auth(guest) {
     enter();
   } catch (e) {
     if (e.ban) return showBan(e.ban);
-    if (guest && (e.status === 503 || e.message === "offline" || e.status === 404)) { save({ token: "", user: { id: localStorage.getItem("lgp_name") || "Guest" + Math.floor(Math.random() * 9000 + 1000), guest: !0, level: 1, into: 0, need: 100, xp: 0, kills: 0, wins: 0, matches: 0 } }); OFFLINE = !0; drawNotices(); return enter(); }
+    if (guest && (e.status === 503 || e.message === "offline" || e.status === 404)) {
+      // the account server is down: a guest still gets into the game (no level, no list)
+      save({ token: "", user: { id: localStorage.getItem("lgp_name") || "Guest" + Math.floor(Math.random() * 9000 + 1000), guest: !0, level: 1, into: 0, need: 100, xp: 0, kills: 0, wins: 0, matches: 0 } });
+      try { sessionStorage.setItem("lgp_gate", "offline"); } catch (x) {}
+      OFFLINE = !0; drawNotices(); return enter();
+    }
     $("#aerr").textContent = e.message === "offline" ? t("offline") : e.message;
-  }
+  } finally { $("#doAuth").disabled = $("#doGuest").disabled = !1; }
 }
 $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
-let roomTimer = null;
-async function loadRooms() { try { ROOMS = (await api("rooms")).rooms; } catch (e) { ROOMS = []; } drawChannels(); drawRooms(); }
-function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInterval(roomTimer); roomTimer = setInterval(() => document.hidden || loadRooms(), 10000); }
+$("#uid").onkeydown = (e) => { if (e.key === "Enter") $("#upw").focus(); };
+function enter() { view("dash"); drawMe(); drawEnter(); }
 (async () => {
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
   drawNotices();
+  const offlineGuest = (() => { try { return !!S && !S.token && sessionStorage.getItem("lgp_gate") === "offline"; } catch (e) { return !1; } })();
   if (S && S.token && !gatePassed()) {
     // ask again; the last id is filled in
     view("auth");
@@ -289,7 +311,7 @@ function enter() { view("dash"); drawMe(); drawChannels(); loadRooms(); clearInt
   } else if (S && S.token) {
     try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; save(S); enter(); }
     catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else enter(); }
-  } else if (S && OFFLINE) enter();
+  } else if (offlineGuest) enter();
   else view("auth");
   paintLang();
 })();

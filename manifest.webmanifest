@@ -3,7 +3,7 @@
   "short_name": "13",
   "description": "오리지널 요원과 무기로 즐기는 5대5 전술 FPS. 혼자 AI와, 또는 친구와 온라인으로.",
   "id": "/play.html",
-  "start_url": "/play.html?source=app",
+  "start_url": "/?source=app",
   "scope": "/",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],
