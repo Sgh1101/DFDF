@@ -170,9 +170,26 @@ async function banOf(user, device, ip) {
   }
   return null;
 }
+// cheats the owner opened for one account, item by item: switches, the most
+// it may speed itself up or fire faster, and the buff (every ability but the
+// ultimate back every so many seconds). `until` 0 means no end date.
+const PERM_SW = ["radar", "wall", "cheat", "god", "oneShot", "infAmmo", "noRecoil"];
+function cleanPerm(p, days) {
+  p = p && "object" == typeof p ? p : {};
+  const num = (v, lo, hi, d) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : d));
+  const out = { on: !!p.on };
+  for (const k of PERM_SW) out[k] = !!p[k];
+  out.speed = Math.round(num(p.speed, 1, 3, 1) * 100) / 100;
+  out.fastFire = Math.round(num(p.fastFire, 1, 10, 1) * 10) / 10;
+  out.buff = Math.round(num(p.buff, 0, 120, 0));
+  out.until = days > 0 ? now() + days * 864e5 : 0;
+  return out;
+}
+// the account's cheats if they are switched on and not past their date
+const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u) };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -290,6 +307,24 @@ A.me = async (q, b, req) => {
 A.owner_check = async (q, b) => {
   const u = await who(b.token);
   return { owner: !!(u && u.owner && isOwnerId(u.id)), id: u ? u.id : null };
+};
+// A guest with cheats opened for its account shows them to the room host
+// without handing over its sign-in: it asks for a ticket that only says who
+// it is and which room it is for (good for 6 hours), and the host asks what
+// that account may do. A ticket is no use in any other room, so a host can't
+// carry a guest's ticket elsewhere. The answer is read fresh each time, so a
+// change on the owner page counts at once.
+const roomOf = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+A.perm_ticket = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  return activePerm(u) ? { ticket: sign({ k: "perm", id: u.id, room: roomOf(b.room), exp: now() + 6 * 36e5 }) } : { ticket: null };
+};
+A.perm_check = async (q, b) => {
+  const s = verify(b.ticket);
+  if (!s || "perm" !== s.k || !s.id || !s.room || s.room !== roomOf(b.room)) return { perm: null, id: null };
+  const u = await getJ(userKey(s.id));
+  return { perm: activePerm(u), id: u ? u.id : null };
 };
 A.progress = async (q, b) => {
   const c = await loadConfig(),
@@ -462,7 +497,7 @@ ADMIN.users = async (q, b) => {
     total: ids.length,
     users: recs.filter(Boolean).map((r) => {
       const u = JSON.parse(r);
-      return Object.assign(publicUser(u, c.xp.perLevel), { lastSeen: u.lastSeen, lastIp: u.lastIp, dev: u.dev, ban: u.ban || null, note: u.note || "" });
+      return Object.assign(publicUser(u, c.xp.perLevel), { lastSeen: u.lastSeen, lastIp: u.lastIp, dev: u.dev, ban: u.ban || null, note: u.note || "", permSet: u.perm || null });
     }),
   };
 };
@@ -497,6 +532,9 @@ ADMIN.user_set = async (q, b) => {
       break;
     case "note":
       u.note = String(b.note || "").slice(0, 300);
+      break;
+    case "perm":
+      u.perm = cleanPerm(b.perm, +b.days || 0);
       break;
     case "delete":
       await pipe([
