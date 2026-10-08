@@ -15432,7 +15432,8 @@ body.touching #nade-hud{display:none}
     mag: { dy: 0.035, rx: 0.15, ry: 0.45, rz: -0.3, dx: -0.05, dz: 0.03 },
     pistol: { dy: 0.03, rx: 0.25, ry: 0.3, rz: -0.3, dx: -0.03, dz: 0.02 },
     shells: { dy: 0.035, rx: 0.1, ry: 0.3, rz: -0.55, dx: -0.03, dz: 0.02 },
-    rocket: { dy: 0.05, rx: 0.06, ry: 0.15, rz: -0.1, dx: 0, dz: 0.05 },
+    // the launcher swings its muzzle in toward the middle, so the new rocket going in is in view
+    rocket: { dy: 0.02, rx: -0.1, ry: 0.5, rz: -0.15, dx: -0.05, dz: 0.1 },
   };
   window.VM_RL_POSE = POSE;
   function pose(a, rl, k) {
