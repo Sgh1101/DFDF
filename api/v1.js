@@ -314,9 +314,17 @@ A.progress = async (q, b) => {
 // and one set is shared for an hour so Cloudflare is asked rarely.
 const TURN_ID = process.env.CF_TURN_KEY_ID || "",
   TURN_TOKEN = process.env.CF_TURN_API_TOKEN || "";
+// or any TURN service with a fixed username and password (ExpressTURN, Metered,
+// your own coturn): TURN_URLS lists the addresses, comma separated, e.g.
+// "turn:relay.example.com:3478,turns:relay.example.com:443?transport=tcp".
+// Used when the Cloudflare keys are missing or Cloudflare can't be reached.
+const TURN_URLS = String(process.env.TURN_URLS || "")
+    .split(/[\s,]+/)
+    .filter((u) => /^turns?:/.test(u)),
+  FIXED_ICE = TURN_URLS.length ? [{ urls: TURN_URLS, username: process.env.TURN_USERNAME || "", credential: process.env.TURN_CREDENTIAL || "" }] : [];
 let iceCache = null;
 A.ice = async () => {
-  if (!TURN_ID || !TURN_TOKEN) return { iceServers: [], relay: !1 };
+  if (!TURN_ID || !TURN_TOKEN) return { iceServers: FIXED_ICE, relay: FIXED_ICE.length > 0 };
   if (iceCache && iceCache.until > now()) return { iceServers: iceCache.list, relay: !0 };
   const base = "https://rtc.live.cloudflare.com/v1/turn/keys/" + TURN_ID + "/credentials/";
   const hdr = { Authorization: "Bearer " + TURN_TOKEN, "Content-Type": "application/json" };
@@ -335,7 +343,7 @@ A.ice = async () => {
     } catch (e) {}
   if (!list || !list.length) {
     await log("error", "TURN 접속표 발급 실패");
-    return { iceServers: [], relay: !1 };
+    return { iceServers: FIXED_ICE, relay: FIXED_ICE.length > 0 };
   }
   iceCache = { list, until: now() + 36e5 };
   return { iceServers: list, relay: !0 };
