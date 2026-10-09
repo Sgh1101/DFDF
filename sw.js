@@ -3,6 +3,9 @@
 // (the 3D engine and multiplayer live online), so pages show a friendly
 // "connect and retry" screen instead of a broken one; icons stay cached.
 const CACHE = "13-v1";
+// photo materials and skies never change under the same name: kept after the
+// first download so a phone does not fetch them again every match
+const ASSETS = "13-assets-v1";
 const SHELL = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const OFFLINE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13</title>
 <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0d12;color:#e8edf4;font-family:sans-serif;text-align:center">
@@ -13,13 +16,28 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // fonts, CDN scripts, PeerJS: browser as usual
+  if (url.pathname.startsWith("/assets/")) {
+    e.respondWith(
+      caches.open(ASSETS).then((c) =>
+        c.match(req).then(
+          (hit) =>
+            hit ||
+            fetch(req).then((res) => {
+              res.ok && c.put(req, res.clone());
+              return res;
+            })
+        )
+      )
+    );
+    return;
+  }
   e.respondWith(
     fetch(req)
       .then((res) => {
