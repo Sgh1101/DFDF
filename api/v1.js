@@ -78,6 +78,11 @@ const DEFAULT_CONFIG = {
   // room rules every host applies when `force` is on (0 = the game's own default)
   room: { force: !1, roundT: 0, buyT: 0, matchT: 0, run: 0, jumpV: 0, gravity: 0, aiSpeed: 0, infAll: !1, freezeAI: !1 },
   xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600 },
+  // gold after each match, spent on skin pulls
+  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500 },
+  // a pull: the odds of each tier (any numbers; they are weights), what one or
+  // ten cost, and the highest tier a bot is seen wearing
+  gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
   channels: [
     { id: "s1", name: "서버 1", en: "Server 1" },
     { id: "s2", name: "서버 2", en: "Server 2" },
@@ -185,11 +190,20 @@ function cleanPerm(p, days) {
   out.until = days > 0 ? now() + days * 864e5 : 0;
   return out;
 }
+// what an account in admin mode may change on a room: every knob of the
+// panel's room-wide tab, unless the owner closed some
+const ADMIN_KNOBS = ["run", "roundT", "buyT", "matchT", "jumpV", "gravity", "aiSpeed", "infAll", "freezeAI"];
+const cleanAllow = (a) => {
+  if (!isObj(a)) return null;
+  const o = {};
+  for (const k of ADMIN_KNOBS) o[k] = !1 !== a[k];
+  return o;
+};
 // the account's cheats if they are switched on and not past their date
 const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u) };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0 };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -221,12 +235,86 @@ async function who(token) {
   return u ? Object.assign(u, { _s: s }) : null;
 }
 const saveUser = (u) => setJ(u.guest ? guestKey(u.dev) : userKey(u.id), Object.assign({}, u, { _s: undefined }));
+const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
+
+// ── gun skins: what there is to win ──
+// One item is one skin on one gun. The lists must match the game's (its
+// WEAPONS table and GUN_SKINS.list); a test compares them.
+const SKIN_TIER = { obsidian: 1, snow: 1, jungle: 1, desert: 1, carbon: 2, tiger: 2, sakura: 2, ice: 2, celadon: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, lava: 4, galaxy: 4, holo: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4 };
+// skins only one gun can wear (the knives that are other knives)
+const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife" };
+const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
+const SKIN_IDS = Object.keys(SKIN_TIER);
+const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"];
+const ITEMS = GUNS.reduce((n, g) => n + SKIN_IDS.filter((s) => fits(s, g)).length, 0);
+const TIER_KEYS = ["common", "rare", "epic", "legendary"];
+// the summary of a match the game sends with its report: only these fields,
+// each clamped. The account keeps the last thirty.
+const HIST_MAX = 30;
+function cleanMatch(m, win, kills) {
+  if (!isObj(m)) return null;
+  const str = (v, n) => String(v || "").replace(/[<>&"]/g, "").slice(0, n);
+  const num = (v, hi) => Math.max(0, Math.min(hi, Math.round(+v) || 0));
+  const s = Array.isArray(m.s) ? [num(m.s[0], 999), num(m.s[1], 999)] : [0, 0];
+  return { mode: /^[a-z]{1,8}$/.test(m.mode) ? m.mode : "std", map: str(m.map, 24), agent: str(m.agent, 24), k: kills, d: num(m.d, 200), a: num(m.a, 200), dmg: num(m.dmg, 99999), cs: num(m.cs, 9999), rank: num(m.rank, 40), n: num(m.n, 40), s, win: !!win, mvp: !!m.mvp };
+}
+const histOf = (u) => (Array.isArray(u.hist) ? u.hist.slice(0, HIST_MAX) : []);
+// a wallet for an account from before gold: the sign-up gold once, an empty collection
+function ensureWallet(u, c) {
+  let changed = !1;
+  if ("number" != typeof u.gold || !isFinite(u.gold)) ((u.gold = c.gold.signup), (changed = !0));
+  if (!isObj(u.own)) ((u.own = {}), (changed = !0));
+  return changed;
+}
+const ownedCount = (u) => {
+  let n = 0;
+  if (isObj(u.own)) for (const g in u.own) Array.isArray(u.own[g]) && (n += u.own[g].length);
+  return n;
+};
+const hasItem = (u, g, s) => !!(isObj(u.own) && Array.isArray(u.own[g]) && u.own[g].includes(s) && fits(s, g));
+// the tier a pull lands on, by the owner's weights
+function rollTier(odds) {
+  const w = TIER_KEYS.map((k) => Math.max(0, Math.floor(+(odds && odds[k]) || 0)));
+  const tot = w.reduce((a, b) => a + b, 0);
+  if (!tot) return 1;
+  let x = crypto.randomInt(tot);
+  for (let i = 0; i < w.length; i++) {
+    if (x < w[i]) return i + 1;
+    x -= w[i];
+  }
+  return 1;
+}
+const poolOf = (u, tier) => {
+  const out = [];
+  for (const s of SKIN_IDS) if (SKIN_TIER[s] === tier) for (const g of GUNS) fits(s, g) && !hasItem(u, g, s) && out.push([g, s]);
+  return out;
+};
+// one pull: never a duplicate. The tier is rolled; if every skin of that tier
+// is already owned the next tier up is tried, and from the top back down.
+function rollOne(u, odds) {
+  const t = rollTier(odds),
+    order = [];
+  for (let x = t; x <= 4; x++) order.push(x);
+  for (let x = t - 1; x >= 1; x--) order.push(x);
+  for (const tier of order) {
+    const pool = poolOf(u, tier);
+    if (!pool.length) continue;
+    const [g, s] = pool[crypto.randomInt(pool.length)];
+    (u.own[g] = u.own[g] || []).push(s);
+    return { g, s, r: tier };
+  }
+  return null;
+}
+// a picked skin stays picked only while it is owned
+function trimPicks(u) {
+  if (u.skins && isObj(u.skins.m)) for (const k in u.skins.m) hasItem(u, k, u.skins.m[k]) || delete u.skins.m[k];
+}
 
 // ── public actions ──
 const A = {};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, channels: c.channels }, store: !!RURL };
+  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -246,6 +334,7 @@ A.auth = async (q, b, req) => {
       throw fail(401, "비밀번호가 틀렸습니다");
     }
     if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
+    ensureWallet(u, c);
     u.owner = !0;
     u.pass = hashPw(crypto.randomBytes(24).toString("hex"));
     delete u.ban;
@@ -254,7 +343,7 @@ A.auth = async (q, b, req) => {
     u.dev = String(b.device || "").slice(0, 64);
     await saveUser(u);
     await log("admin", "운영자 계정 로그인: " + id, { ip, user: id });
-    return { token: sign({ k: "p", id, o: 1, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created };
+    return { token: sign({ k: "p", id, o: 1, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
   }
   if (u) {
     if (!checkPw(pw, u.pass)) {
@@ -267,6 +356,7 @@ A.auth = async (q, b, req) => {
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
   }
+  ensureWallet(u, c);
   const ban = await banOf(u, b.device, ip);
   if (ban) throw Object.assign(fail(403, "이용이 제한된 계정입니다"), { ban });
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
@@ -275,7 +365,7 @@ A.auth = async (q, b, req) => {
   u.dev = String(b.device || "").slice(0, 64);
   await saveUser(u);
   await log(created ? "join" : "login", (created ? "가입: " : "로그인: ") + id, { ip, user: id });
-  return { token: sign({ k: "p", id, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created };
+  return { token: sign({ k: "p", id, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
 };
 A.guest = async (q, b, req) => {
   const c = await loadConfig(),
@@ -286,22 +376,24 @@ A.guest = async (q, b, req) => {
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
   let u = await getJ(guestKey(dev));
   if (!u) u = { id: "게스트" + (parseInt(crypto.createHash("md5").update(dev).digest("hex").slice(0, 6), 16) % 9000 + 1000), guest: !0, dev, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
+  ensureWallet(u, c);
   const ban = await banOf(u, dev, ip);
   if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
   u.lastSeen = now();
   u.lastIp = ip;
   await saveUser(u);
   await log("guest", "게스트 입장: " + u.id, { ip, user: u.id });
-  return { token: sign({ k: "p", id: dev, g: 1, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel) };
+  return { token: sign({ k: "p", id: dev, g: 1, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
 A.me = async (q, b, req) => {
   const c = await loadConfig(),
     u = await who(b.token || q.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  if (u.owner && isOwnerId(u.id)) return { user: publicUser(u, c.xp.perLevel), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }) };
+  ensureWallet(u, c) && (await saveUser(u));
+  if (u.owner && isOwnerId(u.id)) return { user: publicUser(u, c.xp.perLevel), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), hist: histOf(u) };
   const ban = await banOf(u, u.dev, ipOf(req));
   if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
-  return { user: publicUser(u, c.xp.perLevel) };
+  return { user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
 // a room host asks whether a guest really is the owner
 A.owner_check = async (q, b) => {
@@ -326,6 +418,73 @@ A.perm_check = async (q, b) => {
   const u = await getJ(userKey(s.id));
   return { perm: activePerm(u), id: u ? u.id : null };
 };
+// the gun skins a player picked follow the account: read them, or set the
+// whole table (gun → skin name) with the time it was last changed, so the
+// newer of two devices wins
+A.skins = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  let dirty = ensureWallet(u, c);
+  const dropped = [];
+  if (b.set && "object" == typeof b.set) {
+    const m = {};
+    let n = 0;
+    for (const k in b.set) {
+      if (++n > 80) break;
+      const v = String(b.set[k] || "").slice(0, 24);
+      if (!/^[a-z0-9_]{1,24}$/.test(k) || !/^[a-z0-9_]{1,24}$/.test(v) || "default" === v) continue;
+      hasItem(u, k, v) ? (m[k] = v) : dropped.push(k);
+    }
+    u.skins = { t: Math.max(0, Math.min(now() + 6e4, +b.t || now())), m };
+    dirty = !0;
+  }
+  dirty && (await saveUser(u));
+  return { skins: u.skins || null, own: u.own, gold: u.gold, items: ITEMS, dropped };
+};
+// small things the game keeps per account: the touch-button layout (part →
+// [x, y, size]); the newer of two devices wins, as with the skins
+const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
+A.prefs = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (isObj(b.set)) {
+    const touch = {};
+    const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
+    if (isObj(b.set.touch)) for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
+    u.prefs = { t: Math.max(0, Math.min(now() + 6e4, +b.t || now())), touch };
+    await saveUser(u);
+  }
+  return { prefs: u.prefs || null };
+};
+// the catalogue: which guns and skins a pull can give (the game checks it matches its own)
+A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
+// a pull of one or ten: gold out, items in, never one already owned. The
+// collection and the gold are kept on the account, so a pull is only ever
+// granted here.
+A.gacha = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("gacha:" + rlKey(u), 20, 10)) throw fail(429, "너무 빨리 뽑고 있습니다");
+  ensureWallet(u, c);
+  const n = 10 === (b.n | 0) ? 10 : 1,
+    cost = Math.max(0, Math.round(10 === n ? c.gacha.cost10 : c.gacha.cost1)),
+    left = ITEMS - ownedCount(u);
+  if (left < n) throw fail(409, left > 0 ? `남은 스킨이 ${left}개뿐입니다` : "모든 스킨을 다 모았습니다");
+  if (u.gold < cost) throw fail(402, `골드가 부족합니다 (${cost} 필요)`);
+  const results = [];
+  for (let i = 0; i < n; i++) {
+    const r = rollOne(u, c.gacha.odds);
+    r && results.push(r);
+  }
+  u.gold -= cost;
+  u.pulls = (u.pulls || 0) + n;
+  await saveUser(u);
+  const leg = results.filter((r) => 4 === r.r);
+  leg.length && (await log("gacha", `${u.id} 전설 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
+  return { results, cost, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
+};
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -335,14 +494,19 @@ A.progress = async (q, b) => {
     win = !!b.win;
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
+  ensureWallet(u, c);
+  const gold = Math.max(0, Math.min(c.gold.maxPerReport, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
+  u.gold += gold;
   u.xp = (u.xp || 0) + gain;
+  const m = cleanMatch(b.match, win, kills);
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
   await saveUser(u);
   const p = publicUser(u, c.xp.perLevel);
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
-  return { gain, user: p, levelUp: p.level > before };
+  return { gain, gold, user: p, levelUp: p.level > before, hist: histOf(u) };
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,
@@ -515,7 +679,11 @@ ADMIN.user_set = async (q, b) => {
       delete u.ban;
       break;
     case "admin":
-      u.adminUntil = b.days > 0 ? Math.max(now(), u.adminUntil || 0) + b.days * 864e5 : 0;
+      // with an item list (the owner page's editor) the period is set from now; without one it is extended as before
+      if (isObj(b.allow)) {
+        u.adminUntil = b.days > 0 ? now() + b.days * 864e5 : 0;
+        u.adminAllow = cleanAllow(b.allow);
+      } else u.adminUntil = b.days > 0 ? Math.max(now(), u.adminUntil || 0) + b.days * 864e5 : 0;
       break;
     case "xp":
       u.xp = Math.max(0, b.xp | 0);
@@ -536,6 +704,24 @@ ADMIN.user_set = async (q, b) => {
     case "perm":
       u.perm = cleanPerm(b.perm, +b.days || 0);
       break;
+    case "gold":
+      ensureWallet(u, c);
+      u.gold = Math.max(0, Math.min(9e6, Math.round(+b.gold || 0)));
+      break;
+    case "grant": {
+      // item "gun|skin" or "all"; remove takes it back
+      ensureWallet(u, c);
+      const all = "all" === b.item,
+        [g, s] = String(b.item || "").split("|");
+      if (!all && (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g))) throw fail(400, "없는 아이템 (총|스킨)");
+      if (b.remove) {
+        if (all) u.own = {};
+        else u.own[g] = (u.own[g] || []).filter((x) => x !== s);
+      } else if (all) for (const gg of GUNS) u.own[gg] = SKIN_IDS.filter((x) => fits(x, gg));
+      else hasItem(u, g, s) || (u.own[g] = u.own[g] || []).push(s);
+      trimPicks(u);
+      break;
+    }
     case "delete":
       await pipe([
         ["DEL", userKey(id)],
@@ -547,7 +733,7 @@ ADMIN.user_set = async (q, b) => {
       throw fail(400, "알 수 없는 작업");
   }
   await setJ(userKey(id), u);
-  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}`);
+  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"grant" === b.op ? " " + b.item + (b.remove ? " 회수" : "") : ""}`);
   return { ok: !0 };
 };
 ADMIN.bans = async () => {
@@ -641,3 +827,4 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
+module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };

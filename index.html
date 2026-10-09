@@ -73,6 +73,21 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:18px;text-align:center}
 .st div{background:#0f141d;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;color:var(--steel)}
 .st b{display:block;color:var(--ink);font-size:18px;font-family:var(--fd);margin-bottom:2px}
+.wallet{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:12px;color:var(--steel)}
+.wallet span{padding:5px 12px;border:1px solid var(--line);border-radius:999px}
+.wallet .g{color:var(--gold);border-color:#5c4b1f;font-family:var(--fd)}
+.hist{max-width:720px;margin:-18px auto 40px}
+.hist h3{font-family:var(--fd);font-size:12px;letter-spacing:.18em;color:var(--steel-dim);margin:0 0 10px 4px;text-transform:uppercase}
+.hr{display:grid;grid-template-columns:92px minmax(0,1.6fr) minmax(0,1fr) 64px;gap:10px;align-items:center;padding:10px 12px;margin-bottom:6px;border-radius:12px;border:1px solid var(--line);border-left:4px solid var(--steel-dim);background:var(--panel)}
+.hr.win{border-left-color:var(--green);background:linear-gradient(90deg,rgba(74,222,128,.1),var(--panel) 60%)}
+.hr.loss{border-left-color:var(--red);background:linear-gradient(90deg,rgba(255,59,78,.1),var(--panel) 60%)}
+.hr b{display:block;font-family:var(--fd);font-size:14px}
+.hr small,.hr span{display:block;font-size:11px;color:var(--steel)}
+.hr .res b{font-size:15px}.hr.win .res b{color:var(--green)}.hr.loss .res b{color:var(--red)}
+.hr .mid b{font-family:var(--fb,inherit);font-size:13px;font-weight:700}
+.hr .mvp{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;border:1px solid #5c4b1f;color:var(--gold);font-size:9px;letter-spacing:.1em;font-family:var(--fd)}
+.hist .empty{padding:14px;text-align:center;color:var(--steel-dim);font-size:12px;border:1px dashed var(--line);border-radius:12px}
+@media(max-width:600px){.hr{grid-template-columns:76px minmax(0,1.4fr) minmax(0,1fr);gap:8px;padding:9px 10px}.hr .cs{display:none}.hr b{font-size:12.5px}}
 .inv{margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid #1f5c36;background:rgba(74,222,128,.07);color:var(--green);font-size:13px;text-align:center}
 .inv b{font-family:var(--fd);letter-spacing:.18em;margin-left:6px}
 .enter{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:16px;padding:17px;border-radius:14px;font-size:17px;font-weight:900;letter-spacing:.04em;color:#fff;text-decoration:none;
@@ -158,6 +173,7 @@ footer a{color:var(--steel)}
         </div>
       </div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
@@ -167,6 +183,8 @@ footer a{color:var(--steel)}
       </div>
     </div>
   </div>
+
+  <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
 
   <div id="v-ban" hidden class="banned box"><b data-t="banned"></b><p id="banWhy" style="color:var(--steel);margin-top:10px"></p></div>
   </div>
@@ -187,25 +205,29 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률",
+    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`,
+    history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
+    modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
     banned: "이용이 제한되었습니다", until: "까지", forever: "영구", reason: "사유",
     offline: "지금은 계정 서버에 연결할 수 없습니다. 게스트로 들어가면 혼자 하기와 코드 참가는 그대로 됩니다.",
     about: "게임", privacy: "개인정보처리방침", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
     ranks: ["신병", "요원", "정예 요원", "베테랑", "에이스", "전설"],
-    feat: ["<b>5대5 전술전</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치", "<b>요원 36명</b> — 능력 144개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 50곳</b> — 5대5 40곳 · 소규모 3대3 6곳 · 1대1 4곳, 모든 맵에 올라갈 구조물", "<b>총 31종 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
+    feat: ["<b>5대5 전술전</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치", "<b>요원 36명</b> — 능력 144개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 50곳</b> — 5대5 40곳 · 소규모 3대3 6곳 · 1대1 4곳, 모든 맵에 올라갈 구조물", "<b>총 31종 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>총 스킨 뽑기</b> — 경기마다 골드, 스킨 16종 × 총 31종을 뽑기로. 등급이 높을수록 모션과 연출이 화려해집니다", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
   },
   en: {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate",
+    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`,
+    history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
+    modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
     banned: "Your access is restricted", until: "until", forever: "permanently", reason: "Reason",
     offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
     about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
     ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
-    feat: ["<b>5v5 tactics</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch", "<b>36 agents</b> — 144 abilities, no two alike", "<b>50 maps</b> — 40 for 5v5, 6 small 3v3, 4 duels, something to climb on every one", "<b>31 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
+    feat: ["<b>5v5 tactics</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch", "<b>36 agents</b> — 144 abilities, no two alike", "<b>50 maps</b> — 40 for 5v5, 6 small 3v3, 4 duels, something to climb on every one", "<b>31 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 16 skins × 31 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
   },
 };
 let L = localStorage.getItem("lgp_lang") || ((navigator.language || "ko").startsWith("ko") ? "ko" : "en");
@@ -243,7 +265,7 @@ async function api(a, b) {
   if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban });
   return j;
 }
-function save(sess) { S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
+function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
 function view(v) { ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
@@ -266,6 +288,29 @@ function drawMe() {
   $("#meXpT").textContent = t("lvNext", u.into || 0, u.need || 100);
   $("#meK").textContent = u.kills || 0; $("#meW").textContent = u.wins || 0; $("#meM").textContent = u.matches || 0;
   $("#meR").textContent = u.matches ? Math.round((100 * (u.wins || 0)) / u.matches) + "%" : "-";
+  // gold and the skin collection (only an account server knows them)
+  const wallet = typeof u.gold === "number";
+  $("#meGold").hidden = $("#meSkins").hidden = !wallet;
+  $("#meGold").textContent = "🪙 " + (u.gold || 0).toLocaleString();
+  $("#meGold").title = t("gold");
+  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 501);
+  drawHist();
+}
+// the last matches, newest first (the game sends a summary with each report)
+function drawHist() {
+  const h = $("#hist"), list = (S && S.hist) || [];
+  h.hidden = !S || !S.user || typeof S.user.gold !== "number";
+  if (h.hidden) return;
+  const when = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  $("#histList").innerHTML = list.length ? list.map((m) => {
+    const ffa = m.mode === "dm", draw = !ffa && m.s && m.s[0] === m.s[1];
+    const res = ffa ? t("place", m.rank || 1) : draw ? t("draw") : m.win ? t("win") : t("loss");
+    const sc = ffa ? t("kills1", m.k || 0) : `${m.s ? m.s[0] : 0} - ${m.s ? m.s[1] : 0}`;
+    return `<div class="hr ${m.win ? "win" : draw ? "" : "loss"}"><div class="res"><b>${esc(res)}</b><span>${esc(sc)}</span></div>
+      <div class="mid"><b>${esc(T[L].modes[m.mode] || m.mode)}${m.map ? " · " + esc(m.map) : ""}${m.mvp ? '<i class="mvp">MVP</i>' : ""}</b><small>${esc(m.agent || "")}${m.agent ? " · " : ""}${when(m.t)}</small></div>
+      <div class="kda"><b>${m.k | 0} / ${m.d | 0} / ${m.a | 0}</b><small>K / D / A</small></div>
+      <div class="cs"><b>${m.cs | 0}</b><small>${esc(t("score"))}</small></div></div>`;
+  }).join("") : `<div class="empty">${esc(t("noHist"))}</div>`;
 }
 function drawEnter() {
   $("#enter").href = gameUrl(ROOM);
@@ -281,7 +326,7 @@ async function auth(guest) {
   $("#doAuth").disabled = $("#doGuest").disabled = !0;
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
-    save({ token: j.token, user: j.user, atoken: j.atoken || "" });
+    save({ token: j.token, user: j.user, atoken: j.atoken || "", hist: j.hist || [] });
     try { sessionStorage.setItem("lgp_gate", j.token); } catch (e) {}
     enter();
   } catch (e) {
@@ -309,7 +354,7 @@ function enter() { view("dash"); drawMe(); drawEnter(); }
     view("auth");
     try { $("#uid").value = S.user && !S.user.guest ? S.user.id : localStorage.getItem("lgp_name") || ""; $("#uid").value && $("#upw").focus(); } catch (e) {}
   } else if (S && S.token) {
-    try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; save(S); enter(); }
+    try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; S.hist = j.hist || S.hist || []; save(S); enter(); }
     catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else enter(); }
   } else if (offlineGuest) enter();
   else view("auth");
