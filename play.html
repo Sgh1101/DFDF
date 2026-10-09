@@ -21834,14 +21834,17 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     },
   };
   // where the hand closes on each knife: [y, z] of the grip's middle
-  const HAND = { butterfly: [-0.01, 0.19], karambit: [-0.004, 0.12], kukri: [-0.016, 0.13], tanto: [-0.014, 0.14], flip: [-0.012, 0.17] };
+  const HAND = { butterfly: [-0.01, 0.19], karambit: [0.004, 0.157], kukri: [-0.016, 0.13], tanto: [-0.014, 0.14], flip: [-0.012, 0.17] };
   // how a knife is turned in the hand before the hand closes on it: the karambit
   // is held in a reverse grip, the ring up on the index finger, the handle down
   // through the fist and the claw out below it, curling forward
   const GRIP = { karambit: [-PI / 2, 0, PI] };
+  // the game's hand is one ball at the grip point; a reverse grip wants the
+  // other fingers closed down the handle too: [length along the handle, radius]
+  const FIST = { karambit: [0.175, 0.04] };
   // how each knife sits in the hand: [rx, ry, rz, px, py, pz] added to the game's pose, and its size in hand
   const REST = { butterfly: [0, 0.1, -0.2, 0, 0, 0], karambit: [0.1, 0.25, 0.1, 0.06, -0.12, 0.04], kukri: [0.3, 0.25, -0.7, 0, 0, 0], tanto: [0, 0, 0, 0, 0, 0], flip: [0, 0, 0, 0, 0, 0] };
-  const SIZE = { butterfly: 1.1, karambit: 1.25, kukri: 1.05, tanto: 1.05, flip: 1.1 };
+  const SIZE = { butterfly: 1.1, karambit: 1.1, kukri: 1.05, tanto: 1.05, flip: 1.1 };
   const DRAW_D = { butterfly: 0.6, karambit: 0.5, kukri: 0.4, tanto: 0.42, flip: 0.38 };
   // attack: the kind that alternates and how long it takes
   const ATTACK = {
@@ -21912,6 +21915,23 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       const o = _hands.call(this, stand, t);
       o.remove(stand);
       o.add(k);
+      const F = FIST[m];
+      if (F)
+        try {
+          let hand = null;
+          o.traverse((x) => !hand && x.isMesh && x.geometry && "SphereGeometry" === x.geometry.type && x.geometry.parameters && Math.abs(x.geometry.parameters.radius - 0.043) < 0.005 && (hand = x));
+          if (hand) {
+            const g = new T.Group(),
+              L = F[0] * s,
+              r = F[1];
+            g.position.copy(hand.position);
+            g.add(live(cyl(hand.material, r, 0.9 * r, L, 14, 0, -L / 2, 0)));
+            g.add(live(mesh(new T.SphereGeometry(0.9 * r, 12, 9), hand.material, 0, -L, 0)));
+            g.traverse((x) => x.isMesh && (x.castShadow = x.receiveShadow = !1));
+            o.add(g);
+            o.userData.fist = g;
+          }
+        } catch (e) {}
       return o;
     };
   }
@@ -22053,6 +22073,12 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       IDLE.anim = 0;
       IDLE.t = 0;
       IDLE.next = 6 + 5 * Math.random();
+    }
+    if (spin && a.userData.fist) {
+      const w = ((spin.rotation.x % (2 * PI)) + 2 * PI) % (2 * PI),
+        open = c01(Math.min(w, 2 * PI - w) / 0.5),
+        f = a.userData.fist;
+      f.scale.set(1 - 0.3 * open, 1 - 0.92 * open, 1 - 0.3 * open);
     }
     if (IDLE.anim >= 0) {
       IDLE.anim += dt;
