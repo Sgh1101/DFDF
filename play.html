@@ -21987,8 +21987,13 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
         hB && (hB.rotation.x = -4 * PI * ezS(mid));
         R.z += up * 0.6 * Math.sin(mid * PI);
       } else if ("karambit" === m) {
-        spin && (spin.rotation.x = 4 * PI * ezS(mid));
-        R.y += up * (0.6 - 1.2 * ezS(mid));
+        const fwd = ezS(seg(s, 0.35, 1.55)),
+          back = ezS(seg(s, 1.75, 2.2));
+        spin && (spin.rotation.x = 4 * PI * fwd - 2 * PI * back);
+        P.x += 0.05 * up;
+        P.y += 0.02 * up;
+        R.y += 0.35 * up;
+        R.z += 0.15 * up + 0.08 * Math.sin(s * 14) * fwd * (1 - fwd);
       } else if ("kukri" === m) {
         R.y += up * (1.0 - 2.0 * ezS(mid));
         R.z += up * 0.5 * Math.sin(mid * PI);
@@ -22057,8 +22062,11 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       else if ("butterfly" === m) {
         hA && (hA.rotation.x = 2 * PI * ezS(k));
         hB && (hB.rotation.x = -2 * PI * ezS(k));
-      } else if ("karambit" === m) spin && (spin.rotation.x = 2 * PI * ezS(k));
-      else if ("flip" === m) blade && (blade.rotation.x = PI * 0.5 * (1 - Math.cos(k * 2 * PI)));
+      } else if ("karambit" === m) {
+        spin && (spin.rotation.x = 2 * PI * ezS(k));
+        P.y += 0.03 * Math.sin(k * PI);
+        R.z += 0.12 * Math.sin(k * PI);
+      } else if ("flip" === m) blade && (blade.rotation.x = PI * 0.5 * (1 - Math.cos(k * 2 * PI)));
       else R.z += 0.35 * Math.sin(k * PI);
     }
   }
