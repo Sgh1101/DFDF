@@ -92,6 +92,10 @@ const DEFAULT_CONFIG = {
   // under half of loss). 100 RR a division, three divisions a tier; a day's
   // gain has a ceiling, as the result is what the game reports (0 = none)
   rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300 },
+  // daily and weekly missions: how many (matches, kills, wins) and the gold each pays
+  // when claimed. Counted here from the match reports; a day starts at midnight in
+  // Korea, a week on Monday. 0 turns a mission off.
+  mission: { dPlay: 3, dPlayGold: 100, dKill: 15, dKillGold: 150, dWin: 1, dWinGold: 150, wPlay: 15, wPlayGold: 500, wKill: 100, wKillGold: 700, wWin: 7, wWinGold: 800 },
   channels: [
     { id: "s1", name: "서버 1", en: "Server 1" },
     { id: "s2", name: "서버 2", en: "Server 2" },
@@ -219,7 +223,7 @@ const rankOf = (rr) => {
 };
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr) };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0 };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -526,6 +530,87 @@ A.gacha = async (q, b) => {
   leg.length && (await log("gacha", `${u.id} 전설 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
   return { results, cost, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
+// ── missions ──
+// [id, period, what is counted, config key]; the targets and gold are in config.mission
+const MIS = [
+  ["d_play", "d", "play", "dPlay"],
+  ["d_kill", "d", "kills", "dKill"],
+  ["d_win", "d", "wins", "dWin"],
+  ["w_play", "w", "play", "wPlay"],
+  ["w_kill", "w", "kills", "wKill"],
+  ["w_win", "w", "wins", "wWin"],
+];
+const KST = 9 * 36e5;
+const kstDay = (t) => new Date(t + KST).toISOString().slice(0, 10);
+// the Monday that starts this week, in Korea
+const kstWeek = (t) => {
+  const d = new Date(t + KST),
+    back = (d.getUTCDay() + 6) % 7;
+  return new Date(d.getTime() - back * 864e5).toISOString().slice(0, 10);
+};
+function misState(u, c) {
+  const M = c.mission || {},
+    t = now(),
+    day = kstDay(t),
+    week = kstWeek(t);
+  isObj(u.mis) || (u.mis = { d: day, w: week, p: {}, got: {} });
+  const m = u.mis;
+  isObj(m.p) || (m.p = {});
+  isObj(m.got) || (m.got = {});
+  // a new day (or week) starts its missions from zero
+  for (const [id, per] of MIS)
+    if (("d" === per && m.d !== day) || ("w" === per && m.w !== week)) {
+      delete m.p[id];
+      delete m.got[id];
+    }
+  m.d = day;
+  m.w = week;
+  const list = [];
+  for (const [id, per, stat, k] of MIS) {
+    const n = Math.max(0, Math.round(+M[k] || 0));
+    if (!n) continue;
+    const have = Math.min(n, m.p[id] || 0);
+    list.push({ id, per, stat, n, have, gold: Math.max(0, Math.round(+M[k + "Gold"] || 0)), done: have >= n, got: !!m.got[id] });
+  }
+  m.ready = list.filter((x) => x.done && !x.got).length;
+  // when the day and the week end (ms since 1970)
+  const dayEnd = Date.parse(day + "T00:00:00Z") - KST + 864e5,
+    weekEnd = Date.parse(week + "T00:00:00Z") - KST + 7 * 864e5;
+  return { list, ready: m.ready, dayEnd, weekEnd };
+}
+function misCount(u, c, add) {
+  misState(u, c);
+  for (const [id, , stat] of MIS) add[stat] > 0 && (u.mis.p[id] = (u.mis.p[id] || 0) + add[stat]);
+  return misState(u, c);
+}
+A.missions = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const before = JSON.stringify(u.mis || null),
+    st = misState(u, c);
+  JSON.stringify(u.mis) !== before && (await saveUser(u));
+  return { missions: st, user: publicUser(u, c.xp.perLevel) };
+};
+// gold for a finished mission (or every finished one: id "all"), once each
+A.mission_claim = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("mis:" + rlKey(u), 20, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+  ensureWallet(u, c);
+  const st = misState(u, c),
+    pick = st.list.filter((x) => x.done && !x.got && ("all" === b.id || x.id === b.id));
+  if (!pick.length) throw fail(409, "받을 보상이 없습니다");
+  let gold = 0;
+  for (const x of pick) {
+    u.mis.got[x.id] = 1;
+    gold += x.gold;
+  }
+  u.gold += gold;
+  await saveUser(u);
+  return { gold, ids: pick.map((x) => x.id), missions: misState(u, c), user: publicUser(u, c.xp.perLevel) };
+};
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -561,13 +646,14 @@ A.progress = async (q, b) => {
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
+  const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
   await saveUser(u);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   const rb = rankOf(rr0);
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
-  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u) };
+  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,
