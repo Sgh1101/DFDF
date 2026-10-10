@@ -85,6 +85,11 @@ const DEFAULT_CONFIG = {
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
+  // the rank (tier): rating points (RR) after each match. A win adds win + perKill
+  // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
+  // under half of loss). 100 RR a division, three divisions a tier; a day's
+  // gain has a ceiling, as the result is what the game reports (0 = none)
+  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300 },
   channels: [
     { id: "s1", name: "서버 1", en: "Server 1" },
     { id: "s2", name: "서버 2", en: "Server 2" },
@@ -203,9 +208,16 @@ const cleanAllow = (a) => {
 };
 // the account's cheats if they are switched on and not past their date
 const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
+// the tiers, low to high: 3 divisions of 100 RR each, then Radiant from 2400 RR
+const RANKS = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"];
+const rankOf = (rr) => {
+  rr = Math.max(0, Math.round(+rr || 0));
+  const d = Math.floor(rr / 100);
+  return d >= 24 ? { rr, t: 8, tier: RANKS[8], div: 0, into: rr - 2400 } : { rr, t: Math.floor(d / 3), tier: RANKS[Math.floor(d / 3)], div: (d % 3) + 1, into: rr % 100 };
+};
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0 };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr) };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -242,7 +254,7 @@ const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
-const SKIN_TIER = { obsidian: 1, snow: 1, jungle: 1, desert: 1, carbon: 2, tiger: 2, sakura: 2, ice: 2, celadon: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, lava: 4, galaxy: 4, holo: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4 };
+const SKIN_TIER = { obsidian: 1, snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, ice: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, holo: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4 };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife" };
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
@@ -530,9 +542,20 @@ A.progress = async (q, b) => {
   const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
   u.goldDay.n = (u.goldDay.n || 0) + gold;
+  // the rank: up with a win (more with kills), down a little with a loss
+  const R = c.rank,
+    kb = Math.max(0, Math.min(+R.maxKill || 0, kills * (+R.perKill || 0))),
+    rr0 = Math.max(0, Math.round(+u.rr || 0)),
+    rcap = Math.max(0, +R.maxPerDay || 0);
+  (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
+  let drr = win ? Math.round((+R.win || 0) + kb) : -Math.max(Math.ceil((+R.loss || 0) / 2), Math.round((+R.loss || 0) - kb / 2));
+  drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
+  u.rr = Math.max(0, rr0 + drr);
+  drr = u.rr - rr0;
+  drr > 0 && (u.rrDay.n = (u.rrDay.n || 0) + drr);
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
-  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold })].concat(histOf(u)).slice(0, HIST_MAX));
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
@@ -540,7 +563,9 @@ A.progress = async (q, b) => {
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
-  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, user: p, levelUp: p.level > before, hist: histOf(u) };
+  const rb = rankOf(rr0);
+  p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
+  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u) };
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,
@@ -742,6 +767,9 @@ ADMIN.user_set = async (q, b) => {
       ensureWallet(u, c);
       u.gold = Math.max(0, Math.min(9e6, Math.round(+b.gold || 0)));
       break;
+    case "rr":
+      u.rr = Math.max(0, Math.min(99999, Math.round(+b.rr || 0)));
+      break;
     case "grant": {
       // item "gun|skin" or "all", or items: a list of "gun|skin" (the owner page's table); remove takes them back
       ensureWallet(u, c);
@@ -768,7 +796,7 @@ ADMIN.user_set = async (q, b) => {
       throw fail(400, "알 수 없는 작업");
   }
   await setJ(userKey(id), u);
-  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}`);
+  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}`);
   return { ok: !0 };
 };
 // one account's skins, for the owner page's grant table

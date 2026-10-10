@@ -18734,10 +18734,22 @@ body.touching #nade-hud{display:none}
     { id: "kukri", ko: "쿠크리", en: "Kukri", rar: 3, only: "knife", model: "kukri", keep: ["wood", "woodDark", "brass"], body: [0x5a3a22, 0.7, 0.05], metal: [0xd3dae2, 0.35, 0.7], dark: [0x2a1f1a, 0.7, 0.2], glow: 0xffb300 },
     { id: "karambit", ko: "카람빗", en: "Karambit", rar: 4, only: "knife", model: "karambit", keep: ["chrome"], body: [0x15171c, 0.55, 0.3], metal: [0xa9b2bf, 0.4, 0.7], dark: [0x0b0c0f, 0.7, 0.2], glow: 0xff3d5a },
     { id: "butterfly", ko: "발리송", en: "Butterfly knife", rar: 4, only: "knife", model: "butterfly", keep: ["chrome"], body: [0x7e7553, 0.78, 0.12], metal: [0x2c3038, 0.32, 0.8], dark: [0x14171c, 0.6, 0.3], glow: 0x40c4ff },
+    // the second set (after the knives: the numbers sent to a room stay the same)
+    { id: "urban", ko: "도심 위장", en: "Urban camo", rar: 1, body: [0xffffff, 0.82, 0], pat: "digi", pal: ["#8d949c", "#5d646d", "#b9bec4", "#3a3f46"], metal: [0x6d737b, 0.4, 0.7], dark: [0x262a30, 0.75, 0.2], glow: 0xcfd8dc },
+    { id: "navy", ko: "해군 위장", en: "Navy camo", rar: 1, body: [0xffffff, 0.84, 0], pat: "camo", pal: ["#2c3e5c", "#1b2840", "#4a6488", "#7d93b2"], metal: [0x3a4a62, 0.4, 0.7], dark: [0x121a28, 0.75, 0.2], glow: 0x82b1ff },
+    { id: "marble", ko: "대리석", en: "Marble", rar: 2, body: [0xffffff, 0.22, 0.05], pat: "marble", pal: ["#eeeae4", "#8a8580", "#c9a86a"], metal: [0xc9a86a, 0.25, 0.9], dark: [0x3b3633, 0.6, 0.2], glow: 0xfff3d6 },
+    { id: "hex", ko: "벌집", en: "Hive", rar: 2, body: [0xffffff, 0.45, 0.25], pat: "hex", pal: ["#16181c", "#22262c", "#ffb300", "#0c0d10"], metal: [0x2c3036, 0.35, 0.8], dark: [0x0c0d10, 0.7, 0.2], glow: 0xffb300 },
+    { id: "wave", ko: "청해파", en: "Blue waves", rar: 2, body: [0xffffff, 0.5, 0.05], pat: "wave", pal: ["#0d2a4a", "#1f5f99", "#e8f1fa"], metal: [0xb0c4d8, 0.3, 0.85], dark: [0x0b1c30, 0.7, 0.2], glow: 0x4fc3f7 },
+    { id: "circuit", ko: "회로", en: "Circuit", rar: 3, body: [0xffffff, 0.45, 0.25], pat: "circuit", em: !0, pal: ["#0b1a12", "#1de9b6", "#b9ffea"], anim: "pulse", metal: [0x1d2b25, 0.35, 0.8], dark: [0x07100b, 0.7, 0.2], glow: 0x1de9b6, glass: 0x84ffe4 },
+    { id: "dragon", ko: "용비늘", en: "Dragon scale", rar: 3, body: [0xffffff, 0.35, 0.35], pat: "scale", pal: ["#0e2a22", "#1f7a5c", "#9be7c4", "#082019"], metal: [0xd4af37, 0.25, 0.95], dark: [0x0c1a15, 0.6, 0.3], glow: 0x69f0ae },
+    { id: "aurora", ko: "오로라", en: "Aurora", rar: 3, body: [0xffffff, 0.4, 0.2], pat: "aurora", em: !0, pal: ["#06121f", "#2ef2b0", "#7c4dff", "#29b6f6"], anim: "drift", metal: [0x22313f, 0.3, 0.8], dark: [0x050b13, 0.7, 0.2], glow: 0x64ffda, glass: 0xb2fff0 },
+    { id: "phoenix", ko: "봉황", en: "Phoenix", rar: 4, body: [0xffffff, 0.5, 0.2], pat: "flame", em: !0, pal: ["#2a0806", "#d81b0c", "#ff8f00", "#ffe57f"], anim: "pulse", metal: [0xd4af37, 0.25, 0.95], dark: [0x1a0604, 0.7, 0.2], glow: 0xff6d00, glass: 0xffd180 },
+    { id: "storm", ko: "뇌전", en: "Thunderstorm", rar: 4, body: [0xffffff, 0.4, 0.3], pat: "storm", em: !0, pal: ["#10131c", "#5c8dff", "#e6f0ff", "#2a3350"], anim: "pulse", metal: [0x3a4258, 0.3, 0.85], dark: [0x0a0c12, 0.7, 0.2], glow: 0x82b1ff, glass: 0xd6e4ff },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.only || s.only === key;
-  const skinsFor = (key) => SKINS.filter((s) => fits(s, key));
+  // (shown by tier: the second set sits after the knives in the list)
+  const skinsFor = (key) => SKINS.filter((s) => fits(s, key)).sort((a, b) => a.rar - b.rar || a.i - b.i);
   // a gun in a skin: the knife skins that are other knives have builds of their own
   const KNIFE0 = GUN_BUILD.knife;
   function buildFor(key, skin) {
@@ -19012,6 +19024,206 @@ body.touching #nade-hud{display:none}
         g.beginPath();
         g.arc(x, y, k, 0, Math.PI * 2);
         g.fill();
+      }
+    },
+    // ── patterns of the second set ──
+    marble(g, W, H, pal) {
+      g.fillStyle = pal[0];
+      g.fillRect(0, 0, W, H);
+      let s = 21;
+      const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 9; i++) {
+        let x = r() * W,
+          y = -10;
+        g.strokeStyle = i % 3 ? pal[1] : pal[2];
+        g.globalAlpha = 0.35 + 0.5 * r();
+        g.lineWidth = W * (0.004 + 0.012 * r());
+        g.beginPath();
+        g.moveTo(x, y);
+        while (y < H + 10) {
+          const nx = x + (r() - 0.5) * W * 0.22,
+            ny = y + H * (0.08 + 0.1 * r());
+          g.quadraticCurveTo(x + (r() - 0.5) * W * 0.3, (y + ny) / 2, nx, ny);
+          x = nx;
+          y = ny;
+        }
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+    },
+    hex(g, W, H, pal, em) {
+      g.fillStyle = em ? "#000" : pal[0];
+      g.fillRect(0, 0, W, H);
+      const R = W / 4 / Math.sqrt(3),
+        dx = W / 4,
+        dy = R * 1.5;
+      let s = 9;
+      const r = () => ((s = (s * 48271) % 2147483647) / 2147483647);
+      for (let row = -1; row * dy < H + R; row++)
+        for (let col = -1; col * dx < W + dx; col++) {
+          const cx = col * dx + (row % 2 ? dx / 2 : 0),
+            cy = row * dy;
+          g.beginPath();
+          for (let k = 0; k < 6; k++) {
+            const a = Math.PI / 6 + (k * Math.PI) / 3;
+            k ? g.lineTo(cx + R * 0.9 * Math.cos(a), cy + R * 0.9 * Math.sin(a)) : g.moveTo(cx + R * 0.9 * Math.cos(a), cy + R * 0.9 * Math.sin(a));
+          }
+          g.closePath();
+          const lit = r() < 0.3;
+          if (lit || !em) {
+            g.fillStyle = lit ? pal[2] : pal[1];
+            em || g.fill();
+            lit && em && g.fill();
+          }
+          g.strokeStyle = em ? pal[2] : pal[3] || pal[0];
+          g.lineWidth = W * 0.008;
+          em || g.stroke();
+        }
+    },
+    wave(g, W, H, pal) {
+      // the old blue-sea wave (청해파): rows of scales of rings
+      g.fillStyle = pal[0];
+      g.fillRect(0, 0, W, H);
+      const R = W / 4;
+      for (let row = -1; row < (H / R) * 2 + 2; row++)
+        for (let col = -1; col < W / (2 * R) + 2; col++) {
+          const cx = col * 2 * R + (row % 2 ? R : 0),
+            cy = row * R * 0.5;
+          for (let k = 5; k >= 1; k--) {
+            g.fillStyle = k % 2 ? pal[1] : pal[2];
+            g.beginPath();
+            g.arc(cx, cy, (R * k) / 5, Math.PI, 0);
+            g.closePath();
+            g.fill();
+          }
+        }
+    },
+    circuit(g, W, H, pal, em) {
+      g.fillStyle = em ? "#000" : pal[0];
+      g.fillRect(0, 0, W, H);
+      let s = 17;
+      const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      const c = W / 16;
+      g.lineCap = "round";
+      for (let i = 0; i < 26; i++) {
+        let x = Math.floor(r() * 16) * c + c / 2,
+          y = Math.floor(r() * 16) * c + c / 2;
+        g.strokeStyle = i % 4 ? pal[1] : pal[2];
+        g.lineWidth = W * (em ? 0.008 : 0.012);
+        g.beginPath();
+        g.moveTo(x, y);
+        for (let k = 0; k < 4; k++) {
+          const d = Math.floor(r() * 4),
+            n = (1 + Math.floor(r() * 4)) * c;
+          x += [n, -n, 0, 0][d];
+          y += [0, 0, n, -n][d];
+          g.lineTo(x, y);
+        }
+        g.stroke();
+        g.fillStyle = pal[2];
+        g.beginPath();
+        g.arc(x, y, c * 0.28, 0, Math.PI * 2);
+        g.fill();
+      }
+    },
+    scale(g, W, H, pal) {
+      // dragon scales: overlapping shields, light at the top
+      g.fillStyle = pal[3];
+      g.fillRect(0, 0, W, H);
+      const R = W / 5;
+      for (let row = -1; row < (H / R) * 1.6 + 2; row++)
+        for (let col = -1; col < W / (2 * R) + 2; col++) {
+          const cx = col * 2 * R + (row % 2 ? R : 0),
+            cy = row * R * 0.62;
+          const gr = g.createRadialGradient(cx, cy - R * 0.4, R * 0.1, cx, cy, R * 1.1);
+          gr.addColorStop(0, pal[2]);
+          gr.addColorStop(0.7, pal[1]);
+          gr.addColorStop(1, pal[3]);
+          g.fillStyle = gr;
+          g.beginPath();
+          g.moveTo(cx - R, cy - R * 0.2);
+          g.quadraticCurveTo(cx - R, cy + R * 0.9, cx, cy + R);
+          g.quadraticCurveTo(cx + R, cy + R * 0.9, cx + R, cy - R * 0.2);
+          g.closePath();
+          g.fill();
+          g.strokeStyle = pal[0];
+          g.lineWidth = W * 0.006;
+          g.stroke();
+        }
+    },
+    aurora(g, W, H, pal, em) {
+      g.fillStyle = em ? "#000" : pal[0];
+      g.fillRect(0, 0, W, H);
+      for (let b = 0; b < 4; b++) {
+        const col = pal[1 + (b % 3)];
+        for (let x = 0; x < W; x += 2) {
+          const y0 = H * (0.18 + 0.2 * b) + Math.sin((x / W) * Math.PI * 2 * (1 + (b % 2)) + b) * H * 0.08,
+            h = H * (0.18 + 0.06 * Math.sin((x / W) * Math.PI * 4 + b * 2));
+          const gr = g.createLinearGradient(0, y0, 0, y0 + h);
+          gr.addColorStop(0, col + "00");
+          gr.addColorStop(0.35, col + (em ? "cc" : "aa"));
+          gr.addColorStop(1, col + "00");
+          g.fillStyle = gr;
+          g.fillRect(x, y0, 2, h);
+        }
+      }
+    },
+    flame(g, W, H, pal, em) {
+      g.fillStyle = em ? "#000" : pal[0];
+      g.fillRect(0, 0, W, H);
+      let s = 13;
+      const r = () => ((s = (s * 48271) % 2147483647) / 2147483647);
+      for (let i = 0; i < 18; i++) {
+        const x = r() * W,
+          base = H * (0.55 + 0.5 * r()),
+          w = W * (0.07 + 0.08 * r()),
+          h = H * (0.3 + 0.35 * r());
+        for (let k = 0; k < 3; k++) {
+          const f = 1 - k * 0.3;
+          g.fillStyle = pal[1 + k];
+          g.beginPath();
+          g.moveTo(x - w * f, base);
+          g.bezierCurveTo(x - w * f, base - h * f * 0.5, x + w * 0.6 * f, base - h * f * 0.6, x + w * 0.1, base - h * f);
+          g.bezierCurveTo(x + w * f * 0.2, base - h * f * 0.55, x + w * f, base - h * f * 0.4, x + w * f, base);
+          g.closePath();
+          g.fill();
+        }
+      }
+    },
+    storm(g, W, H, pal, em) {
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        const gr = g.createLinearGradient(0, 0, W, H);
+        gr.addColorStop(0, pal[0]);
+        gr.addColorStop(0.5, pal[3]);
+        gr.addColorStop(1, pal[0]);
+        g.fillStyle = gr;
+        g.fillRect(0, 0, W, H);
+      }
+      let s = 29;
+      const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      g.lineJoin = "miter";
+      for (let i = 0; i < 6; i++) {
+        let x = r() * W,
+          y = -5;
+        const pts = [[x, y]];
+        while (y < H + 5) {
+          x += (r() - 0.5) * W * 0.16;
+          y += H * (0.05 + 0.08 * r());
+          pts.push([x, y]);
+        }
+        for (const [lw, col] of [
+          [W * 0.02, pal[1] + (em ? "66" : "55")],
+          [W * 0.006, pal[2]],
+        ]) {
+          g.strokeStyle = col;
+          g.lineWidth = lw;
+          g.beginPath();
+          pts.forEach(([px, py], k) => (k ? g.lineTo(px, py) : g.moveTo(px, py)));
+          g.stroke();
+        }
       }
     },
   };
@@ -24068,5 +24280,144 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     return r;
   };
   window.HALFTIME = { flip };
+})();
+</script>
+<script>
+(() => {
+  // The rank. Each match report moves the account's rank rating (RR) on the
+  // server: a win lifts it (more with kills), a loss takes a little. 100 RR is
+  // a division, three divisions a tier, Iron to Immortal, then Radiant. Here:
+  // the RR the match brought on the result screen, a banner on a promotion or
+  // a demotion, and the tier next to the gold on the title screen.
+  if (!window.ACCOUNT || "function" != typeof ACCOUNT.session) return;
+  const EN = "en" === window.GAME_LANG,
+    L = (ko, en) => (EN ? en : ko);
+  const $ = (id) => document.getElementById(id);
+  const NAMES = EN ? ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"] : ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"];
+  const COL = ["#8a8f98", "#c07a4a", "#c9d3de", "#ffc849", "#3fd0c9", "#b48cff", "#3ddc84", "#ff4d6d", "#fff3a0"];
+  const nameOf = (r) => NAMES[r.t] + (r.div ? " " + r.div : "");
+  const step = (r) => (r.t >= 8 ? 24 : r.t * 3 + (r.div || 1) - 1);
+  // a gem in the tier's colour, more points the higher, a pip a division (as on the homepage)
+  function badge(t, div, px) {
+    const c = COL[t] || COL[0],
+      n = t >= 8 ? 8 : 4 + Math.floor(t / 2),
+      id = "rkg" + t + "_" + Math.round(Math.random() * 1e6);
+    let star = "";
+    for (let i = 0; i < 2 * n; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / n,
+        r = i % 2 ? 5 : 11 + (t >= 8 ? 3 : 0);
+      star += (i ? "L" : "M") + (24 + r * Math.cos(a)).toFixed(1) + " " + (22 + r * Math.sin(a)).toFixed(1);
+    }
+    let pips = "";
+    for (let i = 0; i < (div || 0); i++) {
+      const x = 24 + (i - (div - 1) / 2) * 7;
+      pips += `<path d="M${x} 33l2.6 2.6-2.6 2.6-2.6-2.6z" fill="#fff" opacity=".9"/>`;
+    }
+    return `<svg viewBox="0 0 48 48" width="${px}" height="${px}" style="vertical-align:middle;filter:drop-shadow(0 0 6px ${c}88)" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="#0c1018"/></linearGradient></defs><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="url(#${id})" stroke="${c}" stroke-width="1.5"/><path d="M24 7l15 8.3v17.4L24 41 9 32.7V15.3z" fill="#0c1018" opacity=".45"/><path d="${star}Z" fill="${c}" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>${pips}</svg>`;
+  }
+  const user = () => {
+    try {
+      const s = ACCOUNT.session();
+      return (s && s.user) || null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const phase = () => ("undefined" != typeof world && world ? world.phase : "");
+
+  // ── the result screen and the banner ──
+  // While a match runs, keep the rank it started from; once it is over, the
+  // report's answer replaces the signed-in user, and the difference shows.
+  const R = { base: null, baseUser: null, last: -1 };
+  function overCell() {
+    const u = user(),
+      ph = phase();
+    if ("over" !== ph) {
+      R.base = u && u.rank ? u.rank : null;
+      R.baseUser = u;
+      R.last = R.base ? step(R.base) : -1;
+      const c = $("ov-rank");
+      c && (c.hidden = !0);
+      return;
+    }
+    if (!u || !u.rank || !R.base || u === R.baseUser) return;
+    const st = document.querySelector("#s-over .ov-stats");
+    if (!st) return;
+    let c = $("ov-rank");
+    if (!c) {
+      c = document.createElement("div");
+      c.className = "ov-st";
+      c.id = "ov-rank";
+      c.innerHTML = `<b></b><span class="lbl"></span>`;
+      st.appendChild(c);
+    }
+    const d = u.rank.rr - R.base.rr;
+    c.hidden = !1;
+    c.querySelector("b").innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${d > 0 ? "#4ade80" : d < 0 ? "#ff6b7a" : "#8a97ab"}">${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}</span>`;
+    c.querySelector(".lbl").textContent = nameOf(u.rank) + " · RR";
+    c.querySelector(".lbl").style.color = COL[u.rank.t];
+    c.title = u.rank.t >= 8 ? `${u.rank.rr} RR` : L(`다음 단계까지 ${100 - u.rank.into} RR`, `${100 - u.rank.into} RR to the next division`);
+    const now = step(u.rank);
+    if (R.last >= 0 && now !== R.last) {
+      const up = now > R.last;
+      R.last = now;
+      // after the XP banner the report brings
+      setTimeout(() => {
+          try {
+            "function" == typeof banner && banner(up ? L(`승급! ${nameOf(u.rank)}`, `Promoted! ${nameOf(u.rank)}`) : L(`강등 · ${nameOf(u.rank)}`, `Demoted · ${nameOf(u.rank)}`), up ? COL[u.rank.t] : "#ff6b7a");
+          } catch (e) {}
+        }, 2300);
+    }
+  }
+
+  // ── the tier on the title screen, left of the gold ──
+  function chip() {
+    let b = $("rank-chip");
+    const u = user(),
+      t = $("s-title"),
+      show = !!(u && u.rank) && "menu" === phase() && t && !t.hidden && "none" !== getComputedStyle(t).display;
+    if (!show) return void (b && (b.style.display = "none"));
+    if (!b) {
+      b = document.createElement("a");
+      b.id = "rank-chip";
+      b.href = "./";
+      b.style.cssText = "position:fixed;top:10px;right:12px;z-index:40;display:flex;align-items:center;gap:5px;padding:3px 11px 3px 5px;border-radius:99px;background:rgba(20,25,34,.86);border:1px solid #2a3444;font-size:12px;font-family:var(--f-display);letter-spacing:.03em;text-decoration:none";
+      document.body.appendChild(b);
+    }
+    const r = u.rank,
+      key = r.t + "|" + r.div + "|" + r.rr;
+    if (b.dataset.k !== key) {
+      b.dataset.k = key;
+      b.innerHTML = `${badge(r.t, r.div, 22)}<span>${nameOf(r)}</span>`;
+      b.style.color = COL[r.t];
+      b.style.borderColor = COL[r.t] + "66";
+      b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 이기면 오르고 지면 조금 내려갑니다`, `${r.into}/100 RR · wins raise it, losses take a little`));
+    }
+    // left of the gold chip (itself left of the account chip)
+    let right = 12;
+    for (const id of ["acct-chip", "gold-chip"]) {
+      const o = $(id);
+      o && o.offsetWidth && "none" !== o.style.display && (right = Math.max(right, (parseFloat(o.style.right) || 12) + o.offsetWidth + 8));
+    }
+    b.style.right = right + "px";
+    b.style.display = "flex";
+  }
+  setInterval(() => {
+    try {
+      overCell();
+      chip();
+    } catch (e) {}
+  }, 500);
+  // what's new on the title screen
+  try {
+    const ul = document.querySelector(".tt-news ul");
+    if (ul) {
+      const li = document.createElement("li");
+      li.innerHTML = EN ? `<b>Tiers · 10 new skins</b><span>Iron to Radiant: wins raise your RR, losses take a little. Phoenix, Thunderstorm, Aurora, Dragon scale and more in the crates</span>` : `<b>티어 · 새 스킨 10종</b><span>아이언부터 레디언트까지: 이기면 RR이 오르고 지면 조금 내려갑니다. 봉황 · 뇌전 · 오로라 · 용비늘 등 상자에 추가</span>`;
+      ul.prepend(li);
+      while (ul.children.length > 3) ul.lastElementChild.remove();
+    }
+  } catch (e) {}
+  window.RANK = { badge, names: NAMES, colors: COL, state: R };
 })();
 </script>

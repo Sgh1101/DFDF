@@ -73,6 +73,15 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:18px;text-align:center}
 .st div{background:#0f141d;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;color:var(--steel)}
 .st b{display:block;color:var(--ink);font-size:18px;font-family:var(--fd);margin-bottom:2px}
+.tier{--tc:#8a8f98;display:flex;align-items:center;gap:12px;margin:12px auto 0;padding:9px 16px 9px 10px;border:1px solid color-mix(in srgb,var(--tc) 40%,var(--line));border-radius:14px;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 16%,transparent),transparent 80%);width:max-content;max-width:100%}
+.tier[hidden]{display:none}
+.tier .tb svg{width:48px;height:48px;display:block;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--tc) 55%,transparent))}
+.tier b{font-family:var(--fd);color:var(--tc);font-size:16px;letter-spacing:.03em}
+.tbar{height:6px;border-radius:3px;background:#1d2533;margin:5px 0 3px;overflow:hidden;width:170px}
+.tbar i{display:block;height:100%;background:var(--tc);border-radius:3px}
+.tier small{color:var(--steel);font-size:11px}
+.hr .res .rr{display:block;font-size:10px;font-family:var(--fd)}
+.hr .res .rr.up{color:var(--green,#4ade80)}.hr .res .rr.dn{color:#ff6b7a}
 .wallet{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:12px;color:var(--steel)}
 .wallet span{padding:5px 12px;border:1px solid var(--line);border-radius:999px}
 .wallet .g{color:var(--gold);border-color:#5c4b1f;font-family:var(--fd)}
@@ -174,6 +183,7 @@ footer a{color:var(--steel)}
           <div class="xpt" id="meXpT"></div>
         </div>
       </div>
+      <div class="tier" id="meTier" hidden><div class="tb" id="meTierB"></div><div class="ti"><b id="meTierN"></b><div class="tbar"><i id="meTierX"></i></div><small id="meTierT"></small></div></div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
       <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a></div>
       </div>
@@ -207,7 +217,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›",
+    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`,
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
     modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
@@ -221,7 +231,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›",
+    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`,
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
     modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
@@ -302,7 +312,27 @@ function drawMe() {
   $("#meSkinMine").textContent = t("skinMine");
   $("#meSkinPull").href = gameUrl("") + "#skins";
   $("#meSkinMine").href = gameUrl("") + "#skins-mine";
+  // the rank: the tier badge, its division and the RR into it
+  const rk = u.rank;
+  $("#meTier").hidden = !rk;
+  if (rk) {
+    $("#meTier").style.setProperty("--tc", TIER_C[rk.t] || "#8a8f98");
+    $("#meTierB").innerHTML = tierBadge(rk.t, rk.div);
+    $("#meTierN").textContent = T[L].tiers[rk.t] + (rk.div ? " " + rk.div : "");
+    $("#meTierX").style.width = (rk.t >= 8 ? 100 : Math.max(2, rk.into)) + "%";
+    $("#meTierT").textContent = rk.t >= 8 ? t("rrTop", rk.rr) : t("rrNext", rk.into);
+  }
   drawHist();
+}
+// a tier badge: a gem in the tier's colour, more points the higher, a pip a division
+const TIER_C = ["#8a8f98", "#c07a4a", "#c9d3de", "#ffc849", "#3fd0c9", "#b48cff", "#3ddc84", "#ff4d6d", "#fff3a0"];
+function tierBadge(t, div) {
+  const c = TIER_C[t] || TIER_C[0], n = t >= 8 ? 8 : 4 + Math.floor(t / 2), id = "tg" + t;
+  let star = "";
+  for (let i = 0; i < 2 * n; i++) { const a = -Math.PI / 2 + (i * Math.PI) / n, r = i % 2 ? 5 : 11 + (t >= 8 ? 3 : 0); star += (i ? "L" : "M") + (24 + r * Math.cos(a)).toFixed(1) + " " + (22 + r * Math.sin(a)).toFixed(1); }
+  let pips = "";
+  for (let i = 0; i < (div || 0); i++) { const x = 24 + (i - (div - 1) / 2) * 7; pips += `<path d="M${x} 33l2.6 2.6-2.6 2.6-2.6-2.6z" fill="#fff" opacity=".9"/>`; }
+  return `<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="#0c1018"/></linearGradient></defs><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="url(#${id})" stroke="${c}" stroke-width="1.5"/><path d="M24 7l15 8.3v17.4L24 41 9 32.7V15.3z" fill="#0c1018" opacity=".45"/><path d="${star}Z" fill="${c}" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>${pips}</svg>`;
 }
 // the last matches, newest first (the game sends a summary with each report)
 function drawHist() {
@@ -314,7 +344,8 @@ function drawHist() {
     const ffa = m.mode === "dm", draw = !ffa && m.s && m.s[0] === m.s[1];
     const res = ffa ? t("place", m.rank || 1) : draw ? t("draw") : m.win ? t("win") : t("loss");
     const sc = ffa ? t("kills1", m.k || 0) : `${m.s ? m.s[0] : 0} - ${m.s ? m.s[1] : 0}`;
-    return `<div class="hr ${m.win ? "win" : draw ? "" : "loss"}"><div class="res"><b>${esc(res)}</b><span>${esc(sc)}</span></div>
+    const rr = typeof m.rr === "number" && m.rr ? `<small class="rr ${m.rr > 0 ? "up" : "dn"}">${m.rr > 0 ? "+" : ""}${m.rr} RR</small>` : "";
+    return `<div class="hr ${m.win ? "win" : draw ? "" : "loss"}"><div class="res"><b>${esc(res)}</b><span>${esc(sc)}</span>${rr}</div>
       <div class="mid"><b>${esc(T[L].modes[m.mode] || m.mode)}${m.map ? " · " + esc(m.map) : ""}${m.mvp ? '<i class="mvp">MVP</i>' : ""}</b><small>${esc(m.agent || "")}${m.agent ? " · " : ""}${when(m.t)}</small></div>
       <div class="kda"><b>${m.k | 0} / ${m.d | 0} / ${m.a | 0}</b><small>K / D / A</small></div>
       <div class="cs"><b>${m.cs | 0}</b><small>${esc(t("score"))}</small></div></div>`;
