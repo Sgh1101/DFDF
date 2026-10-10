@@ -79,7 +79,9 @@ const DEFAULT_CONFIG = {
   room: { force: !1, roundT: 0, buyT: 0, matchT: 0, run: 0, jumpV: 0, gravity: 0, aiSpeed: 0, infAll: !1, freezeAI: !1 },
   xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600 },
   // gold after each match, spent on skin pulls
-  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500 },
+  // (maxPerDay: a match's result is what the game reports, so a day's match gold
+  // has a ceiling and a modified game cannot report its way to every skin; 0 = none)
+  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 3000 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
@@ -442,6 +444,31 @@ A.skins = async (q, b) => {
   dirty && (await saveUser(u));
   return { skins: u.skins || null, own: u.own, gold: u.gold, items: ITEMS, dropped };
 };
+// what a player wears, signed. In a room every player's skins travel with
+// this ticket and the others show them only as the server signed them: the
+// picks sent now (or the saved ones), owned items only, for one connection
+// (the player's peer id), so a ticket copied from someone else is worth
+// nothing. Checking needs no storage, only the signature.
+A.skin_ticket = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("skt:" + rlKey(u), 60, 60)) throw fail(429, "잠시 뒤에 다시 시도해 주세요");
+  const src = isObj(b.m) ? b.m : (u.skins && isObj(u.skins.m) && u.skins.m) || {},
+    p = String(b.p || "").slice(0, 64),
+    m = {};
+  if (!p) throw fail(400, "연결 정보가 없습니다");
+  let n = 0;
+  for (const k in src) {
+    if (++n > 80) break;
+    const v = String(src[k] || "").slice(0, 24);
+    GUNS.includes(k) && hasItem(u, k, v) && (m[k] = v);
+  }
+  return { ticket: sign({ k: "skin", id: u.id, m, p, exp: now() + 12 * 36e5 }), m, p };
+};
+A.skin_check = async (q, b) => {
+  const s = verify(b.ticket);
+  return s && "skin" === s.k && isObj(s.m) && s.p ? { m: s.m, id: s.id, p: s.p } : { m: null, id: null, p: null };
+};
 // small things the game keeps per account: the touch-button layout (part →
 // [x, y, size]); the newer of two devices wins, as with the skins
 const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
@@ -495,8 +522,14 @@ A.progress = async (q, b) => {
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
-  const gold = Math.max(0, Math.min(c.gold.maxPerReport, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
+  // the day's ceiling, counted from midnight in Korea
+  const day = new Date(now() + 9 * 36e5).toISOString().slice(0, 10),
+    cap = Math.max(0, +c.gold.maxPerDay || 0);
+  (isObj(u.goldDay) && u.goldDay.d === day) || (u.goldDay = { d: day, n: 0 });
+  const left = cap > 0 ? Math.max(0, cap - (u.goldDay.n || 0)) : Infinity;
+  const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
+  u.goldDay.n = (u.goldDay.n || 0) + gold;
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold })].concat(histOf(u)).slice(0, HIST_MAX));
@@ -505,8 +538,9 @@ A.progress = async (q, b) => {
   u.matches = (u.matches || 0) + 1;
   await saveUser(u);
   const p = publicUser(u, c.xp.perLevel);
+  cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
-  return { gain, gold, user: p, levelUp: p.level > before, hist: histOf(u) };
+  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, user: p, levelUp: p.level > before, hist: histOf(u) };
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,

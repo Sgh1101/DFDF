@@ -19342,7 +19342,7 @@ body.touching #nade-hud{display:none}
   const PEND = [];
   const noteDrop = (a, key) => {
     if (!a || !key || !WEAPONS[key]) return;
-    PEND.push({ x: a.pos.x, z: a.pos.z, i: skinOf(a, key).i, t: performance.now() });
+    PEND.push({ x: a.pos.x, z: a.pos.z, i: skinOf(a, key).i, a: a.id, t: performance.now() });
     PEND.length > 24 && PEND.shift();
   };
   const _sam = syncActorModel;
@@ -19377,6 +19377,7 @@ body.touching #nade-hud{display:none}
 
   // ── 8. guns on the ground ──
   const DSK = new Map(); // "x,z" in cm → skin number
+  const DSA = new Map(); // "x,z" in cm → who dropped it (actor id), for the guests to check
   const posKey = (x, z) => Math.round(100 * x) + "," + Math.round(100 * z);
   function resolveDrop(x, z) {
     const k = posKey(x, z);
@@ -19392,7 +19393,9 @@ body.touching #nade-hud{display:none}
     if (!best) return 0;
     PEND.splice(PEND.indexOf(best), 1);
     DSK.set(k, best.i);
+    DSA.set(k, best.a);
     DSK.size > 200 && DSK.delete(DSK.keys().next().value);
+    DSA.size > 200 && DSA.delete(DSA.keys().next().value);
     return best.i;
   }
   function dropScan() {
@@ -19408,7 +19411,7 @@ body.touching #nade-hud{display:none}
   sendEventAll = function (e) {
     try {
       if (e && "drops" === e.t && Array.isArray(e.l)) {
-        e.l = e.l.map((r) => (r.length > 4 ? r : [r[0], r[1], r[2], r[3], resolveDrop(r[2] / 100, r[3] / 100)]));
+        e.l = e.l.map((r) => (r.length > 4 ? r : [r[0], r[1], r[2], r[3], resolveDrop(r[2] / 100, r[3] / 100), DSA.get(posKey(r[2] / 100, r[3] / 100))]));
         dropScan();
       }
     } catch (x) {}
@@ -19416,33 +19419,180 @@ body.touching #nade-hud{display:none}
   };
 
   // ── 9. the room: what everyone wears ──
+  // Online, what another player wears is shown only as the server signed it.
+  // Each player's table travels with a ticket the server signs: the owned
+  // picks only, bound to the player's connection (its peer id), so a ticket
+  // copied from someone else is worth nothing. The host checks its guests'
+  // tickets and passes every ticket on with whose connection it is, so each
+  // online player checks everyone's. A modified game can dress its own
+  // screen, not anyone else's. Bots are held to the bot tier. With no server
+  // (opened from a file) tables are taken as sent.
+  const canCheck = () => isOnline() && !!AC() && "function" == typeof AC().api;
+  const myPeerId = () => (NET.peer && NET.peer.id) || "";
+  const TK = { t: "", sig: "", at: 0, p: null };
+  function myTicket() {
+    const t = token(),
+      p = myPeerId();
+    if (!t || !p || !canCheck()) return Promise.resolve("");
+    const sig = p + "|" + JSON.stringify(SK.mine);
+    if (TK.t && TK.sig === sig && Date.now() - TK.at < 6 * 36e5) return Promise.resolve(TK.t);
+    if (TK.p && TK.sig === sig) return TK.p;
+    TK.sig = sig;
+    TK.t = "";
+    return (TK.p = AC()
+      .api("skin_ticket", { token: t, m: SK.mine, p })
+      .then((j) => {
+        const k = (j && j.ticket) || "";
+        TK.sig === sig && ((TK.p = null), (TK.t = k), (TK.at = Date.now()));
+        return k;
+      })
+      .catch(() => (TK.sig === sig && (TK.p = null), "")));
+  }
+  // ticket → {m: the table the server signed, p: whose connection}, or null; asked once per ticket
+  const CHK = new Map();
+  function checkTicket(k) {
+    if (!k || !canCheck()) return Promise.resolve(null);
+    if (!CHK.has(k)) {
+      CHK.set(
+        k,
+        AC()
+          .api("skin_check", { ticket: k })
+          .then((j) => (j && j.m && "object" == typeof j.m && j.p ? { m: clean(j.m), p: String(j.p) } : null))
+          .catch(() => (CHK.delete(k), null)),
+      );
+      CHK.size > 300 && CHK.delete(CHK.keys().next().value);
+    }
+    return CHK.get(k);
+  }
+  const botCap = () => {
+    const v = GC().botMaxTier;
+    return null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2;
+  };
+  // guest: my table and its ticket to the host; the newest call wins, and a
+  // ticket the server did not give is asked for again a little later
+  let tellN = 0;
+  function tellHost() {
+    if ("client" !== NET.mode) return;
+    const n = ++tellN;
+    myTicket().then((k) => {
+      if (n !== tellN || "client" !== NET.mode) return;
+      try {
+        sendAction({ t: "skins", m: pack(SK.mine), k });
+      } catch (e) {}
+      clearTimeout(tellHost.r);
+      !k && canCheck() && token() && (tellHost.r = setTimeout(tellHost, 15000));
+    });
+  }
   const _sa = sendAction;
   sendAction = function (m) {
     const r = _sa.apply(this, arguments);
-    if (m && "hello" === m.t)
-      try {
-        _sa.call(this, { t: "skins", m: pack(SK.mine) });
-      } catch (e) {}
+    m && "hello" === m.t && tellHost();
     return r;
   };
-  const tellHost = () => {
-    if ("client" === NET.mode)
-      try {
-        sendAction({ t: "skins", m: pack(SK.mine) });
-      } catch (e) {}
-  };
+  // host: each guest's ticket (by peer), checked; the table shown is the
+  // signed one, and only when the ticket was made for that guest's connection
+  const TICK = new Map();
   const _oa = NET.onAction;
   NET.onAction = function (peer, m) {
     if (m && "skins" === m.t) {
-      PEER.set(peer, unpack(m.m));
+      if (!canCheck()) PEER.set(peer, unpack(m.m));
+      else {
+        const k = "string" == typeof m.k ? m.k.slice(0, 4000) : "";
+        PEER.has(peer) || PEER.set(peer, {});
+        TICK.set(peer, k);
+        checkTicket(k).then((t) => {
+          if (TICK.get(peer) !== k) return;
+          const ok = !!t && t.p === peer;
+          ok || TICK.set(peer, "");
+          PEER.set(peer, ok ? t.m : {});
+          hostSkt();
+        });
+      }
       return;
     }
     return _oa.apply(this, arguments);
   };
+  // host: every player's ticket and connection to every guest (bots marked):
+  // now and then, after a change, at the start and when a body changes hands
+  let sktN = 0;
+  function hostSkt() {
+    if ("host" !== NET.mode) return;
+    clearTimeout(hostSkt.t);
+    hostSkt.t = setTimeout(() => {
+      const n = ++sktN;
+      myTicket().then((mine) => {
+        if (n !== sktN || "host" !== NET.mode || !world.actors) return;
+        const me = NET.id || myPeerId(),
+          l = world.actors.map((a) => ("ai" === a.ctrl ? [a.id, 0, 1, "ai"] : "me" === a.ctrl ? [a.id, mine || 0, 0, me] : [a.id, TICK.get(a.ctrl) || 0, 0, String(a.ctrl || "")]));
+        try {
+          sendEventAll({ t: "skt", l });
+        } catch (e) {}
+      });
+    }, 250);
+  }
+  setInterval(() => "host" === NET.mode && world.actors && world.actors.length && hostSkt(), 8000);
+  const _seb = sendEventAll;
+  sendEventAll = function (e) {
+    const r = _seb.apply(this, arguments);
+    e && ("begin" === e.t || "ctrl" === e.t) && hostSkt();
+    return r;
+  };
+  // guest: what each actor may be shown in (actor id → {k, m, p} | "bot" | null)
+  const VER = new Map(),
+    WANT = new Map(),
+    NOT_PEER = new Set(["", "ai", "me", "remote", "dead"]);
+  function takeSkt(l) {
+    if (!canCheck()) return;
+    // a connection named for two bodies, or my own for another body, vouches for nobody
+    const seen = new Map(),
+      mine = myPeerId();
+    for (const r of l) Array.isArray(r) && !r[2] && "string" == typeof r[3] && seen.set(r[3], (seen.get(r[3]) || 0) + 1);
+    for (const r of l) {
+      if (!Array.isArray(r)) continue;
+      const id = r[0];
+      if (r[2]) {
+        WANT.set(id, "bot");
+        VER.set(id, "bot");
+        continue;
+      }
+      const p = "string" == typeof r[3] ? r[3] : "",
+        k = "string" == typeof r[1] && !NOT_PEER.has(p) && 1 === seen.get(p) && p !== mine ? r[1] : "";
+      if (!k) {
+        WANT.set(id, "");
+        VER.set(id, null);
+        continue;
+      }
+      const w = k + "@" + p;
+      if (WANT.get(id) === w) continue;
+      WANT.set(id, w);
+      checkTicket(k).then((t) => {
+        if (WANT.get(id) !== w) return;
+        t && t.p === p ? VER.set(id, { k, m: t.m, p }) : (VER.set(id, null), WANT.delete(id));
+      });
+    }
+  }
+  // guest, online: may this body be shown in skin i (on gun key, or on any gun)?
+  function vouched(a, key, i) {
+    if (!i || "client" !== NET.mode || !canCheck()) return !0;
+    if (a && "me" === a.ctrl) return !0;
+    const sk = SKINS[i];
+    if (!sk || !a) return !1;
+    const v = VER.get(a.id),
+      c = "string" == typeof a.ctrl ? a.ctrl : "",
+      player = !NOT_PEER.has(c);
+    if ("bot" === v) return sk.rar <= botCap() && !player;
+    return !!(v && v.m && (!player || c === v.p) && (key ? v.m[key] === sk.id : Object.values(v.m).includes(sk.id)));
+  }
   const _oe = NET.onEvent;
   NET.onEvent = function (e) {
+    if (e && "skt" === e.t && Array.isArray(e.l)) return void takeSkt(e.l);
+    e && "begin" === e.t && (VER.clear(), WANT.clear());
     if (e && "drops" === e.t && Array.isArray(e.l)) {
-      for (const r of e.l) null != r[4] && DSK.set(r[2] + "," + r[3], r[4] | 0);
+      for (const r of e.l) {
+        if (null == r[4]) continue;
+        const i = r[4] | 0;
+        DSK.set(r[2] + "," + r[3], vouched(actorById(r[5]), r[1], i) ? i : 0);
+      }
       const r = _oe.apply(this, arguments);
       try {
         dropScan();
@@ -19465,7 +19615,10 @@ body.touching #nade-hud{display:none}
     try {
       for (const t of s.a) {
         const a = actorById(t[0]);
-        a && "me" !== a.ctrl && (a.netSkin = t[13] | 0);
+        if (!a || "me" === a.ctrl) continue;
+        // online, only what the server vouched for: a player's signed pick for the gun in hand, a bot up to the bot tier
+        const i = t[13] | 0;
+        a.netSkin = vouched(a, heldKey(a), i) ? i : 0;
       }
     } catch (e) {}
     return r;
@@ -19496,6 +19649,7 @@ body.touching #nade-hud{display:none}
     save();
     refreshVM();
     tellHost();
+    "host" === NET.mode && hostSkt();
     try {
       const me = "function" == typeof myActor && myActor();
       me && me.model && me.model.gun && (me.model.gun.userData.tp = null);
@@ -19667,9 +19821,12 @@ body.touching #nade-hud{display:none}
       c.innerHTML = `<b></b><span class="lbl">${L("골드", "Gold")}</span>`;
       st.appendChild(c);
     }
-    const d = Math.max(0, INV.gold - ovBase);
-    c.hidden = !(d > 0);
-    c.querySelector("b").textContent = "🪙 +" + d.toLocaleString();
+    // nothing this time because the day's match gold is used up: say so
+    const d = Math.max(0, INV.gold - ovBase),
+      u = (session() || {}).user,
+      capped = !(d > 0) && !!u && 0 === u.goldLeft;
+    c.hidden = !(d > 0) && !capped;
+    c.querySelector("b").textContent = capped ? L("🪙 오늘 한도", "🪙 Daily cap") : "🪙 +" + d.toLocaleString();
     c.querySelector("b").style.color = "#ffc849";
   }
   // the gold next to my name on the title screen; it opens the armoury
@@ -21431,7 +21588,7 @@ body.touching #nade-hud{display:none}
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();
 </script>
 <script>
@@ -22021,7 +22178,7 @@ body.touching #nade-hud{display:none}
             y = (e.y || 0) + 1,
             z = e.pos.z;
           burst(x, y, z, s.glow);
-          "host" === NET.mode && sendEventAll({ t: "skx", k: 1, x: Math.round(100 * x), y: Math.round(100 * y), z: Math.round(100 * z), i: s.i });
+          "host" === NET.mode && sendEventAll({ t: "skx", k: 1, x: Math.round(100 * x), y: Math.round(100 * y), z: Math.round(100 * z), i: s.i, a: t.id });
         }
       }
     } catch (x) {}
@@ -22031,8 +22188,9 @@ body.touching #nade-hud{display:none}
   NET.onEvent = function (e) {
     if (e && "skx" === e.t) {
       try {
+        // online, only for a killer the server vouches wears this skin
         const s = GS.list[e.i | 0];
-        s && s.glow && burst(e.x / 100, e.y / 100, e.z / 100, s.glow);
+        s && s.glow && (!GS.vouch || GS.vouch(actorById(e.a), null, e.i | 0)) && burst(e.x / 100, e.y / 100, e.z / 100, s.glow);
       } catch (x) {}
       return;
     }
