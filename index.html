@@ -76,6 +76,8 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .wallet{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:12px;color:var(--steel)}
 .wallet span{padding:5px 12px;border:1px solid var(--line);border-radius:999px}
 .wallet .g{color:var(--gold);border-color:#5c4b1f;font-family:var(--fd)}
+.wallet a{padding:5px 12px;border:1px solid #5c4b1f;border-radius:999px;color:var(--gold);text-decoration:none;font-weight:700;background:rgba(255,200,73,.06)}
+.wallet a:hover{background:rgba(255,200,73,.14)}
 .hist{max-width:720px;margin:-18px auto 40px}
 .hist h3{font-family:var(--fd);font-size:12px;letter-spacing:.18em;color:var(--steel-dim);margin:0 0 10px 4px;text-transform:uppercase}
 .hr{display:grid;grid-template-columns:92px minmax(0,1.6fr) minmax(0,1fr) 64px;gap:10px;align-items:center;padding:10px 12px;margin-bottom:6px;border-radius:12px;border:1px solid var(--line);border-left:4px solid var(--steel-dim);background:var(--panel)}
@@ -173,7 +175,7 @@ footer a{color:var(--steel)}
         </div>
       </div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
-      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
@@ -205,7 +207,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`,
+    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›",
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
     modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
@@ -219,7 +221,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`,
+    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›",
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
     modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
@@ -294,6 +296,12 @@ function drawMe() {
   $("#meGold").textContent = "🪙 " + (u.gold || 0).toLocaleString();
   $("#meGold").title = t("gold");
   $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 501);
+  // straight to the skin page in the game: pulls, or the skins I own
+  $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;
+  $("#meSkinPull").textContent = t("skinPull");
+  $("#meSkinMine").textContent = t("skinMine");
+  $("#meSkinPull").href = gameUrl("") + "#skins";
+  $("#meSkinMine").href = gameUrl("") + "#skins-mine";
   drawHist();
 }
 // the last matches, newest first (the game sends a summary with each report)
