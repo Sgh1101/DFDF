@@ -61,6 +61,8 @@ const DEFAULT_CONFIG = {
     registerOpen: !0,
     maxRoomPlayers: 10,
     roomListOpen: !0,
+    // maps out of the pool (7 · 5 · 3) the owner brings back: keys, comma separated, or "all"
+    extraMaps: "",
   },
   cheat: {
     enabled: !0,
