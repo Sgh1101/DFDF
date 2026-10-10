@@ -24435,6 +24435,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
   // host deals damage or changes health.
   if ("undefined" == typeof AGENTS || "undefined" == typeof CAST_EXT || !window.AGENTS36) return;
   if (AGENTS.some((a) => "chochim" === a.id)) return;
+  // (and 나침, the fortieth: a map for an ultimate)
 
   // ── helpers (the same ones the thirty-six use) ──
   const DA = () => window.AB_D || 1;
@@ -24509,6 +24510,11 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       },
       dispose,
     });
+  };
+  // true every `step` seconds inside a timed thing
+  const every = (step) => {
+    let acc = 0;
+    return (dt) => ((acc += dt), acc >= step ? ((acc -= step), !0) : !1);
   };
   const mat = (col, op, add) => new T.MeshBasicMaterial({ color: col, transparent: !0, opacity: null == op ? 0.8 : op, depthWrite: !1, side: T.DoubleSide, blending: add ? T.AdditiveBlending : T.NormalBlending });
   const drop = (m) => {
@@ -24779,55 +24785,107 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     g.userData.rim = rim;
     return g;
   }
-  // two doors, here and where I aim: my team walks in one and out the other
-  H.y_portal = (d, f) => {
+  // where an aimed door goes: as far as the aim reaches anywhere in the map,
+  // on a floor you can stand on (walked back toward me until there is one)
+  function doorSpot(c) {
+    const p = aimPoint(450),
+      B = MAP.bounds,
+      x0 = Math.max(B.minX + 1.5, Math.min(B.maxX - 1.5, p.x)),
+      z0 = Math.max(B.minZ + 1.5, Math.min(B.maxZ - 1.5, p.z)),
+      dx = c.pos.x - x0,
+      dz = c.pos.z - z0,
+      L = Math.hypot(dx, dz) || 1;
+    for (let t = 0; t <= L; t += 0.5) {
+      const x = x0 + (dx / L) * t,
+        z = z0 + (dz / L) * t,
+        gy = groundAt(x, z, (p.y || 0) + 0.3);
+      if (gy <= 4.6 && !collideXZ(x, z, gy, 0.45)) return { x, y: gy, z };
+    }
+    return { x: c.pos.x, y: c.y || 0, z: c.pos.z };
+  }
+  // 차원문: the first press sets one door where I aim (no limit in the map) and
+  // gives the charge back; the second sets the other and opens the pair. One
+  // of my team goes through once, then both close.
+  const PEND = new Map(); // caster → the first door, waiting for its pair
+  function door(at, yaw, col, op) {
+    const m = doorMesh(col);
+    m.position.set(at.x, at.y + 1.6, at.z);
+    m.rotation.y = yaw;
+    op != null && m.traverse((o) => o.material && (o.material.opacity *= op));
+    scene.add(m);
+    const g = ring(at.x, at.z, 1.3, col, 0.5, 0.2, at.y + 0.06);
+    return { m, g, drop: () => (drop(m), drop(g)) };
+  }
+  H.y_portal = () => {
     const c = player,
-      q = aimAt(30),
-      far = Math.max(3, Math.min(30, clearLen(c.pos.x, c.pos.z, f.x, f.z, Math.max(4, Math.hypot(q.x - c.pos.x, q.z - c.pos.z)), c.y) - 0.8));
-    const A = { x: c.pos.x + f.x * 2.4, z: c.pos.z + f.z * 2.4, y: c.y || 0 },
-      B = { x: c.pos.x + f.x * far, z: c.pos.z + f.z * far, y: c.y || 0 };
-    const yaw = Math.atan2(f.x, f.z);
-    const mA = doorMesh(VIO),
-      mB = doorMesh(VIO2);
-    mA.position.set(A.x, A.y + 1.6, A.z);
-    mB.position.set(B.x, B.y + 1.6, B.z);
-    mA.rotation.y = mB.rotation.y = yaw;
-    scene.add(mA, mB);
-    const gA = ring(A.x, A.z, 1.3, VIO, 0.5, 0.2, A.y + 0.06),
-      gB = ring(B.x, B.z, 1.3, VIO2, 0.5, 0.2, B.y + 0.06);
+      s = doorSpot(c),
+      yaw = (c.yaw || 0) + Math.PI,
+      P = PEND.get(c);
+    if (!P || P.until <= CLK) {
+      P && P.close();
+      const D = door(s, yaw, VIO, 0.6),
+        rec = { at: s, yaw, D, until: CLK + 40, used: !1 };
+      rec.close = () => (rec.used || D.drop(), (rec.used = !0));
+      PEND.set(c, rec);
+      live(40, (t) => {
+        if (PEND.get(c) !== rec) return !1;
+        D.m.userData.rim.rotation.z = t * 0.8;
+      }, () => PEND.get(c) === rec && (PEND.delete(c), rec.close()));
+      fxColumn(s.x, s.z, VIO, 4, 0.6);
+      try {
+        CAST_REFUND = !0;
+      } catch (e) {}
+      c === viewer() && bannerMe("차원문 하나 — 한 번 더 누르면 두 번째 문", "#b388ff");
+      return;
+    }
+    // the second door: the pair opens
+    PEND.delete(c);
+    P.used = !0;
+    const A = P.at,
+      Bp = s,
+      dA = P.D,
+      dB = door(Bp, yaw, VIO2);
+    dA.m.traverse((o) => o.material && (o.material.opacity = Math.min(1, o.material.opacity / 0.6)));
     const team = c.team;
-    live(14, (t) => {
-      [mA, mB].forEach((m, i) => {
-        m.userData.rim.rotation.z = t * (i ? -1.5 : 1.5);
-        m.userData.film.material.opacity = 0.22 + 0.1 * Math.sin(t * 5 + i);
+    let done = !1;
+    const gone = () => {
+      done = !0;
+      for (const p of [A, Bp]) (fxRing(p.x, p.z, 2.4, VIO2, 0.5), sparks(p.x, p.y + 1.5, p.z, VIO2, 12, 4));
+    };
+    live(25, (t) => {
+      if (done) return !1;
+      [dA, dB].forEach((D, i) => {
+        D.m.userData.rim.rotation.z = t * (i ? -1.5 : 1.5);
+        D.m.userData.film.material.opacity = 0.22 + 0.1 * Math.sin(t * 5 + i);
       });
       for (const a of actorList()) {
         if (!a || !a.alive || a.team !== team || (a.__portT || 0) > CLK) continue;
-        for (const [P, Q, dir] of [
-          [A, B, 1],
-          [B, A, -1],
+        for (const [Pp, Q, qyaw] of [
+          [A, Bp, yaw],
+          [Bp, A, P.yaw],
         ]) {
-          if (dist2D(a, P.x, P.z) > 1.1 || Math.abs((a.y || 0) - P.y) > 1.6) continue;
-          // out on the far side of the other door, facing on through it
-          const ox = Q.x + f.x * dir * 1.5,
-            oz = Q.z + f.z * dir * 1.5,
+          if (dist2D(a, Pp.x, Pp.z) > 1.1 || Math.abs((a.y || 0) - Pp.y) > 1.6) continue;
+          // out a step in front of the other door (the side it was set from)
+          const fx = -Math.sin(qyaw),
+            fz = -Math.cos(qyaw),
+            ox = Q.x + fx * 1.5,
+            oz = Q.z + fz * 1.5,
             ok = !collideXZ(ox, oz, Q.y, 0.4);
           a.pos.x = ok ? ox : Q.x;
           a.pos.z = ok ? oz : Q.z;
           a.y = Q.y;
           a.vy = 0;
           a.__portT = CLK + 1.2;
-          fxRing(P.x, P.z, 2, VIO, 0.4);
-          fxRing(Q.x, Q.z, 2, VIO2, 0.4);
-          sparks(Q.x, Q.y + 1.4, Q.z, VIO2, 10, 4);
           try {
             a === viewer() && SFX.abilityCast && SFX.abilityCast("blink");
           } catch (e) {}
-          break;
+          gone();
+          return !1;
         }
       }
-    }, () => [mA, mB, gA, gB].forEach(drop));
-    tellTeam(c, "차원문 — 들어가면 반대쪽으로", "#b388ff");
+    }, () => (dA.drop(), dB.drop()));
+    fxColumn(Bp.x, Bp.z, VIO2, 6, 0.8);
+    tellTeam(c, "차원문 열림 — 한 번 지나가면 닫힙니다", "#b388ff");
   };
   // hidden from enemies more than four metres away; a shot gives it away
   H.y_phase_cloak = () => {
@@ -24995,6 +25053,405 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     v && (v === c || v === e) && bannerMe("결투! 둘 중 하나만 나간다", "#e8743b");
   };
 
+  // ── 나침 — the navigator ──
+  const PRINTS = { n: 0 };
+  const TEAL = 0x2ec4b6,
+    MINT = 0xa7fff3;
+  // a survey stake: the paths enemies walked near it in the last six seconds
+  // show as glowing footprints, to my team only (where they went, not where they are)
+  H.y_footprints = () => {
+    const c = player,
+      p = aimAt(30),
+      team = c.team,
+      mine = () => {
+        const v = viewer();
+        return !!v && v.team === team;
+      };
+    const stake = new T.Group();
+    stake.add(new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 1.2, 6), mat(0xe8e2cf, 0.95)));
+    const flag = new T.Mesh(new T.PlaneGeometry(0.4, 0.26), mat(TEAL, 0.9, !0));
+    flag.position.set(0.2, 0.45, 0);
+    stake.add(flag);
+    stake.position.set(p.x, (p.y || 0) + 0.6, p.z);
+    scene.add(stake);
+    const edge = ring(p.x, p.z, 22, TEAL, mine() ? 0.25 : 0, 0.3, (p.y || 0) + 0.07);
+    const seen = new Set(),
+      tick = every(0.25);
+    const print = (x, y, z, yaw, k) => {
+      PRINTS.n++;
+      if (!mine()) return;
+      const m = new T.Mesh(new T.CircleGeometry(0.16, 10), mat(0xff5a6e, 0.85, !0));
+      m.rotation.x = -Math.PI / 2;
+      m.rotation.z = -yaw;
+      m.scale.set(0.7, 1.25, 1);
+      m.position.set(x + Math.cos(yaw) * 0.14 * k, y + 0.05, z - Math.sin(yaw) * 0.14 * k);
+      addFx(m, 6, (o, t) => (o.material.opacity = 0.85 * (1 - t)));
+    };
+    live(8, (t, dt) => {
+      flag.rotation.y += 2 * dt;
+      if (!tick(dt)) return;
+      for (const e of foesOf(c)) {
+        const h = HIST.get(e) || [];
+        for (let i = 1; i < h.length; i += 2) {
+          const s0 = h[i - 1],
+            s1 = h[i];
+          if (s1.t < CLK - 6 || Math.hypot(s1.x - p.x, s1.z - p.z) > 22 || Math.hypot(s1.x - s0.x, s1.z - s0.z) < 0.3) continue;
+          const key = e.id + ":" + s1.t.toFixed(2);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          print(s1.x, s1.y, s1.z, Math.atan2(s1.x - s0.x, s1.z - s0.z), (i >> 1) % 2 ? 1 : -1);
+        }
+      }
+    }, () => (drop(stake), drop(edge)));
+    fxColumn(p.x, p.z, TEAL, 4, 0.6);
+  };
+  // a needle in the middle of the screen pointing at the nearest enemy
+  let needle = null;
+  H.y_compass = () => {
+    const c = player;
+    c.__compT = 7;
+    sparks(c.pos.x, (c.y || 0) + 1.4, c.pos.z, TEAL, 8, 2);
+  };
+  function drawNeedle() {
+    const v = viewer(),
+      on = !!(v && v.alive && v.__compT > 0 && "menu" !== world.phase);
+    if (!on) return void (needle && (needle.style.display = "none"));
+    if (!needle) {
+      needle = document.createElement("div");
+      needle.id = "y3-needle";
+      needle.innerHTML = `<svg viewBox="-60 -60 120 120"><circle r="46" fill="none" stroke="#2ec4b6" stroke-opacity=".55" stroke-width="2" stroke-dasharray="4 6"/><g class="nd"><path d="M0 -52 L7 -38 L-7 -38Z" fill="#a7fff3"/></g></svg><b></b>`;
+      needle.style.cssText = "position:fixed;left:50%;top:50%;width:120px;height:120px;margin:-60px 0 0 -60px;pointer-events:none;z-index:6;filter:drop-shadow(0 0 6px #2ec4b6)";
+      needle.querySelector("b").style.cssText = "position:absolute;left:0;right:0;top:100%;text-align:center;font:700 11px var(--f-display,system-ui);color:#a7fff3;letter-spacing:.06em";
+      document.body.appendChild(needle);
+    }
+    let best = null,
+      bd = 1e9;
+    for (const e of foesOf(v)) {
+      if (e.__banT > 0) continue;
+      const d = Math.hypot(e.pos.x - v.pos.x, e.pos.z - v.pos.z);
+      d < bd && ((bd = d), (best = e));
+    }
+    if (!best) return void (needle.style.display = "none");
+    // the angle on screen: 0 straight ahead, clockwise to the right
+    const ang = Math.atan2(best.pos.x - v.pos.x, best.pos.z - v.pos.z),
+      look = Math.atan2(-Math.sin(v.yaw || 0), -Math.cos(v.yaw || 0)),
+      rel = look - ang;
+    needle.querySelector(".nd").setAttribute("transform", `rotate(${((rel * 180) / Math.PI).toFixed(1)})`);
+    needle.querySelector("b").textContent = bd < 15 ? "가까움" : bd < 40 ? "중간" : "멀리";
+    needle.style.display = "block";
+  }
+  // eight seconds of shots that hurt more the farther they go
+  H.y_rangefinder = () => {
+    const c = player;
+    c.__rangeT = 8;
+    const g = new T.Mesh(new T.RingGeometry(0.42, 0.5, 4), mat(TEAL, 0.85, !0));
+    scene.add(g);
+    live(8, (t) => {
+      if (!c.alive || !(c.__rangeT > 0)) return !1;
+      g.position.set(c.pos.x, (c.y || 0) + 2.45, c.pos.z);
+      camera && g.lookAt(camera.position);
+      g.rotation.z = t * 2;
+    }, () => drop(g));
+    fxRing(c.pos.x, c.pos.z, 2.5, TEAL, 0.4);
+  };
+  const rangeMul = (src, e) => {
+    const d = Math.hypot(e.pos.x - src.pos.x, e.pos.z - src.pos.z);
+    return 1 + 0.4 * Math.max(0, Math.min(1, (d - 10) / 30));
+  };
+
+  // ── the ultimate: a map; where I touch it, I am ──
+  // A spot I can stand on: the floor there, or the raised floor or heaven at
+  // that spot, or the nearest free floor around it.
+  function standAt(x, z) {
+    const B = MAP.bounds;
+    const ok = (x, z, y) => x > B.minX + 1 && x < B.maxX - 1 && z > B.minZ + 1 && z < B.maxZ - 1 && !collideXZ(x, z, y, 0.45);
+    for (let r = 0; r <= 8; r += 0.75)
+      for (let k = 0, n = r ? Math.ceil(r * 5) : 1; k < n; k++) {
+        const a = (k / n) * Math.PI * 2,
+          px = x + Math.cos(a) * r,
+          pz = z + Math.sin(a) * r,
+          g0 = groundAt(px, pz, 0);
+        if (ok(px, pz, g0)) return { x: px, y: g0, z: pz };
+        const g1 = groundAt(px, pz, 4.6);
+        if (g1 > g0 && g1 <= 4.6 && ok(px, pz, g1)) return { x: px, y: g1, z: pz };
+      }
+    return null;
+  }
+  function warpTo(a, at) {
+    const x0 = a.pos.x,
+      z0 = a.pos.z,
+      y0 = a.y || 0;
+    a.pos.x = at.x;
+    a.pos.z = at.z;
+    a.y = at.y;
+    a.vel && a.vel.set(0, 0, 0);
+    a.vy = 0;
+    a.__warpT = 0;
+    warpFx(x0, y0, z0, at.x, at.y, at.z);
+  }
+  function warpFx(x0, y0, z0, x, y, z) {
+    try {
+      fxColumn(x0, z0, TEAL, 8, 0.8);
+      sparks(x0, y0 + 1.2, z0, MINT, 10, 3);
+      fxColumn(x, z, TEAL, 10, 1);
+      fxRing(x, z, 3, MINT, 0.6);
+      sparks(x, y + 1.2, z, MINT, 16, 5);
+      "function" == typeof viewerShake && viewerShake(x, z, 0.2);
+    } catch (e) {}
+  }
+  const WP = { el: null, cv: null, until: 0, timer: null, me: null };
+  function pickerOpen(c) {
+    if (!WP.el) {
+      const d = document.createElement("div");
+      d.id = "y3-warp";
+      d.innerHTML = `<div class="wp-card"><div class="wp-head"><b>좌표 이동</b><span class="wp-t"></span><button class="wp-x" type="button">취소</button></div><canvas></canvas><div class="wp-tip">갈 곳을 누르세요 · 맵 안이면 어디든</div></div>`;
+      const st = document.createElement("style");
+      st.textContent = `#y3-warp{position:fixed;inset:0;z-index:85;display:none;place-items:center;background:rgba(4,8,12,.6);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}#y3-warp.on{display:grid}#y3-warp .wp-card{padding:10px 12px 12px;border-radius:16px;border:1px solid #2ec4b688;background:#0c1418ee;box-shadow:0 30px 80px -20px #000;color:#e8f6f4}#y3-warp .wp-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;font:700 14px var(--f-display,system-ui);letter-spacing:.06em}#y3-warp .wp-t{flex:1;color:#a7fff3;font-size:12px}#y3-warp .wp-x{height:32px;padding:0 14px;border-radius:9px;border:1px solid #2a3a40;background:rgba(255,255,255,.05);color:#e8f6f4;font-weight:700;cursor:pointer}#y3-warp canvas{display:block;border-radius:10px;cursor:crosshair;touch-action:none}#y3-warp .wp-tip{margin-top:6px;font-size:11px;color:#8fb7b2;text-align:center}`;
+      document.head.appendChild(st);
+      document.body.appendChild(d);
+      WP.el = d;
+      WP.cv = d.querySelector("canvas");
+      d.querySelector(".wp-x").onclick = () => pickerDone(null);
+      const pick = (ev) => {
+        ev.preventDefault();
+        const r = WP.cv.getBoundingClientRect(),
+          pt = ev.touches ? ev.touches[0] || ev.changedTouches[0] : ev,
+          w = WP.view;
+        if (!w) return;
+        const x = w.x0 + ((pt.clientX - r.left) / r.width) * w.w,
+          z = w.z0 + ((pt.clientY - r.top) / r.height) * w.h,
+          at = standAt(x, z);
+        if (!at) return void (d.querySelector(".wp-tip").textContent = "갈 수 없는 곳입니다 · 다른 곳을 누르세요");
+        pickerDone(at);
+      };
+      WP.cv.addEventListener("mousedown", pick);
+      WP.cv.addEventListener("touchstart", pick, { passive: !1 });
+    }
+    WP.me = c;
+    WP.until = performance.now() + 1e4;
+    WP.el.querySelector(".wp-tip").textContent = "갈 곳을 누르세요 · 맵 안이면 어디든";
+    try {
+      document.exitPointerLock && document.exitPointerLock();
+    } catch (e) {}
+    drawPicker();
+    WP.el.classList.add("on");
+    clearInterval(WP.timer);
+    WP.timer = setInterval(() => {
+      const left = WP.until - performance.now();
+      WP.el.querySelector(".wp-t").textContent = Math.max(0, Math.ceil(left / 1e3)) + "초";
+      drawPicker();
+      (left <= 0 || !WP.me || !WP.me.alive || "menu" === world.phase || "over" === world.phase) && pickerDone(null);
+    }, 200);
+  }
+  function drawPicker() {
+    const B = MAP.bounds,
+      W0 = B.maxX - B.minX,
+      H0 = B.maxZ - B.minZ,
+      maxW = Math.min(innerWidth - 60, 900),
+      maxH = Math.min(innerHeight - 110, 760),
+      k = Math.min(maxW / W0, maxH / H0),
+      cw = Math.round(W0 * k),
+      ch = Math.round(H0 * k),
+      cv = WP.cv;
+    cv.width !== cw && (cv.width = cw);
+    cv.height !== ch && (cv.height = ch);
+    WP.view = { x0: B.minX, z0: B.minZ, w: W0, h: H0 };
+    const g = cv.getContext("2d"),
+      X = (x) => (x - B.minX) * k,
+      Z = (z) => (z - B.minZ) * k;
+    g.fillStyle = "#16252a";
+    g.fillRect(0, 0, cw, ch);
+    // grid every 10 m
+    g.strokeStyle = "rgba(46,196,182,.08)";
+    g.lineWidth = 1;
+    for (let x = Math.ceil(B.minX / 10) * 10; x < B.maxX; x += 10) (g.beginPath(), g.moveTo(X(x), 0), g.lineTo(X(x), ch), g.stroke());
+    for (let z = Math.ceil(B.minZ / 10) * 10; z < B.maxZ; z += 10) (g.beginPath(), g.moveTo(0, Z(z)), g.lineTo(cw, Z(z)), g.stroke());
+    // what stands: dark if tall, lighter if low or a floor up high
+    for (const c of COLLIDERS) {
+      if (c.temp) continue;
+      g.fillStyle = c.y0 > 0 ? "rgba(122,108,196,.55)" : c.h > 3.2 ? "#3a4650" : c.h > 1 ? "#55646e" : "#405058";
+      g.fillRect(X(c.minX), Z(c.minZ), Math.max(1, (c.maxX - c.minX) * k), Math.max(1, (c.maxZ - c.minZ) * k));
+    }
+    for (const s of MAP.sites || []) {
+      g.strokeStyle = "#ff6b7a";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(X(s.x), Z(s.z), (s.r || 8) * k, 0, 7);
+      g.stroke();
+      g.fillStyle = "#ff8a96";
+      g.font = `700 ${Math.max(12, 3.2 * k)}px system-ui`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(s.id, X(s.x), Z(s.z));
+    }
+    const me = WP.me;
+    for (const a of actorList()) {
+      if (!a || !a.alive || !me || a.team !== me.team) continue;
+      g.fillStyle = a === me ? "#ffd166" : "#5ec8ff";
+      g.beginPath();
+      g.arc(X(a.pos.x), Z(a.pos.z), a === me ? 6 : 4, 0, 7);
+      g.fill();
+    }
+  }
+  function pickerDone(at) {
+    clearInterval(WP.timer);
+    WP.el && WP.el.classList.remove("on");
+    const me = WP.me;
+    WP.me = null;
+    if (!me) return;
+    try {
+      "undefined" != typeof IS_TOUCH && !IS_TOUCH && "function" == typeof tryLock && "menu" !== world.phase && tryLock();
+    } catch (e) {}
+    if (!at) {
+      // not used: the ultimate comes back
+      if ("client" === NET.mode) sendAction({ t: "y3warp", cancel: 1 });
+      else me.ultCharge = me.ultMax || 7;
+      me.__warpT = 0;
+      return void bannerMe("좌표 이동 취소 — 궁극기를 돌려받았습니다", "#8fb7b2");
+    }
+    const from = [me.pos.x, me.y || 0, me.pos.z];
+    warpTo(me, at);
+    if ("client" === NET.mode) sendAction({ t: "y3warp", x: Math.round(at.x * 100), y: Math.round(at.y * 100), z: Math.round(at.z * 100) });
+    else send({ k: "wp", a: me.id, p: from.concat([at.x, at.y, at.z]).map((v) => Math.round(v * 10)) });
+  }
+  H.y_ult_warp = () => {
+    const c = player;
+    c.__warpT = 12;
+    fxColumn(c.pos.x, c.pos.z, TEAL, 6, 1.2);
+    sparks(c.pos.x, (c.y || 0) + 1.3, c.pos.z, MINT, 10, 3);
+    if (c === viewer()) return void pickerOpen(c);
+    // a bot picks a spot near where it is headed
+    if (isHost() && "function" == typeof isAI && isAI(c)) {
+      let goal = null;
+      try {
+        goal = "function" == typeof aiGoal ? aiGoal(c) : null;
+      } catch (e) {}
+      goal = goal || { x: c.pos.x, z: c.pos.z };
+      later(1, () => {
+        if (!c.alive || !(c.__warpT > 0)) return;
+        const at = standAt(goal.x + (Math.random() - 0.5) * 10, goal.z + (Math.random() - 0.5) * 10);
+        if (!at) return;
+        const from = [c.pos.x, c.y || 0, c.pos.z];
+        warpTo(c, at);
+        send({ k: "wp", a: c.id, p: from.concat([at.x, at.y, at.z]).map((v) => Math.round(v * 10)) });
+      });
+    }
+  };
+
+  // ── 거미 — the spider's Q becomes wall-crawling ──
+  // For ten seconds walls are floors: walk into one and you climb it, stop and
+  // you hang there, move sideways and you crawl along it, reach the top and you
+  // stand on it; jump to let go.
+  const WEB = 0xf5f5f5;
+  H.y_wallcrawl = () => {
+    const c = player;
+    c.__climbT = 10;
+    c.__hangY = null;
+    sparks(c.pos.x, (c.y || 0) + 1.2, c.pos.z, WEB, 12, 3);
+    fxRing(c.pos.x, c.pos.z, 2.2, 0xb0bec5, 0.4);
+    c === viewer() && bannerMe("거미 타기 — 벽으로 걸어가면 올라갑니다 (10초)", "#cfd8dc");
+  };
+  // the wall at a point at this height: its top, or 0 if nothing stands there
+  function wallTop(x, z, y) {
+    let top = 0;
+    for (const w of COLLIDERS) {
+      if (x < w.minX - 0.05 || x > w.maxX + 0.05 || z < w.minZ - 0.05 || z > w.maxZ + 0.05) continue;
+      if (w.y0 && y + 2.3 <= w.y0) continue; // a floor overhead
+      if (w.h > y + 0.05 && w.h > top) top = w.h;
+    }
+    return top;
+  }
+  // a body stops this far from a wall (its radius), so feel a little beyond it
+  const probeR = () => ("undefined" != typeof PR ? PR : 0.8) + 0.4;
+  const _sim = simMove;
+  simMove = function (a, dt) {
+    if (!a || !(a.__climbT > 0) || !a.alive) return _sim.apply(this, arguments);
+    const inp = a.input || { mv: [0, 0], btn: 0 },
+      n = inp.mv[0] || 0,
+      r = inp.mv[1] || 0,
+      L = Math.hypot(n, r);
+    // where the stick points, in the world (as simMove reads it)
+    let wx = 0,
+      wz = 0;
+    if (L > 0) {
+      const t = -Math.sin(a.yaw),
+        o = -Math.cos(a.yaw),
+        q = Math.cos(a.yaw),
+        l = -Math.sin(a.yaw),
+        cc = -r / L,
+        d = n / L;
+      wx = t * cc + q * d;
+      wz = o * cc + l * d;
+    }
+    const jump = !!(inp.btn & BTN.JUMP);
+    const res = _sim.apply(this, arguments);
+    try {
+      const y = a.y || 0,
+        dtt = dt || 0.016;
+      // let go: a jump away from the wall
+      if (jump && null != a.__hangY) {
+        // push off: away from the wall I am on, a small hop
+        const P = probeR();
+        for (let k = 0; k < 8; k++) {
+          const ang = (k / 8) * Math.PI * 2,
+            cx = Math.cos(ang),
+            cz = Math.sin(ang);
+          if (wallTop(a.pos.x + cx * P, a.pos.z + cz * P, a.__hangY - 0.05) > a.__hangY) {
+            const bx = a.pos.x - cx * 0.9,
+              bz = a.pos.z - cz * 0.9;
+            collideXZ(bx, bz, a.__hangY, 0.4) || ((a.pos.x = bx), (a.pos.z = bz));
+            break;
+          }
+        }
+        a.__hangY = null;
+        a.__climbOff = 0.5; // a moment before it can grab a wall again
+        a.vy = 2;
+        return res;
+      }
+      if (a.__climbOff > 0) return void (a.__climbOff -= dt || 0.016), res;
+      // a wall where I am heading: climb it
+      const PROBE = probeR(),
+        ahead = L > 0 ? wallTop(a.pos.x + wx * PROBE, a.pos.z + wz * PROBE, y) : 0;
+      if (ahead > y + 0.05 && ahead - y > STEP_H * 0.9) {
+        const ny = Math.min(ahead, (null != a.__hangY ? a.__hangY : y) + 5.5 * dtt);
+        a.y = ny;
+        a.vy = 0;
+        a.onGround = !1;
+        a.__hangY = ny;
+        // over the top: onto it
+        if (ny >= ahead - 0.02) {
+          const fx = a.pos.x + wx * (PROBE + 0.3),
+            fz = a.pos.z + wz * (PROBE + 0.3);
+          if (!collideXZ(fx, fz, ahead, 0.3)) {
+            a.pos.x = fx;
+            a.pos.z = fz;
+            a.y = ahead;
+            a.onGround = !0;
+            a.__hangY = null;
+          }
+        }
+        Math.random() < 0.15 && sparks(a.pos.x + wx * 0.4, a.y + 1.6, a.pos.z + wz * 0.4, WEB, 1, 1);
+        return res;
+      }
+      // still against a wall (any side): hang where I am, crawling along it
+      if (null != a.__hangY) {
+        let touch = !1;
+        const PROBE = probeR();
+        for (let k = 0; k < 8 && !touch; k++) {
+          const ang = (k / 8) * Math.PI * 2;
+          wallTop(a.pos.x + Math.cos(ang) * PROBE, a.pos.z + Math.sin(ang) * PROBE, a.__hangY - 0.05) > a.__hangY && (touch = !0);
+        }
+        const floor = groundAt(a.pos.x, a.pos.z, a.__hangY);
+        if (touch && a.__hangY > floor + 0.05) {
+          a.y = a.__hangY;
+          a.vy = 0;
+          a.onGround = !1;
+        } else a.__hangY = null;
+      }
+    } catch (e) {}
+    return res;
+  };
+
   // ── the rules behind them ──
   const _dd = dealDamage;
   dealDamage = function (e, dmg, head, src) {
@@ -25009,6 +25466,8 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       if (src && src !== e && inE !== inS) return;
       src === D.a && e === D.b && (dmg *= 1.25);
     }
+    // the rangefinder: farther, harder
+    src && src.__rangeT > 0 && src !== e && src.team !== e.team && src.pos && (dmg *= rangeMul(src, e));
     const before = e.hp;
     const r = _dd.call(this, e, dmg, head, src);
     if (GUARD || !isHost() || !(dmg > 0)) return r;
@@ -25126,6 +25585,43 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     const v = viewer();
     v && v.team === team && bannerMe("현상금 획득 — 팀 전원 궁극기 +1", "#ffc107");
   }
+  // the host: a guest's pick on the map (only while its ultimate is waiting for one)
+  const _oa3 = NET.onAction;
+  NET.onAction = function (peer, m) {
+    if (m && "y3warp" === m.t) {
+      try {
+        const a = (world.actors || []).find((x) => x.ctrl === peer);
+        if (!a || !a.alive || !(a.__warpT > 0)) return;
+        if (m.cancel) return void ((a.__warpT = 0), (a.ultCharge = a.ultMax || 7));
+        const at = standAt(m.x / 100, m.z / 100);
+        if (!at) return;
+        const from = [a.pos.x, a.y || 0, a.pos.z];
+        warpTo(a, at);
+        send({ k: "wp", a: a.id, p: from.concat([at.x, at.y, at.z]).map((v) => Math.round(v * 10)) });
+      } catch (e) {}
+      return;
+    }
+    // a guest's first door: its charge comes back on its own screen (below)
+    return _oa3 && _oa3.apply(this, arguments);
+  };
+  // a guest's first door gives its charge back at once (the host casts it)
+  if ("function" == typeof sendAction) {
+    const _sa3 = sendAction;
+    sendAction = function (m) {
+      const r = _sa3.apply(this, arguments);
+      try {
+        if (m && "abil" === m.t && "client" === NET.mode) {
+          const me = viewer(),
+            ab = player && player.abilities && player.abilities[m.i | 0];
+          if (me && ab && ab.def && "y_portal" === ab.def.type) {
+            const P = PEND.get(me);
+            (!P || P.until <= CLK) && ((ab.charges = (ab.charges || 0) + 1), (ab.cd = 0));
+          }
+        }
+      } catch (e) {}
+      return r;
+    };
+  }
   // what the host tells the others
   const _oe = NET.onEvent;
   NET.onEvent = function (m) {
@@ -25136,6 +25632,12 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
         else if ("rc" === m.k) fxLine(...p, AMB);
         else if ("ec" === m.k) echoFx(...p);
         else if ("bo" === m.k) paidFx(m.team, m.x / 10, m.z / 10);
+        else if ("wp" === m.k) {
+          const a = "function" == typeof actorById ? actorById(m.a) : null;
+          warpFx(...p);
+          // my own body moved by the host (a bot never is mine; a guest moved itself already)
+          a && a === viewer() && a.__warpT > 0 && (a.__warpT = 0);
+        }
         else if ("uc" === m.k) {
           const a = "function" == typeof actorById ? actorById(m.a) : null;
           a && (a.__cloakT = 0);
@@ -25166,7 +25668,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
   }
 
   // timers, history, the echo queue, the duel ring and the doors' push
-  const KEYS = ["__brandT", "__cloakT", "__reflT", "__banT", "__ricoT", "__rapidT", "__bountyT"];
+  const KEYS = ["__brandT", "__cloakT", "__reflT", "__banT", "__ricoT", "__rapidT", "__bountyT", "__compT", "__rangeT", "__warpT", "__climbT"];
   const _st = step;
   step = function (dt) {
     const r = _st.apply(this, arguments);
@@ -25191,6 +25693,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
           a.vel && a.vel.set(0, 0, 0);
           a.vy = 0;
         }
+        a.__climbT > 0 || null == a.__hangY || (a.__hangY = null);
         if (a.__rapidT > 0) {
           a.fireCd > 0 && (a.fireCd -= 0.6 * d);
           a.reloading > 2 * d && (a.reloading = Math.max(2 * d, a.reloading - d));
@@ -25236,6 +25739,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       }
       for (const [t, E] of ECHO) E.until > CLK || ECHO.delete(t);
       drawVeil();
+      drawNeedle();
     } catch (e) {}
     return r;
   };
@@ -25262,11 +25766,18 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     revolver: "M3 9h13l2-2h3v4h-4l-1 2h-3l-1 4H8l1-4H3z",
     badge: "M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.4 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z",
     duel: "M4 4l9 9M20 4l-9 9M7 14l-3 3 3 3 3-3M17 14l3 3-3 3-3-3",
+    steps: "M8 3c2 0 3 2 3 4s-1 4-3 4-3-2-3-4 1-4 3-4zM16 12c2 0 3 2 3 4s-1 4-3 4-3-2-3-4 1-4 3-4zM7 13h2M15 22h2",
+    compass: "M12 3a9 9 0 1 0 .01 0M15.5 8.5l-2 5-5 2 2-5z",
+    range: "M12 2v4M12 18v4M2 12h4M18 12h4M12 7a5 5 0 1 0 .01 0M12 11v2",
+    map: "M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14",
+    climb: "M12 2v20M4 6l8 4 8-4M4 18l8-4 8 4M12 10a2 2 0 1 0 .01 0",
   });
   const LOOK = {
     y_time_brand: ["clock", "point", "pierce"], y_rewind: ["rewind", "aura", "heal"], y_backstep: ["hourglass", "point", "blink"], y_ult_echo: ["clock", "ult", "ult_bell"],
     y_portal: ["portal", "place", "mag_anchor"], y_phase_cloak: ["eyeoff", "aura", "blink"], y_refract: ["prism", "aura", "ripple_dome"], y_ult_banish: ["rift", "ult", "ult_mirror"],
     y_ricochet: ["ricochet", "aura", "pierce"], y_quickdraw: ["revolver", "aura", "charge"], y_bounty: ["badge", "point", "recon_dart"], y_ult_duel: ["duel", "ult", "ult_snipe"],
+    y_footprints: ["steps", "throw", "recon_dart"], y_compass: ["compass", "aura", "mirror_pulse"], y_rangefinder: ["range", "aura", "pierce"], y_ult_warp: ["map", "ult", "blink"],
+    y_wallcrawl: ["climb", "aura", "bolt_jump"],
   };
   for (const t in H) {
     CAST_EXT[t] = H[t];
@@ -25293,7 +25804,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       id: "gwanmun", name: "관문", role: "척후대", color: "#8e5cff", quote: "문은 어디에나 열린다.",
       desc: "차원문으로 길을 내고, 모습을 감추고, 적을 세상 밖으로 밀어내는 차원 여행자.",
       abilities: [
-        A("Q", "차원문", "y_portal", 200, 1, 0, "내 앞과 조준한 곳(30m)에 차원문 한 쌍을 14초간 연다. 아군이 들어가면 반대쪽 문으로 나온다."),
+        A("Q", "차원문", "y_portal", 200, 1, 0, "누를 때마다 조준한 곳에 문을 하나씩 놓는다(맵 안이면 거리 제한 없음). 두 번째 문을 놓으면 열리고, 우리 팀 한 명이 한 번 지나가면 둘 다 닫힌다(1회용, 25초). 첫 문만 놓은 채면 40초 뒤 사라지고 충전은 그대로."),
         A("E", "위상 은신", "y_phase_cloak", 0, 1, 30, "5초간 모습을 감춘다. 4m 밖의 적에게는 보이지 않고 위치 노출도 막는다. 총을 쏘면 풀린다."),
         A("C", "굴절막", "y_refract", 150, 1, 0, "4초간 공간을 비트는 막을 두른다. 받은 피해의 절반이 쏜 적에게 그대로 되돌아간다."),
         A("X", "차원 추방", "y_ult_banish", 0, 1, 0, "궁극기 — 조준한 적(40m)을 4초간 차원 밖으로 추방한다. 그동안 보이지 않고, 움직이지도 쏘지도 못하며, 맞지도 않는다.", 7),
@@ -25309,13 +25820,34 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
         A("X", "결투", "y_ult_duel", 0, 1, 0, "궁극기 — 조준한 적(40m)과 8초 결투. 둘은 원 밖으로 못 나가고 다른 누구도 들어오거나 끼어들 수 없다. 내가 주는 피해 25% 증가, 이기면 체력 +50.", 8),
       ],
     },
+    {
+      id: "nachim", name: "나침", role: "척후대", color: "#2ec4b6", quote: "지도에 있는 곳이면 어디든.",
+      desc: "지나간 발자국을 읽고, 바늘로 적을 짚고, 지도 한 장으로 어디든 가는 길잡이.",
+      abilities: [
+        A("Q", "발자국 지도", "y_footprints", 200, 2, 0, "측량 말뚝을 던진다(30m). 8초 동안 그 주변 22m에 적이 최근 6초간 지나간 발자국이 우리 팀에게 보인다(지금 위치가 아니라 지나간 길)."),
+        A("E", "나침반", "y_compass", 0, 1, 24, "7초 동안 화면 가운데 나침반 바늘이 가장 가까운 적 쪽을 가리킨다(방향과 대략적인 거리만)."),
+        A("C", "측거", "y_rangefinder", 150, 1, 0, "8초 동안 멀리 있는 적일수록 더 아프게 쏜다. 10m까지는 그대로, 40m 이상이면 피해 +40%."),
+        A("X", "좌표 이동", "y_ult_warp", 0, 1, 0, "궁극기 — 지도가 열린다. 누른 곳으로 바로 순간이동(맵 안이면 거리 제한 없이 어디든). 10초 안에 고르지 않거나 취소하면 궁극기를 돌려받는다.", 7),
+      ],
+    },
   ];
   // what each must visibly do in the ability tests
   const EXPECT = {
     y_time_brand: "dmg", y_rewind: "life", y_backstep: "move", y_ult_echo: "dmg",
     y_portal: "move", y_phase_cloak: "hide", y_refract: "dmg", y_ult_banish: "hide root",
     y_ricochet: "dmg", y_quickdraw: "ammo", y_bounty: "ult", y_ult_duel: "move",
+    y_footprints: "trail", y_compass: "hud", y_rangefinder: "dmg", y_ult_warp: "move", y_wallcrawl: "move",
   };
+  // 거미: the web trap gives way to wall-crawling
+  try {
+    const gm = AGENTS.find((a) => "geomi" === a.id);
+    if (gm) {
+      const i = gm.abilities.findIndex((d) => "Q" === d.key);
+      const q = A("Q", "거미 타기", "y_wallcrawl", 200, 1, 0, "10초 동안 거미처럼 벽에 붙는다. 벽으로 걸어가면 타고 올라가고, 멈추면 매달리고, 옆으로 가면 벽을 따라 기고, 꼭대기에 닿으면 위에 올라선다. 점프하면 벽에서 떨어진다.");
+      q.expect = ["move"];
+      i >= 0 ? (gm.abilities[i] = q) : gm.abilities.unshift(q);
+    }
+  } catch (e) {}
   for (const a of NEW) {
     a.key = a.id;
     a.accent = "#" + new T.Color(a.color).lerp(new T.Color(0xffffff), 0.55).getHexString();
@@ -25391,6 +25923,26 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
           x.add(x.hips, G_BOX(0.05, 0.16, 0.08), M(0x5d4037, "leather"), 0.19, -0.06, 0);
           x.add(x.hips, G_BOX(0.03, 0.07, 0.045), M(0x2b1d17, "leather"), 0.19, 0.045, 0.01, { r: [0.3, 0, 0] });
           LIMB.tallBoots(x, 0x5d4037);
+        },
+      },
+      nachim: {
+        st: { w: 0.95, bulk: 0.93, skin: 0xe2b896, hair: 0x2b2420, eye: 0x1f8f86, coat: 0x1d3b47, trim: 0x2ec4b6 },
+        base: { top: 0xe9e1cc, sleeve: L(0x1d3b47), fore: L(0x1d3b47), hand: L(0x4e342e, "leather"), pants: 0x3b3a33, boot: L(0x4e342e, "leather") },
+        band: { z: 0.215 },
+        make(x) {
+          HAIR.ponytail(x, 0x2b2420, { tie: 0x2ec4b6 });
+          HEAD.arVisor(x, 0x2ec4b6);
+          TOP.jacket(x, 0x1d3b47, { lapel: 0x16303a, shirt: 0xe9e1cc, trim: 0xc9a227, collar: 0x1d3b47 });
+          TOP.sash(x, 0x2ec4b6);
+          LIMB.bracers(x, 0x6d4c41, { kind: "leather" });
+          LIMB.tallBoots(x, 0x4e342e);
+          // a map case across the back, a brass compass on the chest
+          const g = sub(x.chest, [0, 0.22, 0.19], [0, 0, 0.9]);
+          x.add(g, G_CYL(0.06, 0.06, 0.62, 12), M(0x6d4c41, "leather"), 0, 0, 0, { sh: 1 });
+          x.add(g, G_CYL(0.064, 0.064, 0.05, 12), M(0xc9a227, "metal"), 0, 0.3, 0);
+          x.add(g, G_CYL(0.064, 0.064, 0.05, 12), M(0xc9a227, "metal"), 0, -0.3, 0);
+          x.add(x.chest, G_CYL(0.05, 0.05, 0.015, 18), M(0xc9a227, "metal"), 0.08, 0.27, -0.15, { r: [PI / 2, 0, 0] });
+          x.add(x.chest, G_BOX(0.008, 0.07, 0.004), GL(0x2ec4b6, 2), 0.08, 0.27, -0.16, { r: [0, 0, 0.6] });
         },
       },
     };
@@ -25516,6 +26068,42 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
         C.rr(...C.P(-0.88, -0.86), 1.76 * u, 0.2 * u, 0.06 * u, rgb(0x3e2723));
       },
     };
+    PAINT.nachim = {
+      back(C) {
+        const u = C.u;
+        // the map case over the shoulder
+        C.line([C.Q(2.1, 1.4), C.Q(-1.2, -2.2)], rgb(0x6d4c41), 0.42 * u, "butt");
+        [C.Q(1.9, 1.15), C.Q(-1.0, -1.95)].forEach(([x, y]) => C.ell(x, y, 0.26 * u, 0.26 * u, rgb(0xc9a227, 1.1)));
+      },
+      body(C) {
+        const u = C.u;
+        jacket(C, { shirt: 0xe9e1cc, lapel: 0x16303a, trim: 0xc9a227 });
+        C.line([C.Q(-2.2, 0.4), C.Q(2.0, 3.0)], rgb(0x2ec4b6, 0.9), 0.3 * u, "butt");
+        // the compass on the chest
+        const [x, y] = C.Q(0.9, 1.2);
+        C.ell(x, y, 0.36 * u, 0.36 * u, rgb(0xc9a227, 1.1));
+        C.ell(x, y, 0.27 * u, 0.27 * u, "#f3ead2");
+        C.glow(0x2ec4b6, 0.5);
+        C.poly([[x, y - 0.24 * u], [x + 0.06 * u, y], [x, y + 0.24 * u], [x - 0.06 * u, y]], rgb(0x2ec4b6, 1.1));
+        C.noglow();
+      },
+      collar(C) {
+        collar(C, 0x1d3b47, 0.5);
+      },
+      hair(C) {
+        cap(C, 0x2b2420, 0.2);
+        bangs(C, 0x2b2420, { n: 8, lo: -0.42, hi: -0.5, tilt: 0.25 });
+        locks(C, 0x2b2420, 0.2, [1]);
+      },
+      head(C) {
+        const u = C.u;
+        // a visor of light across the eyes
+        C.glow(0x2ec4b6, 0.8);
+        C.rr(C.cx - 0.9 * u, C.ey - 0.17 * u, 1.8 * u, 0.32 * u, 0.12 * u, "rgba(46,196,182,.38)");
+        C.line([[C.cx - 0.9 * u, C.ey - 0.17 * u], [C.cx + 0.9 * u, C.ey - 0.17 * u]], rgb(0xa7fff3), 0.04 * u);
+        C.noglow();
+      },
+    };
   }
 
   // the roster strip and the picker: draw them again for 39
@@ -25530,13 +26118,13 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     if (ul) {
       const li = document.createElement("li");
       li.innerHTML = en
-        ? "<b>Three new agents</b><span>초침 winds time back, 관문 opens doors and banishes, 황야 duels. Twelve abilities like no other</span>"
-        : "<b>새 요원 3명</b><span>시간을 되감는 초침, 차원문과 추방의 관문, 결투하는 총잡이 황야. 다른 요원과 겹치지 않는 능력 12개</span>";
+        ? "<b>Four new agents</b><span>초침 winds time back, 관문 opens doors and banishes, 황야 duels, 나침 goes anywhere on the map. Sixteen abilities like no other</span>"
+        : "<b>새 요원 4명</b><span>시간을 되감는 초침, 차원문과 추방의 관문, 결투하는 총잡이 황야, 지도로 어디든 가는 나침. 다른 요원과 겹치지 않는 능력 16개</span>";
       ul.prepend(li);
       while (ul.children.length > 3) ul.lastElementChild.remove();
     }
   } catch (e) {}
-  window.AGENTS3 = { ids: NEW.map((a) => a.id), types: Object.keys(H), hist: histAt, duels: DUELS, echo: ECHO };
+  window.AGENTS3 = { ids: NEW.map((a) => a.id), types: Object.keys(H), hist: histAt, duels: DUELS, echo: ECHO, pend: PEND, prints: PRINTS, pick: pickerDone, standAt, needle: drawNeedle };
 })();
 </script>
 <script>
