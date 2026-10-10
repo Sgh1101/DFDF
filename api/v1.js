@@ -709,16 +709,17 @@ ADMIN.user_set = async (q, b) => {
       u.gold = Math.max(0, Math.min(9e6, Math.round(+b.gold || 0)));
       break;
     case "grant": {
-      // item "gun|skin" or "all"; remove takes it back
+      // item "gun|skin" or "all", or items: a list of "gun|skin" (the owner page's table); remove takes them back
       ensureWallet(u, c);
-      const all = "all" === b.item,
-        [g, s] = String(b.item || "").split("|");
-      if (!all && (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g))) throw fail(400, "없는 아이템 (총|스킨)");
+      const list = Array.isArray(b.items) ? b.items.slice(0, ITEMS) : null,
+        all = !list && "all" === b.item,
+        pairs = list ? list.map((x) => String(x || "").split("|")) : all ? [] : [String(b.item || "").split("|")];
+      for (const [g, s] of pairs) if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템 (총|스킨): " + String(g).slice(0, 20) + "|" + String(s).slice(0, 20));
       if (b.remove) {
         if (all) u.own = {};
-        else u.own[g] = (u.own[g] || []).filter((x) => x !== s);
+        else for (const [g, s] of pairs) u.own[g] = (u.own[g] || []).filter((x) => x !== s);
       } else if (all) for (const gg of GUNS) u.own[gg] = SKIN_IDS.filter((x) => fits(x, gg));
-      else hasItem(u, g, s) || (u.own[g] = u.own[g] || []).push(s);
+      else for (const [g, s] of pairs) hasItem(u, g, s) || (u.own[g] = u.own[g] || []).push(s);
       trimPicks(u);
       break;
     }
@@ -733,8 +734,16 @@ ADMIN.user_set = async (q, b) => {
       throw fail(400, "알 수 없는 작업");
   }
   await setJ(userKey(id), u);
-  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"grant" === b.op ? " " + b.item + (b.remove ? " 회수" : "") : ""}`);
+  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}`);
   return { ok: !0 };
+};
+// one account's skins, for the owner page's grant table
+ADMIN.user_skins = async (q, b) => {
+  const u = await getJ(userKey(cleanId(b.id)));
+  if (!u) throw fail(404, "없는 아이디");
+  const own = {};
+  if (isObj(u.own)) for (const g of GUNS) Array.isArray(u.own[g]) && (own[g] = u.own[g].filter((s) => SKIN_TIER[s] && fits(s, g)));
+  return { id: u.id, own, owned: ownedCount({ own }), items: ITEMS, gold: "number" == typeof u.gold ? u.gold : null, guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY };
 };
 ADMIN.bans = async () => {
   const keys = [...((await redis(["KEYS", "ban:dev:*"])) || []), ...((await redis(["KEYS", "ban:ip:*"])) || [])];

@@ -66,7 +66,29 @@ button.gold{border-color:#5c4b1f;color:var(--gold)}
 .log{font-family:ui-monospace,monospace;font-size:12px}
 .log td:first-child{white-space:nowrap;color:var(--dim)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);padding:8px 16px;border-radius:10px;display:none;z-index:9}
-@media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}}
+.modal .sheet.wide{width:min(1180px,100%)}
+.sk-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.sk-tools button{padding:4px 10px;font-size:12px}
+.sk-tools .sp{flex:1}
+.sk-wrap{overflow:auto;max-height:58vh;border:1px solid var(--line);border-radius:10px;background:#0d121a}
+table.sk{border:0;border-radius:0;width:auto;border-collapse:separate;border-spacing:0;background:transparent;overflow:visible}
+table.sk th,table.sk td{padding:0;border-bottom:1px solid #1c2533;border-right:1px solid #1c2533;vertical-align:middle}
+table.sk th{position:sticky;background:var(--panel2);font-size:11.5px;white-space:nowrap;cursor:pointer;user-select:none;color:var(--ink)}
+table.sk tr:first-child th{top:0;z-index:2;padding:8px 3px;writing-mode:vertical-rl;height:92px;text-align:left;font-weight:700}
+table.sk th[data-row]{left:0;z-index:1;padding:4px 10px;text-align:left;font-weight:600}
+table.sk tr:first-child th.corner{left:0;top:0;z-index:3;writing-mode:horizontal-tb;cursor:default;color:var(--dim);font-weight:400;padding:6px 10px}
+table.sk th:hover{color:var(--gold)}
+table.sk td{width:30px;min-width:30px;height:27px;cursor:pointer;text-align:center;font-size:12px;font-weight:800;line-height:27px}
+table.sk td.own{background:color-mix(in srgb,var(--c) 72%,transparent)}
+table.sk td.own::after{content:"✓";color:#0b0f16}
+table.sk td.sel{box-shadow:inset 0 0 0 2px #fff;background-color:rgba(255,255,255,.16)}
+table.sk td.own.sel{background:color-mix(in srgb,var(--c) 72%,transparent);box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px #0b0f16}
+table.sk td.sel:not(.own)::after{content:"+";color:#fff}
+table.sk td.na{background:repeating-linear-gradient(45deg,#0d121a 0 4px,#151c27 4px 8px);cursor:default}
+table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
+.sk-key{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--steel)}
+.sk-key i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+@media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}table.sk th,table.sk td{display:table-cell!important}}
 </style>
 </head>
 <body>
@@ -216,6 +238,85 @@ function permEditor(u, done) {
   };
 }
 
+// ── skins: every gun against every skin; pick cells (or a whole gun, a whole skin, a tier) and grant or take back ──
+const GUN_KO = { knife: "전투 나이프", pistol: "권총", silenced: "소음권총", revolver: "리볼버", machpist: "기관권총", handcan: "핸드캐논", smg: "기관단총", vector: "속사 SMG", pdw: "경량 PDW", shotgun: "산탄총", autoshot: "자동 산탄총", slugger: "슬러그건", rifle: "돌격소총", carbine: "카빈", battle: "전투소총", burst: "점사소총", lmg: "경기관총", hmg: "중기관총", marksman: "지정사수총", sniper: "저격총", stinger: "독침 권총", pocketshot: "산탄 권총", ripper: "드럼 기관단총", whisper: "소음 기관단총", burstsmg: "점사 기관단총", doublebarrel: "더블배럴", scout: "정찰 소총", bullpup: "불펍 소총", minigun: "회전 기관총", antimat: "대물 저격총", rpg: "RPG" };
+const SKIN_KO = { obsidian: "흑요석", snow: "설원 위장", jungle: "밀림 위장", desert: "사막 위장", carbon: "카본", tiger: "호랑이", sakura: "벚꽃", ice: "얼음", celadon: "청자", dancheong: "단청", ink: "수묵", gold: "황금", neon: "네온", lava: "용암", galaxy: "은하", holo: "홀로그램", flip: "접이식 나이프", tanto: "탄토", kukri: "쿠크리", karambit: "카람빗", butterfly: "발리송" };
+const TIER_KO = ["", "일반", "희귀", "영웅", "전설"], TIER_C = ["", "#4ade80", "#38bdf8", "#c084fc", "#ffc849"];
+async function skinEditor(u, done) {
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.innerHTML = `<div class="sheet wide"><h3>${esc(u.id)} · 스킨 지급·회수</h3><p class="muted">불러오는 중…</p></div>`;
+  document.body.appendChild(box);
+  const close = () => box.remove();
+  box.onclick = (e) => { if (e.target === box) close(); };
+  let j;
+  try { j = await call("a_user_skins", { id: u.id }); }
+  catch (e) { box.querySelector(".sheet").innerHTML = `<h3>${esc(u.id)} · 스킨</h3><p class="err">${esc(e.message)}</p><div class="row end"><span style="flex:1"></span><button id="sk-x">닫기</button></div>`; $("#sk-x", box).onclick = close; return; }
+  const guns = j.guns, tiers = j.tiers, only = j.only || {}, items = j.items || 501;
+  // colour skins by tier, the knife-only ones after them
+  const skins = Object.keys(tiers).sort((a, b) => (only[a] ? 1 : 0) - (only[b] ? 1 : 0) || tiers[a] - tiers[b]);
+  const fit = (s, g) => !only[s] || only[s] === g;
+  let own = j.own;
+  const has = (g, s) => !!(own[g] && own[g].includes(s));
+  const sel = new Set();
+  box.querySelector(".sheet").innerHTML = `<h3>${esc(u.id)} · 스킨 지급·회수</h3>
+    <p class="muted">칸을 누르면 고르고, 총 이름을 누르면 그 총의 스킨 전부, 스킨 이름을 누르면 모든 총의 그 스킨을 고릅니다. 고른 뒤 <b>선택 지급</b> 또는 <b>선택 회수</b>. 바로 게임에 반영됩니다(다음 동기화 때, 몇 초 안).</p>
+    <div class="sk-tools"><span>보유 <b id="sk-own"></b> / ${items}</span><span class="muted">· 선택 <b id="sk-n">0</b>개</span><span class="sp"></span>
+      ${[1, 2, 3, 4].map((t) => `<button data-tier="${t}" style="color:${TIER_C[t]}">${TIER_KO[t]} 전부</button>`).join("")}
+      <button id="sk-miss">없는 것 전부</button><button id="sk-have">가진 것 전부</button><button id="sk-clear">선택 해제</button></div>
+    <div class="sk-wrap"><table class="sk"><tr><th class="corner">총 \\ 스킨</th>${skins.map((s) => `<th data-col="${s}" style="color:${TIER_C[tiers[s]]}" title="${TIER_KO[tiers[s]]} · 눌러서 이 스킨 전부 고르기">${esc(SKIN_KO[s] || s)}</th>`).join("")}</tr>
+      ${guns.map((g) => `<tr><th data-row="${g}" title="눌러서 이 총의 스킨 전부 고르기">${esc(GUN_KO[g] || g)}</th>${skins.map((s) => (fit(s, g) ? `<td data-g="${g}" data-s="${s}" style="--c:${TIER_C[tiers[s]]}" title="${esc((GUN_KO[g] || g) + " · " + (SKIN_KO[s] || s))}"></td>` : '<td class="na"></td>')).join("")}</tr>`).join("")}</table></div>
+    <div class="sk-key">${[1, 2, 3, 4].map((t) => `<span><i style="background:${TIER_C[t]}"></i>${TIER_KO[t]} 보유</span>`).join("")}<span><i style="box-shadow:inset 0 0 0 2px #fff"></i>선택</span><span><i style="background:repeating-linear-gradient(45deg,#0d121a 0 3px,#2a3444 3px 6px)"></i>그 총에는 없는 스킨</span></div>
+    <div class="row end" style="flex-wrap:wrap"><button id="sk-all" class="gold">전부 지급 (${items})</button><button id="sk-none" class="bad">전부 회수</button><span style="flex:1"></span><button id="sk-give" class="go">선택 지급</button><button id="sk-take" class="bad">선택 회수</button><button id="sk-x">닫기</button></div>`;
+  const cells = [...box.querySelectorAll("td[data-g]")];
+  const K = (c) => c.dataset.g + "|" + c.dataset.s;
+  const paint = () => {
+    let n = 0;
+    for (const c of cells) {
+      const h = has(c.dataset.g, c.dataset.s);
+      h && n++;
+      c.classList.toggle("own", h);
+      c.classList.toggle("sel", sel.has(K(c)));
+    }
+    $("#sk-own", box).textContent = n;
+    $("#sk-n", box).textContent = sel.size;
+    $("#sk-give", box).textContent = sel.size ? `선택 지급 (${sel.size})` : "선택 지급";
+    $("#sk-take", box).textContent = sel.size ? `선택 회수 (${sel.size})` : "선택 회수";
+    $("#sk-give", box).disabled = $("#sk-take", box).disabled = !sel.size;
+  };
+  // a row or a column: all of it picked, or (if it already was) none of it
+  const toggleAll = (list) => {
+    const keys = list.map(K), on = keys.every((k) => sel.has(k));
+    keys.forEach((k) => (on ? sel.delete(k) : sel.add(k)));
+    paint();
+  };
+  box.querySelector("table.sk").onclick = (e) => {
+    const c = e.target.closest("td[data-g]"), r = e.target.closest("th[data-row]"), col = e.target.closest("th[data-col]");
+    if (c) { const k = K(c); sel.has(k) ? sel.delete(k) : sel.add(k); paint(); }
+    else if (r) toggleAll(cells.filter((x) => x.dataset.g === r.dataset.row));
+    else if (col) toggleAll(cells.filter((x) => x.dataset.s === col.dataset.col));
+  };
+  box.querySelectorAll("[data-tier]").forEach((b) => (b.onclick = () => toggleAll(cells.filter((x) => tiers[x.dataset.s] === +b.dataset.tier))));
+  $("#sk-miss", box).onclick = () => { cells.forEach((c) => has(c.dataset.g, c.dataset.s) || sel.add(K(c))); paint(); };
+  $("#sk-have", box).onclick = () => { cells.forEach((c) => has(c.dataset.g, c.dataset.s) && sel.add(K(c))); paint(); };
+  $("#sk-clear", box).onclick = () => { sel.clear(); paint(); };
+  $("#sk-x", box).onclick = close;
+  const send = async (p, msg) => {
+    try {
+      await call("a_user_set", Object.assign({ id: u.id, op: "grant" }, p));
+      own = (await call("a_user_skins", { id: u.id })).own;
+      sel.clear();
+      paint();
+      toast(msg);
+      done();
+    } catch (e) { toast(e.message); }
+  };
+  $("#sk-give", box).onclick = () => sel.size && send({ items: [...sel] }, `${sel.size}개 지급했습니다`);
+  $("#sk-take", box).onclick = () => sel.size && send({ items: [...sel], remove: !0 }, `${sel.size}개 회수했습니다`);
+  $("#sk-all", box).onclick = () => send({ item: "all" }, `스킨 ${items}개 전부 지급했습니다`);
+  $("#sk-none", box).onclick = () => confirm(u.id + "의 스킨을 전부 회수할까요?") && send({ item: "all", remove: !0 }, "스킨을 전부 회수했습니다");
+  paint();
+}
 const VIEWS = {};
 VIEWS.dash = async () => {
   const s = await call("a_stats"), r = await call("a_rooms");
@@ -243,7 +344,7 @@ VIEWS.users = async () => {
       <td class="muted">${esc(u.lastIp)}<br>${esc((u.dev || "").slice(0, 14))}</td>
       <td><div class="acts">${u.ban ? '<button data-op="unban">차단 풀기</button>' : '<button class="bad" data-op="ban">차단</button>'}
         <button data-op="perm" class="gold">권한</button><button data-op="admin">관리자 모드</button><button data-op="level">레벨</button><button data-op="password">비번 변경</button><button data-op="note">메모</button>
-        <button data-op="gold" class="gold">골드</button><button data-op="grant">스킨 지급</button><button data-op="revoke">스킨 회수</button>
+        <button data-op="gold" class="gold">골드</button><button data-op="skins" class="gold">스킨 지급·회수</button>
         <button data-op="devban" class="bad">기기 차단</button><button data-op="ipban" class="bad">IP 차단</button><button data-op="delete" class="bad">삭제</button></div></td></tr>`).join("")}</table>`;
     $("#ul").onclick = async (e) => {
       const b = e.target.closest("button"); if (!b) return;
@@ -251,15 +352,12 @@ VIEWS.users = async () => {
       const p = { id, op };
       if (op === "perm") { permEditor(row, load); return; }
       if (op === "admin") { adminEditor(row, load); return; }
+      if (op === "skins") { skinEditor(row, load); return; }
       if (op === "ban") { const d = days(id + " 차단"); if (d === null) return; p.days = d; p.reason = prompt("사유", "") || ""; }
       if (op === "level") { const v = prompt("레벨", row.level); if (v === null) return; p.level = +v || 1; }
       if (op === "password") { const v = prompt("새 비밀번호 (4자 이상)"); if (!v) return; p.pw = v; }
       if (op === "note") { const v = prompt("메모", row.note || ""); if (v === null) return; p.note = v; }
       if (op === "gold") { const v = prompt("골드를 얼마로 할까요? (현재 " + (row.gold || 0) + ")", row.gold || 0); if (v === null) return; p.gold = +v || 0; }
-      if (op === "grant" || op === "revoke") {
-        const v = prompt((op === "grant" ? "지급" : "회수") + "할 스킨: 총|스킨 (예: rifle|lava) 또는 all\n총: " + GUNS.join(" ") + "\n스킨: " + SKINS.join(" ") + "\n나이프 전용: " + KNIFE_SKINS.join(" "), "all");
-        if (!v) return; p.op = "grant"; p.item = v.trim(); if (op === "revoke") p.remove = !0;
-      }
       if (op === "delete" && !confirm(id + " 계정을 지울까요? 되돌릴 수 없습니다")) return;
       if (op === "devban" || op === "ipban") {
         const key = op === "devban" ? row.dev : row.lastIp; if (!key) return toast("기록이 없습니다");
@@ -322,10 +420,6 @@ VIEWS.logs = async () => {
   await load();
 };
 // every knob, with a Korean label; anything not listed still shows with its key
-// what a pull can give (the server's catalogue; shown in the prompt for grants)
-const GUNS = "knife pistol silenced revolver machpist handcan smg vector pdw shotgun autoshot slugger rifle carbine battle burst lmg hmg marksman sniper stinger pocketshot ripper whisper burstsmg doublebarrel scout bullpup minigun antimat rpg".split(" ");
-const SKINS = "obsidian snow jungle desert carbon tiger sakura ice celadon dancheong ink gold neon lava galaxy holo".split(" ");
-const KNIFE_SKINS = "flip tanto kukri karambit butterfly".split(" "); // the knife only
 const LABELS = {
   game: ["게임 운영", "접속과 방에 관한 규칙"],
   "game.maintenance": ["점검 모드", "켜면 아무도 로그인·게스트 입장을 못 합니다"],
