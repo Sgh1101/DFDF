@@ -25338,6 +25338,73 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     }
   };
 
+  // ── 거미줄 이동 — the spider's E: shoot a web, get pulled to it ──
+  // The web flies to where I aim (up to 48 m); if it holds on something I am
+  // pulled there fast and can cut loose with a jump (a swing off); landing
+  // beside a wall, I stay hanging on it for a few seconds.
+  const ZIP_SPEED = 58,
+    ZIP_RANGE = 48;
+  H.y_webzip = () => {
+    const c = player,
+      a = aimPoint(ZIP_RANGE);
+    const e0 = eye(c);
+    if (!a || !a.hit) {
+      // nothing to hold on to: the web falls short, the charge comes back
+      const L = ZIP_RANGE * 0.5,
+        yaw = c.yaw || 0,
+        pit = c.pitch || 0;
+      beam(e0.x, e0.y - 0.2, e0.z, e0.x - Math.sin(yaw) * Math.cos(pit) * L, e0.y - 0.2 + Math.sin(pit) * L, e0.z - Math.cos(yaw) * Math.cos(pit) * L, WEB, 0.03, 0.4);
+      try {
+        CAST_REFUND = !0;
+      } catch (e) {}
+      c === viewer() && bannerMe("닿을 곳이 없습니다", "#cfd8dc");
+      return;
+    }
+    const gy = groundAt(a.x, a.z, (a.y || 0) + 0.3),
+      ty = Math.max(gy, (a.y || 0) - 1.0);
+    const Z = { x: a.x, y: ty, z: a.z, ay: a.y || 0, t: 1.6, t0: 1.6, done: !1 };
+    c.__zip = Z;
+    c.__hangY = null;
+    sparks(a.x, a.y || 0, a.z, WEB, 10, 3);
+    fxRing(a.x, a.z, 1.4, WEB, 0.35);
+    const web = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 1, 6, 1, !0), mat(WEB, 0.9, !0));
+    scene.add(web);
+    const up = new T.Vector3(0, 1, 0),
+      v = new T.Vector3();
+    live(1.8, (t) => {
+      if (Z.done && t > 0.25) return !1;
+      const x1 = c.pos.x,
+        y1 = (c.y || 0) + 1.45,
+        z1 = c.pos.z,
+        dx = a.x - x1,
+        dy = (a.y || 0) - y1,
+        dz = a.z - z1,
+        L = Math.hypot(dx, dy, dz) || 0.01;
+      web.position.set((x1 + a.x) / 2, (y1 + (a.y || 0)) / 2, (z1 + a.z) / 2);
+      web.scale.set(1, L, 1);
+      web.quaternion.setFromUnitVectors(up, v.set(dx / L, dy / L, dz / L));
+      web.material.opacity = Z.done ? 0.9 * Math.max(0, 1 - (t - 0.0) / 0.4) : 0.9;
+    }, () => drop(web));
+  };
+  // end of a pull: hang on a wall if I landed against one, else drop
+  function zipEnd(a, jump) {
+    const Z = a.__zip;
+    a.__zip = null;
+    Z && (Z.done = !0);
+    if (!Z) return;
+    const floor = groundAt(a.pos.x, a.pos.z, a.y || 0);
+    if (jump) {
+      a.vy = 5;
+      a.onGround = !1;
+    } else if ((a.y || 0) > floor + 0.5) {
+      a.__climbT = Math.max(a.__climbT || 0, 4);
+      a.__hangY = a.y || 0;
+    }
+    try {
+      sparks(a.pos.x, (a.y || 0) + 1.2, a.pos.z, WEB, 6, 2);
+    } catch (e) {}
+  }
+
   // ── 거미 — the spider's Q becomes wall-crawling ──
   // For ten seconds walls are floors: walk into one and you climb it, stop and
   // you hang there, move sideways and you crawl along it, reach the top and you
@@ -25365,6 +25432,31 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
   const probeR = () => ("undefined" != typeof PR ? PR : 0.8) + 0.4;
   const _sim = simMove;
   simMove = function (a, dt) {
+    if (a && a.__zip) {
+      const Z = a.__zip,
+        d0 = dt || 0.016;
+      if (!a.alive) return void zipEnd(a, !1);
+      Z.t -= d0;
+      const dx = Z.x - a.pos.x,
+        dy = Z.y - (a.y || 0),
+        dz = Z.z - a.pos.z,
+        d = Math.hypot(dx, dy, dz),
+        jump = !!(a.input && a.input.btn & BTN.JUMP) && Z.t0 - Z.t > 0.25;
+      if (d < 0.8 || Z.t <= 0 || jump) return void zipEnd(a, jump);
+      const k = Math.min(d, ZIP_SPEED * d0) / d,
+        nx = a.pos.x + dx * k,
+        nz = a.pos.z + dz * k,
+        ny = (a.y || 0) + dy * k;
+      // a wall in the way: the pull ends here
+      if (collideXZ(nx, nz, ny, 0.4)) return void zipEnd(a, !1);
+      a.pos.x = nx;
+      a.pos.z = nz;
+      a.y = ny;
+      a.vy = 0;
+      a.onGround = !1;
+      a.vel && a.vel.set(0, 0, 0);
+      return;
+    }
     if (!a || !(a.__climbT > 0) || !a.alive) return _sim.apply(this, arguments);
     const inp = a.input || { mv: [0, 0], btn: 0 },
       n = inp.mv[0] || 0,
@@ -25777,7 +25869,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     y_portal: ["portal", "place", "mag_anchor"], y_phase_cloak: ["eyeoff", "aura", "blink"], y_refract: ["prism", "aura", "ripple_dome"], y_ult_banish: ["rift", "ult", "ult_mirror"],
     y_ricochet: ["ricochet", "aura", "pierce"], y_quickdraw: ["revolver", "aura", "charge"], y_bounty: ["badge", "point", "recon_dart"], y_ult_duel: ["duel", "ult", "ult_snipe"],
     y_footprints: ["steps", "throw", "recon_dart"], y_compass: ["compass", "aura", "mirror_pulse"], y_rangefinder: ["range", "aura", "pierce"], y_ult_warp: ["map", "ult", "blink"],
-    y_wallcrawl: ["climb", "aura", "bolt_jump"],
+    y_wallcrawl: ["climb", "aura", "bolt_jump"], y_webzip: ["web", "point", "mag_net"],
   };
   for (const t in H) {
     CAST_EXT[t] = H[t];
@@ -25836,7 +25928,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     y_time_brand: "dmg", y_rewind: "life", y_backstep: "move", y_ult_echo: "dmg",
     y_portal: "move", y_phase_cloak: "hide", y_refract: "dmg", y_ult_banish: "hide root",
     y_ricochet: "dmg", y_quickdraw: "ammo", y_bounty: "ult", y_ult_duel: "move",
-    y_footprints: "trail", y_compass: "hud", y_rangefinder: "dmg", y_ult_warp: "move", y_wallcrawl: "move",
+    y_footprints: "trail", y_compass: "hud", y_rangefinder: "dmg", y_ult_warp: "move", y_wallcrawl: "move", y_webzip: "move",
   };
   // 거미: the web trap gives way to wall-crawling
   try {
@@ -25846,6 +25938,11 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       const q = A("Q", "거미 타기", "y_wallcrawl", 200, 1, 0, "10초 동안 거미처럼 벽에 붙는다. 벽으로 걸어가면 타고 올라가고, 멈추면 매달리고, 옆으로 가면 벽을 따라 기고, 꼭대기에 닿으면 위에 올라선다. 점프하면 벽에서 떨어진다.");
       q.expect = ["move"];
       i >= 0 ? (gm.abilities[i] = q) : gm.abilities.unshift(q);
+      // and the silk pull (which dragged an enemy to me) becomes a web that drags me
+      const j = gm.abilities.findIndex((d) => "E" === d.key);
+      const e = A("E", "거미줄 이동", "y_webzip", 0, 1, 20, "조준한 곳(48m)에 거미줄을 쏴서 그쪽으로 빠르게 끌려간다. 가는 도중 점프하면 줄을 끊고 튕겨 나가고, 벽 옆에 닿으면 4초간 벽에 매달린다. 닿을 곳이 없으면 충전이 돌아온다.");
+      e.expect = ["move"];
+      j >= 0 ? (gm.abilities[j] = e) : gm.abilities.splice(1, 0, e);
     }
   } catch (e) {}
   for (const a of NEW) {
@@ -26124,7 +26221,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       while (ul.children.length > 3) ul.lastElementChild.remove();
     }
   } catch (e) {}
-  window.AGENTS3 = { ids: NEW.map((a) => a.id), types: Object.keys(H), hist: histAt, duels: DUELS, echo: ECHO, pend: PEND, prints: PRINTS, pick: pickerDone, standAt, needle: drawNeedle };
+  window.AGENTS3 = { zipEnd, ids: NEW.map((a) => a.id), types: Object.keys(H), hist: histAt, duels: DUELS, echo: ECHO, pend: PEND, prints: PRINTS, pick: pickerDone, standAt, needle: drawNeedle };
 })();
 </script>
 <script>
