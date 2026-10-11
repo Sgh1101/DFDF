@@ -20267,6 +20267,27 @@ body.touching #nade-hud{display:none}
 .pl-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);min-height:0;height:calc(100vh - 96px);min-height:230px}.pl-show{min-height:0}.pl-act{border-top:0;border-left:1px solid var(--line);padding:12px 14px;gap:8px}.pl-act p,.pl-act h3,.pl-act>.lbl{display:none}.ar-pull{min-height:50px;font-size:13px}.pl-feat b{font-size:16px}
 .mi{grid-template-columns:minmax(0,1fr) minmax(220px,36%);grid-template-rows:none;padding-top:8px}.mi-side{flex-direction:column;gap:6px}.mi-side .ar-slot{height:auto;flex:1 1 auto;min-height:0}.mi-info{flex:0 0 auto}.mi-info p{display:none}.mi-info:not(:has(h4)){display:none}.mi-f button,.mi-f select{min-height:30px;padding:4px 10px}
 .rv-hd{display:none}.rv-main{flex-direction:row;align-items:stretch}.rv-show,#ar-reveal.one .rv-show{flex:1 1 42%;min-height:0}.rv-grid{flex:1 1 58%;align-content:center;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px}#ar-reveal.one .rv-grid{grid-template-columns:repeat(1,minmax(0,130px))!important}.rv-f b{font-size:11px}.rv-f small{font-size:9px}.rv-cap b{font-size:20px}.rv-btns .btn{padding:8px 14px;min-height:40px}}
+/* a phone held sideways: by gun = the guns and the skins on the left, the preview on the right,
+   a slim header, so every skin can be seen and tapped */
+@media(orientation:landscape) and (max-height:540px){
+#armory{padding:8px 12px calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
+.ar-hd{gap:8px;padding-bottom:6px}.ar-hd>div:first-child{display:none}.ar-tabs{order:0;width:auto}.ar-tab{flex:0 0 auto;padding:6px 14px;min-height:34px;font-size:12px}
+.ar-hd-r{margin-left:auto}.ar-hd-r .btn{padding:7px 14px;min-height:34px}.ar-gold{padding:5px 10px;font-size:12px}
+.ar-pane{padding-top:6px}
+.ar-tools{gap:6px}.ar-tools .ar-tip{display:none}.ar-tools .btn{padding:5px 12px;min-height:32px;font-size:11px}
+#ar-p-gun .ar-body{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"guns view" "skins view";gap:8px;padding-top:8px}
+#ar-p-gun .ar-guns{grid-area:guns;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:5px;padding:0 0 4px}
+#ar-p-gun .ar-cls{display:none}
+#ar-p-gun .ar-gun{flex:0 0 auto;padding:5px 10px;min-height:34px;justify-content:center}#ar-p-gun .ar-gun span{display:none}
+#ar-p-gun #slot-gun{grid-area:view;min-height:0}
+#ar-p-gun .ar-skins{grid-area:skins;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:6px;min-height:0}
+#ar-p-gun .ar-sk{padding:5px;gap:3px}#ar-p-gun .ar-sk canvas{height:34px}#ar-p-gun .ar-sk b{font-size:11px}
+#ar-p-gun .ar-cap{left:10px;bottom:8px;font-size:12px}#ar-p-gun .ar-hint{display:none}
+}
+/* held upright (the game asks for sideways, but the page can still be opened): a smaller preview, the skins get the room */
+@media(orientation:portrait) and (max-width:600px){
+#ar-p-gun .ar-body{grid-template-rows:auto minmax(120px,24vh) minmax(0,1fr)}
+}
 `;
   document.head.appendChild(css);
   const ar = document.createElement("div");
