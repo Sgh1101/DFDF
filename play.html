@@ -26998,7 +26998,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
     const t = new T.CanvasTexture(c);
     t.colorSpace = T.SRGBColorSpace;
     rep && (t.wrapS = t.wrapT = T.RepeatWrapping);
-    t.anisotropy = aniso || 4;
+    t.anisotropy = aniso || 2;
     return t;
   };
   const speckle = (g, w, h, n, lo, hi, a) => {
@@ -27283,6 +27283,8 @@ body.touching #admin .ad-head{padding-right:50px}`;
     };
     // ---- signs ----
     const placed = [];
+    let nLights = 0,
+      nWindows = 0;
     {
       const cols = 2,
         rows = Math.ceil(SIGNS.length / cols),
@@ -27348,7 +27350,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
         g.setIndex(I);
         g.computeVertexNormals();
         g.computeBoundingSphere();
-        add(new T.Mesh(g, new T.MeshBasicMaterial({ map: texOf(cv, !1, 8), polygonOffset: !0, polygonOffsetFactor: -2, fog: !0 })));
+        add(new T.Mesh(g, new T.MeshBasicMaterial({ map: texOf(cv, !1, 4), polygonOffset: !0, polygonOffsetFactor: -2, fog: !0 })));
       }
     }
     // ---- windows (instanced, flat on the walls) ----
@@ -27365,7 +27367,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
           g.fillRect(6, h * 0.45, w - 12, 4);
         }),
         !1,
-        8,
+        2,
       );
       const list = [];
       for (const f of LIVE) {
@@ -27399,6 +27401,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
         } else im.setColorAt(i, c.set(GLASS[Math.floor(r * 10) % 3]));
       });
       im.count = list.length;
+      nWindows = list.length;
       im.instanceMatrix.needsUpdate = !0;
       im.instanceColor && (im.instanceColor.needsUpdate = !0);
       im.frustumCulled = !1;
@@ -27429,7 +27432,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
           items.push({ x, z, type, sc, color, rot: Math.atan2(f.nx, f.nz) + (rnd() - 0.5) * 0.3 });
         }
       }
-      const kinds = { box: new T.BoxGeometry(1, 1, 1), cyl: new T.CylinderGeometry(0.5, 0.5, 1, 12), sph: new T.SphereGeometry(0.5, 12, 8) };
+      const kinds = { box: new T.BoxGeometry(1, 1, 1), cyl: new T.CylinderGeometry(0.5, 0.5, 1, 8), sph: new T.SphereGeometry(0.5, 8, 6) };
       for (const k in kinds) {
         const L = items.filter((p) => p.type === k);
         if (!L.length) continue;
@@ -27518,7 +27521,8 @@ body.touching #admin .ad-head{padding-right:50px}`;
         bx.box(x - 0.6, x + 0.6, 8, h, z - 0.6, z + 0.6, "#7b5a48");
         bx.box(x - 0.8, x + 0.8, h, h + 0.35, z - 0.8, z + 0.8, "#3a3d44");
       }
-      add(bx.mesh(new T.MeshStandardMaterial({ vertexColors: !0, roughness: 0.8, metalness: 0.1 })), !0);
+      // shadows from the landmarks only where the quality setting casts decor shadows
+      add(bx.mesh(new T.MeshStandardMaterial({ vertexColors: !0, roughness: 0.8, metalness: 0.1 })), "undefined" != typeof GFX && !!GFX.decorShadow);
       // the crane's cables
       {
         const g = new T.BufferGeometry();
@@ -27535,7 +27539,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
       {
         const cv = canvas(256, 256, () => {});
         const ctx2 = cv.getContext("2d"),
-          ct = texOf(cv, !1, 8);
+          ct = texOf(cv, !1, 4);
         const draw = () => {
           const d = new Date(),
             g = ctx2;
@@ -27620,8 +27624,11 @@ body.touching #admin .ad-head{padding-right:50px}`;
           } catch (e) {}
         }, 40);
       }
-      // ---- real lights: three, no more (the quality setting can lower it) ----
-      const cap = Math.min(3, "undefined" != typeof GFX && null != GFX.lamps ? GFX.lamps : 3);
+      // ---- real lights: every lit surface pays for each one, so few: three on
+      // the visual presets, the lighthouse alone on the default and lighter ones,
+      // none on the lightest (the glows stay on all of them) ----
+      const lamps = "undefined" != typeof GFX && null != GFX.lamps ? GFX.lamps : 4,
+        cap = lamps >= 6 ? 3 : lamps >= 3 ? 1 : 0;
       [
         [lx, 14.2, lz, 0xffd9a0, 12, 32],
         [cx - 16, 11.6, cz, 0xffb468, 9, 24],
@@ -27632,6 +27639,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
           const L = new T.PointLight(c, i, d, 2);
           L.position.set(x, y, z);
           add(L);
+          nLights++;
         });
       glows.push([lx, 13.5, lz, 7], [cx - 20.6, 12.2, cz, 3.5], [0, 5.5, 64, 3]);
     }
@@ -27661,6 +27669,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
       }
     }
     POGU.dressed = !0;
+    POGU.decor = { lights: nLights, signs: placed.length, windows: nWindows, props: POGU.props, glows: glows.length };
   }
   window.POGU_THEME = { group, tint, material, floorColor, floorMat, decorate };
 })();
