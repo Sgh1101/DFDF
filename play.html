@@ -22724,12 +22724,18 @@ body.kf-acc #killflash{background:radial-gradient(ellipse at center,transparent 
   }
   const css = document.createElement("style");
   css.textContent = `
-#killfx.ks #kf-badge{position:relative;overflow:hidden;animation:kfPop .45s cubic-bezier(.15,.9,.25,1.1)}
+#killfx{gap:6px}#killfx #kf-badge{padding:6px 26px;gap:0}
+#killfx.ks #kf-badge{position:relative;overflow:hidden;animation:kfPop .45s cubic-bezier(.15,.9,.25,1.1);display:grid;grid-template-columns:auto auto;justify-content:center;align-items:center;column-gap:10px;row-gap:0;padding:5px 30px}
+#killfx.ks #kf-main{grid-column:1/-1;text-align:center;line-height:1.15}
+#killfx.ks #kf-sub,#killfx.ks #kf-tag{font-size:9.5px;line-height:1.25;margin:0;letter-spacing:.12em;text-indent:0}
+#killfx.ks #kf-sub{justify-self:end}#killfx.ks #kf-tag{justify-self:start}
+#killfx.ks #kf-sub:not(:empty)::after{content:"·";margin-left:10px;opacity:.7}
+#killfx.ks #kf-sub:empty{display:none}
 #killfx.ks #kf-badge::after{content:"";position:absolute;top:0;bottom:0;pointer-events:none}
 #killfx.ks #kf-main::before,#killfx.ks #kf-main::after{content:var(--g);display:inline-block;font-size:.8em;margin:0 .7em;letter-spacing:0;color:var(--ga);filter:drop-shadow(0 0 5px var(--ga))}
 #killfx.ks #kf-tag{display:block;color:var(--tg);text-shadow:var(--tgs);font-weight:700}
-#killfx.ks.r1 #kf-main{font-size:18px}#killfx.ks.r2 #kf-main{font-size:19px}#killfx.ks.r3 #kf-main{font-size:21px}#killfx.ks.r4 #kf-main{font-size:24px}
-#killfx.ks.r3 #kf-badge{padding:11px 34px}#killfx.ks.r4 #kf-badge{padding:13px 42px}
+#killfx.ks.r1 #kf-main{font-size:16px}#killfx.ks.r2 #kf-main{font-size:17px}#killfx.ks.r3 #kf-main{font-size:19px}#killfx.ks.r4 #kf-main{font-size:21px}
+#killfx.ks.r3 #kf-badge{padding:6px 34px}#killfx.ks.r4 #kf-badge{padding:7px 40px}
 #kf-fx{position:absolute;left:-60px;right:-60px;top:-34px;bottom:-30px;pointer-events:none}
 .kfp{position:absolute;top:50%;color:var(--a);text-shadow:0 0 8px var(--a);font-size:14px;animation-fill-mode:forwards;animation-timing-function:ease-out;opacity:0}
 .kfp.fall{animation-name:kfpFall}.kfp.rise{animation-name:kfpRise}.kfp.twinkle{animation-name:kfpTwinkle}
