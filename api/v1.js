@@ -611,13 +611,43 @@ A.mission_claim = async (q, b) => {
   await saveUser(u);
   return { gold, ids: pick.map((x) => x.id), missions: misState(u, c), user: publicUser(u, c.xp.perLevel) };
 };
+// a match ticket: asked for when a match starts, handed back with the result.
+// Signed here, good once, and only after the match has run for a while, so a
+// result can't be sent without a real match behind it.
+const MATCH_MIN_MS = 60 * 1000, // shortest match that earns kill/win rewards
+  MATCH_MAX_MS = 3 * 3600 * 1000, // a ticket lasts this long
+  KILL_EVERY_MS = 2500; // at most about one kill per 2.5 seconds of match
+A.match_start = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("mstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
+  const n = crypto.randomBytes(12).toString("hex"),
+    t0 = now();
+  await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]);
+  return { ticket: sign({ k: "match", u: String(u.id), n, t0, exp: t0 + MATCH_MAX_MS }) };
+};
+// how much of a reported result to trust: kills and the win only with a valid,
+// unused ticket from a long enough match; kills no faster than the clock allows
+async function matchTrust(u, ticket) {
+  const t = verify(ticket);
+  if (!t || "match" !== t.k || String(t.u) !== String(u.id) || !t.n) return { ok: !1, why: "no_ticket" };
+  const ms = now() - (+t.t0 || 0);
+  if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
+  // one use only: the key is deleted here, a second report finds nothing
+  const del = await redis(["DEL", "mt:" + t.n]);
+  if (1 !== +del) return { ok: !1, why: "used" };
+  return { ok: !0, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+}
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
-  const kills = Math.max(0, Math.min(60, b.kills | 0)),
-    win = !!b.win;
+  // without a valid match ticket (older game page, or a forged report) only the
+  // plain match reward is given: no kills, no win
+  const trust = await matchTrust(u, b.mt);
+  const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
+    win = trust.ok && !!b.win;
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
@@ -636,6 +666,7 @@ A.progress = async (q, b) => {
     rcap = Math.max(0, +R.maxPerDay || 0);
   (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
   let drr = win ? Math.round((+R.win || 0) + kb) : -Math.max(Math.ceil((+R.loss || 0) / 2), Math.round((+R.loss || 0) - kb / 2));
+  trust.ok || (drr = 0); // no ticket: the rank stays where it is
   drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
   u.rr = Math.max(0, rr0 + drr);
   drr = u.rr - rr0;
@@ -653,7 +684,7 @@ A.progress = async (q, b) => {
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   const rb = rankOf(rr0);
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
-  return { gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  return { trusted: trust.ok, why: trust.ok ? void 0 : trust.why, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,
