@@ -2,7 +2,7 @@
 // update reaches the app at once. Without a connection the game cannot run
 // (the 3D engine and multiplayer live online), so pages show a friendly
 // "connect and retry" screen instead of a broken one; icons stay cached.
-const CACHE = "13-v1";
+const CACHE = "13-v2";
 // photo materials and skies never change under the same name: kept after the
 // first download so a phone does not fetch them again every match
 const ASSETS = "13-assets-v1";
