@@ -28941,6 +28941,29 @@ body.touching #admin .ad-head{padding-right:50px}`;
   .sel-detail .ab{padding:3px 0}
   .sel-detail .ab-desc{font-size:10px;line-height:1.3}
 }
+/* short landscape (852x393): the detail panel runs the full height on the
+   right so every ability fits, and the map chips wrap instead of scrolling */
+@media (orientation: landscape) and (max-height: 480px) {
+  #s-select{display:grid!important;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" "grid det" "foot det"}
+  #s-select .sel-top{grid-area:top}
+  #s-select .sel-body{display:contents!important}
+  #s-select .sel-grid{grid-area:grid;min-height:0}
+  #s-select .sel-detail{grid-area:det;min-height:0}
+  #s-select .sel-foot{grid-area:foot;flex-wrap:wrap;gap:4px 8px;padding:4px 10px!important;min-width:0}
+  #s-select .sel-mid{order:0;flex:1 1 100%;gap:4px;min-width:0}
+  #sel-maps{flex-wrap:wrap!important;overflow:visible!important;max-width:none!important;justify-content:center!important;gap:3px 4px!important;padding:0!important}
+  #sel-maps .lb-map{padding:2px 7px!important;font-size:10px!important}
+  #s-select .sel-moderow{flex-wrap:nowrap}
+  #sel-mode-sub{display:none}
+  #sel-modes{flex-wrap:nowrap!important;gap:4px}
+  #sel-modes .lb-map{padding:3px 8px;font-size:10px}
+  .sel-foot>.btn{padding:6px 12px!important;font-size:12px!important}
+  .sel-foot>#sel-back{order:1}
+  .sel-foot>#sel-go{order:3}
+}
+@media (orientation: landscape) and (max-height: 480px) and (max-width: 800px) {
+  .sel-detail .det-desc{display:none}
+}
 body.touching #fps{top:54px}
 body:has(#shop:not([hidden])) #fps{display:none}
 </style>
