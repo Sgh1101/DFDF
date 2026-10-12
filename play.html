@@ -12242,6 +12242,16 @@ body.touching #chk-chip.flash{animation:none}
       ADMIN_UNLOCKED = HUNT.unlocked;
       const b = $("pz-adtab");
       b && b.lastChild && 3 === b.lastChild.nodeType && "치트" !== b.lastChild.textContent && (b.lastChild.textContent = "치트");
+      // non-admins only see the cheats tab when there is something to do with it
+      // (a code to find this match, or cheats already unlocked); the locked
+      // 관리자 tab is for accounts the operator opened it for
+      const adm = !!(window.ADMIN_GRANTED || window.IS_OWNER),
+        hunt = HUNT.unlocked || (C().enabled && inMatch());
+      b && (b.style.display = adm || hunt ? "" : "none");
+      const g = tabBtn("global");
+      g && (g.style.display = adm ? "" : "none");
+      const m = tabBtn("me");
+      m && (m.style.display = adm || hunt ? "" : "none");
     } catch (e) {}
   }, 500);
   const st = document.createElement("style");
