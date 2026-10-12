@@ -28912,3 +28912,21 @@ body.touching #admin .ad-head{padding-right:50px}`;
   window.SOUNDPACK = { packs: PACKS, skins: SKIN_PACK, onKill, preview, play };
 })();
 </script>
+
+<style id="mobile-landscape-fix">
+/* phones in landscape (e.g. 852x393): agent select showed only ~1.5 abilities,
+   the last map chip ended flush against the scroller edge, and the FPS badge
+   sat on top of the buy menu title / the touch board+menu buttons */
+@media (orientation: landscape) and (max-height: 480px) {
+  .sel-foot{padding-top:4px!important;padding-bottom:4px!important}
+  .sel-foot .map-cats{margin-bottom:0}
+  .sel-foot .lb-map{padding:4px 9px}
+  .sel-maps{padding:2px 12px 4px!important;scroll-padding-inline:12px}
+  .sel-detail .det-hero,.sel-detail .ab-meta{display:none}
+  .sel-detail .det-desc{padding-bottom:2px;margin-top:0}
+  .sel-detail .ab{padding:3px 0}
+  .sel-detail .ab-desc{font-size:10px;line-height:1.3}
+}
+body.touching #fps{top:54px}
+body:has(#shop:not([hidden])) #fps{display:none}
+</style>
