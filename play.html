@@ -27482,6 +27482,11 @@ body.touching #admin .ad-head{padding-right:50px}`;
     list.forEach((m) => MAP_LIST.push(m));
     window.MAP_COUNT = MAP_LIST.length;
     MAP_LIST.some((m) => m.key === room.map) || (room.map = "pogu");
+    // agent select opened while the page was still loading: redraw its chips
+    try {
+      const box = document.getElementById("sel-maps");
+      box && box.childElementCount && "function" == typeof paintSelMaps && paintSelMaps();
+    } catch (e) {}
   }
   setPool();
   // the owner's setting arrives with the server config
