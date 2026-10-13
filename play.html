@@ -28944,7 +28944,7 @@ body.touching #admin .ad-head{padding-right:50px}`;
 /* short landscape (852x393): the detail panel runs the full height on the
    right so every ability fits, and the map chips wrap instead of scrolling */
 @media (orientation: landscape) and (max-height: 480px) {
-  #s-select{display:grid!important;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" "grid det" "foot det"}
+  #s-select:not([hidden]){display:grid!important;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" "grid det" "foot det"}
   #s-select .sel-top{grid-area:top}
   #s-select .sel-body{display:contents!important}
   #s-select .sel-grid{grid-area:grid;min-height:0}
