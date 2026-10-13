@@ -13872,6 +13872,9 @@ body.touching #chk-chip.flash{animation:none}
   renderSelect = function () {
     const r = _rs.apply(this, arguments);
     try {
+      // agents added by later scripts (초침, 관문, 황야, 나침) come after this
+      // bar was first drawn: count again on every redraw
+      paintBar();
       apply();
     } catch (e) {}
     return r;
