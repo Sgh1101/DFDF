@@ -699,7 +699,7 @@
     tb.hidden = (!n && !h) || !inMatch();
     tb.classList.toggle("hold", h);
     tb.innerHTML = `<em class="nd-ic">💣</em><i>${h ? "✕" : n}</i>`;
-    // the ability buttons each have their own spot; sit just left of Q, same size
+    // Follow Q on custom layouts; compact defaults place the grenade above the pair.
     if (!tb.hidden) {
       const q = document.querySelector('#tabil .tab[data-a="0"]'),
         r = q && q.getBoundingClientRect();
@@ -708,8 +708,11 @@
         set("position", "fixed");
         set("width", r.width + "px");
         set("height", r.height + "px");
-        set("left", Math.max(4, r.left - r.width - Math.max(6, r.width * 0.14)) + "px");
-        set("top", r.top + "px");
+        const gap = Math.max(6, r.width * 0.14);
+        const compact = document.body.classList.contains("touching") && matchMedia("(orientation:landscape) and (max-height:600px)").matches && !q.style.getPropertyValue("left");
+        // Above the second ability column avoids the joystick and left fire button.
+        set("left", (compact ? r.left + r.width + gap : Math.max(4, r.left - r.width - gap)) + "px");
+        set("top", (compact ? Math.max(56, r.top - r.height - gap) : r.top) + "px");
         set("right", "auto");
         set("bottom", "auto");
       }

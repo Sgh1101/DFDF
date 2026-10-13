@@ -24,7 +24,8 @@
     resume.replaceChildren();
     if (resume.hidden) return;
     const text = document.createElement("span"), label = document.createElement("b"), detail = document.createElement("small");
-    label.textContent = L("최근 설정으로 시작", "Use recent settings");
+    label.textContent = L("최근 설정", "Recent settings");
+    resume.setAttribute("aria-label", L("최근 설정으로 시작", "Start with recent settings"));
     detail.textContent = [AGENTS.find((a) => a.key === recent.agent).name, MAP_LIST.find((m) => m.key === recent.map).name, GAME_MODES[recent.mode] && GAME_MODES[recent.mode].name, recent.diff && (EN ? recent.diff : { easy: "순한맛", normal: "보통", hard: "빡셈" }[recent.diff])].filter(Boolean).join(" · ");
     text.append(label, detail); resume.append(text);
   }
