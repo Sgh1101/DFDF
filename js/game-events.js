@@ -209,29 +209,34 @@
   const over = gameOver;
   gameOver = function () {
     const wasOver = world.phase === "over", result = over.apply(this, arguments);
-    if (!wasOver && window.RESULTS) {
+    if (!wasOver && !window.GAME_PRACTICE && window.RESULTS) {
       const match = RESULTS.summary();
       dispatchEvent(new CustomEvent("match-finished", { detail: structuredClone(match) }));
     }
     clearFinishers();
     return result;
   };
+  window.GAME_PRACTICE = false;
   const begin = startGame;
   startGame = function (agent, practice) {
+    window.GAME_PRACTICE = !!practice;
     clearFinishers(); roundKills.clear(); finishedRound = claimedRound = false;
     return begin.apply(this, arguments);
   };
   for (const name of ["hostStartMatch", "clientBeginMatch"]) {
     const original = window[name];
     window[name] = function () {
+      window.GAME_PRACTICE = false;
       clearFinishers(); roundKills.clear(); seen.clear(); pendingKills.clear(); finishedRound = claimedRound = false;
       return original.apply(this, arguments);
     };
   }
   addEventListener("storage", (event) => {
-    if (event.key !== "lgp_session") return;
+    if (event.key !== "lgp_session" && event.key !== null) return;
     let next = null; try { next = JSON.parse(event.newValue || "null"); } catch (e) {}
     const session = ACCOUNT.session();
-    if (!next || next.token !== (session && session.token)) { netShutdown(); location.replace("./"); }
+    if (!next || next.token !== (session && session.token)) {
+      sessionStorage.removeItem("lgp_gate"); resetTouchInput(); netShutdown(); location.replace("./");
+    }
   });
 })();

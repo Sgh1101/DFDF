@@ -24,9 +24,9 @@
   const setIcon = (el, k, label) => el && ((el.innerHTML = svg(k) + (label ? `<em>${label}</em>` : "")), el.classList.add("mb"));
   const on = (el, down, up) => {
     if (!el) return;
-    el.addEventListener("touchstart", (e) => (e.preventDefault(), e.stopPropagation(), down(e)), { passive: !1 });
+    el.addEventListener("touchstart", (e) => { if (touch.on) { e.preventDefault(); e.stopPropagation(); down(e); } }, { passive: !1 });
     up && el.addEventListener("touchend", (e) => (e.preventDefault(), up(e)), { passive: !1 });
-    up && el.addEventListener("touchcancel", () => up());
+    up && el.addEventListener("touchcancel", (e) => up(e));
   };
   const buzz = (ms) => {
     try {
@@ -53,8 +53,9 @@
   const fire2 = mk("tb-fire2", "fire", "", touchEl);
   // fire buttons also aim: dragging from them turns the view like the free area does
   const fireDown = (e) => {
-    keys.fire = !0;
+    beginTouchFire(e);
     buzz(6);
+    if (!touch.on) return;
     const t = e.changedTouches[0];
     null === touch.lookId && ((touch.lookId = t.identifier), (touch.lookX = t.clientX), (touch.lookY = t.clientY));
   };
@@ -62,7 +63,7 @@
     const t = e.changedTouches[0];
     null === touch.lookId && ((touch.lookId = t.identifier), (touch.lookX = t.clientX), (touch.lookY = t.clientY));
   });
-  on(fire2, fireDown, () => (keys.fire = !1));
+  on(fire2, fireDown, endTouchFire);
   on(crouch, () => {
     keys.control = !keys.control;
     crouch.classList.toggle("on", !!keys.control);

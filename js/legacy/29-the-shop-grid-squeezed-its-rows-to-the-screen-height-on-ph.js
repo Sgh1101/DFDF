@@ -4,32 +4,7 @@
   //  columns spilled into each other; rows now take their content height
   //  and the grid scrolls — see the style block)
 
-  // 0. Turning touch controls off and on again bound every touch button a
-  //    second time (the settings gear then opened and closed on one tap).
-  //    Bind once; later calls only show the controls again.
-  const _et = enableTouch;
-  let bound = !1;
-  enableTouch = function () {
-    if (!bound) return (bound = !0), _et.apply(this, arguments);
-    if (touch.on) return;
-    touch.on = !0;
-    const t = document.getElementById("touch");
-    t && (t.hidden = !1);
-  };
-  try {
-    touch.on && (bound = !0);
-  } catch (e) {}
-
-  // 1. Touch controls follow the device: on for touch-first screens, off for
-  //    mouse ones. An explicit choice in settings (lgp_touch_pick) always wins.
-  //    (The old one-time reset forced everyone off, phones included.)
-  try {
-    localStorage.getItem("lgp_touch_v2") || localStorage.setItem("lgp_touch_v2", "1");
-    const pick = localStorage.getItem("lgp_touch_pick");
-    const touchy = matchMedia("(pointer: coarse)").matches || ((navigator.maxTouchPoints || 0) > 0 && !matchMedia("(any-pointer: fine)").matches);
-    const want = "1" === pick ? !0 : "0" === pick ? !1 : touchy;
-    want !== IS_TOUCH && setTouchMode(want);
-  } catch (e) {}
+  // Touch input now binds once in the engine.
 
   // 2. a small settings button right under the minimap (touch controls
   //    already have a gear in the top-right strip, so only without them)

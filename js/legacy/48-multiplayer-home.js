@@ -36,7 +36,8 @@
   let ROOMS = [],
     loaded = !1,
     failed = !1,
-    busy = !1;
+    busy = !1,
+    updatedAt = 0;
 
   // ── the title: 혼자 하기 · 같이 하기 · (range, map tour, settings) ──
   const host = $("go-host"),
@@ -70,6 +71,7 @@
 <div class="mu-body">
   <section class="mu-list">
     <div class="mu-bar"><div class="mu-chs" id="mu-chs"></div><button class="mu-ref" id="mu-ref" title="${L("새로고침", "Refresh")}">⟳</button></div>
+    <div id="mu-status" role="status" aria-live="polite" style="font-size:11px;color:var(--steel-dim);padding:4px 0"></div>
     <div class="mu-note" id="mu-note" hidden></div>
     <div class="mu-rooms" id="mu-rooms"></div>
   </section>
@@ -124,6 +126,11 @@
   }
   function paint() {
     pickDefault();
+    const age = updatedAt ? Math.max(0, Math.floor((Date.now() - updatedAt) / 1000)) : 0;
+    $("mu-status").textContent = busy ? L("방 목록 갱신 중…", "Refreshing rooms…") : updatedAt ? L(`마지막 갱신 ${age}초 전${failed || age >= 30 ? " · 이전 목록" : ""}`, `Updated ${age}s ago${failed || age >= 30 ? " · Previous list" : ""}`) : failed ? L("갱신 실패 · 다시 시도하세요", "Refresh failed · Try again") : "";
+    $("mu-ref").disabled = busy;
+    $("mu-ref").setAttribute("aria-label", L("방 목록 새로고침", "Refresh rooms"));
+    $("mu-rooms").setAttribute("aria-busy", String(busy));
     const cs = chans();
     $("mu-chs").innerHTML = cs
       .map((c) => {
@@ -162,10 +169,12 @@
   async function load(force) {
     if (!online() || busy || !AC() || !AC().api) return paint();
     busy = !0;
-    force && $("mu-ref").classList.add("spin");
+    $("mu-ref").classList.add("spin");
+    paint();
     try {
       ROOMS = (await AC().api("rooms")).rooms || [];
       failed = !1;
+      updatedAt = Date.now();
     } catch (e) {
       failed = !0;
     }

@@ -538,8 +538,11 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
   addEventListener(
     "keydown",
     (e) => {
-      if (!inMatch()) return;
+      if (!inMatch() || document.body.classList.contains("mb-editing") || ["pause", "shop", "admin", "armory", "mis"].some((id) => {
+        const node = $(id); return node && !node.hidden && node.getClientRects().length > 0;
+      })) return;
       if ("Tab" === e.key) {
+        if (boardOpen && boardSticky) return;
         e.preventDefault();
         e.repeat || boardOpen || openBoard("sb", !1);
       } else if ("n" === (e.key || "").toLowerCase() && !e.repeat && !e.ctrlKey && !e.metaKey) {

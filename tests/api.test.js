@@ -113,3 +113,41 @@ test("pipeline errors fail closed instead of dropping ban checks", async () => {
   const result = await h.api("gacha", { token: p.token });
   assert.equal(result.status, 500); assert.equal(h.user("player").pulls || 0, 0);
 });
+
+
+test("delete and recreate never revives the old session or match ticket", async () => {
+  const h = harness(), old = await login(h), owner = await login(h, "owner");
+  const mt = await h.api("match_start", { token: old.token });
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "delete" });
+  assert.equal((await h.api("me", { token: old.token })).status, 401);
+  const fresh = await login(h);
+  assert.notEqual(fresh.token, old.token);
+  for (const action of ["me", "prefs", "skins", "missions", "match_start", "gacha"])
+    assert.equal((await h.api(action, { token: old.token })).status, 401, action);
+  h.advance(61000);
+  assert.equal((await h.api("progress", { token: fresh.token, mt: mt.ticket, win: true })).status, 409);
+  assert.equal(h.user("player").matches, 0);
+});
+
+
+test("common auth enforces device and IP bans for players and guests, including expiry", async () => {
+  for (const kind of ["player", "guest"]) {
+    const h = harness();
+    const account = kind === "player" ? await login(h) : await h.api("guest", { device: "device-123" });
+    for (const key of ["ban:dev:device-123", "ban:ip:127.0.0.1"]) {
+      h.db.set(key, JSON.stringify({ reason: "test restriction", until: h.now() + 1000 }));
+      for (const action of ["me", "prefs", "skins", "missions", "gacha", "match_start"])
+        assert.equal((await h.api(action, { token: account.token })).status, 403, kind + " " + action);
+      h.advance(1001);
+      assert.equal((await h.api("me", { token: account.token })).status, 200);
+    }
+  }
+});
+
+test("records without a session version require login instead of accepting an unversioned token", async () => {
+  const h = harness(); await login(h);
+  const record = h.user("player"); delete record.sessionVersion; h.db.set("user:player", JSON.stringify(record));
+  const token = h.sign({ k: "p", id: "player", exp: h.now() + 10000 });
+  assert.equal((await h.api("me", { token })).status, 401);
+  assert.equal((await login(h)).status, 200);
+});

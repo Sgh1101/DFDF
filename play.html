@@ -4,6 +4,10 @@
 <title>13</title>
 <link rel="preload" as="script" href="./js/legacy/01-entry.js">
 <link rel="preload" as="script" href="./js/legacy/02-graphics-setup.js">
+<link rel="preload" as="script" href="./js/engine/agents.js">
+<link rel="preload" as="script" href="./js/engine/weapons.js">
+<link rel="preload" as="script" href="./js/engine/maps.js">
+<link rel="preload" as="script" href="./js/engine/textures-portraits.js">
 <link rel="preload" as="script" href="./js/legacy/03-engine.js">
 <link rel="preload" as="script" href="./js/legacy/04-title-roster.js">
 <link rel="preload" as="script" href="./js/legacy/05-game-modes.js">
@@ -672,6 +676,10 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
 <script src="./js/game-audio.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
 <script src="./js/legacy/02-graphics-setup.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/engine/agents.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/engine/weapons.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/engine/maps.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/engine/textures-portraits.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/03-engine.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/04-title-roster.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/05-game-modes.js" onerror="GAME_BOOT.fail(this.src)"></script>
@@ -797,6 +805,7 @@ body:has(#shop:not([hidden])) #fps{display:none}
 <link rel="stylesheet" href="./css/home.css">
 <link rel="stylesheet" href="./css/mobile.css">
 <script src="./js/game-events.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
+<script src="./js/game-catalog.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/home.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/home-details.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/modal-focus.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>

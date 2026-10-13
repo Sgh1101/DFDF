@@ -4,10 +4,10 @@ async function fixture() {
   const h = harness({ now: Date.now() }), errors = [];
   const browser = await chromium.launch({ ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}), headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "browser-owner-device" });
-  async function page(id, viewport = { width: 852, height: 393 }) {
+  async function page(id, viewport = { width: 852, height: 393 }, contextOptions = {}) {
     const session = await h.api("auth", { id, pw: "password", device: "browser-test-" + id });
     for (const item of ["rifle|dragon", "rpg|dragon"]) await h.api("a_user_set", { atoken: owner.atoken, id, op: "grant", item });
-    const context = await browser.newContext({ viewport });
+    const context = await browser.newContext({ viewport, serviceWorkers: "block", ...contextOptions });
     const page = await context.newPage(); page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.text().includes("network alert")) console.log(id, message.text().slice(0, 180)); });
     await page.route("**/api/v1?*", async (route) => {
@@ -19,7 +19,10 @@ async function fixture() {
     await page.route("https://fonts.googleapis.com/**", (route) => route.abort());
     await page.route("https://fonts.gstatic.com/**", (route) => route.abort());
     await page.addInitScript((s) => {
-      localStorage.setItem("lgp_session", JSON.stringify(s)); sessionStorage.setItem("lgp_gate", s.token);
+      if (!sessionStorage.getItem("dfdf_fixture_seeded")) {
+        localStorage.setItem("lgp_session", JSON.stringify(s)); sessionStorage.setItem("lgp_gate", s.token);
+        sessionStorage.setItem("dfdf_fixture_seeded", "1");
+      }
       const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120);
     }, session);
     await page.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + "/play.html", { waitUntil: "domcontentloaded", timeout: 120000 });

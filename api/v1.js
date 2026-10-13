@@ -276,7 +276,7 @@ async function who(token) {
   const s = verify(token);
   if (!s || "p" !== s.k) return null;
   const u = await getJ(s.g ? guestKey(s.id) : userKey(s.id));
-  if (!u || s.v !== u.sessionVersion || (u.owner && s.pv !== 2)) return null;
+  if (!u || !s.v || s.v !== u.sessionVersion || (u.owner && s.pv !== 2)) return null;
   if (!(u.owner && isOwnerId(u.id))) {
     const ban = await banOf(u, u.dev, requestState.getStore()?.get("requestIp") || u.lastIp);
     if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
@@ -553,7 +553,7 @@ A.skin_check = async (q, b) => {
 };
 // small things the game keeps per account: the touch-button layout (part →
 // [x, y, size]); the newer of two devices wins, as with the skins
-const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
+const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -688,13 +688,13 @@ A.match_start = async (q, b) => {
   const n = crypto.randomBytes(12).toString("hex"),
     t0 = now();
   await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]);
-  return { ticket: sign({ k: "match", u: String(u.id), n, t0, exp: t0 + MATCH_MAX_MS }) };
+  return { ticket: sign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS }) };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
 // unused ticket from a long enough match; kills no faster than the clock allows
 async function matchTrust(u, ticket) {
   const t = verify(ticket);
-  if (!t || "match" !== t.k || String(t.u) !== String(u.id) || !t.n) return { ok: !1, why: "no_ticket" };
+  if (!t || "match" !== t.k || String(t.u) !== String(u.id) || t.v !== u.sessionVersion || !t.n) return { ok: !1, why: "no_ticket" };
   const ms = now() - (+t.t0 || 0);
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
@@ -706,7 +706,7 @@ A.progress = async (q, b) => {
     u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   const ticket = verify(b.mt);
-  if (ticket && ticket.k === "match" && String(ticket.u) === String(u.id)) {
+  if (ticket && ticket.k === "match" && String(ticket.u) === String(u.id) && ticket.v === u.sessionVersion) {
     const receipt = await getJ("mr:" + ticket.n);
     if (receipt) {
       const user = publicUser(u, c.xp.perLevel), cap = Math.max(0, +c.gold.maxPerDay || 0);

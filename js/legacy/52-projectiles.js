@@ -700,7 +700,7 @@
     tb.classList.toggle("hold", h);
     tb.innerHTML = `<em class="nd-ic">💣</em><i>${h ? "✕" : n}</i>`;
     // Follow Q on custom layouts; compact defaults place the grenade above the pair.
-    if (!tb.hidden) {
+    if (!tb.hidden && !(window.TOUCHLAY && TOUCHLAY.layout().m["tb-nade"])) {
       const q = document.querySelector('#tabil .tab[data-a="0"]'),
         r = q && q.getBoundingClientRect();
       if (r && r.width > 0) {

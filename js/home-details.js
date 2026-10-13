@@ -37,9 +37,21 @@
     try { const saved = JSON.parse(event.newValue || "[]"); if (Array.isArray(saved)) favorites = new Set(saved.filter((id) => AGENTS.some((a) => a.key === id))); paintFavorites(); } catch (e) {}
   });
 
+  for (const [id, ko, en] of [
+    ["tb-fire", "사격", "Fire"], ["tb-fire2", "왼쪽 사격", "Left fire"],
+    ["tb-ads", "조준", "Aim"], ["tb-jump", "점프", "Jump"], ["tb-crouch", "앉기", "Crouch"],
+    ["tb-rel", "장전", "Reload"], ["tb-use", "스파이크 설치 또는 해제", "Plant or defuse spike"],
+    ["tb-shop", "무기 구매", "Buy weapons"], ["tb-menu", "설정", "Settings"],
+    ["tb-board", "점수판", "Scoreboard"], ["tb-log", "전투 기록", "Combat log"],
+  ]) { const button = $(id); if (button) button.setAttribute("aria-label", L(ko, en)); }
+
   const controls = document.createElement("p");
   controls.textContent = L("PC: WASD 이동 · 마우스 조준 · 클릭 사격 · R 장전 · B 구매 · C/Q/E/X 능력 · Esc 설정. 모바일: 조이스틱 이동, 화면 오른쪽 조준, 화면의 사격·능력 버튼 사용.", "PC: WASD move · mouse aim · click fire · R reload · B buy · C/Q/E/X abilities · Esc settings. Mobile: joystick to move, right side to aim, fire and ability buttons.");
   menu.querySelector(".home-guide").append(controls);
+  const rankNote = document.createElement("p");
+  rankNote.id = "home-rank-policy";
+  rankNote.textContent = L("현재 RR은 AI전·비공개 방·관리자 설정 경기를 포함한 모든 모드의 완료 결과에 반영됩니다. 무승부는 RR이 유지되고, 사격장·맵 탐방은 제외됩니다.", "RR currently applies to completed matches in every mode, including AI, private rooms and modified settings. Draws keep RR unchanged. The range and map tour are excluded.");
+  menu.querySelector(".home-guide").append(rankNote);
   const modeGuide = document.createElement("details"); modeGuide.className = "home-guide"; modeGuide.id = "mode-guide";
   const modeTitle = document.createElement("summary"), modeText = document.createElement("p");
   modeTitle.textContent = L("선택한 모드 안내", "Selected mode guide"); modeGuide.append(modeTitle, modeText);

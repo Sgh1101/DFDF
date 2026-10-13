@@ -13,6 +13,11 @@
     S = JSON.parse(localStorage.getItem("lgp_session") || "null");
   } catch (e) {}
   const token = () => (S && S.token) || "";
+  function sessionMatches(ownerToken) {
+    if (token() !== ownerToken) return false;
+    try { return JSON.parse(localStorage.getItem("lgp_session") || "null")?.token === ownerToken; }
+    catch (error) { return false; }
+  }
   async function api(a, b) {
     const { response: r, data: j } = await GAME_REQUEST(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : void 0 });
     if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban, retryable: j.retryable });
@@ -140,9 +145,11 @@
 
   // ── who am I ──
   async function checkMe() {
-    if (!token()) return;
+    const requestToken = token();
+    if (!requestToken) return;
     try {
-      const j = await api("me", { token: token() });
+      const j = await api("me", { token: requestToken });
+      if (!sessionMatches(requestToken)) return;
       if (online && !gatePassed()) return; // an old saved sign-in counts for nothing until the login screen
       S.user = j.user;
       localStorage.setItem("lgp_session", JSON.stringify(S));
@@ -152,6 +159,7 @@
       S.atoken = j.atoken || "";
       localStorage.setItem("lgp_session", JSON.stringify(S));
     } catch (e) {
+      if (!sessionMatches(requestToken)) return;
       if (e.status === 401) {
         S = null; localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate");
         location.replace("./"); return;
@@ -250,6 +258,8 @@
     try {
       id.value = (S && S.user && !S.user.guest && S.user.id) || localStorage.getItem("lgp_name") || "";
     } catch (e) {}
+    id.setAttribute("aria-label", L("아이디", "ID"));
+    pw.setAttribute("aria-label", L("비밀번호", "Password"));
     (id.value ? pw : id).focus();
     $("ag-go").onclick = () => signIn(!1);
     $("ag-guest").onclick = () => signIn(!0);
@@ -264,6 +274,7 @@
     } catch (e) {}
   }
   async function signIn(guest) {
+    if ($("ag-go").disabled) return;
     const err = $("ag-err");
     err.textContent = "";
     $("ag-go").disabled = $("ag-guest").disabled = !0;
@@ -273,27 +284,12 @@
       localStorage.setItem("lgp_session", JSON.stringify(S));
       localStorage.setItem("lgp_name", j.user.id);
       sessionStorage.setItem("lgp_gate", j.token);
-      window.ADMIN_GRANTED = !!j.user.admin;
-      window.IS_OWNER = !!j.user.owner;
-      GATE.remove();
-      GATE = null;
-      try {
-        typeof window.paintLevelChip === "function" && paintLevelChip();
-      } catch (e) {}
-      banner(L("환영합니다, ", "Welcome, ") + j.user.id + (j.user.owner ? " · OWNER" : ""), "#ffc849");
-      checkMe();
-      while (queued.length) queued.shift()();
-      // the room link the visit came with
-      const pend = window.__PENDING_ROOM;
-      if (pend) {
-        window.__PENDING_ROOM = null;
-        try {
-          history.replaceState(null, "", location.pathname + "?room=" + encodeURIComponent(pend));
-        } catch (e) {}
-        const jc = $("join-code");
-        jc && (jc.value = pend);
-        setTimeout(() => window.joinRoom(pend), 300);
-      }
+      // Account-scoped modules captured their cache keys during boot. Reload
+      // before any queued action or old account request can use the new token.
+      const pending = window.__PENDING_ROOM;
+      if (pending) history.replaceState(null, "", location.pathname + "?room=" + encodeURIComponent(pending));
+      if (typeof netShutdown === "function") netShutdown();
+      location.reload();
     } catch (e) {
       if (e.ban) return wall(L("이용이 제한되었습니다", "Access restricted"), banText(e.ban));
       err.textContent = "offline" === e.message ? L("서버에 연결할 수 없습니다", "Cannot reach the server") : e.message;
@@ -554,7 +550,7 @@
   let pending = [];
   try { pending = JSON.parse(localStorage.getItem(pendingKey()) || "[]"); } catch (e) {}
   const keepReports = () => { try { localStorage.setItem(pendingKey(), JSON.stringify(pending.slice(-20))); } catch (e) { banner(L("보상 기록을 기기에 저장하지 못했습니다", "Could not save the reward retry record"), "#ff8a9a"); } };
-  function beginReport(fresh = false) { if (online) return reportSession.begin(fresh); }
+  function beginReport(fresh = false) { if (online && !window.GAME_PRACTICE) return reportSession.begin(fresh); }
   let reporting = false;
   async function flushReports() {
     if (reporting || !token() || !pending.length) return;
@@ -562,12 +558,13 @@
     const ownerToken = token();
     try {
       const job = pending[0], j = await api("progress", { token: ownerToken, ...job });
-      if (token() !== ownerToken) return;
+      if (!sessionMatches(ownerToken)) return;
       pending.shift(); keepReports();
       S.user = j.user; S.hist = j.hist || S.hist;
       localStorage.setItem("lgp_session", JSON.stringify(S));
       banner(j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP · 🪙 +${j.gold}`, "#ffc849");
     } catch (e) {
+      if (!sessionMatches(ownerToken)) return;
       if ([400, 409].includes(e.status) && !e.retryable) { pending.shift(); keepReports(); }
       banner(L("경기 보상: ", "Match reward: ") + e.message, "#ff8a9a");
     } finally { reporting = false; }

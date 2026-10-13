@@ -19,6 +19,7 @@
     ["tb-crouch", () => $("tb-crouch"), L("앉기", "Crouch"), !0],
     ["tb-rel", () => $("tb-rel"), L("장전", "Reload"), !0],
     ["tb-use", () => $("tb-use"), L("설치/해제 (F)", "Use (F)"), !0],
+    ["tb-nade", () => $("tb-nade"), L("수류탄", "Grenade"), !0],
     ["tab-0", () => document.querySelector('#tabil .tab[data-a="0"]'), L("능력 Q", "Ability Q"), !0],
     ["tab-1", () => document.querySelector('#tabil .tab[data-a="1"]'), L("능력 E", "Ability E"), !0],
     ["tab-2", () => document.querySelector('#tabil .tab[data-a="2"]'), L("능력 C", "Ability C"), !0],
@@ -69,7 +70,7 @@
     const v = TL.m[key];
     const set = (k, val) => el.style.setProperty(k, val, "important");
     if (!v) {
-      for (const k of ["position", "left", "top", "right", "bottom", "transform", "--mbs", "margin"]) el.style.removeProperty(k);
+      for (const k of ["position", "left", "top", "right", "bottom", "transform", "--mbs", "margin", "width", "height"]) el.style.removeProperty(k);
       return;
     }
     set("position", "absolute");
@@ -78,6 +79,7 @@
     set("right", "auto");
     set("bottom", "auto");
     set("margin", "0");
+    if (key === "tb-nade") { set("width", "calc(48px * var(--mbs))"); set("height", "calc(48px * var(--mbs))"); }
     if (p[3]) {
       set("--mbs", String(globalSize() * v[2]));
       set("transform", "translate(-50%,-50%)");
@@ -119,8 +121,10 @@
   let pulled = "",
     acked = TL.t,
     pushT = 0,
-    busy = !1;
+    busy = !1,
+    pendingPrefs = null;
   function take(srv) {
+    if (ED.on) { if (!pendingPrefs || +srv.t > +pendingPrefs.t) pendingPrefs = srv; return; }
     TL.m = clean(srv.touch);
     TL.t = +srv.t || Date.now();
     acked = TL.t;
@@ -129,7 +133,7 @@
   }
   async function push() {
     const t = token();
-    if (!t || !online() || busy) return;
+    if (!t || !online() || busy || ED.on) return;
     busy = !0;
     const at = TL.t;
     try {
@@ -152,7 +156,7 @@
   }
   async function sync(force) {
     const t = token();
-    if (!t || !online()) return;
+    if (!t || !online() || ED.on) return;
     if (TL.t && acked < TL.t && !pushT) return push();
     if (!force && pulled === t) return;
     pulled = t;
@@ -197,7 +201,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
 #mbe-bar h4{font-family:var(--f-display);font-size:12px;letter-spacing:.14em;margin:0 4px 0 0}
 #mbe-bar .mbe-name{min-width:72px;color:var(--gold,#ffc849);font-weight:700}
 #mbe-bar input[type=range]{width:120px}
-#mbe-bar .btn{padding:9px 12px;font-size:11px;min-height:40px}
+#mbe-bar .btn{padding:9px 12px;font-size:11px;min-height:44px}
 #mbe-bar .mbe-hint{width:100%;text-align:center;font-size:10.5px;color:var(--steel-dim,#5b6879)}
 @media(max-width:600px){#mbe-bar{gap:6px;padding:6px 8px}#mbe-bar input[type=range]{width:90px}#mbe-bar .btn{padding:8px 9px}}
 `;
@@ -268,6 +272,15 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     const el = BY[key][1]();
     if (!el || H.has(el)) return;
     el.classList.add("mbe-part");
+    const previousTab = el.getAttribute("tabindex");
+    el.addEventListener("focus", () => { if (ED.on) select(key); });
+    el.addEventListener("keydown", (event) => {
+      if (!ED.on || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      const value = cur(key), axis = event.key === "ArrowLeft" || event.key === "ArrowRight" ? 0 : 1;
+      value[axis] = Math.max(.02, Math.min(.98, value[axis] + (event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1) * (event.shiftKey ? .05 : .01)));
+      TL.m[key] = value; place(key);
+    });
     const block = (e) => {
       if (!ED.on) return;
       e.stopImmediatePropagation();
@@ -296,7 +309,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       place(key);
     };
     const up = (e) => {
-      if (!ED.drag || ED.drag.key !== key) return;
+      if (!ED.drag || ED.drag.key !== key || e.pointerId !== ED.drag.id) return;
       ED.drag = null;
       try {
         el.releasePointerCapture(e.pointerId);
@@ -304,17 +317,19 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     };
     el.addEventListener("touchstart", block, { capture: !0, passive: !1 });
     el.addEventListener("touchend", block, { capture: !0, passive: !1 });
+    el.addEventListener("touchcancel", block, { capture: !0, passive: !1 });
     el.addEventListener("pointerdown", down, { capture: !0 });
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
     el.addEventListener("click", block, { capture: !0 });
-    H.set(el, 1);
+    H.set(el, previousTab);
   }
   function open() {
     if (ED.on) return;
     buildBar();
     ED.on = !0;
+    resetTouchInput();
     ED.before = JSON.stringify(TL.m);
     const hud = $("hud"),
       touch = $("touch"),
@@ -330,18 +345,24 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     // beside the HUD, so the z-order below is the HUD's own (a backdrop on the body would sit over it)
     ((hud && hud.parentNode) || document.body).append(back, bar);
     KEYS.forEach(arm);
+    for (const [el] of H) el.tabIndex = 0;
     applyAll();
-    select(TL.m["tb-fire"] || !0 ? "tb-fire" : KEYS[0]);
+    select("tb-fire");
   }
   function close(keep) {
     if (!ED.on) return;
     ED.on = !1;
     ED.drag = null;
+    for (const [el, tab] of H) { if (tab === null) el.removeAttribute("tabindex"); else el.setAttribute("tabindex", tab); }
     if (keep) {
       JSON.stringify(TL.m) !== ED.before && changed();
     } else {
       TL.m = JSON.parse(ED.before || "{}");
       applyAll();
+    }
+    if (pendingPrefs) {
+      if (+pendingPrefs.t > TL.t) take(pendingPrefs);
+      pendingPrefs = null;
     }
     PARTS.forEach(([k]) => {
       const el = BY[k][1]();
@@ -362,7 +383,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
   addEventListener(
     "keydown",
     (e) => {
-      if (!ED.on) return;
+      if (!ED.on || e.key === "Tab" || e.key.startsWith("Arrow") || e.target.tagName === "INPUT") return;
       e.stopImmediatePropagation();
       "Escape" === e.key && close(!1);
     },
@@ -374,7 +395,7 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
     if (pane && !$("mbe-open")) {
       const d = document.createElement("div");
       d.className = "pz-row";
-      d.innerHTML = `<div class="xh-line"><span style="font-weight:700">${L("터치 버튼 배치", "Touch button layout")}</span><button class="btn" id="mbe-open" style="padding:9px 16px;font-size:11px;min-height:40px">${L("버튼 배치 편집", "Edit layout")}</button></div><div style="font-size:10.5px;color:var(--steel-dim);margin-top:4px">${L("버튼을 끌어서 옮기고 크기를 바꿉니다. 이 기기와 계정에 저장됩니다.", "Drag the buttons and set their size. Kept on this device and on your account.")}</div>`;
+      d.innerHTML = `<div class="xh-line"><span style="font-weight:700">${L("터치 버튼 배치", "Touch button layout")}</span><button class="btn" id="mbe-open" style="padding:9px 16px;font-size:11px;min-height:44px">${L("버튼 배치 편집", "Edit layout")}</button></div><div style="font-size:10.5px;color:var(--steel-dim);margin-top:4px">${L("버튼을 끌어서 옮기고 크기를 바꿉니다. 이 기기와 계정에 저장됩니다.", "Drag the buttons and set their size. Kept on this device and on your account.")}</div>`;
       pane.appendChild(d);
       $("mbe-open").onclick = () => {
         sync(!0);
@@ -382,5 +403,5 @@ body.mb-editing #mb-util .mb{pointer-events:none!important}
       };
     }
   } catch (e) {}
-  window.TOUCHLAY = { open, close, layout: () => TL, set: (k, v) => ((TL.m[k] = clean({ [k]: v })[k]), changed()), reset: () => ((TL.m = {}), changed()), apply: applyAll, parts: KEYS, sync: () => sync(!0), editing: () => ED.on, select };
+  window.TOUCHLAY = { open, close, layout: () => TL, set: (k, v) => { const value = clean({ [k]: v })[k]; if (!value) return; TL.m[k] = value; ED.on ? applyAll() : changed(); }, reset: () => { TL.m = {}; ED.on ? applyAll() : changed(); }, apply: applyAll, parts: KEYS, sync: () => sync(!0), editing: () => ED.on, select };
 })();
