@@ -28960,6 +28960,8 @@ body.touching #admin .ad-head{padding-right:50px}`;
   .sel-foot>.btn{padding:6px 12px!important;font-size:12px!important}
   .sel-foot>#sel-back{order:1}
   .sel-foot>#sel-go{order:3}
+  /* the title-screen chips (missions, rank, gold, account) sat on the role chips */
+  body:has(#s-select:not([hidden])) :is(#mis-chip,#rank-chip,#gold-chip,#acct-chip){display:none!important}
 }
 @media (orientation: landscape) and (max-height: 480px) and (max-width: 800px) {
   .sel-detail .det-desc{display:none}
