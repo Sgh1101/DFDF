@@ -1,0 +1,22 @@
+#home-account{position:absolute;top:max(10px,env(safe-area-inset-top));left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;z-index:45}
+#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){position:static!important;right:auto!important;top:auto!important;max-width:210px;min-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0!important}
+#s-title{padding-top:70px!important}
+#s-title .tt-news{top:75px}
+.home-practice{position:relative;min-width:100px;font-size:13px;font-weight:700;color:var(--ink)}
+.home-practice summary{cursor:pointer;border:1px solid var(--stroke2);border-radius:10px;padding:10px 16px;list-style:none;background:var(--glass)}
+.home-practice>div{position:absolute;top:100%;left:0;z-index:50;min-width:180px;padding:7px;background:#131923;border:1px solid var(--stroke2);border-radius:10px;box-shadow:0 8px 24px #0008}
+.home-practice>div button{width:100%;text-align:left;min-height:40px}
+.home-guide{margin-top:10px;font-size:12px;color:var(--steel);max-width:430px;line-height:1.6}
+.home-guide summary{cursor:pointer;color:var(--ink);padding:5px 0}
+.home-guide .btn{margin-top:7px;padding:8px 14px}
+.home-resume{border-color:#3e4b5f!important;padding:10px 16px!important}
+.home-resume[hidden]{display:none!important}
+.home-reduced .tt-bg{display:none}
+.home-reduced *{animation:none!important;transition:none!important}
+#skin-samples{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--stroke2);flex-shrink:0}
+#skin-sample-label{margin-right:auto;font-size:12px;color:var(--steel)}
+#skin-samples .btn{padding:7px 12px;font-size:11px;min-height:34px}
+#skin-samples .btn:disabled{opacity:.35;cursor:default}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #67d4ff;outline-offset:3px}
+@media(max-height:480px){#s-title{padding-top:52px!important}#home-account{gap:5px}#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){font-size:10px!important;min-height:28px;max-width:165px;padding:4px 7px!important}.home-guide{margin-top:3px}.home-resume{padding:7px 12px!important}#skin-samples{padding:4px 8px}#skin-samples .btn{padding:4px 8px;min-height:28px}#skin-sample-label{font-size:10px}}
+@media(max-width:520px){#home-account{justify-content:center}#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){max-width:150px}#s-title{padding-top:94px!important}.home-guide{font-size:11px}#skin-sample-label{flex-basis:100%}}

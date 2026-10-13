@@ -4,6 +4,16 @@
 // connected from the Vercel dashboard). The owner password is never in the
 // repository: it is the ADMIN_MASTER_PASS environment variable.
 const crypto = require("crypto");
+const { AsyncLocalStorage } = require("async_hooks");
+const requestState = new AsyncLocalStorage();
+const SNAPSHOT = Symbol("storedUser");
+
+async function fetchTimed(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try { return await fetch(url, { ...options, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+}
 
 const RURL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
 const RTOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
@@ -25,13 +35,14 @@ async function flushUse(force) {
   const n = used;
   used = 0;
   try {
-    await fetch(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify([["INCRBY", "usage:" + month(), String(n + 1)], ["EXPIRE", "usage:" + month(), String(40 * 86400)]]) });
+    await fetchTimed(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify([["INCRBY", "usage:" + month(), String(n + 1)], ["EXPIRE", "usage:" + month(), String(40 * 86400)]]) });
   } catch (e) {}
 }
 async function redis(cmd) {
   if (!RURL) throw Object.assign(new Error("저장소가 연결되지 않았습니다"), { code: 503 });
   used++;
-  const r = await fetch(RURL, { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
+  const r = await fetchTimed(RURL, { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
+  if (!r.ok) throw Object.assign(new Error("저장소에 연결할 수 없습니다"), { code: 503 });
   const j = await r.json();
   if (j.error) throw new Error(j.error);
   return j.result;
@@ -40,13 +51,18 @@ async function pipe(cmds) {
   if (!cmds.length) return [];
   if (!RURL) throw Object.assign(new Error("저장소가 연결되지 않았습니다"), { code: 503 });
   used += cmds.length;
-  const r = await fetch(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmds) });
+  const r = await fetchTimed(RURL.replace(/\/$/, "") + "/pipeline", { method: "POST", headers: { Authorization: "Bearer " + RTOK, "Content-Type": "application/json" }, body: JSON.stringify(cmds) });
+  if (!r.ok) throw Object.assign(new Error("저장소에 연결할 수 없습니다"), { code: 503 });
   const j = await r.json();
+  if (!Array.isArray(j) || j.length !== cmds.length || j.some((x) => !x || x.error)) throw new Error("저장소 명령에 실패했습니다");
   return j.map((x) => x.result);
 }
 const getJ = async (k) => {
   const v = await redis(["GET", k]);
-  return v ? JSON.parse(v) : null;
+  if (!v) return null;
+  const out = JSON.parse(v);
+  if (out && typeof out === "object" && /^(user|guest):/.test(k)) Object.defineProperty(out, SNAPSHOT, { value: v, writable: true });
+  return out;
 };
 const setJ = (k, v, ex) => redis(ex ? ["SET", k, JSON.stringify(v), "EX", String(ex)] : ["SET", k, JSON.stringify(v)]);
 
@@ -114,6 +130,7 @@ let cfgCache = null;
 const loadConfig = async () => {
   if (cfgCache && cfgCache.until > Date.now()) return cfgCache.c;
   const c = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
+  c.xp.perLevel = Math.max(1, Number.isFinite(+c.xp.perLevel) ? +c.xp.perLevel : 100);
   // the mobile-only server: there when switched on (also in older saved settings), gone when off
   c.channels = (c.channels || []).filter((x) => c.game.mobileServer || !x.mobile);
   c.game.mobileServer && !c.channels.some((x) => x.mobile) && c.channels.push({ id: "mobile", name: "모바일 전용", en: "Mobile only", mobile: !0 });
@@ -131,7 +148,9 @@ const sign = (o) => {
 };
 function verify(t) {
   if (!t || "string" != typeof t || !t.includes(".")) return null;
-  const [p, s] = t.split(".");
+  const parts = t.split(".");
+  if (parts.length !== 2) return null;
+  const [p, s] = parts;
   const want = crypto.createHmac("sha256", SECRET).update(p).digest("base64url");
   if (s.length !== want.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want))) return null;
   try {
@@ -153,10 +172,10 @@ const checkPw = (pw, stored) => {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 const levelOf = (xp, per) => {
-  let lv = 1,
-    need = per;
-  while (xp >= need) (xp -= need), lv++, (need = per * lv);
-  return { level: lv, into: xp, need };
+  xp = Math.max(0, Math.min(1e12, Number.isFinite(+xp) ? +xp : 0));
+  per = Math.max(1, Number.isFinite(+per) ? +per : 100);
+  const lv = Math.floor((Math.sqrt(1 + 8 * xp / per) - 1) / 2) + 1;
+  return { level: lv, into: xp - per * (lv - 1) * lv / 2, need: per * lv };
 };
 const cleanId = (s) => String(s || "").trim();
 const ID_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
@@ -170,9 +189,14 @@ async function log(type, msg, extra) {
 }
 // a little brake on guessing passwords
 async function limited(key, max, sec) {
+  const memo = requestState.getStore();
+  const mk = key + "|" + max + "|" + sec;
+  if (memo && memo.has(mk)) return memo.get(mk);
   const n = await redis(["INCR", "rl:" + key]);
   1 === n && (await redis(["EXPIRE", "rl:" + key, String(sec)]));
-  return n > max;
+  const out = n > max;
+  memo && memo.set(mk, out);
+  return out;
 }
 async function banOf(user, device, ip) {
   const [d, i] = await pipe([
@@ -252,9 +276,34 @@ async function who(token) {
   const s = verify(token);
   if (!s || "p" !== s.k) return null;
   const u = await getJ(s.g ? guestKey(s.id) : userKey(s.id));
-  return u ? Object.assign(u, { _s: s }) : null;
+  if (!u || s.v !== u.sessionVersion || (u.owner && s.pv !== 2)) return null;
+  if (!(u.owner && isOwnerId(u.id))) {
+    const ban = await banOf(u, u.dev, requestState.getStore()?.get("requestIp") || u.lastIp);
+    if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
+  }
+  return Object.assign(u, { _s: s });
 }
-const saveUser = (u) => setJ(u.guest ? guestKey(u.dev) : userKey(u.id), Object.assign({}, u, { _s: undefined }));
+// Compare and commit the entire record atomically. A stale request is retried
+// from fresh data; it can never replace another request's wallet or settings.
+const USER_COMMIT = `
+local current = redis.call('GET', KEYS[1]) or ''
+if current ~= ARGV[1] then return 0 end
+if KEYS[2] ~= '' and redis.call('GET', KEYS[2]) ~= ARGV[3] then return -1 end
+redis.call('SET', KEYS[1], ARGV[2])
+if KEYS[2] ~= '' then
+  redis.call('DEL', KEYS[2])
+  redis.call('SET', KEYS[3], ARGV[4], 'EX', 2592000)
+end
+return 1`;
+async function saveUser(u, report) {
+  const key = u.guest ? guestKey(u.dev) : userKey(u.id);
+  const value = JSON.stringify(Object.assign({}, u, { _s: undefined }));
+  const result = +await redis(["EVAL", USER_COMMIT, "3", key, report ? report.ticketKey : "", report ? report.key : "", u[SNAPSHOT] || "", value, report ? String(u.id) : "", report ? JSON.stringify(report.value) : ""]);
+  if (result === 0) throw Object.assign(fail(409, "다른 요청과 겹쳤습니다. 다시 시도해 주세요"), { retryUser: true });
+  if (result !== 1) throw fail(409, "이미 처리된 경기입니다");
+  if (Object.hasOwn(u, SNAPSHOT)) u[SNAPSHOT] = value;
+  else Object.defineProperty(u, SNAPSHOT, { value, writable: true });
+}
 const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 
 // ── gun skins: what there is to win ──
@@ -355,6 +404,7 @@ A.auth = async (q, b, req) => {
     }
     if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
     ensureWallet(u, c);
+    u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
     u.owner = !0;
     u.pass = hashPw(crypto.randomBytes(24).toString("hex"));
     delete u.ban;
@@ -363,7 +413,7 @@ A.auth = async (q, b, req) => {
     u.dev = String(b.device || "").slice(0, 64);
     await saveUser(u);
     await log("admin", "운영자 계정 로그인: " + id, { ip, user: id });
-    return { token: sign({ k: "p", id, o: 1, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
+    return { token: sign({ k: "p", id, o: 1, v: u.sessionVersion, pv: 2, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
   }
   if (u) {
     if (!checkPw(pw, u.pass)) {
@@ -377,6 +427,7 @@ A.auth = async (q, b, req) => {
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
   }
   ensureWallet(u, c);
+  u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
   const ban = await banOf(u, b.device, ip);
   if (ban) throw Object.assign(fail(403, "이용이 제한된 계정입니다"), { ban });
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
@@ -385,7 +436,7 @@ A.auth = async (q, b, req) => {
   u.dev = String(b.device || "").slice(0, 64);
   await saveUser(u);
   await log(created ? "join" : "login", (created ? "가입: " : "로그인: ") + id, { ip, user: id });
-  return { token: sign({ k: "p", id, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
+  return { token: sign({ k: "p", id, v: u.sessionVersion, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
 };
 A.guest = async (q, b, req) => {
   const c = await loadConfig(),
@@ -397,28 +448,41 @@ A.guest = async (q, b, req) => {
   let u = await getJ(guestKey(dev));
   if (!u) u = { id: "게스트" + (parseInt(crypto.createHash("md5").update(dev).digest("hex").slice(0, 6), 16) % 9000 + 1000), guest: !0, dev, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
   ensureWallet(u, c);
+  u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
   const ban = await banOf(u, dev, ip);
   if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
   u.lastSeen = now();
   u.lastIp = ip;
   await saveUser(u);
   await log("guest", "게스트 입장: " + u.id, { ip, user: u.id });
-  return { token: sign({ k: "p", id: dev, g: 1, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
+  return { token: sign({ k: "p", id: dev, g: 1, v: u.sessionVersion, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
 A.me = async (q, b, req) => {
   const c = await loadConfig(),
     u = await who(b.token || q.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   ensureWallet(u, c) && (await saveUser(u));
-  if (u.owner && isOwnerId(u.id)) return { user: publicUser(u, c.xp.perLevel), atoken: sign({ k: "admin", exp: now() + 12 * 36e5 }), hist: histOf(u) };
+  if (u.owner && isOwnerId(u.id)) return { user: publicUser(u, c.xp.perLevel), atoken: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }), hist: histOf(u) };
   const ban = await banOf(u, u.dev, ipOf(req));
   if (ban) throw Object.assign(fail(403, "이용이 제한되었습니다"), { ban });
   return { user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
-// a room host asks whether a guest really is the owner
-A.owner_check = async (q, b) => {
+// Only a scoped attestation travels to an untrusted room host.
+const ownerScope = (room, peer) => typeof room === "string" && /^[A-Z0-9]{6}$/.test(room) && typeof peer === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(peer);
+A.owner_ticket = async (q, b) => {
   const u = await who(b.token);
-  return { owner: !!(u && u.owner && isOwnerId(u.id)), id: u ? u.id : null };
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (!ownerScope(b.room, b.p)) throw fail(400, "방 또는 연결 정보가 이상합니다");
+  if (!(u.owner && isOwnerId(u.id) && u._s.o === 1)) return { ticket: null };
+  const exp = Math.min(u._s.exp, now() + 5 * 60000);
+  return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp }), exp };
+};
+A.owner_check = async (q, b) => {
+  const s = verify(b.ticket);
+  if (!ownerScope(b.room, b.p) || !s || s.k !== "owner" || s.room !== b.room || s.p !== b.p || !isOwnerId(s.id)) return { owner: false, id: null };
+  const u = await getJ(userKey(s.id));
+  const owner = !!(u && u.owner && u.sessionVersion === s.v);
+  return { owner, id: owner ? u.id : null, exp: owner ? s.exp : 0 };
 };
 // A guest with cheats opened for its account shows them to the room host
 // without handing over its sign-in: it asks for a ticket that only says who
@@ -456,8 +520,8 @@ A.skins = async (q, b) => {
       if (!/^[a-z0-9_]{1,24}$/.test(k) || !/^[a-z0-9_]{1,24}$/.test(v) || "default" === v) continue;
       hasItem(u, k, v) ? (m[k] = v) : dropped.push(k);
     }
-    u.skins = { t: Math.max(0, Math.min(now() + 6e4, +b.t || now())), m };
-    dirty = !0;
+    const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
+    if (!u.skins || t > u.skins.t) { u.skins = { t, m }; dirty = !0; }
   }
   dirty && (await saveUser(u));
   return { skins: u.skins || null, own: u.own, gold: u.gold, items: ITEMS, dropped };
@@ -497,8 +561,8 @@ A.prefs = async (q, b) => {
     const touch = {};
     const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
     if (isObj(b.set.touch)) for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
-    u.prefs = { t: Math.max(0, Math.min(now() + 6e4, +b.t || now())), touch };
-    await saveUser(u);
+    const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
+    if (!u.prefs || t > u.prefs.t) { u.prefs = { t, touch }; await saveUser(u); }
   }
   return { prefs: u.prefs || null };
 };
@@ -633,21 +697,31 @@ async function matchTrust(u, ticket) {
   if (!t || "match" !== t.k || String(t.u) !== String(u.id) || !t.n) return { ok: !1, why: "no_ticket" };
   const ms = now() - (+t.t0 || 0);
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
-  // one use only: the key is deleted here, a second report finds nothing
-  const del = await redis(["DEL", "mt:" + t.n]);
-  if (1 !== +del) return { ok: !1, why: "used" };
-  return { ok: !0, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  // Consumed with the wallet update and replayable receipt in one transaction.
+  if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
+  return { ok: !0, key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
+  const ticket = verify(b.mt);
+  if (ticket && ticket.k === "match" && String(ticket.u) === String(u.id)) {
+    const receipt = await getJ("mr:" + ticket.n);
+    if (receipt) {
+      const user = publicUser(u, c.xp.perLevel), cap = Math.max(0, +c.gold.maxPerDay || 0);
+      const used = u.goldDay && u.goldDay.d === kstDay(now()) ? u.goldDay.n || 0 : 0;
+      if (cap > 0) user.goldLeft = Math.max(0, cap - used);
+      return { ...receipt, user, goldLeft: cap > 0 ? user.goldLeft : null, hist: histOf(u), missions: misState(u, c), rank: rankOf(u.rr) };
+    }
+  }
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
-  // without a valid match ticket (older game page, or a forged report) only the
-  // plain match reward is given: no kills, no win
+  // Every award requires a valid ticket; replay returns the committed receipt.
   const trust = await matchTrust(u, b.mt);
+  if (!trust.ok) throw fail(409, trust.why === "too_short" ? "경기가 너무 짧아 보상을 받을 수 없습니다" : "유효한 경기 확인표가 없습니다");
+  const draw = b.outcome === "draw" || (b.match && b.match.mode !== "dm" && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
   const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
-    win = trust.ok && !!b.win;
+    win = trust.ok && !draw && !!b.win;
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
@@ -667,6 +741,7 @@ A.progress = async (q, b) => {
   (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
   let drr = win ? Math.round((+R.win || 0) + kb) : -Math.max(Math.ceil((+R.loss || 0) / 2), Math.round((+R.loss || 0) - kb / 2));
   trust.ok || (drr = 0); // no ticket: the rank stays where it is
+  draw && (drr = 0);
   drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
   u.rr = Math.max(0, rr0 + drr);
   drr = u.rr - rr0;
@@ -678,13 +753,14 @@ A.progress = async (q, b) => {
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
   const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
-  await saveUser(u);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   const rb = rankOf(rr0);
+  const out = { trusted: trust.ok, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
+  p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
-  return { trusted: trust.ok, why: trust.ok ? void 0 : trust.why, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  return out;
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
 // TURN). The key stays here; players get credentials that expire in a day,
@@ -707,12 +783,12 @@ A.ice = async () => {
   const hdr = { Authorization: "Bearer " + TURN_TOKEN, "Content-Type": "application/json" };
   let list = null;
   try {
-    const r = await fetch(base + "generate-ice-servers", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+    const r = await fetchTimed(base + "generate-ice-servers", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
     if (r.ok) list = (await r.json()).iceServers;
   } catch (e) {}
   if (!list)
     try {
-      const r = await fetch(base + "generate", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+      const r = await fetchTimed(base + "generate", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
       if (r.ok) {
         const j = await r.json();
         list = j.iceServers ? [].concat(j.iceServers) : null;
@@ -816,7 +892,7 @@ A.admin_login = async (q, b, req) => {
     throw fail(401, "비밀번호가 틀렸습니다");
   }
   await log("admin", "관리자 로그인", { ip });
-  return { token: sign({ k: "admin", exp: now() + 12 * 36e5 }) };
+  return { token: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }) };
 };
 const ADMIN = {};
 ADMIN.stats = async () => {
@@ -873,8 +949,9 @@ ADMIN.user_set = async (q, b) => {
       break;
     }
     case "password":
-      if (String(b.pw || "").length < 4) throw fail(400, "4자 이상");
+      if (String(b.pw || "").length < 4 || String(b.pw || "").length > 64) throw fail(400, "비밀번호는 4~64자");
       u.pass = hashPw(b.pw);
+      u.sessionVersion = crypto.randomBytes(16).toString("hex");
       break;
     case "note":
       u.note = String(b.note || "").slice(0, 300);
@@ -914,7 +991,7 @@ ADMIN.user_set = async (q, b) => {
     default:
       throw fail(400, "알 수 없는 작업");
   }
-  await setJ(userKey(id), u);
+  await saveUser(u);
   await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}`);
   return { ok: !0 };
 };
@@ -976,6 +1053,7 @@ ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_
 ADMIN.config_set = async (q, b) => {
   if (!isObj(b.config)) throw fail(400, "설정이 없습니다");
   const c = merge(DEFAULT_CONFIG, b.config);
+  validateConfig(c);
   await setJ("config", c);
   cfgCache = null;
   await log("admin", "설정 저장");
@@ -988,7 +1066,26 @@ ADMIN.config_reset = async () => {
   return { config: DEFAULT_CONFIG };
 };
 
-module.exports = async (req, res) => {
+function validateConfig(c) {
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50] };
+  const walk = (base, value, prefix = "") => {
+    for (const k of Object.keys(base)) {
+      const path = prefix ? prefix + "." + k : k, v = value[k];
+      if (typeof base[k] === "number") {
+        const [lo, hi] = ranges[path] || [0, 1000000];
+        if (typeof v !== "number" || !Number.isFinite(v) || v < lo || v > hi) throw fail(400, "설정 범위를 확인해 주세요: " + path);
+      } else if (isObj(base[k])) {
+        if (!isObj(v)) throw fail(400, "설정 형식이 이상합니다: " + path);
+        walk(base[k], v, path);
+      }
+    }
+  };
+  walk(DEFAULT_CONFIG, c);
+  if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
+  if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
+}
+
+module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipOf(req)]]), async () => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   const url = new URL(req.url, "http://x");
@@ -999,22 +1096,28 @@ module.exports = async (req, res) => {
     let out;
     if (a.startsWith("a_")) {
       const s = verify(b.atoken || req.headers["x-admin"]);
-      if (!s || "admin" !== s.k) throw fail(401, "관리자 로그인이 필요합니다");
+      if (!s || "admin" !== s.k || s.pv !== 2) throw fail(401, "관리자 로그인이 필요합니다");
       const fn = ADMIN[a.slice(2)];
       if (!fn) throw fail(404, "없는 기능");
-      out = await fn(q, b, req);
+      for (let attempt = 0; ; attempt++) {
+        try { out = await fn(q, b, req); break; }
+        catch (e) { if (!e.retryUser || attempt >= 4) throw e; }
+      }
     } else {
       const fn = A[a];
       if (!fn) throw fail(404, "없는 기능");
-      out = await fn(q, b, req);
+      for (let attempt = 0; ; attempt++) {
+        try { out = await fn(q, b, req); break; }
+        catch (e) { if (!e.retryUser || attempt >= 4) throw e; }
+      }
     }
     RURL && (await flushUse());
     res.statusCode = 200;
     res.end(JSON.stringify(Object.assign({ ok: !0 }, out)));
   } catch (e) {
     res.statusCode = e.code && e.code >= 400 && e.code < 600 ? e.code : 500;
-    res.end(JSON.stringify({ ok: !1, error: e.message || String(e), ban: e.ban || undefined }));
+    res.end(JSON.stringify({ ok: !1, error: e.message || String(e), ban: e.ban || undefined, retryable: e.retryUser || undefined }));
   }
-};
+});
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };

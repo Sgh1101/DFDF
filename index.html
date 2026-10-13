@@ -143,6 +143,7 @@ footer a{color:var(--steel)}
 .banned{max-width:420px;margin:60px auto;text-align:center}
 .banned b{font-size:22px;color:#ff9aa5}
 </style>
+<script src="./js/client-request.js"></script>
 </head>
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
@@ -273,15 +274,14 @@ const device = (() => { let d = localStorage.getItem("lgp_device"); if (!d) { d 
 let S = null; try { S = JSON.parse(localStorage.getItem("lgp_session") || "null"); } catch (e) {}
 let CFG = null, OFFLINE = !1;
 async function api(a, b) {
-  const r = await fetch(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined });
-  const j = await r.json().catch(() => ({ ok: !1, error: "offline" }));
+  const { response: r, data: j } = await GAME_REQUEST(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined });
   if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban });
   return j;
 }
 function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
-function view(v) { ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
+function view(v) { $("#hist").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -295,7 +295,7 @@ function drawMe() {
   const u = S.user, lv = u.level || 1, k = Math.max(0, Math.min(1, (u.into || 0) / Math.max(1, u.need || 1)));
   $("#meName").innerHTML = esc(u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold)">운영자 페이지 ›</a>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
   $("#meLv").textContent = lv;
-  $("#meRank").textContent = rankOf(lv);
+  $("#meRank").textContent = (L === "ko" ? "레벨 칭호 · " : "Level title · ") + rankOf(lv);
   $("#meXp").style.width = Math.round(100 * k) + "%";
   $("#ringFg").style.strokeDashoffset = String(326.7 * (1 - k));
   $("#meXpT").textContent = t("lvNext", u.into || 0, u.need || 100);
@@ -306,7 +306,7 @@ function drawMe() {
   $("#meGold").hidden = $("#meSkins").hidden = !wallet;
   $("#meGold").textContent = "🪙 " + (u.gold || 0).toLocaleString();
   $("#meGold").title = t("gold");
-  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 501);
+  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 811);
   // straight to the skin page in the game: pulls, or the skins I own
   $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;
   $("#meSkinPull").textContent = t("skinPull");
@@ -360,6 +360,7 @@ function drawEnter() {
   $("#hint").hidden = !!ROOM;
 }
 $("#logout").onclick = () => { save(null); view("auth"); };
+addEventListener("storage", (e) => { if (e.key !== "lgp_session") return; const next = JSON.parse(e.newValue || "null"); if (!next || next.token !== (S && S.token)) { S = null; sessionStorage.removeItem("lgp_gate"); view("auth"); } else { S = next; if (gatePassed()) enter(); } });
 function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("reason") + ": " + b.reason + " · " : "") + (b.until ? new Date(b.until).toLocaleString() + " " + t("until") : t("forever")); }
 async function auth(guest) {
   $("#aerr").textContent = "";
@@ -371,7 +372,7 @@ async function auth(guest) {
     enter();
   } catch (e) {
     if (e.ban) return showBan(e.ban);
-    if (guest && (e.status === 503 || e.message === "offline" || e.status === 404)) {
+    if (guest && (e.network || e.status === 404)) {
       // the account server is down: a guest still gets into the game (no level, no list)
       save({ token: "", user: { id: localStorage.getItem("lgp_name") || "Guest" + Math.floor(Math.random() * 9000 + 1000), guest: !0, level: 1, into: 0, need: 100, xp: 0, kills: 0, wins: 0, matches: 0 } });
       try { sessionStorage.setItem("lgp_gate", "offline"); } catch (x) {}
