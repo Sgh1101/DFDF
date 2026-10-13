@@ -1,8 +1,9 @@
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
 const rules = require("../js/game-rules");
-const source = fs.readFileSync("play.html", "utf8");
-const start = source.indexOf("NET.onAction=(e,t)=>{switch(t.t)");
-const handler = source.slice(start, source.indexOf(",NET.onPeerGone=", start));
+const source = require("../scripts/game-source")();
+const start = source.indexOf("NET.onAction = (e, t) => {");
+const end = source.indexOf("NET.onPeerGone =", start);
+const handler = source.slice(start, end).replace(/\}\),\s*\($/, "};");
 function host(ability, casting) {
   const actor = { ctrl: "peer", alive: true, abilities: [ability], ultCharge: 5, ultMax: 5 }, events = [];
   let casts = 0;

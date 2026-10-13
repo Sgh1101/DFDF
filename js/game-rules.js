@@ -13,7 +13,7 @@
     return score[0] === score[1] ? "draw" : score[0] > score[1] ? "win" : "loss";
   }
   function finisher(event) {
-    return !!event && event.mode === "std" && event.last === true && event.kind !== "ability" && event.killer !== event.victim && typeof event.skin === "string" && event.skin !== "default";
+    return !!event && event.finisher !== false && event.mode === "std" && event.last === true && ["gun", "head", "melee"].includes(event.kind) && event.killer !== event.victim && typeof event.skin === "string" && event.skin !== "default";
   }
   const rules = { validInput, abilityReady, outcome, finisher };
   if (typeof module === "object" && module.exports) module.exports = rules;

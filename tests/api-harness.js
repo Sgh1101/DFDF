@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 function harness(options = {}) {
   const db = new Map(), expires = new Map();
-  let clock = Date.UTC(2026, 9, 13), commitFailure = false, pipelineFailure = false;
+  let clock = options.now || Date.UTC(2026, 9, 13), commitFailure = false, pipelineFailure = false;
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [clock])); } static now() { return clock; } }
   const get = (key) => {
     if (expires.has(key) && expires.get(key) <= clock) { db.delete(key); expires.delete(key); }

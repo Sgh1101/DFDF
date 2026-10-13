@@ -5,6 +5,8 @@
     "test": "node --test tests/*.test.js",
     "check": "node scripts/check-syntax.js",
     "dev": "node scripts/dev-server.js",
-    "test:browser": "node scripts/browser-smoke.js"
+    "test:browser": "node scripts/browser-smoke.js",
+    "test:regression": "node scripts/browser-regression.js",
+    "test:online": "node scripts/browser-online.js"
   }
 }

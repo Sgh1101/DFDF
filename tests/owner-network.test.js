@@ -1,5 +1,5 @@
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-const source = fs.readFileSync("play.html", "utf8");
+const source = require("../scripts/game-source")();
 const helloSource = source.slice(source.indexOf('  let helloKey = ""'), source.indexOf('  // ── host: what each op does'));
 const hostStart = source.indexOf("  const ownerRequests = new Map()");
 const hostSource = source.slice(hostStart, source.indexOf("  const _oe = NET.onEvent;", hostStart));

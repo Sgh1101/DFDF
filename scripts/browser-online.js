@@ -1,0 +1,58 @@
+const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
+const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
+(async () => {
+  let signaling;
+    await new Promise((resolve) => {
+      const peer = PeerServer({ host: "127.0.0.1", port: 9000, path: "/" }, (server) => { signaling = server; resolve(); });
+      peer.on("connection", (client) => console.log("signaling connected", client.getId()));
+      peer.on("message", (client, message) => { if (message.type !== "HEARTBEAT") console.log("signal", message.type); });
+    });
+  const f = await fixture();
+  try {
+    const host = await f.page("hoster");
+    // This test checks data-channel behavior; the separate flow test renders scenes.
+    await host.evaluate(() => { render = () => {}; titleCam = () => {}; });
+    const guest = await f.page("joiner");
+    await guest.evaluate(() => { render = () => {}; titleCam = () => {}; });
+    for (const page of [host, guest]) await page.evaluate(async () => {
+      await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port: 9000, path: "/", secure: false, config: { iceServers: [] } });
+      const alert = netAlert; netAlert = function (message) { console.log("network alert", message); return alert.apply(this, arguments); };
+      window.onlineEvents = []; const original = NET.onEvent;
+      NET.onEvent = function (event) { onlineEvents.push(structuredClone(event)); return original.apply(this, arguments); };
+    });
+    const code = await host.evaluate(async () => { await createRoom(); return NET.room; });
+    assert.match(code, /^[A-Z0-9]{6}$/);
+    await guest.evaluate((code) => joinRoom(code), code);
+    console.log("host state", await host.evaluate(() => ({status:NET.status,code:NET.room,conns:NET.conns.size,members:room.members.size,error:NET.error && NET.error.message})));
+    console.log("guest state", await guest.evaluate(() => ({status:NET.status,code:NET.room,error:NET.error && NET.error.message})));
+    await host.waitForFunction(() => NET.conns.size === 1 && room.members.size === 2);
+    await host.evaluate(() => { room.mode = "std"; hostStartMatch(); });
+    await guest.waitForFunction(() => room.started && world.actors.length > 0 && myActor());
+    const first = await host.evaluate(() => ({ id: world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai").id, peer: [...NET.conns.keys()][0] }));
+    const report = await host.evaluate(() => {
+      world.phase = "live";
+      const a = myActor(), foes = world.actors.filter((o) => o.team !== a.team), v = foes.find((o) => o.ctrl !== "ai") || foes[0];
+      for (const o of foes) o.alive = o === v;
+      v.hp = 1; v.armor = 0; v.invuln = 0;
+      a.weapons.primary = "rpg"; a.slot = "primary"; GUN_SKINS.set("rpg", "dragon");
+      const cause = DAMAGE_CAUSE.capture(a, "rpg", "gun", world.round, "dragon");
+      a.slot = "secondary";
+      DAMAGE_CAUSE.run(cause, () => dealDamage(v, 999, false, a));
+      return { victim: v.id, effects: FINISHERS.active.size };
+    });
+    await guest.waitForFunction(() => onlineEvents.some((e) => e.t === "kill-detail"));
+    const detail = await guest.evaluate(() => onlineEvents.find((e) => e.t === "kill-detail"));
+    assert.equal(detail.gun, "rpg"); assert.equal(detail.skin, "dragon"); assert.equal(detail.finisher, true); assert.equal(report.effects, 1);
+    await guest.evaluate(() => { const event = onlineEvents.find((e) => e.t === "kill-detail"); FINISHERS.clear(); NET.onEvent(event); });
+    assert.equal(await guest.evaluate(() => FINISHERS.active.size), 0);
+    console.log("WebRTC host → guest: captured weapon/skin, last kill, duplicate suppression passed");
+    // Preserve the client's reconnect proof while replacing its PeerJS transport.
+    await guest.evaluate(async () => { const code = NET.room, prev = NET.peer.id, actorId = myActor().id; NET.peer.destroy(); await netJoin(code); sendAction({ t: "hello", name: myName(), prev, actorId }); });
+    await host.waitForFunction(() => NET.conns.size === 1 && world.actors.some((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead"));
+    const restored = await host.evaluate(() => world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead").id);
+    assert.equal(restored, first.id);
+    console.log("WebRTC transport replacement restored the original seat");
+    await host.evaluate(() => netShutdown()); await guest.waitForFunction(() => NET.status !== "open");
+    assert.deepEqual(f.errors, []); console.log("online browser checks passed");
+  } finally { await f.browser.close(); signaling.close(); }
+})().then(() => process.exit(0), (error) => { console.error(error); process.exit(1); });

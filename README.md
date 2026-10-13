@@ -4,7 +4,7 @@
 
 ## 게임
 
-- **요원**: 40명, 능력 160개. 요원마다 Q/E/C/X 능력 4개가 있습니다. 요원 목록은 `play.html` 안에서 여러 묶음으로 조합됩니다.
+- **요원**: 40명, 능력 160개. 요원마다 Q/E/C/X 능력 4개가 있습니다. 요원 목록은 `js/legacy/`의 여러 묶음으로 조합됩니다.
 - **멀티플레이**: PeerJS(WebRTC) P2P. 대기실의 빈 자리는 AI 봇으로 채울 수 있습니다.
 - **성장**: 계정, 레벨/XP, 골드, 랭크, 미션, 뽑기, 스킨.
 - **관리자 페이지**: `admin.html` (`/admin`).
@@ -22,7 +22,9 @@
 
 | 파일 | 설명 |
 |---|---|
-| `play.html` | 게임 본체 (단일 파일) |
+| `play.html` | 게임 화면·스타일과 스크립트 실행 순서 |
+| `js/legacy/` | 기존 엔진·요원·맵·계정·스킨 기능 80개, 순서는 `manifest.json` |
+| `js/` | 공통 요청·오디오·처치 원인·홈·포커스·부팅 관리 |
 | `index.html` | 소개 페이지 |
 | `admin.html` | 관리자 페이지 |
 | `api/v1.js` | 서버 함수 (`?a=<action>`), 데이터는 Upstash Redis REST |
@@ -52,11 +54,17 @@ Node.js 20 이상에서 `npm run dev`로 정적 페이지와 `/api/v1`을 실행
 - `npm run test:browser`: 실행 중인 개발 서버에서 작은 가로 화면의 홈·요원 선택·무기고·처치·결과·로그아웃을 검사합니다. Playwright와 Chromium이 필요합니다. 선택적으로 `DFDF_BASE_URL`, `CHROME_BIN`, `DFDF_PLAYWRIGHT_MODULE`, `DFDF_THREE_PATH`를 설정할 수 있습니다.
 - `js/game-rules.js`: 입력·능력·승패·피니셔의 공통 규칙.
 - `js/game-events.js`: 온라인 처치 정보, 피니셔, 재접속 보호, 결과 완료 사건.
-- `js/home.js`, `css/home.css`: 홈 동선과 스킨 미리보기.
+- `js/home.js`, `js/home-details.js`, `css/home.css`: 홈 동선, 최근 설정·즐겨찾기·모드 안내·장착 스킨과 미리보기.
+- `js/damage-cause.js`: 지연 피해의 발사 당시 무기·스킨.
+- `js/modal-focus.js`: 주요 모달의 키보드 포커스.
+- `js/game-boot.js`: 모든 스크립트 로딩 뒤 프레임·초대 연결 시작.
+- `npm run test:regression`: 추가 홈 기능·실제 RPG 폭발·부활·수류탄·반복 경기 검사.
+- `npm run test:online`: 두 브라우저의 실제 WebRTC 연결 검사. 테스트용 `peer` 패키지와 PeerJS 브라우저 파일이 필요하며 `DFDF_PEER_SERVER_MODULE`, `DFDF_PEERJS_PATH`로 경로를 지정할 수 있습니다. 로컬 신호 서버를 9000번 포트에서 실행합니다.
+- 구조와 로딩 규칙은 [소스 안내](docs/SOURCE_LAYOUT.md)에 있습니다.
 - `js/game-audio.js`, `js/client-request.js`: 공통 오디오 출력과 요청 시간 제한.
 
 전체 작업 계획과 남은 항목은 [개발 메모 #17](https://github.com/Sgh1101/DFDF/issues/17)에 기록합니다.
 
-실제 Redis의 Lua 저장 경로는 임시 Redis 인스턴스를 실행한 뒤 `DFDF_REDIS_CLI`와 `DFDF_REDIS_SOCKET`을 지정해 `npm test`로 검사할 수 있습니다. 지정하지 않으면 해당 통합 테스트 하나를 건너뜁니다. 테스트 API 요청은 운영 서버로 전송하지 않습니다.
+실제 Redis의 Lua 저장 경로는 임시 Redis 인스턴스를 실행한 뒤 `DFDF_REDIS_CLI`와 `DFDF_REDIS_SOCKET`을 지정해 `npm test`로 검사할 수 있습니다. 지정하지 않으면 해당 통합 테스트 하나를 건너뜁니다. 테스트 API 요청은 운영 서버로 전송하지 않습니다. `test:online`은 브라우저가 WebRTC 연결을 허용하는 환경이 필요합니다. 관리 정책으로 직접 UDP가 차단되고 TURN도 없는 환경에서는 연결 실패를 보고하며, 성공한 검증으로 간주하지 않습니다.
 
 소유자와 관리자 인증 형식을 갱신했으므로 적용 후 해당 계정은 다시 로그인해야 합니다. 일반 계정은 비밀번호 초기화 또는 새 세션 발급에 따라 이전 세션이 무효가 될 수 있습니다. 보상은 유효한 경기 확인표가 있어야 지급되며, P2P 호스트의 경기 자체를 서버가 검증하는 구조는 아닙니다.

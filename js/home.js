@@ -20,23 +20,23 @@
   const key = "lgp_recent:" + (ACCOUNT.session() && ACCOUNT.session().user.id || "local");
   let recent = null; try { recent = JSON.parse(localStorage.getItem(key) || "null"); } catch (e) {}
   function paintRecent() {
-    resume.hidden = !recent || !AGENTS.some((a) => a.key === recent.agent) || !MAP_LIST.some((m) => m.key === recent.map);
+    resume.hidden = !recent || !AGENTS.some((a) => a.key === recent.agent) || !MAP_LIST.some((m) => m.key === recent.map) || !GAME_MODES[recent.mode];
     resume.replaceChildren();
     if (resume.hidden) return;
     const text = document.createElement("span"), label = document.createElement("b"), detail = document.createElement("small");
     label.textContent = L("최근 설정으로 시작", "Use recent settings");
-    detail.textContent = [AGENTS.find((a) => a.key === recent.agent).name, MAP_LIST.find((m) => m.key === recent.map).name, GAME_MODES[recent.mode] && GAME_MODES[recent.mode].name].filter(Boolean).join(" · ");
+    detail.textContent = [AGENTS.find((a) => a.key === recent.agent).name, MAP_LIST.find((m) => m.key === recent.map).name, GAME_MODES[recent.mode] && GAME_MODES[recent.mode].name, recent.diff && (EN ? recent.diff : { easy: "순한맛", normal: "보통", hard: "빡셈" }[recent.diff])].filter(Boolean).join(" · ");
     text.append(label, detail); resume.append(text);
   }
   resume.onclick = () => {
     picked = AGENTS.find((a) => a.key === recent.agent) || picked;
-    room.map = recent.map; room.mode = recent.mode;
+    room.map = recent.map; room.mode = recent.mode; room.diff = ["easy", "normal", "hard"].includes(recent.diff) ? recent.diff : "normal";
     $("go-play").click(); paintSelMaps();
   };
   $("go-play").after(resume); paintRecent();
   const begin = startGame;
   startGame = function (agent, training) {
-    if (!training) { recent = { agent: agent.key, mode: room.mode || "std", map: room.map }; localStorage.setItem(key, JSON.stringify(recent)); paintRecent(); }
+    if (!training) { recent = { agent: agent.key, mode: room.mode || "std", map: room.map, diff: room.diff || "normal" }; try { localStorage.setItem(key, JSON.stringify(recent)); } catch (e) {} paintRecent(); }
     return begin.apply(this, arguments);
   };
 
@@ -47,7 +47,8 @@
     const n = MAP_LIST.length;
     $("go-play").querySelector("small").textContent = L(`AI 대전 · 모드 ${Object.keys(GAME_MODES).length}종 · 맵 ${n}종`, `Versus AI · ${Object.keys(GAME_MODES).length} modes · ${n} maps`);
     title.querySelector(".title-desc").textContent = L(`사이트를 두고 벌이는 전술 교전. ${AGENTS.length}명 요원의 능력으로 각을 열고, 연막과 스파이크로 승부를 냅니다.`, `Fight for the site with ${AGENTS.length} agents, abilities, smoke and the spike.`);
-    title.querySelector(".title-foot").textContent = L(`요원 ${AGENTS.length}명 · 무기 ${Object.keys(WEAPONS).length}종 · 맵 ${n}종`, `${AGENTS.length} agents · ${Object.keys(WEAPONS).length} weapons · ${n} maps`);
+    const skins = GUN_SKINS.guns().reduce((total, gun) => total + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0);
+    title.querySelector(".title-foot").textContent = L(`요원 ${AGENTS.length}명 · 무기 ${Object.keys(WEAPONS).length}종 · 맵 ${n}종 · 스킨 ${skins}종`, `${AGENTS.length} agents · ${Object.keys(WEAPONS).length} weapons · ${n} maps · ${skins} skins`);
     paintRecent();
   }
   counts(); addEventListener("server-config", counts);
@@ -77,7 +78,7 @@
   function updateSample(id, gun) {
     selected = id; if (WEAPONS[gun]) selectedGun = gun;
     const pack = SOUNDPACK.packs[SOUNDPACK.skins[id]], skin = GUN_SKINS.list.find((s) => s.id === id);
-    text.textContent = skin ? `${EN ? skin.en : skin.ko} · ${pack ? EN ? pack.en : pack.ko : L("기본 음색", "Stock sound")}` : "";
+    text.textContent = skin ? `${EN ? skin.en : skin.ko} · ${pack ? EN ? pack.en : pack.ko : L("기본 음색", "Stock sound")} · ${pack ? L("피니셔 지원", "Finisher available") : L("피니셔 없음", "No finisher")}` : "";
     sample.querySelector('[data-sample="fin"]').disabled = !pack;
     sample.querySelector('[data-sample="kill"]').disabled = !pack;
   }
@@ -92,7 +93,28 @@
   const close = GUN_SKINS.close;
   GUN_SKINS.close = function () { SOUNDPACK.stop(); return close.apply(this, arguments); };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  function motion() { title.classList.toggle("home-reduced", reduced.matches || SETTINGS.motion === 0 || SETTINGS.quality === "fast"); }
+  function motion() { title.classList.toggle("home-reduced", reduced.matches || SETTINGS.motion === 0 || ["fast", "low"].includes(SETTINGS.quality)); }
+  const orbit = titleCam;
+  let staticMap = null;
+  titleCam = function () {
+    if (title.classList.contains("home-reduced")) {
+      if (staticMap === CUR_MAP_KEY) return;
+      staticMap = CUR_MAP_KEY;
+      return orbit.call(this, 0);
+    }
+    staticMap = null;
+    return orbit.apply(this, arguments);
+  };
+  const draw = render;
+  let lastHomeFrame = -Infinity, lastHomeMap = null;
+  render = function () {
+    if (world.phase === "menu" && !FLY.on && title.classList.contains("home-reduced")) {
+      const now = performance.now();
+      if (lastHomeMap === CUR_MAP_KEY && now - lastHomeFrame < 500) return;
+      lastHomeFrame = now; lastHomeMap = CUR_MAP_KEY;
+    } else lastHomeFrame = -Infinity;
+    return draw.apply(this, arguments);
+  };
   motion(); reduced.addEventListener("change", motion);
   setInterval(() => { if (!title.hidden) motion(); }, 1000);
 })();

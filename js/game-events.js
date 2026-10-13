@@ -1,7 +1,8 @@
 (() => {
   const EN = window.GAME_LANG === "en", L = (ko, en) => EN ? en : ko;
   const seen = new Set(), roundKills = new Map(), active = new Set();
-  let serial = 0, gunDepth = 0;
+  const pendingKills = new Map();
+  let serial = 0, gunDepth = 0, finishedRound = false, claimedRound = false;
   let previewFrame = 0;
   const currentActor = () => myActor() || player;
   const skinOf = (actor, gun) => window.GUN_SKINS && GUN_SKINS.skinOf(actor, gun);
@@ -24,9 +25,9 @@
     active.clear();
   }
   function visual(event, preview = false) {
-    if (!preview && !GAME_RULES.finisher(event)) return false;
+    if (!preview && (!GAME_RULES.finisher(event) || finishedRound)) return false;
     const skin = GUN_SKINS.list.find((s) => s.id === event.skin);
-    if (!skin || skin.id === "default" || SETTINGS.motion === 0) return false;
+    if (!skin || skin.id === "default" || SETTINGS.motion === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     const pack = SOUNDPACK.skins[skin.id], color = skin.glow || skin.edge || 0x80caff;
     const studio = preview && GUN_SKINS._pv();
     if (preview && !studio) return false;
@@ -45,6 +46,7 @@
       mesh.userData.angle = i * Math.PI * 2 / count; mesh.userData.height = i % 4 * 0.18;
       group.add(mesh);
     }
+    if (!preview) finishedRound = true;
     active.add(group);
     const animate = (mesh, t) => {
       const radius = pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t;
@@ -92,25 +94,41 @@
   }
   const fire = actorFire;
   actorFire = function (actor) {
+    if (!actor) return fire.apply(this, arguments);
     const gun = actorWeaponKey(actor), before = actor.ammo && actor.ammo[gun];
-    const result = fire.apply(this, arguments);
-    if (NET.mode === "host" && before !== (actor.ammo && actor.ammo[gun]) && gun !== "knife") sendEventAll({ t: "shot-sound", actor: actor.id, gun, skin: (skinOf(actor, gun) || {}).id || "default" });
+    const skin = (skinOf(actor, gun) || {}).id || "default";
+    const cause = DAMAGE_CAUSE.capture(actor, gun, actor.ultW ? "ability" : gun === "knife" ? "melee" : "gun", world.round, skin);
+    const args = arguments, self = this;
+    const result = DAMAGE_CAUSE.run(cause, () => fire.apply(self, args));
+    // Rockets already carry their launch sound with the arm event.
+    if (NET.mode === "host" && before !== (actor.ammo && actor.ammo[gun]) && !["knife", "rpg"].includes(gun)) sendEventAll({ t: "shot-sound", actor: actor.id, gun, skin });
     return result;
   };
   const kill = killActor;
   killActor = function (victim, killer) {
     let event = null;
     if (NET.mode !== "client" && victim && victim.alive && killer && killer !== victim && killer.team !== victim.team) {
-      const gun = actorWeaponKey(killer), skin = skinOf(killer, gun);
+      const origin = DAMAGE_CAUSE.get();
+      const cause = origin && origin.actor === killer.id && origin.round === world.round ? origin : null;
+      const gun = cause ? cause.gun : actorWeaponKey(killer), skin = cause ? cause.skin : (skinOf(killer, gun) || {}).id || "default";
       const foes = world.actors.filter((a) => a.team !== killer.team);
-      const kills = (roundKills.get(killer.id) || 0) + 1; roundKills.set(killer.id, kills);
+      const victims = new Set(roundKills.get(killer.id) || []); victims.add(victim.id);
       const last = room.mode === "std" && world.phase === "live" && !foes.some((a) => a !== victim && a.alive);
-      event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin: skin ? skin.id : "default", head: !!victim._lastHead, kind: gunDepth ? gun === "knife" ? "melee" : victim._lastHead ? "head" : "gun" : "ability", last, ace: last && foes.length >= 3 && kills === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
+      const kind = cause ? cause.kind : gunDepth ? gun === "knife" ? "melee" : "gun" : "ability";
+      const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
+      event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
+      event.finisher = !claimedRound && GAME_RULES.finisher(event);
     }
     const previous = window.KILL_EVENT; window.KILL_EVENT = event;
     try {
       const result = kill.apply(this, arguments);
-      if (event && remember(event)) { visual(event); if (NET.mode === "host") sendEventAll(event); }
+      if (event && !victim.alive && remember(event)) {
+        const victims = roundKills.get(killer.id) || new Set(); victims.add(victim.id); roundKills.set(killer.id, victims);
+        if (event.finisher) claimedRound = true;
+        visual(event);
+        dispatchEvent(new CustomEvent("kill-confirmed", { detail: structuredClone(event) }));
+        if (NET.mode === "host") sendEventAll(event);
+      }
       return result;
     } finally { window.KILL_EVENT = previous; }
   };
@@ -154,7 +172,16 @@
       return;
     }
     if (event && event.t === "kill-detail") {
-      if (!remember(event) || event.round !== world.round) return;
+      if (event.round !== world.round) {
+        if (event.round === world.round + 1 && typeof event.id === "string") {
+          pendingKills.set(event.id, { event, time: performance.now() });
+          if (pendingKills.size > 20) pendingKills.delete(pendingKills.keys().next().value);
+        }
+        return;
+      }
+      if (!remember(event)) return;
+      event = { ...event, finisher: !claimedRound && GAME_RULES.finisher(event) };
+      if (event.finisher) claimedRound = true;
       if (event.killer === currentActor().id) {
         const previous = window.KILL_EVENT; window.KILL_EVENT = event;
         try { playKillFx(event.name, event.head); } finally { window.KILL_EVENT = previous; }
@@ -163,10 +190,22 @@
     }
     return receive.apply(this, arguments);
   };
+  const snapshot = NET.onSnapshot;
+  NET.onSnapshot = function () {
+    const before = world.round, result = snapshot.apply(this, arguments);
+    if (world.round !== before) { clearFinishers(); roundKills.clear(); finishedRound = claimedRound = false; }
+    for (const [id, item] of pendingKills) {
+      if (item.event.round === world.round || item.event.round < world.round || performance.now() - item.time > 4000) {
+        pendingKills.delete(id);
+        if (item.event.round === world.round && performance.now() - item.time <= 4000) NET.onEvent(item.event);
+      }
+    }
+    return result;
+  };
   const round = startRound;
-  startRound = function () { clearFinishers(); roundKills.clear(); return round.apply(this, arguments); };
+  startRound = function () { clearFinishers(); roundKills.clear(); finishedRound = claimedRound = false; return round.apply(this, arguments); };
   const shutdown = netShutdown;
-  netShutdown = function () { clearFinishers(); reconnectKeys.clear(); return shutdown.apply(this, arguments); };
+  netShutdown = function () { clearFinishers(); reconnectKeys.clear(); seen.clear(); pendingKills.clear(); return shutdown.apply(this, arguments); };
   const over = gameOver;
   gameOver = function () {
     const wasOver = world.phase === "over", result = over.apply(this, arguments);
@@ -174,13 +213,21 @@
       const match = RESULTS.summary();
       dispatchEvent(new CustomEvent("match-finished", { detail: structuredClone(match) }));
     }
+    clearFinishers();
     return result;
   };
   const begin = startGame;
   startGame = function (agent, practice) {
-    clearFinishers(); roundKills.clear();
+    clearFinishers(); roundKills.clear(); finishedRound = claimedRound = false;
     return begin.apply(this, arguments);
   };
+  for (const name of ["hostStartMatch", "clientBeginMatch"]) {
+    const original = window[name];
+    window[name] = function () {
+      clearFinishers(); roundKills.clear(); seen.clear(); pendingKills.clear(); finishedRound = claimedRound = false;
+      return original.apply(this, arguments);
+    };
+  }
   addEventListener("storage", (event) => {
     if (event.key !== "lgp_session") return;
     let next = null; try { next = JSON.parse(event.newValue || "null"); } catch (e) {}

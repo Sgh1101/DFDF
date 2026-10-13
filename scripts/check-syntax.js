@@ -11,4 +11,13 @@ for (const file of ["play.html", "index.html", "admin.html"]) {
   console.log(`${file}: ${n} scripts parsed`);
 }
 cp.execFileSync(process.execPath, ["--check", "api/v1.js"], { stdio: "inherit" });
-for (const file of fs.readdirSync("js")) if (file.endsWith(".js")) cp.execFileSync(process.execPath, ["--check", "js/" + file], { stdio: "inherit" });
+let files = 0;
+function check(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const file = directory + "/" + entry.name;
+    if (entry.isDirectory()) check(file);
+    else if (file.endsWith(".js")) { new vm.Script(fs.readFileSync(file, "utf8"), { filename: file }); files++; }
+  }
+}
+check("js");
+console.log(`${files} external scripts parsed`);

@@ -16,7 +16,7 @@ test("host enforces cooldown, charges, silence and ultimate charge", () => {
 test("finishers are restricted to a standard last-enemy weapon kill", () => {
   const event = { mode: "std", last: true, kind: "gun", killer: 1, victim: 2, skin: "dragon" };
   assert.equal(rules.finisher(event), true);
-  for (const value of [{ ...event, mode: "tdm" }, { ...event, mode: "dm" }, { ...event, last: false }, { ...event, kind: "ability" }, { ...event, victim: 1 }, { ...event, skin: "default" }]) assert.equal(rules.finisher(value), false);
+  for (const value of [{ ...event, mode: "tdm" }, { ...event, mode: "dm" }, { ...event, last: false }, { ...event, kind: "ability" }, { ...event, kind: "grenade" }, { ...event, kind: "environment" }, { ...event, kind: undefined }, { ...event, victim: 1 }, { ...event, skin: "default" }]) assert.equal(rules.finisher(value), false);
 });
 test("draw and deathmatch outcomes use data independent of UI text", () => {
   assert.equal(rules.outcome("tdm", [10, 10]), "draw");
