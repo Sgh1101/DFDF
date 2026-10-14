@@ -16276,7 +16276,7 @@ function applyActor(e, t, o) {
   const i = WKEYS[t[9]] || "pistol";
   ((e.netWeapon = i), e.ammo || (e.ammo = {}), (e.ammo[i] = t[10]));
 }
-function buildSnapshot() {
+function buildSnapshot(includeEffects = true) {
   const e = world.spike;
   return {
     t: "s",
@@ -16300,7 +16300,7 @@ function buildSnapshot() {
       e.halfDefused ? 1 : 0,
     ],
     a: world.actors.map(packActor),
-    fx: drainFX(),
+    fx: includeEffects ? drainFX() : [],
   };
 }
 const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
@@ -17618,25 +17618,86 @@ function peerOpts() {
     },
   };
 }
-function netHost(e) {
-  return new Promise((t, o) => {
-    if ("undefined" == typeof Peer)
-      return void o(new Error("네트워크 모듈을 불러오지 못했습니다"));
-    ((NET.room = e || makeRoomCode()),
-      (NET.mode = "host"),
-      (NET.status = "connecting"));
-    const a = new Peer(roomToPeerId(NET.room), peerOpts());
-    NET.peer = a;
-    let n = !1;
-    (a.on("open", (e) => {
-      ((NET.id = e), (NET.status = "open"), (n = !0), t(NET.room));
-    }),
-      a.on("error", (e) => {
-        if (!n && "unavailable-id" === e.type)
-          return (a.destroy(), void netHost(makeRoomCode()).then(t, o));
-        n || ((n = !0), (NET.status = "error"), (NET.error = e), o(e));
-      }),
-      a.on("connection", (e) => hostAccept(e)));
+// Retire a transport before closing it: PeerJS can emit close/data synchronously.
+function netCloseTransport() {
+  const peer = NET.peer, cancel = NET.cancelConnect;
+  NET.peer = null;
+  NET.up = null;
+  NET.cancelConnect = null;
+  cancel && cancel();
+  if (peer) {
+    peer._stopSignaling && peer._stopSignaling();
+    try { peer.destroy(); } catch (e) {}
+  }
+}
+function netAbortError() {
+  const error = new Error("연결 요청이 취소되었습니다");
+  error.name = "AbortError";
+  return error;
+}
+function netWatchSignaling(peer) {
+  let timer = null, delay = 500, stopped = false;
+  const current = () => !stopped && NET.peer === peer && !peer.destroyed;
+  const schedule = () => {
+    if (!current() || timer !== null || !peer.disconnected) return;
+    timer = setTimeout(() => {
+      timer = null;
+      if (!current() || !peer.disconnected) return;
+      try { peer.reconnect(); } catch (e) {}
+      delay = Math.min(delay * 2, 8000);
+      schedule();
+    }, delay);
+  };
+  peer.on("disconnected", schedule);
+  peer.on("error", schedule);
+  peer.on("open", () => { clearTimeout(timer); timer = null; delay = 500; });
+  peer._stopSignaling = () => { stopped = true; clearTimeout(timer); timer = null; };
+}
+function netHost(code) {
+  return new Promise((resolve, reject) => {
+    if (typeof Peer === "undefined") return reject(new Error("네트워크 모듈을 불러오지 못했습니다"));
+    netCloseTransport();
+    NET.conns.clear();
+    NET.room = code || makeRoomCode();
+    NET.mode = "host";
+    NET.status = "connecting";
+    NET.error = null;
+    const peer = new Peer(roomToPeerId(NET.room), peerOpts());
+    NET.peer = peer;
+    let settled = false;
+    const cancel = () => { if (!settled) { settled = true; clearTimeout(timer); reject(netAbortError()); } };
+    const finish = (error) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
+      if (NET.cancelConnect === cancel) NET.cancelConnect = null;
+      if (error) {
+        if (NET.peer === peer) { NET.status = "error"; NET.error = error; netCloseTransport(); }
+        reject(error);
+      } else resolve(NET.room);
+    };
+    const timer = setTimeout(() => finish(new Error("방 생성 시간이 초과되었습니다")), 25000);
+    NET.cancelConnect = cancel;
+    netWatchSignaling(peer);
+    peer.on("open", (id) => {
+      if (NET.peer !== peer || peer.destroyed) return;
+      NET.id = id; NET.status = "open"; finish();
+    });
+    peer.on("error", (error) => {
+      if (NET.peer !== peer || settled) return;
+      if (error.type === "unavailable-id") {
+        settled = true; clearTimeout(timer); NET.cancelConnect = null;
+        netHost(makeRoomCode()).then(resolve, reject);
+      } else finish(error);
+    });
+    peer.on("close", () => {
+      if (NET.peer !== peer) return;
+      if (!settled) finish(new Error("방 연결이 닫혔습니다"));
+      else NET.status = "closed";
+    });
+    peer.on("connection", (channel) => {
+      if (NET.peer === peer && NET.mode === "host") hostAccept(channel);
+      else channel.close();
+    });
   });
 }
 function hostAccept(e) {
@@ -17752,16 +17813,14 @@ function clientRecv(e) {
       : void (NET.onEvent && NET.onEvent(e));
 }
 function netShutdown() {
-  try {
-    NET.peer && NET.peer.destroy();
-  } catch (e) {}
-  ((NET.peer = null),
-    NET.conns.clear(),
-    (NET.up = null),
-    (NET.mode = "solo"),
-    (NET.status = "idle"),
-    (NET.room = null),
-    (NET.lastSnap = NET.prevSnap = null));
+  NET.intent = (NET.intent || 0) + 1;
+  netCloseTransport();
+  NET.conns.clear();
+  NET.mode = "solo";
+  NET.status = "idle";
+  NET.room = null;
+  NET.id = null;
+  NET.lastSnap = NET.prevSnap = null;
 }
 function peerCount() {
   return "host" === NET.mode ? NET.conns.size : "client" === NET.mode ? 1 : 0;
@@ -18418,35 +18477,43 @@ function setMyName(e) {
   } catch (e) {}
 }
 async function createRoom() {
+  const intent = NET.intent = (NET.intent || 0) + 1;
   netLoading("방을 만드는 중…");
   try {
     await ensurePeerLib();
-    (lobbyReset(await netHost(), NET.id),
+    if (NET.intent !== intent) return;
+    const code = await netHost();
+    if (NET.intent !== intent) return;
+    (lobbyReset(code, NET.id),
       lobbyAdd(NET.id, myName()),
       lobbyFillAI(!0),
       netLoadingDone(),
       hideAll(),
       renderLobby(lobbySnapshot()));
   } catch (e) {
+    if (NET.intent !== intent || e.name === "AbortError") return;
     (netLoadingDone(),
       netAlert("방을 만들지 못했습니다. " + (e.message || "")));
   }
 }
 async function joinRoom(e) {
-  if (6 === (e = (e || "").trim().toUpperCase()).length) {
-    netLoading("방에 접속하는 중…");
-    try {
-      (await ensurePeerLib(),
-        await netJoin(e),
-        sendAction({ t: "hello", name: myName() }),
-        netLoadingDone(),
-        hideAll());
-    } catch (e) {
-      (netLoadingDone(),
-        netShutdown(),
-        netAlert("접속하지 못했습니다. 코드를 확인해 주세요."));
-    }
-  } else netAlert("방 코드는 6자리입니다.");
+  if (6 !== (e = (e || "").trim().toUpperCase()).length) return netAlert("방 코드는 6자리입니다.");
+  const intent = NET.intent = (NET.intent || 0) + 1;
+  netLoading("방에 접속하는 중…");
+  try {
+    await ensurePeerLib();
+    if (NET.intent !== intent) return;
+    await netJoin(e);
+    if (NET.intent !== intent) return;
+    sendAction({ t: "hello", name: myName() });
+    netLoadingDone();
+    hideAll();
+  } catch (e) {
+    if (NET.intent !== intent || e.name === "AbortError") return;
+    netLoadingDone();
+    netShutdown();
+    netAlert("접속하지 못했습니다. 코드를 확인해 주세요.");
+  }
 }
 function hostStartMatch() {
   for (const [e, t] of room.members)
@@ -18494,6 +18561,7 @@ function actorManifest() {
   }));
 }
 function clientBeginMatch(e) {
+  room.started = true;
   ((room.map = e.map),
     e.rounds && (room.rounds = 0 | e.rounds),
     e.diff && (room.diff = e.diff));
@@ -18522,7 +18590,14 @@ function clientBeginMatch(e) {
     enterMatch());
 }
 function clientEnterMatch(e) {
-  e.started && banner("교전에 합류했습니다", "#4ade80");
+  if (!e.started) return;
+  // A fresh join needs the same manifest/map setup as the original match start.
+  // A reconnect to the same body keeps its round and local state intact.
+  const local = world.actors.find((a) => a.ctrl === "me");
+  if (Array.isArray(e.actors) && (!local || local.id !== e.actorId || CUR_MAP_KEY !== e.map || world.phase === "menu")) clientBeginMatch(e);
+  room.started = true;
+  if (e.snapshot) NET.onSnapshot(e.snapshot);
+  banner("교전에 합류했습니다", "#4ade80");
 }
 function clearActors() {
   (world.actors &&
@@ -18586,8 +18661,16 @@ function hostLeftNotice() {
             actorId: o ? o.id : null,
             started: !0,
             map: room.map,
+            rounds: room.rounds,
+            diff: room.diff,
+            actors: actorManifest(),
+            snapshot: buildSnapshot(false),
             cand: takeoverCandidates(),
           });
+          if (o) {
+            sendEventAll({ t: "ctrl", id: o.id, ctrl: e, name: o.name });
+            sendEventTo(e, { t: "wallet", c: o.credits, w: o.weapons, am: o.ammo, ar: o.armor, s: o.slot });
+          }
         } else (lobbyAdd(e, t.name), sendEventAll(lobbySnapshot()));
         break;
       case "abil": {

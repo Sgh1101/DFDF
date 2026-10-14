@@ -1,0 +1,58 @@
+const assert = require('node:assert/strict'), { fixture } = require('./browser-fixture'), { installTransport } = require('./network-test-transport');
+(async () => {
+  const f = await fixture(); let transport;
+  try {
+    const host = await f.page('net_host'), guest = await f.page('net_guest');
+    transport = await installTransport([host, guest]);
+    for (const page of [host, guest]) await page.evaluate(() => { render = () => {}; titleCam = () => {}; window.netMessages = []; const original = NET.onEvent; NET.onEvent = function (event) { netMessages.push(event.t); return original.apply(this, arguments); }; });
+    const code = await host.evaluate(async () => { await createRoom(); return NET.room; });
+    await guest.evaluate((code) => joinRoom(code), code);
+    await host.waitForFunction(() => room.members.size === 2 && NET.conns.size === 1);
+    await guest.waitForFunction(() => !document.getElementById('lobby').hidden);
+    const before = await host.evaluate(() => {
+      const peer = [...NET.conns.keys()][0], member = room.members.get(peer); member.agentKey = AGENTS[3].key;
+      return { peer, team: member.team, slot: member.slot, agent: member.agentKey };
+    });
+    await guest.evaluate(() => NET.up.event.close());
+    await guest.waitForFunction(() => window.NET_REDIALS === 1 && !NET_RC.busy);
+    await host.waitForFunction((id) => !room.members.has(id) && room.members.size === 2, before.peer);
+    const restored = await host.evaluate(() => { const m = room.members.get([...NET.conns.keys()][0]); return { team: m.team, slot: m.slot, agent: m.agentKey }; });
+    assert.deepEqual(restored, { team: before.team, slot: before.slot, agent: before.agent });
+    console.log('controlled transport: lobby drop restored team, slot and agent');
+    await host.evaluate(() => { room.mode = 'std'; room.map = 'pogu'; hostStartMatch(); ADMIN.freezeAI = true; });
+    await guest.waitForFunction(() => world.actors.length > 0 && myActor() && world.phase !== 'menu');
+    const actor = await guest.evaluate(() => myActor().id);
+    const oldPeer = await guest.evaluate(() => NET.peer.id);
+    await guest.evaluate(() => NET.up.state.close());
+    const input = await guest.evaluate(() => { const seq = 90001; sendInput({ t: 'in', seq, mv: [0, 1], yaw: 0, pitch: 0, btn: 0 }); return seq; });
+    await host.waitForFunction((seq) => world.actors.some((a) => a.ctrl !== 'me' && a.ctrl !== 'ai' && a.input.seq >= seq), input);
+    await guest.waitForFunction(() => NET.lastSnap && NET.up.event.open && !NET.up.state);
+    assert.equal(await guest.evaluate(() => NET.peer.id), oldPeer);
+    console.log('controlled transport: state-only loss kept snapshots and player input on reliable channel');
+    await guest.evaluate(() => NET.up.event.close());
+    await guest.waitForFunction(() => window.NET_REDIALS === 2 && !NET_RC.busy);
+    await host.waitForFunction((id) => world.actors.some((a) => a.id === id && a.ctrl !== 'me' && a.ctrl !== 'ai' && a.ctrl !== 'dead'), actor);
+    assert.equal(await guest.evaluate(() => myActor().id), actor);
+    console.log('controlled transport: match reconnect restored the same actor');
+    await host.evaluate(() => { NET.peer.disconnected = true; NET.peer.emit('disconnected'); });
+    await host.waitForFunction(() => !NET.peer.disconnected);
+    assert.equal(await guest.evaluate(() => NET.status), 'open');
+    console.log('controlled transport: signaling reconnect preserved the match');
+    await guest.evaluate(() => { NET.up.event.close(); netShutdown(); world.phase = 'menu'; });
+    await guest.waitForFunction(() => !NET_RC.busy && NET.mode === 'solo');
+    await guest.evaluate((code) => joinRoom(code), code);
+    await guest.waitForFunction(() => NET.status === 'open' && !NET_RC.quit);
+    await host.waitForFunction(() => NET.conns.size === 1);
+    console.log('controlled transport: quitting recovery allowed a subsequent room join');
+    const late = await f.page('net_late'); await transport.addPage(late);
+    await late.evaluate((code) => { render = () => {}; titleCam = () => {}; return joinRoom(code); }, code);
+    await late.waitForFunction(() => NET.lastSnap && world.actors.length > 0);
+    const lateState = await late.evaluate(() => ({ localActors: world.actors.filter((a) => a.ctrl === 'me').length, agent: myActor()?.agent?.key, phase: world.phase, map: CUR_MAP_KEY }));
+    console.log('late join state', lateState); assert.equal(lateState.localActors, 1); assert.ok(lateState.agent); assert.equal(lateState.map, 'pogu');
+    console.log('controlled transport: a fresh guest joining an active match has a controllable agent');
+    await host.evaluate(() => sendEventAll({ t: 'bye' }));
+    await guest.waitForFunction(() => NET.mode === 'solo' && !NET_RC.busy);
+    assert.deepEqual(f.errors, []); assert.deepEqual(transport.errors, []);
+    console.log('network recovery browser checks passed (simulated channels; WebRTC is separately tested)');
+  } finally { transport?.stop(); await f.browser.close(); }
+})().catch((e) => { console.error(e); process.exitCode = 1; });

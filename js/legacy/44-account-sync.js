@@ -201,13 +201,15 @@
   const waitIce = () => Promise.race([iceReady, new Promise((r) => setTimeout(r, 2500))]);
   const _cr = createRoom;
   createRoom = async function () {
+    const intent = NET.intent = (NET.intent || 0) + 1;
     await waitIce();
-    return _cr.apply(this, arguments);
+    if (NET.intent === intent) return _cr.apply(this, arguments);
   };
   const _jr = joinRoom;
   joinRoom = async function () {
+    const intent = NET.intent = (NET.intent || 0) + 1;
     await waitIce();
-    return _jr.apply(this, arguments);
+    if (NET.intent === intent) return _jr.apply(this, arguments);
   };
 
   // ── a login every time the game is opened ──
@@ -456,11 +458,12 @@
   }
   async function beat() {
     if (!online || "host" !== NET.mode || !NET.room || "open" !== NET.status || !token()) return;
+    const code = NET.room, owner = NET.peer, ownerToken = token();
     const players = [...room.members.values()].map((m) => m.name);
     try {
       const j = await api("room_up", {
-        token: token(),
-        code: NET.room,
+        token: ownerToken,
+        code,
         name: META.name || L(myName() + "의 방", myName() + "'s room"),
         ch: META.ch,
         private: META.priv,
@@ -470,7 +473,8 @@
         max: 2 * ("function" == typeof window.MAP_SIZE ? MAP_SIZE(room.map) : 5),
         state: room.started ? "live" : "lobby",
       });
-      reported = NET.room;
+      if (NET.mode !== "host" || NET.room !== code || NET.peer !== owner || !sessionMatches(ownerToken)) return;
+      reported = code;
       j.config && applyCfg(Object.assign({}, window.SERVER_CFG || {}, j.config));
       (j.cmds || []).forEach(runCmd);
       (j.banned || []).forEach((n) => kick(memberByName(n), L("이용이 제한된 계정입니다", "This account is restricted")));

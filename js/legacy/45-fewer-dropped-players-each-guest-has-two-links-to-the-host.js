@@ -3,31 +3,39 @@
   // Fewer dropped players. Each guest has two links to the host: a fast one
   // for positions (may lose packets) and a sure one for everything else. When
   // only the fast one dies, keep playing over the sure one instead of throwing
-  // the guest out. A guest who drops in the lobby keeps their seat for 25 s
+  // the guest out. A guest who drops in the lobby keeps their seat for 60 s
   // and dials back in by itself (in a match that already happened).
   const conns = () => NET.conns;
   const open = (c) => c && c.open;
 
   // ── host ──
   hostAccept = function (e) {
-    const label = e.label;
+    const label = e.label, owner = NET.peer;
+    const current = () => NET.mode === "host" && NET.peer === owner;
+    if (label !== "state" && label !== "event") return e.close();
     e.on("open", () => {
+      if (!current()) return e.close();
       let o = conns().get(e.peer);
       o || ((o = {}), conns().set(e.peer, o));
+      const previous = o[label];
       o[label] = e;
-      "event" === label && NET.onPeerJoin && NET.onPeerJoin(e.peer);
+      if (previous && previous !== e) previous.close();
+      if (label === "event" && NET.onPeerJoin) NET.onPeerJoin(e.peer);
     });
-    e.on("data", (t) => hostRecv(e.peer, t));
+    e.on("data", (data) => {
+      const o = conns().get(e.peer);
+      if (current() && o && o[label] === e && e.open) hostRecv(e.peer, data);
+    });
     e.on("close", () => {
       const o = conns().get(e.peer);
-      if (!o) return;
-      // the fast link alone: carry on over the sure one
-      if ("state" === label && open(o.event)) return void (o.state = null);
-      for (const k of ["state", "event"])
-        try {
-          o[k] && o[k] !== e && o[k].open && o[k].close();
-        } catch (x) {}
+      if (!current() || !o || o[label] !== e) return;
+      o[label] = null;
+      if (label === "state" && open(o.event)) return;
+      // Remove ownership first so the other channel's close cannot drop twice.
       hostDrop(e.peer);
+      for (const channel of [o.state, o.event]) {
+        try { if (channel && channel !== e) channel.close(); } catch (error) {}
+      }
     });
     e.on("error", () => {});
   };
@@ -47,11 +55,19 @@
   NET.onPeerGone = function (peer) {
     if (room.started || !room.members.has(peer)) return _pg.apply(this, arguments);
     const m = room.members.get(peer);
+    clearTimeout(away.get(peer));
+    const code = NET.room, owner = NET.peer;
     away.set(peer, setTimeout(() => {
       away.delete(peer);
-      room.members.has(peer) && !conns().has(peer) && _pg.call(NET, peer);
-    }, 25000));
+      NET.room === code && NET.peer === owner && room.members.has(peer) && !conns().has(peer) && _pg.call(NET, peer);
+    }, 60000));
     m && (m.away = !0);
+  };
+  const shutdownAway = netShutdown;
+  netShutdown = function () {
+    for (const timer of away.values()) clearTimeout(timer);
+    away.clear();
+    return shutdownAway.apply(this, arguments);
   };
   const _oa = NET.onAction;
   NET.onAction = function (peer, m) {
@@ -76,23 +92,6 @@
   };
 
   // ── guest ──
-  const _nj = netJoin;
-  netJoin = function () {
-    const p = _nj.apply(this, arguments);
-    // the fast link alone closing must not count as "the host is gone"
-    p.then(() => {
-      const up = NET.up,
-        st = up && up.state;
-      if (!st) return;
-      const ls = st._events && st._events.close;
-      st.removeAllListeners && st.removeAllListeners("close");
-      st.on("close", () => {
-        if (NET.up === up && open(up.event)) return void (up.state = null);
-        NET.up === up && NET.onHostGone && NET.onHostGone();
-      });
-    }).catch(() => {});
-    return p;
-  };
   sendInput = function (e) {
     if ("client" !== NET.mode || !NET.up) return;
     const c = open(NET.up.state) ? NET.up.state : open(NET.up.event) ? NET.up.event : null;

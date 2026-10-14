@@ -111,46 +111,63 @@
   // network) needs longer, and a retry that tears down a half-open link just
   // starts the wait again. Same join, 25 s.
   netJoin = function (code, ms) {
-    return new Promise((res, rej) => {
-      if ("undefined" == typeof Peer) return void rej(new Error("네트워크 모듈을 불러오지 못했습니다"));
+    return new Promise((resolve, reject) => {
+      if (typeof Peer === "undefined") return reject(new Error("네트워크 모듈을 불러오지 못했습니다"));
+      netCloseTransport();
       NET.room = code;
       NET.mode = "client";
       NET.status = "connecting";
-      const pr = new Peer(null, peerOpts());
-      NET.peer = pr;
-      const to = setTimeout(() => {
-        NET.peer === pr && "open" !== NET.status && ((NET.status = "error"), rej(new Error("방을 찾지 못했습니다")));
-      }, ms || 25000);
-      pr.on("open", () => {
+      NET.error = null;
+      const peer = new Peer(null, peerOpts());
+      NET.peer = peer;
+      let settled = false, notified = false;
+      const current = () => NET.peer === peer && NET.mode === "client" && NET.room === code;
+      const cancel = () => { if (!settled) { settled = true; clearTimeout(timer); reject(netAbortError()); } };
+      const finish = (error) => {
+        if (settled) return;
+        settled = true; clearTimeout(timer);
+        if (NET.cancelConnect === cancel) NET.cancelConnect = null;
+        if (error) {
+          if (current()) { NET.status = "error"; NET.error = error; netCloseTransport(); }
+          reject(error);
+        } else { NET.status = "open"; resolve(true); }
+      };
+      const timer = setTimeout(() => finish(new Error("방을 찾지 못했습니다")), ms || 25000);
+      NET.cancelConnect = cancel;
+      netWatchSignaling(peer);
+      const gone = () => {
+        if (!current() || notified) return;
+        if (!settled) return finish(new Error("방과의 연결이 닫혔습니다"));
+        notified = true; NET.status = "closed";
+        NET.onHostGone && NET.onHostGone();
+      };
+      peer.on("open", () => {
+        if (!current() || peer.destroyed || NET.up) return;
         const id = roomToPeerId(code),
-          st = pr.connect(id, { label: "state", reliable: !1, serialization: "json" }),
-          ev = pr.connect(id, { label: "event", reliable: !0, serialization: "json" });
-        NET.up = { state: st, event: ev };
-        ev.on("open", () => {
-          if (NET.peer !== pr) return;
-          clearTimeout(to);
-          NET.status = "open";
-          res(!0);
-        });
-        st.on("data", (d) => clientRecv(d));
-        ev.on("data", (d) => clientRecv(d));
-        const gone = () => {
-          if (NET.peer !== pr) return; // an old link closing after a redial
-          NET.status = "closed";
-          NET.onHostGone && NET.onHostGone();
-        };
-        ev.on("close", gone);
-        st.on("close", gone);
-        ev.on("error", (e) => {
-          NET.peer === pr && "open" !== NET.status && (clearTimeout(to), (NET.status = "error"), rej(e));
-        });
+          state = peer.connect(id, { label: "state", reliable: false, serialization: "json" }),
+          event = peer.connect(id, { label: "event", reliable: true, serialization: "json" });
+        const up = NET.up = { state, event };
+        event.on("open", () => { if (current() && NET.up === up) finish(); });
+        for (const [label, channel] of [["state", state], ["event", event]]) {
+          channel.on("data", (data) => { if (current() && NET.up === up && up[label] === channel && channel.open) clientRecv(data); });
+          channel.on("close", () => {
+            if (!current() || NET.up !== up || up[label] !== channel) return;
+            up[label] = null;
+            // The reliable channel is sufficient, including while it is still opening.
+            if (label === "event") gone();
+          });
+          channel.on("error", (error) => {
+            if (!current() || NET.up !== up) return;
+            if (label === "event" && !settled) finish(error);
+            else if (label === "event" && !channel.open) gone();
+          });
+        }
       });
-      pr.on("error", (e) => {
-        NET.peer === pr && "open" !== NET.status && (clearTimeout(to), (NET.status = "error"), rej(e));
-      });
+      peer.on("close", gone);
+      peer.on("error", (error) => { if (current() && !settled) finish(error); });
     });
   };
-  const RC = { busy: !1, quit: !1, bye: !1, snapT: performance.now(), wait: !1 };
+  const RC = { busy: !1, quit: !1, bye: !1, generation: 0, snapT: performance.now(), wait: !1 };
   window.NET_RC = RC;
   const _os = NET.onSnapshot;
   NET.onSnapshot = function () {
@@ -166,41 +183,47 @@
   const _ns = netShutdown;
   netShutdown = function () {
     RC.quit = !0;
+    RC.generation++;
+    RC.busy = RC.wait = !1;
+    pill(null);
     return _ns.apply(this, arguments);
   };
   const _jr = joinRoom;
   joinRoom = function () {
+    RC.generation++;
+    RC.busy = RC.wait = !1;
     RC.quit = RC.bye = !1;
+    pill(null);
     RC.snapT = performance.now();
     return _jr.apply(this, arguments);
   };
   const inMatch = () => "client" === NET.mode && !!NET.room && "menu" !== world.phase && "over" !== world.phase;
   const _gone = NET.onHostGone;
   NET.onHostGone = function () {
-    if (RC.busy) return;
-    if (RC.bye || RC.quit || !inMatch()) return _gone.apply(this, arguments);
+    if (RC.busy || RC.quit) return;
+    if (RC.bye || !inMatch()) return _gone.apply(this, arguments);
     redial();
   };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function redial() {
+    if (RC.busy || RC.quit || RC.bye || NET.mode !== "client" || !NET.room) return;
     RC.busy = !0;
+    const generation = RC.generation, active = () => generation === RC.generation && !RC.quit && !RC.bye;
     const code = NET.room,
       prev = NET.peer && NET.peer.id,
       me = typeof myActor == "function" && myActor(),
       actorId = me ? me.id : null;
     const TRIES = 6;
     let missing = 0;
-    for (let i = 1; i <= TRIES; i++) {
+    for (let i = 1; i <= TRIES && active(); i++) {
       pill(`연결이 끊겼습니다 · 다시 연결하는 중 (${i}/${TRIES})`);
       (RC.log = RC.log || []).push(Math.round(performance.now() / 100) / 10 + " try " + i);
-      try {
-        NET.peer && NET.peer.destroy();
-      } catch (e) {}
-      NET.up = null;
+      netCloseTransport();
       await sleep(250);
-      if (RC.quit) break;
+      if (!active()) break;
       try {
         await netJoin(code, 40000);
+        if (!active()) break;
         sendAction({ t: "hello", name: myName(), actorId, prev });
         RC.snapT = performance.now();
         RC.busy = !1;
@@ -212,6 +235,7 @@
         window.NET_REDIALS = (window.NET_REDIALS || 0) + 1;
         return;
       } catch (e) {
+        if (!active() || e.name === "AbortError") break;
         RC.lastErr = (e && (e.type || e.message)) || String(e);
         RC.log.push(Math.round(performance.now() / 100) / 10 + " fail " + RC.lastErr);
         // the host's id is not on the server any more: it closed the game
@@ -219,9 +243,10 @@
         await sleep(1000 + 1000 * i);
       }
     }
+    if (generation !== RC.generation) return;
     RC.busy = !1;
     pill(null);
-    RC.quit || _gone();
+    active() && _gone();
   }
   window.netRedial = redial;
   // no snapshots for a while: say so; for too long: the link is dead, redial
