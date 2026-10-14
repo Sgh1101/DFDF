@@ -18,6 +18,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.locator('#sel-roles [data-role="감시자"]').click();
     assert.equal(await page.locator("#sel-grid .acard:visible").count(), await page.evaluate(() => picked.role === "감시자" ? 1 : 0));
     await page.locator('#sel-roles [data-role=""]').click();
+    if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click(); // small landscape: map and mode live in a sheet
     await page.locator("#mode-guide summary").click(); assert.match(await page.locator("#mode-guide p").textContent(), /스파이크/);
     await page.locator("#sel-back").click(); await page.locator("#go-armory").click();
     assert.equal(await page.locator("#armory").getAttribute("role"), "dialog");

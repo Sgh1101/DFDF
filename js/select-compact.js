@@ -28,6 +28,9 @@
   mid.addEventListener("click", (e) => { const c = e.target.closest && e.target.closest("#sel-maps .lb-map, #sel-modes .lb-map"); c && setTimeout(() => { refresh(); set(false); }, 0); });
   document.addEventListener("click", (e) => { foot.classList.contains("pick-open") && !foot.contains(e.target) && set(false); });
   document.addEventListener("keydown", (e) => { "Escape" === e.key && foot.classList.contains("pick-open") && (set(false), pick.focus()); });
+  // leaving the screen (back, start, or anything else) closes the sheet
+  const screen = document.getElementById("s-select");
+  screen && new MutationObserver(() => screen.hidden && set(false)).observe(screen, { attributes: true, attributeFilter: ["hidden"] });
   addEventListener("resize", () => foot.classList.contains("pick-open") && place());
   new MutationObserver(refresh).observe(mid, { subtree: true, attributes: true, attributeFilter: ["class"], childList: true });
   addEventListener("server-config", refresh);
