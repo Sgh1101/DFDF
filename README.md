@@ -55,10 +55,12 @@ Node.js 20 이상에서 `npm run dev`로 정적 페이지와 `/api/v1`을 실행
 - `npm run test:browser`: 실행 중인 개발 서버에서 작은 가로 화면의 홈·요원 선택·무기고·처치·결과·로그아웃을 검사합니다. Playwright와 Chromium이 필요합니다. 선택적으로 `DFDF_BASE_URL`, `CHROME_BIN`, `DFDF_PLAYWRIGHT_MODULE`, `DFDF_THREE_PATH`를 설정할 수 있습니다.
 - `npm run test:maps`: 문·순간이동 장치·집라인의 맵 재로딩 후 자원 해제, 중복 해제 방지, 공유 자산 유지, 문 조작 및 반복 렌더링 검사.
 - `npm run test:startup`: 엔진 로딩 전 무기고 버튼 표시, 스킨 바로가기, 지연된 보유품 조회·뽑기 및 화면에 보이는 최종 요원 사진 검사.
+- `npm run test:lobby`: PC·태블릿·모바일 홈 배치/팝업 경계, 메뉴 클릭, 요원 키보드 선택과 한국어·영어 표시 검사 및 스크린샷 저장.
 - `npm run test:followup`: 방 목록 갱신·정렬·실패 표시, 요원 전용 그래픽 자원 해제, Chromium CDP 멀티터치·취소, 배치 편집·복원, 계정 전환·다른 탭 로그아웃과 한국어/영어 화면 검사. API는 테스트 저장소로 대체하며 서비스 워커를 막아 요청을 정확히 대체합니다. 모바일 실기기나 운영 데이터 검증을 뜻하지 않습니다.
 - `js/game-rules.js`: 입력·능력·승패·피니셔의 공통 규칙.
 - `js/game-events.js`: 온라인 처치 정보, 피니셔, 재접속 보호, 결과 완료 사건.
 - `js/home.js`, `js/home-details.js`, `css/home.css`: 홈 동선, 최근 설정·즐겨찾기·모드 안내·장착 스킨과 미리보기.
+- `js/home-layout.js`, `css/home-lobby.css`: FPS 로비 배치와 반응형 홈. [배치와 참고 사례](docs/HOME_DESIGN.md).
 - `js/damage-cause.js`: 지연 피해의 발사 당시 무기·스킨.
 - `js/modal-focus.js`: 주요 모달의 키보드 포커스.
 - `js/portrait-loader.js`: 부팅 후 화면에 보이는 요원 사진을 작업별로 생성하고, 교체된 카드의 대기 작업 정리.

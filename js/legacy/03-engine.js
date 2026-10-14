@@ -20926,7 +20926,9 @@ function renderTitleRoster() {
   e &&
     !e.childElementCount &&
     AGENTS.forEach((t, o) => {
-      const a = document.createElement("div");
+      const a = document.createElement("button");
+      a.type = "button";
+      a.setAttribute("aria-label", t.name + " · " + t.role);
       ((a.className = "tr-chip"),
         a.style.setProperty("--ac", t.color),
         (a.style.animationDelay = 45 * o + "ms"),
