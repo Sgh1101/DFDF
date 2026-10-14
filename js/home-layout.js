@@ -18,9 +18,10 @@
   footer.append(guide, equipment, stats);
   const panels = [];
   function placePanel(detail, panel) {
-    const rect = detail.getBoundingClientRect(), width = Math.min(360, innerWidth - 32);
+    const style = getComputedStyle(title), inset = (edge) => Math.max(16, parseFloat(style.getPropertyValue("--home-safe-" + edge)) || 0);
+    const left = inset("left"), right = inset("right"), rect = detail.getBoundingClientRect(), width = Math.min(360, innerWidth - left - right);
     panel.style.width = width + "px";
-    panel.style.left = Math.max(16, Math.min(rect.left, innerWidth - width - 16)) - rect.left + "px";
+    panel.style.left = Math.max(left, Math.min(rect.left, innerWidth - width - right)) - rect.left + "px";
     panel.style.maxHeight = Math.max(80, rect.top - header.getBoundingClientRect().bottom - 20) + "px";
   }
   for (const detail of [guide, equipment]) {
@@ -70,5 +71,5 @@
       const chip = $(id); if (chip) chip.setAttribute("aria-label", L(ko, en) + (id === "acct-chip" ? " · " + chip.textContent : ""));
     }
   }
-  chipNames(); new MutationObserver(chipNames).observe($("home-account"), { childList: true });
+  chipNames(); new MutationObserver(chipNames).observe($("home-account"), { childList: true, subtree: true });
 })();

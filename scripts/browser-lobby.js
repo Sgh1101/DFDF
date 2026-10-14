@@ -51,6 +51,19 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
       await page.locator("#ar-close").click();
       console.log(name, "layout, footer panels, range, multiplayer, settings and armory passed");
     }
+    for (const [width, height, edges] of [[852, 393, { top: 0, bottom: 21, left: 44, right: 44 }], [390, 844, { top: 47, bottom: 34, left: 0, right: 0 }]]) {
+      await page.setViewportSize({ width, height });
+      await page.evaluate((edges) => { const root = document.getElementById("s-title"); for (const [edge, value] of Object.entries(edges)) root.style.setProperty("--home-safe-" + edge, value + "px"); }, edges);
+      const items = await page.evaluate((edges) => [".home-brand", "#go-armory", "#go-set", "#go-play", "#go-multi", "#home-account", ".home-footer>.home-guide summary"].map((selector) => {
+        const r = document.querySelector(selector).getBoundingClientRect(); return { selector, within: r.left >= edges.left && r.right <= innerWidth - edges.right + 1 && r.top >= edges.top && r.bottom <= innerHeight - edges.bottom + 1 };
+      }), edges);
+      for (const item of items) assert.equal(item.within, true, "safe area " + width + " " + item.selector);
+      await page.locator(".home-footer>.home-guide summary").first().click();
+      const popup = page.locator(".home-footer details[open] .home-detail-panel"), rect = await popup.boundingBox();
+      assert.ok(rect.x >= Math.max(16, edges.left) && rect.x + rect.width <= width - Math.max(16, edges.right) + 1);
+      await popup.locator(".home-detail-heading button").click();
+      console.log(width, "simulated safe-area controls and popup passed");
+    }
     const english = await f.page("lobbyenglish", { width: 852, height: 393 }, {}, { beforeLoad: (p) => p.addInitScript(() => localStorage.setItem("lgp_lang", "en")) });
     assert.equal(await english.locator(".title-mark").textContent(), "PLAY");
     assert.equal(await english.locator("#go-armory b").textContent(), "Armory");
