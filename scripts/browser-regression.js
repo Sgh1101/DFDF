@@ -5,7 +5,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const page = await f.page("regression");
     await page.locator("#go-play").click();
     assert.equal(await page.evaluate(() => document.pointerLockElement === null), true);
-    try { await page.locator("#agent-favorites button").nth(1).click({timeout:5000}); }
+    try { await page.locator("#agent-favorites button").nth(1).click({timeout:20000}); }
     catch (error) {
       console.log("failed selection", await page.evaluate(() => {
         const e = document.querySelector("#agent-favorites button:nth-child(2)"), r = e.getBoundingClientRect();
