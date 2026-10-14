@@ -87,8 +87,8 @@
   }
   paintEquipment(); setInterval(paintEquipment, 1000);
   // One expanded panel at a time keeps the primary actions in view on phones.
-  $("s-title").addEventListener("toggle", (event) => {
+  menu.addEventListener("toggle", (event) => {
     if (event.target.tagName !== "DETAILS" || !event.target.open) return;
-    $("s-title").querySelectorAll("details[open]").forEach((panel) => { if (panel !== event.target) panel.open = false; });
+    menu.querySelectorAll("details[open]").forEach((panel) => { if (panel !== event.target) panel.open = false; });
   }, true);
 })();

@@ -46,10 +46,7 @@
     $("tt-role").textContent = a.role;
     $("tt-name").textContent = a.name;
     $("tt-quote").textContent = a.quote;
-    [...roster.children].forEach((c, k) => {
-      c.classList.toggle("on", k === idx);
-      c.setAttribute("aria-pressed", String(k === idx));
-    });
+    [...roster.children].forEach((c, k) => c.classList.toggle("on", k === idx));
     show.classList.remove("swap");
     void show.offsetWidth;
     show.classList.add("swap");
