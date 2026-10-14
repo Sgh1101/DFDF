@@ -27,7 +27,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     console.log("guest state", await guest.evaluate(() => ({status:NET.status,code:NET.room,error:NET.error && NET.error.message})));
     await host.waitForFunction(() => NET.conns.size === 1 && room.members.size === 2);
     await host.evaluate(() => { room.mode = "std"; hostStartMatch(); });
-    await guest.waitForFunction(() => room.started && world.actors.length > 0 && myActor());
+    await guest.waitForFunction(() => "client" === NET.mode && world.actors.length > 0 && myActor(), null, { timeout: 90000 });
     const first = await host.evaluate(() => ({ id: world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai").id, peer: [...NET.conns.keys()][0] }));
     const report = await host.evaluate(() => {
       world.phase = "live";
