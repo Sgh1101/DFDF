@@ -21,9 +21,22 @@
   const TEX = {};
   const glowMat = (map, op) =>
     new T.MeshBasicMaterial({ color: COL, map, transparent: !0, opacity: op, blending: T.AdditiveBlending, depthWrite: !1, side: T.DoubleSide });
-  function build() {
-    FX.list.forEach((s) => s.group.parent && s.group.parent.remove(s.group));
+  function clearSites() {
+    const geometries = new Set(), materials = new Set();
+    for (const site of FX.list) {
+      site.group.traverse((node) => {
+        if (node.geometry) geometries.add(node.geometry);
+        if (node.material) materials.add(node.material);
+      });
+      site.group.removeFromParent();
+    }
     FX.list = [];
+    for (const geometry of geometries) geometry.dispose();
+    // TEX.fill and TEX.curtain are shared across maps and remain cached.
+    for (const material of materials) material.dispose();
+  }
+  function build() {
+    clearSites();
     TEX.curtain || (TEX.curtain = gradTex(4, 64, [[0, 0.9], [0.25, 0.35], [1, 0]]));
     TEX.fill || (TEX.fill = gradTex(128, 128, [[0, 0], [0.62, 0.02], [0.93, 0.22], [1, 0.4]], !0));
     for (const site of MAP.sites || []) {

@@ -179,6 +179,9 @@ MAP.walls.forEach((e) => {
 let CUR_MAP_KEY = "glacier";
 const _mapMeshes = [];
 function clearMapGeometry() {
+  // Device groups contain owned child resources; clean them before removing
+  // top-level map meshes so their resources are released exactly once.
+  if (window.MAP_GIMMICKS) window.MAP_GIMMICKS.clear();
   for (const e of _mapMeshes)
     (scene.remove(e), e.geometry && e.geometry.dispose());
   if (

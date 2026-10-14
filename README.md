@@ -53,6 +53,7 @@ Node.js 20 이상에서 `npm run dev`로 정적 페이지와 `/api/v1`을 실행
 - `npm run check`: 서버, 기능 모듈 및 HTML의 인라인 스크립트 문법 검사.
 - `npm test`: 임시 메모리 저장소로 인증 경계, 동시 저장, 보상 재시도, 입력·능력·피니셔 조건 검사. 운영 Redis의 통합 검증은 별도로 필요합니다.
 - `npm run test:browser`: 실행 중인 개발 서버에서 작은 가로 화면의 홈·요원 선택·무기고·처치·결과·로그아웃을 검사합니다. Playwright와 Chromium이 필요합니다. 선택적으로 `DFDF_BASE_URL`, `CHROME_BIN`, `DFDF_PLAYWRIGHT_MODULE`, `DFDF_THREE_PATH`를 설정할 수 있습니다.
+- `npm run test:maps`: 문·순간이동 장치·집라인의 맵 재로딩 후 자원 해제, 중복 해제 방지, 공유 자산 유지, 문 조작 및 반복 렌더링 검사.
 - `npm run test:followup`: 방 목록 갱신·정렬·실패 표시, 요원 전용 그래픽 자원 해제, Chromium CDP 멀티터치·취소, 배치 편집·복원, 계정 전환·다른 탭 로그아웃과 한국어/영어 화면 검사. API는 테스트 저장소로 대체하며 서비스 워커를 막아 요청을 정확히 대체합니다. 모바일 실기기나 운영 데이터 검증을 뜻하지 않습니다.
 - `js/game-rules.js`: 입력·능력·승패·피니셔의 공통 규칙.
 - `js/game-events.js`: 온라인 처치 정보, 피니셔, 재접속 보호, 결과 완료 사건.

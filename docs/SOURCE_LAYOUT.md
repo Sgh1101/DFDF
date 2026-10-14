@@ -33,3 +33,9 @@
 터치 이벤트는 `03-engine.js`의 `enableTouch()`에서 한 번만 등록합니다. `17-mobile-controls.js`의 왼쪽 사격 버튼도 같은 `beginTouchFire`/`endTouchFire`를 사용해 손가락별 누름 상태를 공유합니다. 끄기·창 포커스 상실·백그라운드 전환은 `resetTouchInput()`으로 해제하며, 29번 파일의 입력 함수 래퍼와 별도 터치 선택 재해석은 제거했습니다.
 
 `chDispose()`는 요원 모델의 baked 지오메트리와 명시적으로 소유한 팀 색상 재질을 해제합니다. `CH_GEO`, `CH_MAT`, `TP_GUN` 등의 공유 자산은 해제하지 않습니다. 경기 다시 시작과 모델 품질 변경이 이 경로를 사용합니다. 모든 투사체·무기·맵 자산의 소유권을 완전히 통합한 단계는 아닙니다.
+
+
+맵 장치의 소유 자원은 `06-one-way-teleporters-switch-doors-ziplines.js`의 `MAP_GIMMICKS.clear()`에서 정리합니다. 문 스위치·문 본체·순간이동 링·집라인의 geometry/material은 이 모듈에서 생성하므로 중복 없이 해제합니다. 공유 텍스처는 해제하지 않습니다. `clearMapGeometry()`는 일반 맵 메시를 제거하기 전에 장치 정리를 호출하고, 장치가 맵 메시 목록에도 등록되어 있으면 먼저 목록에서 제외해 이중 해제를 막습니다.
+
+
+사이트 표시(`13-plant-zones-made-visible-a-glowing-ring-and-light-curtain.js`)도 재생성 전에 이전 링·바닥·장막의 geometry/material을 해제합니다. 사이트 간 공유하는 `TEX.fill`과 `TEX.curtain`은 유지합니다.

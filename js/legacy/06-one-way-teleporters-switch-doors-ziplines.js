@@ -31,6 +31,24 @@
   };
   const G = { key: null, tp: [], door: [], zip: [], meshes: [] };
   window.MAP_GIMMICKS = G;
+  function clear() {
+    // These nodes and their geometry/materials are created by this module.
+    // Textures and other map/character assets remain with their own caches.
+    const nodes = new Set(), geometries = new Set(), materials = new Set();
+    for (const root of G.meshes) root.traverse((node) => {
+      nodes.add(node);
+      if (node.geometry) geometries.add(node.geometry);
+      const list = Array.isArray(node.material) ? node.material : [node.material];
+      for (const material of list) if (material) materials.add(material);
+    });
+    // Forget overlapping map registrations before the generic cleanup runs.
+    for (let i = _mapMeshes.length - 1; i >= 0; i--) if (nodes.has(_mapMeshes[i])) _mapMeshes.splice(i, 1);
+    for (const root of G.meshes) root.removeFromParent();
+    Object.assign(G, { key: null, tp: [], door: [], zip: [], meshes: [] });
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
+  }
+  G.clear = clear;
   const mat = (c, e) => new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: e || 0, roughness: 0.4, metalness: 0.4 });
   const add = (m) => (scene.add(m), G.meshes.push(m), m);
   // decor can land on a chosen point; step outward to the nearest clear spot
@@ -47,8 +65,8 @@
   }
 
   function build(key) {
-    G.meshes.forEach((m) => scene.remove(m));
-    Object.assign(G, { key, tp: [], door: [], zip: [], meshes: [] });
+    clear();
+    G.key = key;
     const d = DEF[key];
     if (!d) return;
     (d.tp || []).forEach((t0, i) => {
