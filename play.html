@@ -87,6 +87,7 @@
 <link rel="preload" as="script" href="./js/legacy/79-kill-and-hit-feedback-review-fixes.js">
 <link rel="preload" as="script" href="./js/legacy/80-skin-sound-packs-every-weapon-skin-family-has-its-own-guns.js">
 <script src="./js/game-boot.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
+<script src="./js/portrait-loader.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/client-request.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/match-report.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/01-entry.js" onerror="GAME_BOOT.fail(this.src)"></script>
@@ -622,6 +623,7 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
         <div class="tt-sub">
           <button class="tt-item tt-mini" id="go-range"><b>사격 연습장</b></button>
           <button class="tt-item tt-mini" id="go-fly"><b>맵 구경</b></button>
+          <button class="tt-item tt-mini" id="go-armory" disabled><b>무기고</b></button>
           <button class="tt-item tt-mini" id="go-set"><b>설정</b></button>
         </div>
       </nav>

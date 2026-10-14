@@ -20921,6 +20921,7 @@ function abIcon(e, t) {
   return `<svg class="${t || "ab-ic"}" viewBox="0 0 24 24" aria-hidden="true"><path d="${AB_ICON_PATH[o]}"/></svg>`;
 }
 function renderTitleRoster() {
+  if (document.documentElement.dataset.gameLoading) return;
   const e = document.getElementById("title-roster");
   e &&
     !e.childElementCount &&
@@ -20930,27 +20931,33 @@ function renderTitleRoster() {
         a.style.setProperty("--ac", t.color),
         (a.style.animationDelay = 45 * o + "ms"),
         (a.title = t.name + " · " + t.role),
-        (a.innerHTML = `<img alt="" src="${agentPortrait(t, 300, 380)}"><span>${t.name}</span>`),
+        (a.innerHTML = `<img alt=""><span>${t.name}</span>`),
+        GAME_PORTRAITS.set(a.querySelector("img"), t, 80, 100),
         e.appendChild(a));
     });
 }
 function renderSelect() {
+  if (document.documentElement.dataset.gameLoading) return;
   const e = $("sel-grid");
+  GAME_PORTRAITS.clear(e);
   ((e.innerHTML = ""),
     AGENTS.forEach((t) => {
       const o = document.createElement("button");
       ((o.className = "acard"),
         o.style.setProperty("--ac", t.color),
         o.setAttribute("aria-pressed", t === picked),
-        (o.innerHTML = `<img class="acard-img" alt="" src="${agentPortrait(t, 300, 380)}">\n      <div class="acard-body">\n        <div class="acard-role">${t.role}</div>\n        <div class="acard-name">${t.name}</div>\n        <div class="acard-q">${t.quote}</div>\n      </div>`),
+        (o.innerHTML = `<img class="acard-img" alt="">\n      <div class="acard-body">\n        <div class="acard-role">${t.role}</div>\n        <div class="acard-name">${t.name}</div>\n        <div class="acard-q">${t.quote}</div>\n      </div>`),
+        GAME_PORTRAITS.set(o.querySelector("img"), t, 300, 380),
         (o.onclick = () => {
           ((picked = t), renderSelect());
         }),
         e.appendChild(o));
     }));
   const t = $("sel-detail");
+  GAME_PORTRAITS.clear(t);
   (t.style.setProperty("--ac", picked.color),
-    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="" src="${agentPortrait(picked, 420, 520)}">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}</div>\n        </div>\n      </div>`).join("")}\n  `));
+    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}</div>\n        </div>\n      </div>`).join("")}\n  `));
+  GAME_PORTRAITS.set(t.querySelector(".det-img"), picked, 420, 520, true);
 }
 function startGame(e, t) {
   ((NET.mode = "solo"),
@@ -21117,7 +21124,7 @@ try {
 }
 ((world.phase = "menu"), show("s-title"));
 try {
-  renderTitleRoster();
+  GAME_BOOT.ready.then(renderTitleRoster);
 } catch (e) {
   console.warn("roster", e);
 }

@@ -42,7 +42,7 @@
     const a = AGENTS[idx];
     show.style.setProperty("--ac", a.color);
     title.style.setProperty("--tt-ac", a.color);
-    $("tt-img").src = agentPortrait(a, 420, 520);
+    GAME_PORTRAITS.set($("tt-img"), a, 420, 520, true);
     $("tt-role").textContent = a.role;
     $("tt-name").textContent = a.name;
     $("tt-quote").textContent = a.quote;
@@ -70,6 +70,8 @@
     picked = AGENTS[idx];
     $("go-play").click();
   };
-  feature(Math.floor(Math.random() * AGENTS.length));
-  cycle();
+  GAME_BOOT.ready.then(() => {
+    feature(Math.floor(Math.random() * AGENTS.length));
+    cycle();
+  });
 })();

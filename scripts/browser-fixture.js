@@ -4,7 +4,7 @@ async function fixture() {
   const h = harness({ now: Date.now() }), errors = [];
   const browser = await chromium.launch({ ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}), headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "browser-owner-device" });
-  async function page(id, viewport = { width: 852, height: 393 }, contextOptions = {}) {
+  async function page(id, viewport = { width: 852, height: 393 }, contextOptions = {}, options = {}) {
     const session = await h.api("auth", { id, pw: "password", device: "browser-test-" + id });
     for (const item of ["rifle|dragon", "rpg|dragon"]) await h.api("a_user_set", { atoken: owner.atoken, id, op: "grant", item });
     const context = await browser.newContext({ viewport, serviceWorkers: "block", ...contextOptions });
@@ -25,9 +25,11 @@ async function fixture() {
       }
       const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120);
     }, session);
-    await page.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + "/play.html", { waitUntil: "domcontentloaded", timeout: 120000 });
+    if (options.beforeLoad) await options.beforeLoad(page);
+    await page.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + (options.path || "/play.html"), { waitUntil: "domcontentloaded", timeout: 120000 });
     await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading);
-    await page.evaluate(() => { setQuality("fast"); return GUN_SKINS.sync(); });
+    await page.evaluate(() => setQuality("fast"));
+    if (options.syncSkins !== false) await page.evaluate(() => GUN_SKINS.sync());
     console.log("loaded browser account", id);
     return page;
   }

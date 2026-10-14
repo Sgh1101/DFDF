@@ -1272,12 +1272,14 @@
       takeInv(await AC().api("skins", { token: t, set: SK.mine, t: SK.t }));
     } catch (e) {}
   }
-  let syncing = !1;
+  let syncing = !1, syncError = !1;
   async function sync(force) {
     const t = token();
     if (!t || !isOnline() || syncing || (!force && pulled === t)) return;
     pulled = t;
     syncing = !0;
+    syncError = !1;
+    paintGacha();
     try {
       const j = await AC().api("skins", { token: t }),
         srv = j && j.skins;
@@ -1292,10 +1294,23 @@
       if (SK.t && (!srv || (+srv.t || 0) < SK.t)) push();
     } catch (e) {
       pulled = "";
+      syncError = !0;
     }
     syncing = !1;
+    paintGacha();
   }
+  GAME_BOOT.ready.then(() => sync(!1));
   setInterval(() => sync(!1), 2500);
+  function openSkinLink() {
+    if (document.documentElement.dataset.gameLoading) return;
+    const h = location.hash, tt = $("s-title");
+    if (/^#skins(?:-mine)?$/.test(h) && "menu" === world.phase && tt && !tt.hidden && "none" !== getComputedStyle(tt).display) {
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      openArmory(null, "#skins-mine" === h ? "mine" : "pull");
+    }
+  }
+  GAME_BOOT.ready.then(openSkinLink);
+  addEventListener("hashchange", openSkinLink);
   // gold moves on the account (a match report, the owner): the wallet follows
   let ovBase = -1;
   setInterval(() => {
@@ -1307,14 +1322,7 @@
       overGold(!1);
       goldChip();
       // the homepage's skin button: play.html#skins (pulls) or #skins-mine opens the page at the menu
-      const h = location.hash,
-        tt = $("s-title");
-      if (/^#skins/.test(h) && "menu" === world.phase && tt && !tt.hidden && "none" !== getComputedStyle(tt).display) {
-        try {
-          history.replaceState(null, "", location.pathname + location.search);
-        } catch (e) {}
-        openArmory(null, "#skins-mine" === h ? "mine" : "pull");
-      }
+      openSkinLink();
     } catch (e) {}
   }, 1000);
   // a pull: gold out, skins in, then the reveal
@@ -1717,7 +1725,7 @@
       const b = $("ar-pull" + n),
         cost = costOf(n);
       b.innerHTML = `${L(n + "회 뽑기", 1 === n ? "Pull ×1" : "Pull ×10")}<i>🪙 ${cost.toLocaleString()}</i>${10 === n && disc > 0 ? `<em>${disc}% ${L("할인", "off")}</em>` : ""}`;
-      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : INV.busy ? L("뽑는 중…", "Pulling…") : left < n ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("모든 스킨을 모았습니다", "You own every skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
+      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : !INV.synced ? (syncError ? L("스킨 정보를 불러오지 못했습니다 · 무기고를 다시 열어주세요", "Could not load skins · reopen the armory to retry") : L("스킨 정보를 불러오는 중…", "Loading your skins…")) : INV.busy ? L("뽑는 중…", "Pulling…") : left < n ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("모든 스킨을 모았습니다", "You own every skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
       b.disabled = !!why;
       b.title = why;
       1 === n && (why1 = why);
@@ -2808,6 +2816,7 @@
   }
 
   // ── the tabs ──
+  let previewFrame = 0;
   function setTab(t) {
     ["pull", "mine", "gun"].includes(t) || (t = "pull");
     AR.tab = t;
@@ -2825,7 +2834,17 @@
     placeView();
     if (!AR.open) return;
     armoryPaint();
-    pvShow();
+    if (AR.pv) pvShow();
+    else {
+      // Let the controls paint before creating the first WebGL preview.
+      cancelAnimationFrame(previewFrame);
+      previewFrame = requestAnimationFrame(() => {
+        previewFrame = requestAnimationFrame(() => {
+          previewFrame = 0;
+          if (AR.open && !AR.pv) pvShow();
+        });
+      });
+    }
   }
   for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.onclick = () => setTab(b.dataset.tab);
 
@@ -2993,6 +3012,7 @@
   function armoryPaint() {
     if (!AR.open) return;
     "mine" === AR.tab && paintMine();
+    if (AR.tab !== "gun") { paintGacha(); return; }
     const gl = $("ar-guns");
     gl.innerHTML = "";
     for (const [cls, keys] of gunList()) {
@@ -3062,8 +3082,7 @@
     paintGold();
     setTab(tab || (key && WEAPONS[key] ? "gun" : AR.tab));
     sync(!0);
-    // the card painter is made while nothing else is going on
-    setTimeout(() => AR.open && thInit(), 400);
+    // Card thumbnails initialize their renderer only when a visible card needs it.
     cancelAnimationFrame(AR.raf);
     AR.raf = requestAnimationFrame(pvLoop);
   }
@@ -3074,6 +3093,8 @@
     placeView();
     AR.open = !1;
     ar.hidden = !0;
+    cancelAnimationFrame(previewFrame);
+    previewFrame = 0;
     cancelAnimationFrame(AR.raf);
   }
   $("ar-close").onclick = closeArmory;
@@ -3107,13 +3128,14 @@
   );
   // ways in: the title, agent select, the pause menu, the shop
   const way = (parent, id, cls, text, before) => {
-    if (!parent || $(id)) return null;
-    const b = document.createElement("button");
+    if (!parent) return null;
+    const existing = $(id), b = existing || document.createElement("button");
     b.id = id;
     b.className = cls;
     b.innerHTML = text;
     b.onclick = () => openArmory();
-    before && before.parentNode === parent ? parent.insertBefore(b, before) : parent.appendChild(b);
+    if (!existing) before && before.parentNode === parent ? parent.insertBefore(b, before) : parent.appendChild(b);
+    GAME_BOOT.ready.then(() => { b.disabled = false; });
     return b;
   };
   try {
