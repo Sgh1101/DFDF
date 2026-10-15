@@ -84,12 +84,12 @@
     { id: "stiletto", ko: "스틸레토", en: "Stiletto", rar: 4, only: "knife", model: "stiletto", keep: ["chrome"], body: [0x0e0f12, 0.35, 0.6], metal: [0xe8edf2, 0.15, 0.95], dark: [0x3a2c10, 0.3, 0.85], glow: 0xffd54f, anim: "pulse" },
     // six more (after the knives, so the numbers sent to a room stay the same): drawn at 512 px,
     // the patterns join up at the edges, the bodies lacquered
-    { id: "koi", ko: "비단잉어", en: "Koi", rar: 3, res: 512, pat: "koi", pal: ["#06303a", "#0f5560", "#ff7a1f", "#fff6ea", "#d7261e", "#e9c46a", "#1f5a33"], body: [0xffffff, 0.32, 0.08], coat: [1, 0.08], metal: [0xd4af37, 0.24, 0.95], dark: [0x0a262c, 0.6, 0.3], glow: 0xff8a3d },
-    { id: "kintsugi", ko: "금이음", en: "Kintsugi", rar: 3, res: 512, pat: "kintsugi", em: !0, anim: "pulse", pal: ["#0f0f12", "#202027", "#d4a73a", "#ffe9a8"], body: [0xffffff, 0.42, 0.1], coat: [0.7, 0.25], metal: [0xd4a73a, 0.22, 1], dark: [0x0c0c0e, 0.7, 0.2], glow: 0xffd166 },
-    { id: "prism", ko: "프리즘", en: "Prism", rar: 3, res: 512, pat: "facet", pal: ["#2b1055", "#5a4fcf", "#00d4c8", "#f6d365", "#ff6fb5"], body: [0xffffff, 0.28, 0.35], coat: [1, 0.05], metal: [0xc7ccff, 0.2, 0.9], dark: [0x1a1033, 0.5, 0.4], glow: 0x00e5d0 },
-    { id: "abyss", ko: "심해", en: "Abyss", rar: 4, res: 512, pat: "abyss", em: !0, anim: "pulse", pal: ["#020c1a", "#06264a", "#2ef2ff", "#ff4fd8", "#b8f7ff"], body: [0xffffff, 0.38, 0.2], coat: [1, 0.12], metal: [0x1d3b5a, 0.3, 0.85], dark: [0x020a14, 0.7, 0.2], glow: 0x2ef2ff },
-    { id: "synth", ko: "신스웨이브", en: "Synthwave", rar: 4, res: 512, pat: "synth", em: !0, anim: "pulse", pal: ["#1a0633", "#ff2e88", "#ffb347", "#12001f", "#ff3cf0", "#fff27a"], body: [0xffffff, 0.35, 0.2], coat: [0.8, 0.1], metal: [0x3a1a5a, 0.3, 0.85], dark: [0x12001f, 0.6, 0.3], glow: 0xff2e88 },
-    { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, pat: "opal", em: !0, pal: ["#e8eff6", "#cfdcea", "#f6f0ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
+    { id: "koi", ko: "비단잉어", en: "Koi", rar: 3, res: 512, tile: 0.42, pat: "koi", pal: ["#06303a", "#0f5560", "#ff7a1f", "#fff6ea", "#d7261e", "#e9c46a", "#1f5a33"], body: [0xffffff, 0.32, 0.08], coat: [1, 0.08], metal: [0xd4af37, 0.24, 0.95], dark: [0x0a262c, 0.6, 0.3], glow: 0xff8a3d },
+    { id: "kintsugi", ko: "금이음", en: "Kintsugi", rar: 3, res: 512, tile: 0.34, pat: "kintsugi", em: !0, anim: "pulse", pal: ["#0f0f12", "#202027", "#d4a73a", "#ffe9a8"], body: [0xffffff, 0.42, 0.1], coat: [0.7, 0.25], metal: [0xd4a73a, 0.22, 1], dark: [0x0c0c0e, 0.7, 0.2], glow: 0xffd166 },
+    { id: "prism", ko: "프리즘", en: "Prism", rar: 3, res: 512, tile: 0.3, pat: "facet", pal: ["#2b1055", "#5a4fcf", "#00d4c8", "#f6d365", "#ff6fb5"], body: [0xffffff, 0.28, 0.35], coat: [1, 0.05], metal: [0xc7ccff, 0.2, 0.9], dark: [0x1a1033, 0.5, 0.4], glow: 0x00e5d0 },
+    { id: "abyss", ko: "심해", en: "Abyss", rar: 4, res: 512, tile: 0.4, pat: "abyss", em: !0, anim: "pulse", pal: ["#020c1a", "#06264a", "#2ef2ff", "#ff4fd8", "#b8f7ff"], body: [0xffffff, 0.38, 0.2], coat: [1, 0.12], metal: [0x1d3b5a, 0.3, 0.85], dark: [0x020a14, 0.7, 0.2], glow: 0x2ef2ff },
+    { id: "synth", ko: "신스웨이브", en: "Synthwave", rar: 4, res: 512, tile: 0.34, vOff: 0.24, pat: "synth", em: !0, anim: "pulse", pal: ["#1a0633", "#ff2e88", "#ffb347", "#12001f", "#ff3cf0", "#fff27a"], body: [0xffffff, 0.35, 0.2], coat: [0.8, 0.1], metal: [0x3a1a5a, 0.3, 0.85], dark: [0x12001f, 0.6, 0.3], glow: 0xff2e88 },
+    { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, tile: 0.3, pat: "opal", em: !0, pal: ["#dfe9f3", "#bcd0e6", "#efe4ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -793,7 +793,7 @@
               k = Math.min(pal.length - 2, Math.floor(t * (pal.length - 1))),
               f = t * (pal.length - 1) - k,
               [r, gg, bb] = mix(pal[k], pal[k + 1], f),
-              l = 0.75 + 0.5 * R();
+              l = 0.68 + 0.42 * R();
             g.fillStyle = `rgb(${Math.min(255, r * l) | 0},${Math.min(255, gg * l) | 0},${Math.min(255, bb * l) | 0})`;
             g.beginPath();
             g.moveTo(tri[0][0], tri[0][1]);
@@ -884,7 +884,7 @@
     },
     synth(g, W, H, pal, em) {
       // a sun going down behind a grid: sky above, the grid below
-      const hz = H * 0.56;
+      const hz = H * 0.64;
       if (em) {
         g.fillStyle = "#000";
         g.fillRect(0, 0, W, H);
@@ -910,7 +910,7 @@
         g.globalAlpha = 1;
       }
       // the sun, cut by bars that thicken toward the horizon
-      const sr = W * 0.24,
+      const sr = W * 0.3,
         sx = W / 2,
         sy = hz - sr * 0.15;
       g.save();
@@ -994,10 +994,10 @@
           });
         }
       }
-      for (let i = 0; i < 240; i++) {
+      for (let i = 0; i < 300; i++) {
         const x = R() * W,
           y = R() * H,
-          r = W * (0.008 + 0.03 * R()),
+          r = W * (0.014 + 0.045 * R()),
           hue = (R() * 360) | 0,
           n = 5 + ((R() * 3) | 0),
           rot = R() * 6.28;
@@ -1008,7 +1008,7 @@
           pts.push([Math.cos(a) * rr, Math.sin(a) * rr]);
         }
         wrap(x, y, r, (cx, cy) => {
-          g.fillStyle = `hsla(${hue},95%,${em ? 55 : 62}%,${em ? 0.35 : 0.55})`;
+          g.fillStyle = `hsla(${hue},100%,${em ? 50 : 56}%,${em ? 0.45 : 0.78})`;
           g.beginPath();
           pts.forEach(([px, py], k) => (k ? g.lineTo(cx + px, cy + py) : g.moveTo(cx + px, cy + py)));
           g.closePath();
@@ -1077,11 +1077,18 @@
   // a painted part's uv is stretched to its real size, so one tile of the
   // pattern covers TILE metres whether the part is a grip or a receiver
   const TILE = 0.16;
-  function fitUV(mesh) {
+  function fitUV(mesh, tile, vOff) {
+    tile = tile || TILE;
+    // each part starts the pattern where it sits on the gun, so the pattern runs on from part to part
+    const ou = (mesh.position.x + mesh.position.z) / tile,
+      ov = (vOff || 0) + (0.5 * mesh.position.y) / tile;
     const g = mesh.geometry,
       uv = g && g.attributes.uv;
-    if (!uv || g.userData.uvFit) return;
-    g.userData.uvFit = 1;
+    if (!uv || g.userData.uvFit === tile) return;
+    // (the first fit keeps the original uv, so a part dressed again in another skin is fitted from that)
+    g.userData.uv0 = g.userData.uv0 || uv.array.slice();
+    uv.array.set(g.userData.uv0);
+    g.userData.uvFit = tile;
     const P = g.parameters || {},
       t = g.type;
     let f = null;
@@ -1105,7 +1112,7 @@
     } else return;
     for (let i = 0; i < uv.count; i++) {
       const [su, sv] = f(i);
-      uv.setXY(i, (uv.getX(i) * su) / TILE, (uv.getY(i) * sv) / TILE);
+      uv.setXY(i, (uv.getX(i) * su) / tile + ou, (uv.getY(i) * sv) / tile + ov);
     }
     uv.needsUpdate = !0;
   }
@@ -1122,7 +1129,7 @@
         const m = skinMat(skin, cls, o.material);
         if (!m) return;
         o.material = m;
-        m.map && fitUV(o);
+        m.map && fitUV(o, skin.tile, skin.vOff);
       });
     root.userData.skin = skin.id;
     return root;
