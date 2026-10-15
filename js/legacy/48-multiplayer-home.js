@@ -157,7 +157,7 @@
             live = "lobby" !== r.state,
             dis = full || pcOff;
           const where = [modeName(r.mode), mapName(r.map)].filter(Boolean).join(" · ");
-          return `<div class="mu-room"><div class="mu-rt"><b>${esc(r.name)}</b><span>${esc(r.host)}${where ? " · " + esc(where) : ""}</span></div><span class="mu-st${live ? " live" : ""}">${live ? L("경기 중", "In game") : L("대기", "Lobby")}</span><span class="mu-n">${r.n | 0}<i>/${r.max | 0}</i></span><button class="mu-join" data-code="${esc(r.code)}"${dis ? " disabled" : ""}>${pcOff ? L("PC 불가", "No PC") : full ? L("가득 참", "Full") : L("참가", "Join")}</button></div>`;
+          return `<div class="mu-room"><div class="mu-rt"><b>${esc(r.name)}${r.ranked ? `<span class="mu-rk">${L("랭크", "RANKED")}</span>` : ""}</b><span>${esc(r.host)}${where ? " · " + esc(where) : ""}</span></div><span class="mu-st${live ? " live" : ""}">${live ? L("경기 중", "In game") : L("대기", "Lobby")}</span><span class="mu-n">${r.n | 0}<i>/${r.max | 0}</i></span><button class="mu-join" data-code="${esc(r.code)}"${dis ? " disabled" : ""}>${pcOff ? L("PC 불가", "No PC") : full ? L("가득 참", "Full") : L("참가", "Join")}</button></div>`;
         })
         .join("");
     else

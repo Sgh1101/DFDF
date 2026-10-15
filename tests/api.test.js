@@ -151,3 +151,44 @@ test("records without a session version require login instead of accepting an un
   assert.equal((await h.api("me", { token })).status, 401);
   assert.equal((await login(h)).status, 200);
 });
+
+test("RR moves only in a ranked room, with enough people; the owner's powers stay out of it", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  const rr = () => h.user("player").rr || 0;
+  const play = async (opts, report) => {
+    const mt = await h.api("match_start", { token: p.token, ...opts });
+    assert.equal(mt.status, 200);
+    h.advance(61000);
+    return h.api("progress", { token: p.token, mt: mt.ticket, kills: 3, win: true, match: { mode: "std", s: [7, 3] }, ...report });
+  };
+  // a normal room: XP and gold, but the rank stays
+  assert.equal((await play({}, { humans: 8 })).status, 200);
+  assert.equal(rr(), 0);
+  // a ranked ticket needs a ranked room that exists
+  assert.equal((await h.api("match_start", { token: p.token, ranked: true, room: "RNK001" })).status, 409);
+  assert.equal((await h.api("room_up", { token: p.token, code: "RNK001", ranked: true, players: ["player"] })).status, 200);
+  const listed = await h.api("rooms", {});
+  assert.equal((listed.rooms || []).every((r) => r.ranked === !!r.ranked), true);
+  // the owner's powers: no ticket for a ranked room, no room commands
+  assert.equal((await h.api("owner_ticket", { token: owner.token, room: "RNK001", p: "peer-1" })).ticket, null);
+  assert.equal((await h.api("perm_ticket", { token: p.token, room: "RNK001" })).ticket, null);
+  // too few real people: counted as a match, no RR
+  assert.equal((await play({ ranked: true, room: "RNK001" }, { humans: 2 })).status, 200);
+  assert.equal(rr(), 0);
+  // enough people: RR moves
+  const ok = await play({ ranked: true, room: "RNK001" }, { humans: 6 });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.ranked, true); assert.equal(ok.rankedCounted, true);
+  assert.ok(rr() > 0, "a ranked win raises RR");
+  // a ticket for a normal match cannot be used as a ranked one
+  const hist = h.user("player").hist;
+  assert.equal(hist[0].rk, 1); assert.equal(hist[2].rk, undefined);
+});
+
+test("a guest cannot open or play a ranked room", async () => {
+  const h = harness(), g = await h.api("guest", { device: "guest-device-1" });
+  assert.equal(g.status, 200);
+  const up = await h.api("room_up", { token: g.token, code: "GST001", ranked: true, players: [] });
+  assert.equal(up.status, 200);
+  assert.equal((await h.api("match_start", { token: g.token, ranked: true, room: "GST001" })).status, 403);
+});

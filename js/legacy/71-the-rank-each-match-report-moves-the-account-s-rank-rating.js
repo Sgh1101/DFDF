@@ -57,6 +57,12 @@
       return;
     }
     if (!u || !u.rank || !R.base || u === R.baseUser) return;
+    // RR moves in ranked matches only: no cell for a normal one
+    const h0 = ((ACCOUNT.session() || {}).hist || [])[0];
+    if (!(h0 && h0.rk)) {
+      const c0 = $("ov-rank");
+      return void (c0 && (c0.hidden = !0));
+    }
     const st = document.querySelector("#s-over .ov-stats");
     if (!st) return;
     let c = $("ov-rank");
@@ -107,7 +113,7 @@
       b.innerHTML = `${badge(r.t, r.div, 22)}<span>${nameOf(r)}</span>`;
       b.style.color = COL[r.t];
       b.style.borderColor = COL[r.t] + "66";
-      b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 이기면 오르고 지면 조금 내려갑니다`, `${r.into}/100 RR · wins raise it, losses take a little`));
+      b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 랭크전에서만 오르고 내려갑니다`, `${r.into}/100 RR · only ranked matches move it`));
     }
     // left of the gold chip (itself left of the account chip)
     let right = 12;
