@@ -50,7 +50,7 @@
   menu.querySelector(".home-guide").append(controls);
   const rankNote = document.createElement("p");
   rankNote.id = "home-rank-policy";
-  rankNote.textContent = L("현재 RR은 AI전·비공개 방·관리자 설정 경기를 포함한 모든 모드의 완료 결과에 반영됩니다. 무승부는 RR이 유지되고, 사격장·맵 탐방은 제외됩니다.", "RR currently applies to completed matches in every mode, including AI, private rooms and modified settings. Draws keep RR unchanged. The range and map tour are excluded.");
+  rankNote.textContent = L("RR은 랭크전(같이 하기 → 랭크전 찾기)에서만 오르내립니다. 랭크 방에서는 관리자·치트가 모두 꺼지고, 사람이 3명 이상이어야 반영됩니다. 일반 경기는 XP와 골드만 줍니다.", "RR moves only in ranked matches (Play together → Find a ranked match). Admin and cheats are off there, and it counts with 3+ real players. Other matches give XP and gold only.");
   menu.querySelector(".home-guide").append(rankNote);
   const modeGuide = document.createElement("details"); modeGuide.className = "home-guide"; modeGuide.id = "mode-guide";
   const modeTitle = document.createElement("summary"), modeText = document.createElement("p");

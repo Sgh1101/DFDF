@@ -44,3 +44,9 @@
 /* ── an agent card whose portrait is still being drawn: a role-tinted placeholder instead of an empty hole ── */
 .acard-img:not([src]),.acard-img[src=""]{opacity:0}
 .acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){background:radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
+
+/* ── phones held sideways: the play buttons sat right under the top bar with half the screen empty below; they now sit in the middle of the space under the bar ── */
+@media (orientation:landscape) and (max-height:600px){
+  #s-title.home-original{align-content:center!important}
+  #s-title.home-original .tt-left{align-self:center;margin-top:0!important}
+}
