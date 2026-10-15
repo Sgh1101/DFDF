@@ -26,8 +26,10 @@
 @media(orientation:landscape) and (max-height:480px){
   #s-select .sel-foot{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:8px;padding:4px 10px!important}
   #s-select .sel-foot>#sel-back{order:1;flex:none}
-  #s-select .sel-foot>#sel-go{order:3;flex:none}
-  #sel-pick{display:flex;order:2;flex:1 1 auto;min-width:0;align-items:center;gap:6px;min-height:40px;padding:6px 12px;text-align:left;justify-content:space-between}
+  /* the start button: a full-size, easy target on a phone (it was 83 x 31) */
+  #s-select .sel-foot>#sel-go{order:3;flex:none;min-height:44px;min-width:clamp(120px,22vw,190px);padding:0 18px;font-size:15px;font-weight:800;letter-spacing:.06em;border-radius:12px;box-shadow:0 6px 22px -6px color-mix(in srgb,var(--red,#ff3b4e) 70%,transparent)}
+  #s-select .sel-foot>#sel-back{min-height:44px;min-width:56px}
+  #sel-pick{display:flex;order:2;flex:1 1 auto;min-width:0;align-items:center;gap:6px;min-height:44px;padding:6px 12px;text-align:left;justify-content:space-between}
   #sel-pick>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
   #sel-pick>i{font-style:normal;opacity:.7;flex:none}
   #s-select .sel-foot>.sel-mid{display:none!important}
@@ -44,3 +46,9 @@
 /* ── an agent card whose portrait is still being drawn: a role-tinted placeholder instead of an empty hole ── */
 .acard-img:not([src]),.acard-img[src=""]{opacity:0}
 .acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){background:radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
+
+/* ── phones held sideways: the play buttons sat right under the top bar with half the screen empty below; they now sit in the middle of the space under the bar ── */
+@media (orientation:landscape) and (max-height:600px){
+  #s-title.home-original{align-content:center!important}
+  #s-title.home-original .tt-left{align-self:center;margin-top:0!important}
+}
