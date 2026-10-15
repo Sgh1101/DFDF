@@ -438,7 +438,8 @@
         R.y += up * (1.0 - 2.0 * ezS(mid));
         R.z += up * 0.5 * Math.sin(mid * PI);
       } else if ("tanto" === m) {
-        R.z += up * PI * Math.sin(mid * PI) * 0.5;
+        // the wrist only rolls a little: the knife itself turns into a reverse grip (knife pivot)
+        R.z += up * 0.45 * Math.sin(mid * PI);
         R.y += up * (0.5 - 1.0 * ezS(mid));
       } else if ("flip" === m) {
         const w = mid * 2 * PI;

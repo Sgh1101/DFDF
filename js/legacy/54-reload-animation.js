@@ -4,7 +4,12 @@
   // the magazine out and drops it, brings a fresh one up and seats it, then
   // works the bolt. Pistols swap the magazine in the grip and rack the slide,
   // shotguns are fed shell by shell and pumped, machine guns get a new belt,
-  // and the RPG takes a new rocket in at the muzzle. Every step is timed to
+  // and the RPG takes a new rocket in at the muzzle, has its nose cap pulled
+  // and its hammer cocked. Bolt guns lift and draw the bolt, change the
+  // magazine and run it home; revolvers swing the cylinder out, dump the
+  // empties and take a speedloader; break-action guns tip open, throw their
+  // two shells and snap shut; belt-fed guns open the top cover, change the
+  // box, close the cover and charge. Every step is timed to
   // the gun's own reload (the old pose assumed 1.9 s for every gun, so the
   // slow ones bobbed the wrong way).
   if ("undefined" == typeof VM || "function" != typeof getVMFor || "function" != typeof tickViewmodel || "function" != typeof vmArm) return;
@@ -94,6 +99,55 @@
         noise(0.14, 0.55, 700);
         tone(140, 0.12, "sawtooth", 0.2, 70);
       },
+      boltUp() {
+        noise(0.035, 0.3, 3600, "highpass");
+        tone(1150, 0.03, "square", 0.12, 880);
+      },
+      boltBack() {
+        noise(0.08, 0.45, 2600, "bandpass");
+        tone(420, 0.07, "sawtooth", 0.14, 260);
+      },
+      boltFwd() {
+        noise(0.07, 0.45, 2200, "bandpass");
+        tone(360, 0.06, "sawtooth", 0.14, 520);
+        noise(0.04, 0.4, 3000, "highpass", 0.07);
+        tone(980, 0.04, "square", 0.14, 700, 0.07);
+      },
+      cylOut() {
+        noise(0.05, 0.35, 3400, "highpass");
+        tone(1500, 0.05, "triangle", 0.12, 1150);
+      },
+      casings() {
+        for (let i = 0; i < 4; i++) tone(2400 + 300 * i, 0.07, "triangle", 0.07, 2000, 0.25 + 0.05 * i);
+      },
+      cylIn() {
+        noise(0.05, 0.5, 2000);
+        tone(620, 0.05, "square", 0.18, 380);
+      },
+      breakOpen() {
+        noise(0.06, 0.45, 1800);
+        tone(300, 0.06, "square", 0.17, 180);
+      },
+      breakClose() {
+        noise(0.07, 0.6, 1500);
+        tone(220, 0.06, "square", 0.22, 140);
+      },
+      coverOpen() {
+        noise(0.05, 0.35, 2600, "bandpass");
+        tone(700, 0.05, "square", 0.12, 980);
+      },
+      coverClose() {
+        noise(0.06, 0.55, 1700);
+        tone(260, 0.06, "square", 0.2, 170);
+      },
+      capOff() {
+        noise(0.04, 0.3, 3000, "highpass");
+        tone(1700, 0.04, "triangle", 0.1, 1300);
+      },
+      hammer() {
+        noise(0.03, 0.4, 3600, "highpass");
+        tone(1900, 0.025, "square", 0.14, 1500);
+      },
       pin() {
         noise(0.03, 0.25, 4000, "highpass");
         tone(2600, 0.16, "sine", 0.16, 2450);
@@ -154,7 +208,11 @@
     const w = WEAPONS[key] || {};
     if ("knife" === key || "근접" === w.cls) return "";
     if (w.launcher) return "rocket";
-    if ("산탄총" === w.cls || w.pellets > 1 || "revolver" === key) return "shells";
+    if ("revolver" === key || "handcan" === key) return "revolver";
+    if ("doublebarrel" === key || "pocketshot" === key) return "break";
+    if ("산탄총" === w.cls || w.pellets > 1) return "shells";
+    if ("sniper" === key || "antimat" === key || "scout" === key) return "bolt";
+    if ("기관총" === w.cls) return "belt";
     if ("보조" === w.cls) return "pistol";
     return "mag";
   };
@@ -189,6 +247,56 @@
     rl.mag = group(mags, "rl-mag");
     rl.rk = group(rockets, "rl-rocket");
     rl.magBox = rl.mag ? boxOf(rl.mag) : null;
+    rl.rkBox = rl.rk ? boxOf(rl.rk) : null;
+    const brass = new T.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.35, metalness: 0.85 });
+    const red = new T.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.5, metalness: 0.1 });
+    const blk = new T.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.6, metalness: 0.3 });
+    const prop = (g) => ((g.visible = !1), a.add(g), g);
+    // a revolver's speedloader (six rounds on a black knob) and its six empties
+    if ("revolver" === rl.style) {
+      const g = new T.Group(),
+        r = "handcan" === key ? 0.013 : 0.011;
+      for (let i = 0; i < 6; i++) {
+        const c = new T.Mesh(new T.CylinderGeometry(0.0052, 0.0052, 0.03, 8), brass);
+        c.position.set(Math.cos((i / 6) * 2 * Math.PI) * r, 0, Math.sin((i / 6) * 2 * Math.PI) * r);
+        g.add(c);
+      }
+      const knob = new T.Mesh(new T.CylinderGeometry(0.012, 0.016, 0.026, 12), blk);
+      knob.position.y = -0.026;
+      g.add(knob);
+      g.rotation.x = Math.PI / 2;
+      rl.loader = prop(g);
+      rl.empties = [];
+      for (let i = 0; i < 6; i++) rl.empties.push(prop(new T.Mesh(new T.CylinderGeometry(0.0052, 0.0052, 0.028, 6), brass)));
+    }
+    // a break-action gun: two shells in the fingers, and the two it throws out
+    if ("break" === rl.style) {
+      const pair = () => {
+        const g = new T.Group();
+        for (const x of [-0.012, 0.012]) {
+          const t = new T.Mesh(new T.CylinderGeometry(0.0105, 0.0105, 0.05, 10), red);
+          const b = new T.Mesh(new T.CylinderGeometry(0.0112, 0.0112, 0.01, 10), brass);
+          t.position.x = b.position.x = x;
+          b.position.y = -0.028;
+          g.add(t, b);
+        }
+        return g;
+      };
+      const g = pair();
+      g.rotation.x = Math.PI / 2;
+      rl.pair = prop(g);
+      rl.empties = [prop(pair())];
+    }
+    // the rocket's nose cap
+    if ("rocket" === rl.style && rl.rkBox) {
+      const b = rl.rkBox,
+        cap = new T.Mesh(new T.CylinderGeometry(0.012, 0.02, 0.05, 12), blk);
+      cap.rotation.x = -Math.PI / 2;
+      rl.capAt = V((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z + 0.018);
+      cap.position.copy(rl.capAt);
+      a.add(cap);
+      rl.cap = cap;
+    }
     // a pistol's magazine hides in the grip: a stand-in slides out of it
     if ("pistol" === rl.style && rl.R) {
       const g = new T.Group();
@@ -310,6 +418,13 @@
     shells: { dy: 0.035, rx: 0.1, ry: 0.3, rz: -0.55, dx: -0.03, dz: 0.02 },
     // the launcher swings its muzzle in toward the middle, so the new rocket going in is in view
     rocket: { dy: 0.02, rx: -0.1, ry: 0.5, rz: -0.15, dx: -0.05, dz: 0.1 },
+    // the bolt gun rolls its right side up a little, so the bolt is in view
+    bolt: { dy: 0.03, rx: 0.1, ry: 0.32, rz: 0.22, dx: -0.04, dz: 0.03 },
+    // the cylinder swings out to the left: rolled well over, muzzle up
+    revolver: { dy: 0.03, rx: 0.42, ry: 0.28, rz: -0.95, dx: -0.03, dz: 0.03 },
+    // broken open: muzzle down
+    break: { dy: 0.04, rx: -0.4, ry: 0.32, rz: -0.25, dx: -0.03, dz: 0.05 },
+    belt: { dy: 0.03, rx: 0.12, ry: 0.4, rz: -0.25, dx: -0.05, dz: 0.04 },
   };
   window.VM_RL_POSE = POSE;
   function pose(a, rl, k) {
@@ -377,6 +492,143 @@
       cue("out", k, 0.01, () => SND.magOut());
       cue("in", k, 0.52, () => SND.magIn());
       cue("rack", k, 0.62, () => SND.rack());
+    } else if ("bolt" === st || "belt" === st) {
+      const gb = rl.gun,
+        len = gb.max.z - gb.min.z,
+        midx = (gb.min.x + gb.max.x) / 2;
+      const mb = rl.magBox;
+      const top = mb ? V((mb.min.x + mb.max.x) / 2, mb.min.y, (mb.min.z + mb.max.z) / 2) : V(P0.x + 0.02, (rl.R ? rl.R.y : P0.y) - 0.07, (P0.z + (rl.R ? rl.R.z : P0.z + 0.2)) / 2);
+      const G = top.clone().add(V(-0.012, 0.005, 0.01)),
+        AWAY = G.clone().add(V(-0.07, -0.46, 0.12)),
+        BACK = G.clone().add(V(-0.005, -0.12, 0.02));
+      let mOut, mFresh0, mFresh1;
+      if ("bolt" === st) {
+        // the bolt: over the top to the handle on the right, up, back; the
+        // magazine; then forward and down
+        const B = V(gb.max.x + 0.012, gb.max.y - 0.03, gb.min.z + 0.72 * len),
+          OVER = V(midx, gb.max.y + 0.06, B.z - 0.02),
+          UP = B.clone().add(V(-0.004, 0.028, 0)),
+          BK = UP.clone().add(V(0, 0, 0.09));
+        path(H, k, P0, [
+          [0.09, OVER],
+          [0.13, B],
+          [0.17, UP, out3],
+          [0.25, BK, out3],
+          [0.3, OVER],
+          [0.36, G],
+          [0.46, AWAY],
+          [0.56, BACK, out3],
+          [0.63, G],
+          [0.69, OVER],
+          [0.72, BK],
+          [0.79, UP, out3],
+          [0.83, B],
+          [0.87, OVER],
+          [0.97, P0],
+        ]);
+        mOut = 0.36;
+        mFresh0 = 0.46;
+        mFresh1 = 0.63;
+        cue("bu", k, 0.15, () => SND.boltUp());
+        cue("bb", k, 0.21, () => SND.boltBack());
+        cue("out", k, 0.36, () => SND.magOut());
+        cue("in", k, 0.62, () => SND.magIn());
+        cue("bf", k, 0.76, () => SND.boltFwd());
+        dz += 0.02 * bump(k, 0.21, 0.08) - 0.025 * bump(k, 0.77, 0.08);
+        rz += 0.05 * bump(k, 0.81, 0.08);
+      } else {
+        // the belt: open the top cover, change the box, close the cover, charge
+        const TC = V(midx - 0.01, gb.max.y + 0.012, gb.min.z + 0.62 * len),
+          LIFT = TC.clone().add(V(-0.01, 0.07, 0.02)),
+          C = V(gb.min.x - 0.014, Math.min(gb.max.y - 0.02, top.y + 0.1), top.z - 0.02),
+          C2 = C.clone().add(V(0, 0, 0.07));
+        path(H, k, P0, [
+          [0.1, TC],
+          [0.17, LIFT, out3],
+          [0.24, G],
+          [0.36, AWAY],
+          [0.5, BACK, out3],
+          [0.58, G],
+          [0.65, LIFT],
+          [0.71, TC, out3],
+          [0.77, C],
+          [0.81, C2, out3],
+          [0.85, C],
+          [0.96, P0],
+        ]);
+        mOut = 0.24;
+        mFresh0 = 0.36;
+        mFresh1 = 0.58;
+        cue("co", k, 0.12, () => SND.coverOpen());
+        cue("out", k, 0.24, () => SND.magOut());
+        cue("in", k, 0.57, () => SND.magIn());
+        cue("cc", k, 0.7, () => SND.coverClose());
+        cue("rack", k, 0.8, () => SND.rack());
+        dy += 0.014 * bump(k, 0.7, 0.08);
+        rx -= 0.05 * bump(k, 0.7, 0.08);
+        dz += 0.03 * bump(k, 0.8, 0.1);
+      }
+      if (rl.mag) {
+        const fresh = k > mFresh0 && k < mFresh1;
+        M.set(0, 0, 0);
+        if (k >= mOut && k < mOut + 0.07) M.y = -0.06 * sm((k - mOut) / 0.07);
+        else if (fresh) M.copy(H).sub(G);
+        rl.mag.position.copy(rl.mag0).add(M);
+        rl.mag.rotation.z = fresh ? -0.25 * Math.min(1, M.length() / 0.2) : 0;
+        rl.mag.visible = k < mOut + 0.06 || k > mFresh0;
+      }
+    } else if ("revolver" === st || "break" === st) {
+      const gb = rl.gun,
+        len = gb.max.z - gb.min.z,
+        midx = (gb.min.x + gb.max.x) / 2,
+        h = gb.max.y - gb.min.y;
+      const rev = "revolver" === st;
+      // the cylinder (or the breech), and where the hand takes the new rounds from
+      const CY = rev ? V(midx - 0.012, gb.max.y - 0.32 * h, gb.min.z + 0.62 * len) : V(midx, gb.max.y - 0.01, gb.min.z + 0.5 * len);
+      const SIDE = CY.clone().add(V(-0.035, 0, 0)),
+        AWAY = CY.clone().add(rev ? V(-0.08, -0.42, 0.14) : V(-0.08, -0.42, 0.02)),
+        NEAR = CY.clone().add(rev ? V(-0.03, -0.01, 0.06) : V(0, 0.06, 0.0)),
+        IN = CY.clone().add(rev ? V(-0.012, 0, 0.03) : V(0, 0.025, 0.02));
+      const open = rev ? 0.12 : 0.1,
+        load0 = rev ? 0.3 : 0.26,
+        loadIn = rev ? 0.55 : 0.52,
+        shut = rev ? 0.64 : 0.68;
+      path(H, k, P0, [
+        [open, rev ? SIDE : P0],
+        [open + 0.08, AWAY],
+        [load0 + 0.06, AWAY],
+        [loadIn - 0.06, NEAR, out3],
+        [loadIn, IN],
+        [shut - 0.02, rev ? SIDE : P0],
+        [rev ? 0.84 : 0.8, P0],
+      ]);
+      // the gun's own moves: the cylinder knocked out / the action broken, a shake to dump the empties, the snap shut
+      rx += rev ? 0.22 * bump(k, open + 0.05, 0.1) : -0.22 * bump(k, open, 0.08);
+      rz += rev ? 0.3 * bump(k, shut, 0.08) : 0;
+      rx += rev ? 0 : 0.42 * bump(k, shut, 0.07);
+      dy -= rev ? 0 : 0.02 * bump(k, shut, 0.07);
+      const held = rev ? rl.loader : rl.pair;
+      if (held) {
+        held.visible = k > load0 && k < loadIn + 0.02;
+        held.position.copy(H).add(rev ? V(0.004, 0.012, -0.022) : V(0.0, 0.018, -0.02));
+      }
+      // the empties fly out and fall
+      if (rl.empties) {
+        const t0 = open + (rev ? 0.06 : 0.02),
+          ts = (k - t0) * RL.D;
+        rl.empties.forEach((e, i) => {
+          e.visible = ts > 0 && ts < 0.55;
+          if (!e.visible) return;
+          const ang = (i / Math.max(1, rl.empties.length)) * 2 * Math.PI;
+          const v = rev ? V(-0.05 + 0.04 * Math.cos(ang), 0.15 + 0.04 * Math.sin(ang), 0.3) : V(-0.04, 0.55, 0.45);
+          e.position.set(CY.x + v.x * ts, CY.y + v.y * ts - 2.4 * ts * ts, CY.z + v.z * ts);
+          e.rotation.set(7 * ts + i, 4 * ts, rev ? Math.PI / 2 : 9 * ts);
+        });
+      }
+      cue("op", k, open, () => (rev ? SND.cylOut() : SND.breakOpen()));
+      cue("ej", k, open + 0.06, () => SND.casings());
+      cue("ld", k, loadIn - 0.01, () => (SND.shell(), setTimeout(() => SND.shell(), 70)));
+      cue("cl", k, shut, () => (rev ? SND.cylIn() : SND.breakClose()));
     } else if ("shells" === st) {
       const R = rl.R || P0.clone().add(V(0.02, 0.02, 0.22));
       const port = V((P0.x + R.x) / 2 + 0.005, Math.min(P0.y, R.y) - 0.005, P0.z + (R.z - P0.z) * 0.45);
@@ -421,7 +673,28 @@
       const hp = rl.rkHold || (rl.rk ? (rl.rkHold = rkHoldPoint(rl, a)) : P0.clone().add(V(0, 0, -0.2)));
       if (k < 0.42) path(H, k, P0, [[0.16, tmp.copy(hp).add(below)]]);
       else if (k < 0.74) H.copy(hp).add(M);
-      else path(H, k, hp, [[0.74, hp], [0.9, P0]]);
+      else if (rl.cap && rl.capAt) {
+        // the nose cap comes off, then the hand goes back to the grip; the thumb cocks the hammer
+        const NT = rl.capAt.clone().add(V(-0.01, -0.02, 0)),
+          PULL = NT.clone().add(V(-0.02, -0.03, -0.09)),
+          DROP = PULL.clone().add(V(-0.04, -0.3, 0.05));
+        path(H, k, hp, [
+          [0.74, hp],
+          [0.79, NT],
+          [0.84, PULL, out3],
+          [0.88, DROP],
+          [0.97, P0],
+        ]);
+        rz -= 0.06 * bump(k, 0.92, 0.06);
+        cue("cap", k, 0.81, () => SND.capOff());
+        cue("ham", k, 0.92, () => SND.hammer());
+      } else path(H, k, hp, [[0.74, hp], [0.9, P0]]);
+      if (rl.cap && rl.capAt) {
+        // on the rocket while it goes in, in the fingers once pulled, gone after
+        rl.cap.visible = k >= 0.42 && k < 0.88;
+        if (k >= 0.81) rl.cap.position.copy(H).add(V(0.01, 0.02, 0));
+        else rl.cap.position.copy(rl.capAt).add(M);
+      }
       cue("rin", k, 0.72, () => SND.rocketIn());
     }
     if (rl.lh && rl.P0) rl.lh.position.copy(rl.lh0).add(H).sub(P0);
@@ -445,6 +718,13 @@
       rl.mag.visible = !rl.prop;
     }
     rl.shell && (rl.shell.visible = !1);
+    rl.loader && (rl.loader.visible = !1);
+    rl.pair && (rl.pair.visible = !1);
+    rl.empties && rl.empties.forEach((e) => (e.visible = !1));
+    if (rl.cap && rl.capAt) {
+      rl.cap.position.copy(rl.capAt);
+      rl.cap.visible = ((player.ammo && player.ammo[rl.key]) | 0) > 0 || !!ADMIN.infAmmo;
+    }
     if (rl.rk) {
       rl.rk.position.copy(rl.rk0);
       rl.rk.visible = ((player.ammo && player.ammo[rl.key]) | 0) > 0 || !!ADMIN.infAmmo;

@@ -106,7 +106,7 @@
         a.rotation.z -= 0.16 * e;
         a.position.y += 0.012 * Math.sin(k * Math.PI) * (1 - e);
       } else if (M.draw.spin) {
-        a.rotation.x += 2 * Math.PI * ezO(k);
+        window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "x", 2 * Math.PI * ezO(k)) : (a.rotation.x += 2 * Math.PI * ezO(k));
         a.position.y += 0.02 * Math.sin(k * Math.PI);
       } else {
         const e = 1 - ezO(k);
@@ -135,14 +135,14 @@
         }
       }
     }
-    // the knife: slash, stab, or a spinning slash
+    // the knife: slash, stab, or a spinning slash (the spins turn the knife in the hand, not the arm)
     if (M.knife.t >= 0) {
       M.knife.t += dt;
       const k = c01(M.knife.t / M.knife.D);
       if (k >= 1) M.knife.t = -1;
       else if (own) {
       } else if ("spin" === M.knife.kind) {
-        a.rotation.y += 2 * Math.PI * ezS(k);
+        window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "y", 2 * Math.PI * ezS(k)) : (a.rotation.y += 2 * Math.PI * ezS(k));
         a.position.x += 0.1 * Math.sin(k * Math.PI);
       } else if ("slash" === M.knife.kind) {
         const e = ezS(k);
@@ -177,7 +177,7 @@
         const k = c01(M.twirl.t / 0.6);
         if (k >= 1) M.twirl.t = -1;
         else {
-          a.rotation.x += 2 * Math.PI * ezS(k);
+          window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "x", 2 * Math.PI * ezS(k)) : (a.rotation.x += 2 * Math.PI * ezS(k));
           a.position.y += 0.03 * Math.sin(k * Math.PI);
         }
       }
