@@ -112,6 +112,11 @@ const DEFAULT_CONFIG = {
   // daily and weekly missions: how many (matches, kills, wins) and the gold each pays
   // when claimed. Counted here from the match reports; a day starts at midnight in
   // Korea, a week on Monday. 0 turns a mission off.
+  // aim assist: on phones free for everyone (a switch in the game's settings), on a
+  // computer only for accounts the owner opened it for (or in admin mode), never in a
+  // ranked room on a computer. strength in %, range in metres, cone in degrees;
+  // ranked: phones keep it in ranked rooms
+  aim: { mobile: !0, pc: !0, strength: 35, range: 45, cone: 8, ranked: !0 },
   mission: { dPlay: 3, dPlayGold: 100, dKill: 15, dKillGold: 150, dWin: 1, dWinGold: 150, wPlay: 15, wPlayGold: 500, wKill: 100, wKillGold: 700, wWin: 7, wWinGold: 800 },
   channels: [
     { id: "s1", name: "서버 1", en: "Server 1" },
@@ -237,6 +242,11 @@ const cleanAllow = (a) => {
   for (const k of ADMIN_KNOBS) o[k] = !1 !== a[k];
   return o;
 };
+// aim assist for one account: pc is a grant from the owner (until 0 = no end), mobile is on unless the owner closed it
+const aimOf = (u) => {
+  const a = u && isObj(u.aim) ? u.aim : {};
+  return { pc: !!a.pc && !(a.until && a.until < now()), mobile: !1 !== a.mobile, until: a.pc && a.until ? a.until : 0 };
+};
 // the account's cheats if they are switched on and not past their date
 const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
 // the tiers, low to high: 3 divisions of 100 RR each, then Radiant from 2400 RR
@@ -248,7 +258,7 @@ const rankOf = (rr) => {
 };
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0 };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u) };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -384,7 +394,7 @@ function trimPicks(u) {
 const A = {};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), channels: c.channels }, store: !!RURL };
+  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -925,6 +935,78 @@ ADMIN.stats = async () => {
   const usage = +(await redis(["GET", "usage:" + month()])) || 0;
   return { users, rooms, logs, newToday: recent, bans: (devBans || []).length + (ipBans || []).length, usage, usageLimit: 500000, month: month() };
 };
+// the dashboard's summary: the accounts (read in one go, newest 2000), the rooms, the
+// last day of the log and the switches that matter most
+ADMIN.summary = async () => {
+  const c = await loadConfig(),
+    t = now(),
+    day = t - 864e5,
+    week = t - 7 * 864e5;
+  const ids = ((await redis(["ZRANGE", "users", "0", "-1", "REV"])) || []).slice(0, 2000);
+  const recs = ids.length ? (await redis(["MGET", ...ids.map((k) => "user:" + k)])) || [] : [];
+  const S = { users: ids.length, scanned: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, ranked: 0, ranks: Array(RANKS.length).fill(0), signups: Array(14).fill(0) };
+  const top = [];
+  const d0 = new Date(t);
+  d0.setHours(0, 0, 0, 0);
+  for (const r of recs) {
+    if (!r) continue;
+    let u;
+    try {
+      u = JSON.parse(r);
+    } catch (e) {
+      continue;
+    }
+    S.scanned++;
+    u.created > day && S.new1++;
+    u.created > week && S.new7++;
+    u.lastSeen > day && S.act1++;
+    u.lastSeen > week && S.act7++;
+    S.gold += "number" == typeof u.gold ? u.gold : 0;
+    S.pulls += u.pulls || 0;
+    S.owned += ownedCount(u);
+    S.matches += u.matches || 0;
+    S.kills += u.kills || 0;
+    S.wins += u.wins || 0;
+    (u.owner || (u.adminUntil && u.adminUntil > t)) && S.admins++;
+    activePerm(u) && S.perms++;
+    const a = aimOf(u);
+    a.pc && S.aimPc++;
+    a.mobile || S.aimMobileOff++;
+    u.ban && (!u.ban.until || u.ban.until > t) && S.banned++;
+    const rk = rankOf(u.rr);
+    S.ranks[rk.t]++;
+    (u.rr || 0) > 0 && S.ranked++;
+    const ago = Math.floor((d0.getTime() + 864e5 - 1 - (u.created || 0)) / 864e5);
+    ago >= 0 && ago < 14 && S.signups[13 - ago]++;
+    top.push({ id: u.id, rr: rk.rr, rank: rk, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, level: levelOf(u.xp || 0, c.xp.perLevel).level });
+  }
+  S.topRR = top.slice().sort((a, b) => b.rr - a.rr).slice(0, 5);
+  S.topKills = top.slice().sort((a, b) => b.kills - a.kills).slice(0, 5);
+  // the last day of the log, by kind, and the owner's latest operations
+  const L = { login: 0, join: 0, guest: 0, auth: 0, room: 0, gacha: 0 },
+    recent = [];
+  for (const x of (await redis(["LRANGE", "logs", "0", "999"])) || []) {
+    let e;
+    try {
+      e = JSON.parse(x);
+    } catch (err) {
+      continue;
+    }
+    e.t > day && e.type in L && L[e.type]++;
+    ("admin" === e.type || "gacha" === e.type) && recent.length < 8 && recent.push({ t: e.t, type: e.type, msg: e.msg });
+  }
+  await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(t - ROOM_TTL * 1000)]);
+  const codes = (await redis(["ZRANGE", "rooms", "0", "-1"])) || [];
+  const rows = (codes.length ? await pipe(codes.map((k) => ["GET", "room:" + k])) : []).filter(Boolean).map((r) => JSON.parse(r));
+  const R = { open: rows.length, people: 0, ranked: 0, playing: 0, modes: {} };
+  for (const r of rows) {
+    R.people += (r.players || []).length;
+    r.ranked && R.ranked++;
+    "lobby" !== r.state && R.playing++;
+    R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
+  }
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank }, t };
+};
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
   const all = await redis(["ZRANGE", "users", "0", "-1", "REV"]);
@@ -980,6 +1062,9 @@ ADMIN.user_set = async (q, b) => {
     case "perm":
       u.perm = cleanPerm(b.perm, +b.days || 0);
       break;
+    case "aim":
+      u.aim = { pc: !!b.pc, mobile: !1 !== b.mobile, until: b.pc && b.days > 0 ? d : 0 };
+      break;
     case "gold":
       ensureWallet(u, c);
       u.gold = Math.max(0, Math.min(9e6, Math.round(+b.gold || 0)));
@@ -1013,7 +1098,7 @@ ADMIN.user_set = async (q, b) => {
       throw fail(400, "알 수 없는 작업");
   }
   await saveUser(u);
-  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}`);
+  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}${"aim" === b.op ? ` PC ${b.pc ? "켬" : "끔"} · 모바일 ${!1 !== b.mobile ? "켬" : "끔"}` : ""}`);
   return { ok: !0 };
 };
 // one account's skins, for the owner page's grant table
@@ -1088,7 +1173,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];

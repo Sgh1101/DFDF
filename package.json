@@ -16,6 +16,8 @@
     "test:maps": "node scripts/browser-map-cleanup.js",
     "test:network-recovery": "node scripts/browser-network-recovery.js",
     "test:reload": "node scripts/browser-reload.js",
-    "test:knife": "node scripts/browser-knife-tricks.js"
+    "test:knife": "node scripts/browser-knife-tricks.js",
+    "test:aim": "node scripts/browser-aim.js",
+    "test:admin": "node scripts/browser-admin-dash.js"
   }
 }
