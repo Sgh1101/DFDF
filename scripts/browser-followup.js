@@ -58,6 +58,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await touch("touchEnd", [stick, right]);
     assert.equal(await page.evaluate(() => keys.fire), true, "releasing one fire button preserves the other held button");
     await touch("touchCancel", []);
+    // after the raw CDP touch events below, some headless builds stop delivering real mouse input, so later buttons get the click dispatched on them
+    await page.waitForFunction(() => !keys.fire && touch.move.x === 0 && touch.lookId === null && touch.stickId === null);
     assert.deepEqual(await page.evaluate(() => ({ fire: keys.fire, move: touch.move.x, look: touch.lookId, stick: touch.stickId })), { fire: false, move: 0, look: null, stick: null });
     const ads = { ...await center("#tb-ads"), id: 4 };
     await page.evaluate(() => { keys.ads = player.ads = false; });
@@ -75,7 +77,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.keyboard.press("ArrowRight");
     assert.equal(await page.evaluate(() => !!TOUCHLAY.layout().m["tb-nade"]), true);
     await page.evaluate(() => TOUCHLAY.set("tb-nade", [.6, .25, 1.2]));
-    await page.locator("#mbe-save").click();
+    await page.locator("#mbe-save").dispatchEvent("click");
     await page.waitForFunction(() => JSON.parse(localStorage.getItem("lgp_touch_layout:followup") || "null")?.m["tb-nade"]?.[0] === .6);
     await page.evaluate(() => { TOUCHLAY.open(); TOUCHLAY.set("tb-nade", [.2, .2, 1]); TOUCHLAY.close(false); });
     assert.equal(await page.evaluate(() => TOUCHLAY.layout().m["tb-nade"][0]), .6);
@@ -83,7 +85,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const restored = await center("#tb-nade"); assert.ok(Math.abs(restored.x - 667 * .6) < 2); assert.ok(Math.abs(restored.y - 375 * .25) < 2);
     await page.waitForFunction(() => !document.getElementById("mbe-bar"));
     await page.evaluate(() => { togglePause(false); gameOver(); });
-    await page.locator("#ov-menu").click();
+    await page.locator("#ov-menu").dispatchEvent("click");
     await page.evaluate(() => { localStorage.setItem("lgp_favorites:followup", JSON.stringify([AGENTS[0].key])); });
     const fresh = await f.h.api("auth", { id: "nextplayer", pw: "password", device: "next-browser-device" });
     await page.evaluate((session) => { localStorage.setItem("lgp_session", JSON.stringify(session)); sessionStorage.setItem("lgp_gate", session.token); localStorage.setItem("lgp_lang", "en"); }, fresh);
@@ -96,11 +98,11 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(await page.locator("html").getAttribute("lang"), "en");
     assert.equal(await page.locator("#tb-fire2").getAttribute("aria-label"), "Left fire");
     assert.match(await page.locator("#go-play b").textContent(), /Play solo/);
-    await page.locator("#go-set").click();
+    await page.locator("#go-set").dispatchEvent("click");
     assert.equal(await page.locator("#pause").getAttribute("aria-label"), "Settings");
     await page.evaluate(() => TOUCHLAY.open());
     await page.waitForFunction(() => document.getElementById("mbe-bar").getAttribute("aria-label") === "Button layout");
-    await page.locator("#mbe-x").click();
+    await page.locator("#mbe-x").dispatchEvent("click");
     await page.evaluate(() => togglePause(false));
     const other = await page.context().newPage(); await other.goto("http://127.0.0.1:3000/privacy.html");
     await other.evaluate(() => localStorage.clear());
