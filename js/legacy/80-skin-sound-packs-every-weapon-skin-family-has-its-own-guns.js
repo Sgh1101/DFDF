@@ -89,6 +89,7 @@
     gold: "royal", dancheong: "royal",
     ink: "blade", wave: "blade", tanto: "blade", karambit: "blade",
     bayonet: "heavy", gut: "heavy", bowie: "heavy", kunai: "blade", stiletto: "blade",
+    koi: "royal", kintsugi: "royal", prism: "crystal", abyss: "cosmic", synth: "energy", opal: "crystal",
   };
 
   // ── the synth ──

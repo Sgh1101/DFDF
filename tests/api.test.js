@@ -230,5 +230,21 @@ test("the owner's dashboard summary counts accounts, grants, ranks and the day's
   assert.ok(j.logs.login + j.logs.join >= 1);
   assert.ok(j.recent.some((r) => /aim/.test(r.msg)));
   assert.deepEqual(j.config.aim, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
-  assert.equal(j.items, 816);
+  assert.equal(j.items, 909);
+});
+
+test("retired skins leave the collection and come back as gold, once", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 0 });
+  const u = h.user("player");
+  u.own = { rifle: ["holo", "lava"], pistol: ["ice", "obsidian"] };
+  u.skins = { m: { rifle: "holo", pistol: "ice" }, t: 1 };
+  h.db.set("user:player", JSON.stringify(u));
+  const j = await h.api("skins", { token: player.token });
+  assert.equal(j.status, 200);
+  assert.deepEqual(j.own, { rifle: ["lava"], pistol: [] });
+  assert.equal(j.gold, 300 * 3 + 300 + 300);
+  assert.equal((await h.api("skins", { token: player.token })).gold, 1500, "only once");
+  assert.equal(h.user("player").skins.m.rifle, undefined);
+  assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "grant", item: "rifle|holo" })).status, 400);
 });

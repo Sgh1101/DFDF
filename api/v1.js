@@ -320,7 +320,7 @@ const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
-const SKIN_TIER = { obsidian: 1, snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, ice: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, holo: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4 };
+const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4 };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
@@ -340,10 +340,25 @@ function cleanMatch(m, win, kills) {
 }
 const histOf = (u) => (Array.isArray(u.hist) ? u.hist.slice(0, HIST_MAX) : []);
 // a wallet for an account from before gold: the sign-up gold once, an empty collection
+// skins taken out of the game (plain single colours): whoever had them gets gold back,
+// one pull's worth each (three for a legendary), the first time the account is read
+const RETIRED = { obsidian: 1, ice: 2, holo: 4 };
 function ensureWallet(u, c) {
   let changed = !1;
   if ("number" != typeof u.gold || !isFinite(u.gold)) ((u.gold = c.gold.signup), (changed = !0));
   if (!isObj(u.own)) ((u.own = {}), (changed = !0));
+  let back = 0;
+  for (const g in u.own) {
+    if (!Array.isArray(u.own[g])) continue;
+    const keep = u.own[g].filter((s) => !RETIRED[s]);
+    for (const s of u.own[g]) RETIRED[s] && (back += Math.max(0, Math.round(+c.gacha.cost1 || 0)) * (4 === RETIRED[s] ? 3 : 1));
+    keep.length !== u.own[g].length && ((u.own[g] = keep), (changed = !0));
+  }
+  if (back) {
+    u.gold = Math.min(9e6, u.gold + back);
+    u.refunded = (u.refunded || 0) + back;
+  }
+  changed && trimPicks(u);
   return changed;
 }
 const ownedCount = (u) => {
