@@ -413,39 +413,16 @@
         R.z += 0.35 * r;
       }
     }
-    // inspect (2.6 s): raise, then the knife's own show, then back
+    // inspect: the arm only raises the knife into view and lowers it again; the knife's own
+    // tricks (it turns on its pivot, hand and arm stay) are in the knife-tricks module
     if (M.insp.t >= 0) {
       const s = M.insp.t,
-        up = ezS(seg(s, 0, 0.4)) * (1 - ezS(seg(s, 2.1, 2.6))),
-        mid = seg(s, 0.4, 1.8);
+        D = window.KNIVES && KNIVES.inspD ? KNIVES.inspD(m) : 2.6,
+        up = ezS(seg(s, 0, 0.4)) * (1 - ezS(seg(s, D - 0.5, D)));
       P.x -= 0.08 * up;
       P.y += 0.06 * up;
       P.z += 0.12 * up;
       R.x += 0.2 * up;
-      if ("butterfly" === m) {
-        hA && (hA.rotation.x = 4 * PI * ezS(mid));
-        hB && (hB.rotation.x = -4 * PI * ezS(mid));
-        R.z += up * 0.6 * Math.sin(mid * PI);
-      } else if ("karambit" === m) {
-        const fwd = ezS(seg(s, 0.35, 1.55)),
-          back = ezS(seg(s, 1.75, 2.2));
-        spin && (spin.rotation.x = 4 * PI * fwd - 2 * PI * back);
-        P.x += 0.05 * up;
-        P.y += 0.02 * up;
-        R.y += 0.35 * up;
-        R.z += 0.15 * up + 0.08 * Math.sin(s * 14) * fwd * (1 - fwd);
-      } else if ("kukri" === m) {
-        R.y += up * (1.0 - 2.0 * ezS(mid));
-        R.z += up * 0.5 * Math.sin(mid * PI);
-      } else if ("tanto" === m) {
-        // the wrist only rolls a little: the knife itself turns into a reverse grip (knife pivot)
-        R.z += up * 0.45 * Math.sin(mid * PI);
-        R.y += up * (0.5 - 1.0 * ezS(mid));
-      } else if ("flip" === m) {
-        const w = mid * 2 * PI;
-        blade && (blade.rotation.x = PI * 0.5 * (1 - Math.cos(w)) * up);
-        R.y += up * (0.8 - 1.6 * ezS(mid));
-      }
     }
     // the cut
     if (M.knife.t >= 0) {
@@ -502,19 +479,9 @@
       f.scale.set(1 - 0.3 * open, 1 - 0.92 * open, 1 - 0.3 * open);
     }
     if (IDLE.anim >= 0) {
+      // the knife's own idle trick is in the knife-tricks module (the knife turns on its pivot)
       IDLE.anim += dt;
-      const D = "butterfly" === m ? 0.55 : "flip" === m ? 0.7 : 0.5,
-        k = c01(IDLE.anim / D);
-      if (k >= 1) IDLE.anim = -1;
-      else if ("butterfly" === m) {
-        hA && (hA.rotation.x = 2 * PI * ezS(k));
-        hB && (hB.rotation.x = -2 * PI * ezS(k));
-      } else if ("karambit" === m) {
-        spin && (spin.rotation.x = 2 * PI * ezS(k));
-        P.y += 0.03 * Math.sin(k * PI);
-        R.z += 0.12 * Math.sin(k * PI);
-      } else if ("flip" === m) blade && (blade.rotation.x = PI * 0.5 * (1 - Math.cos(k * 2 * PI)));
-      else R.z += 0.35 * Math.sin(k * PI);
+      c01(IDLE.anim / (window.KNIVES && KNIVES.idleD ? KNIVES.idleD(m) : 0.6)) >= 1 && (IDLE.anim = -1);
     }
   }
   const _tick = tickViewmodel;

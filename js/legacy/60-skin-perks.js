@@ -122,7 +122,7 @@
       else {
         M.insp.t += dt;
         const s = M.insp.t;
-        if (s >= 2.6) M.insp.t = -1;
+        if (s >= (window.KNIVES && KNIVES.inspD && typed() ? KNIVES.inspD(typed()) : 2.6)) M.insp.t = -1;
         else if (own) {
         } else {
           const up = ezS(c01(s / 0.4)) * (1 - ezS(c01((s - 2.1) / 0.5)));

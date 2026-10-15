@@ -1,66 +1,85 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// Every knife turns on a pivot in the hand: during a spin the knife's tip moves round the
-// grip while the hand and the arm stay where they are.
+// Each knife turns on its own pivot while the hand and arm stay: the karambit on its ring
+// (with light trails), the rest on the grip; every inspect is a trick that ends as it began.
 (async () => {
   const f = await fixture();
   try {
     const page = await f.page("knifer");
-    const out = await page.evaluate(async () => {
-      titleCam = () => {};
-      room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true;
-      const me = myActor(), skins = window.GUN_SKINS, of0 = skins.of, res = {};
-      const list = ["", "butterfly", "karambit", "flip", "tanto", "kukri"];
-      for (const id of list) {
-        const sk = id ? SKIN_LIST_FIND(id) : null;
-        skins.of = (k, ...r) => (k === "knife" ? sk || { id: "default", rar: 4 } : of0.call(skins, k, ...r));
+    await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
+    await page.waitForTimeout(600);
+    const out = await page.evaluate(() => {
+      render = () => {};
+      const skins = GUN_SKINS, res = {};
+      skins.inv().own = skins.inv().own || {}; skins.inv().own.knife = ["tanto", "kukri", "flip", "karambit", "butterfly"];
+      player.slot = Object.keys(player.weapons).find((s) => player.weapons[s] === "knife");
+      const names = {};
+      for (const id of ["", "butterfly", "karambit", "flip", "tanto", "kukri"]) {
+        skins.set("knife", id || "default");
         for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k];
-        player.weapons.melee = player.weapons.melee || "knife";
-        const slot = Object.keys(player.weapons).find((s) => player.weapons[s] === "knife");
-        player.slot = slot;
         updateViewmodel(true);
-        const a = VM.current, pv = KNIFE_PIVOT.of(a);
-        if (!pv) { res[id || "default"] = { pivot: false }; continue; }
-        // where the hand and the knife's farthest point are, at rest and half way through a spin
-        const where = () => {
-          a.updateMatrixWorld(true);
-          let hand = null, tip = null, far = -1;
-          const g = new THREE.Vector3(); pv.getWorldPosition(g);
-          // the arm: everything not on the pivot (baked together by now)
-          const inPv = new Set(); pv.traverse((x) => inPv.add(x));
-          const box = new THREE.Box3();
-          a.traverse((x) => { if (x.isMesh && !inPv.has(x)) box.expandByObject(x); });
-          hand = box.isEmpty() ? null : box.getCenter(new THREE.Vector3());
-          pv.traverse((x) => { if (!x.isMesh) return; x.geometry.computeBoundingBox(); const c = x.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(x.matrixWorld); const d = c.distanceTo(g); d > far && ((far = d), (tip = c)); });
-          return { hand, tip };
-        };
-        const r0 = where();
-        pv.rotation.x += Math.PI; // half a turn on the pivot
-        const r1 = where();
-        pv.rotation.x -= Math.PI;
-        const armInPivot = []; pv.traverse((x) => x.userData && x.userData.armPart && armInPivot.push(x.name || x.type));
-        let liveAll = true; pv.traverse((x) => x.isMesh && !x.userData.live && (liveAll = false));
-        res[id || "default"] = { pivot: true, gripFound: !!pv.userData.hand, pivotToHand: null, handMoved: r0.hand && r1.hand ? +r0.hand.distanceTo(r1.hand).toFixed(4) : null, tipMoved: +r0.tip.distanceTo(r1.tip).toFixed(3), armInPivot: armInPivot.length, liveAll };
+        const a = VM.current, pv = KNIFE_PIVOT.of(a), m = KNIVES.model(), r = (res[id || "default"] = { model: m, pivot: !!pv });
+        if (!pv) continue;
+        a.updateMatrixWorld(true);
+        // the arm: everything that is not on the pivot; turn the pivot and see what stays
+        const inPv = new Set(); pv.traverse((x) => inPv.add(x));
+        const armMeshes = []; a.traverse((x) => x.isMesh && !inPv.has(x) && !x.userData.live && armMeshes.push(x));
+        const box = () => { a.updateMatrixWorld(true); const b = new THREE.Box3(); armMeshes.forEach((x) => b.expandByObject(x)); return b.getCenter(new THREE.Vector3()); };
+        const tip = () => { let far = -1, t = null; const g = new THREE.Vector3(); pv.getWorldPosition(g); pv.traverse((x) => { if (!x.isMesh || !x.visible) return; x.geometry.computeBoundingBox(); const c = x.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(x.matrixWorld); const d = c.distanceTo(g); d > far && ((far = d), (t = c)); }); return t; };
+        const h0 = box(), t0 = tip();
+        pv.rotation.x += Math.PI; const h1 = box(), t1 = tip(); pv.rotation.x -= Math.PI;
+        r.armMoved = +h0.distanceTo(h1).toFixed(4); r.knifeMoved = +t0.distanceTo(t1).toFixed(3);
+        r.armMeshes = armMeshes.length; r.fingers = !!a.userData.fingers || !!a.userData.ringFinger;
+        // the karambit pivots on its ring
+        if (m === "karambit") { const ring = KNIVES.parts(a).spin, g = new THREE.Vector3(), q = new THREE.Vector3(); ring.getWorldPosition(g); pv.getWorldPosition(q); r.ringDist = +g.distanceTo(q).toFixed(4); r.ghosts = (pv.userData.ghosts || []).length; }
+        // the trick: starts and ends as held, goes somewhere in between
+        const D = KNIVES.inspD(m), T = { rx: 0, ry: 0, rz: 0, px: 0, py: 0, pz: 0, open: 0, hA: 0, hB: 0, blade: 0 }, E = { ...T };
+        const fn = KNIFE_TRICKS.SHOW[m]; let maxRx = 0, maxRy = 0, maxRz = 0, maxPy = 0, maxHA = 0, maxBl = 0;
+        for (let s = 0; s <= D; s += 0.02) { for (const k in T) T[k] = 0; fn(s, T); maxRx = Math.max(maxRx, Math.abs(T.rx)); maxRy = Math.max(maxRy, Math.abs(T.ry)); maxRz = Math.max(maxRz, Math.abs(T.rz)); maxPy = Math.max(maxPy, Math.abs(T.py)); maxHA = Math.max(maxHA, Math.abs(T.hA)); maxBl = Math.max(maxBl, Math.abs(T.blade)); }
+        for (const k in E) E[k] = 0; fn(D, E);
+        const whole = (v) => { const w = Math.abs(v) % (2 * Math.PI); return Math.min(w, 2 * Math.PI - w) < 1e-6; };
+        r.D = D; r.endsAtRest = whole(E.rx) && whole(E.ry) && whole(E.rz) && whole(E.hA) && whole(E.hB) && Math.abs(E.py) < 1e-6 && Math.abs(E.blade) < 1e-6 && Math.abs(E.pz) < 1e-6;
+        r.reach = { rx: +(maxRx / Math.PI).toFixed(2), ry: +(maxRy / Math.PI).toFixed(2), rz: +(maxRz / Math.PI).toFixed(2), py: +maxPy.toFixed(3), hA: +(maxHA / Math.PI).toFixed(2), blade: +(maxBl / Math.PI).toFixed(2) };
       }
-      skins.of = of0;
-      // the inspect runs each trick without an error, and the frame after starts straight again
-      SKIN_PERKS.state.insp.t = 1.2; tickViewmodel(0.016);
-      const pv = KNIFE_PIVOT.of(VM.current); updateViewmodel(false);
-      res.reset = pv ? pv.rotation.x === 0 && pv.rotation.y === 0 : null;
+      // an inspect run on the karambit: the trails show while it spins fast, the pivot comes back at the end
+      skins.set("knife", "karambit"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
+      const M = SKIN_PERKS.state, pv = KNIFE_PIVOT.of(VM.current); let trail = 0, tossed = 0, maxY = 0;
+      M.insp.t = 0;
+      for (let i = 0; i < 600; i++) { tickViewmodel(0.01); if (M.insp.t < 0) break; const gh = pv.userData.ghosts; trail = Math.max(trail, ...gh.map((g) => (g.g.visible ? g.mat.opacity : 0))); maxY = Math.max(maxY, pv.position.y - pv.userData.p0.y); }
+      res.run = { trail: +trail.toFixed(2), maxY: +maxY.toFixed(3), ended: M.insp.t < 0, err: window.__knifeErr ? String(window.__knifeErr) : null };
+      // the idle trick, as a phone sees it (no inspect key): each knife does one when held still
+      res.idle = {};
+      for (const id of ["butterfly", "karambit", "flip", "tanto", "kukri"]) {
+        skins.set("knife", id || "default"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
+        const a2 = VM.current, pv2 = KNIFE_PIVOT.of(a2), kp = KNIVES.parts(a2); let moved = 0; KNIVES.idle.t = 0; KNIVES.idle.anim = 0;
+        M.insp.t = -1; M.knife.t = -1; M.draw.t = -1;
+        for (let i = 0; i < 200 && KNIVES.idle.anim >= 0; i++) { tickViewmodel(0.01); moved = Math.max(moved, Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y) + (kp.hA ? Math.abs(kp.hA.rotation.x) : 0) + (kp.blade ? Math.abs(kp.blade.rotation.x) : 0)); }
+        tickViewmodel(0.016);
+        res.idle[id || "default"] = { moved: +moved.toFixed(2), ended: KNIVES.idle.anim < 0, back: +(Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y)).toFixed(3) };
+      }
+      tickViewmodel(0.016);
+      res.after = { rot: [pv.rotation.x, pv.rotation.y, pv.rotation.z].map((v) => +v.toFixed(3)), dy: +(pv.position.y - pv.userData.p0.y).toFixed(4) };
       return res;
-      function SKIN_LIST_FIND(id) { const L = skins.skinsFor ? skins.skinsFor("knife") : []; return L.find((s) => s.id === id) || { id, model: id, rar: 4 }; }
     });
     console.log(JSON.stringify(out));
     for (const k of ["default", "butterfly", "karambit", "flip", "tanto", "kukri"]) {
       const r = out[k];
       assert.ok(r && r.pivot, k + " has a pivot");
-      assert.ok(r.handMoved !== null && r.handMoved < 0.001, k + ": the hand stays (" + r.handMoved + ")");
-      assert.ok(r.tipMoved > 0.05, k + ": the knife turns (" + r.tipMoved + ")");
-      assert.equal(r.armInPivot, 0, k + ": no arm on the pivot");
-      assert.equal(r.liveAll, true, k + ": the knife is kept out of the bake");
-      assert.equal(r.gripFound, true, k + ": the pivot sits on the hand");
+      assert.ok(r.armMoved < 0.001, k + ": the arm stays (" + r.armMoved + ")");
+      assert.ok(r.knifeMoved > 0.05, k + ": the knife turns (" + r.knifeMoved + ")");
+      assert.ok(r.armMeshes > 0 && r.fingers, k + ": has an arm and fingers on the grip");
+      assert.ok(r.endsAtRest, k + ": the trick ends as the knife is held");
     }
-    assert.equal(out.reset, true);
+    assert.deepEqual(["", "butterfly", "karambit", "flip", "tanto", "kukri"].map((id) => out[id || "default"].model), ["", "butterfly", "karambit", "flip", "tanto", "kukri"]);
+    assert.ok(out.karambit.ringDist < 0.01, "the karambit turns about its ring (" + out.karambit.ringDist + ")");
+    assert.equal(out.karambit.ghosts, 3);
+    assert.ok(out.karambit.reach.rx >= 6 && out.karambit.reach.ry >= 3.5 && out.karambit.reach.py >= 0.12, "the karambit chain: spins, a flat helicopter, a toss " + JSON.stringify(out.karambit.reach));
+    assert.ok(out.butterfly.reach.hA >= 3.5 && out.butterfly.reach.rz >= 1.9, "the balisong fans its handles and rolls over");
+    assert.ok(out.flip.reach.blade >= 0.95, "the flipper shuts and opens");
+    assert.ok(out.tanto.reach.rx >= 1.9, "the tanto goes into a reverse grip and back");
+    assert.ok(out.run.trail > 0.1 && out.run.maxY > 0.12 && out.run.ended && !out.run.err, "the karambit run shows trails and a toss: " + JSON.stringify(out.run));
+    assert.deepEqual(out.after, { rot: [0, 0, 0], dy: 0 });
+    for (const [k, r] of Object.entries(out.idle)) { assert.ok(r.moved > 0.5, k + ": an idle trick shows (" + r.moved + ")"); assert.ok(r.ended, k + ": the idle trick ends"); assert.ok(r.back < 0.01, k + ": and the knife is back in the hand"); }
     assert.deepEqual(f.errors, []);
-    console.log("knife tricks: every knife turns on its own pivot, hand and arm stay");
+    console.log("knife tricks: every knife turns on its own pivot (the karambit on its ring, with trails), arm stays, every trick ends as it began");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
