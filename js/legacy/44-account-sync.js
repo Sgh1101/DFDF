@@ -466,7 +466,8 @@
         code,
         name: META.name || L(myName() + "의 방", myName() + "'s room"),
         ch: META.ch,
-        private: META.priv,
+        private: META.priv && !room.ranked,
+        ranked: !!room.ranked,
         mode: room.mode,
         map: room.map,
         players,
@@ -549,7 +550,12 @@
 
   // ── experience after each match ──
   let lastPhase = "";
-  const reportSession = GAME_MATCH_REPORT({ token, request: (ownerToken) => api("match_start", { token: ownerToken }), onError: (e) => banner(e.message, "#ff8a9a") });
+  const reportSession = GAME_MATCH_REPORT({ token, request: async (ownerToken) => {
+    const extra = window.RANKED && RANKED.ticketBody ? RANKED.ticketBody() : {};
+    // a ranked ticket the server refuses still leaves a plain one (XP and gold, no RR)
+    if (extra.ranked) try { return await api("match_start", { token: ownerToken, ...extra }); } catch (e) {}
+    return api("match_start", { token: ownerToken });
+  }, onError: (e) => banner(e.message, "#ff8a9a") });
   const pendingKey = () => "lgp_reports:" + (S && S.user && S.user.id || "local");
   let pending = [];
   try { pending = JSON.parse(localStorage.getItem(pendingKey()) || "[]"); } catch (e) {}
@@ -574,11 +580,11 @@
     } finally { reporting = false; }
   }
   addEventListener("match-finished", async (e) => {
-    const match = e.detail, ownerToken = token();
+    const match = e.detail, ownerToken = token(), humans = window.RANKED && RANKED.humans ? RANKED.humans() : 0;
     if (!match || !ownerToken) return;
     const mt = await reportSession.finish();
     if (!mt || ownerToken !== token()) return;
-    pending.push({ kills: match.k, win: match.win, outcome: match.outcome, mt, match });
+    pending.push({ kills: match.k, win: match.win, outcome: match.outcome, mt, match, humans: humans });
     keepReports(); flushReports();
   });
   const _reportStart = lobbyStart;

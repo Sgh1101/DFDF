@@ -106,8 +106,9 @@ const DEFAULT_CONFIG = {
   // the rank (tier): rating points (RR) after each match. A win adds win + perKill
   // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
   // under half of loss). 100 RR a division, three divisions a tier; a day's
-  // gain has a ceiling, as the result is what the game reports (0 = none)
-  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300 },
+  // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
+  // only in a ranked room (admin and cheats off) and with at least minHumans people
+  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3 },
   // daily and weekly missions: how many (matches, kills, wins) and the gold each pays
   // when claimed. Counted here from the match reports; a day starts at midnight in
   // Korea, a week on Monday. 0 turns a mission off.
@@ -473,6 +474,8 @@ A.owner_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (!ownerScope(b.room, b.p)) throw fail(400, "방 또는 연결 정보가 이상합니다");
+  const rmo = await getJ("room:" + roomOf(b.room));
+  if (rmo && rmo.ranked) return { ticket: null, ranked: !0 };
   if (!(u.owner && isOwnerId(u.id) && u._s.o === 1)) return { ticket: null };
   const exp = Math.min(u._s.exp, now() + 5 * 60000);
   return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp }), exp };
@@ -494,6 +497,8 @@ const roomOf = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").sl
 A.perm_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
+  const rmp = await getJ("room:" + roomOf(b.room));
+  if (rmp && rmp.ranked) return { ticket: null, ranked: !0 };
   return activePerm(u) ? { ticket: sign({ k: "perm", id: u.id, room: roomOf(b.room), exp: now() + 6 * 36e5 }) } : { ticket: null };
 };
 A.perm_check = async (q, b) => {
@@ -685,10 +690,18 @@ A.match_start = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (await limited("mstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
+  // a ranked match: only from an account, in a room that opened as a ranked room
+  let ranked = 0;
+  if (b.ranked) {
+    if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
+    const rm = await getJ("room:" + roomOf(b.room));
+    if (!rm || !rm.ranked) throw fail(409, "랭크전 방이 아닙니다");
+    ranked = 1;
+  }
   const n = crypto.randomBytes(12).toString("hex"),
     t0 = now();
   await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]);
-  return { ticket: sign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS }) };
+  return { ticket: sign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }), ranked: !!ranked };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
 // unused ticket from a long enough match; kills no faster than the clock allows
@@ -699,7 +712,7 @@ async function matchTrust(u, ticket) {
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
   if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
-  return { ok: !0, key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  return { ok: !0, ranked: 1 === t.r, key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
 A.progress = async (q, b) => {
   const c = await loadConfig(),
@@ -741,6 +754,10 @@ A.progress = async (q, b) => {
   (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
   let drr = win ? Math.round((+R.win || 0) + kb) : -Math.max(Math.ceil((+R.loss || 0) / 2), Math.round((+R.loss || 0) - kb / 2));
   trust.ok || (drr = 0); // no ticket: the rank stays where it is
+  // RR moves only in a ranked room, and only when enough real people played
+  const humans = Math.max(0, Math.min(40, b.humans | 0)),
+    rankedOk = trust.ranked && humans >= Math.max(0, +R.minHumans || 0);
+  rankedOk || (drr = 0);
   draw && (drr = 0);
   drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
   u.rr = Math.max(0, rr0 + drr);
@@ -748,6 +765,7 @@ A.progress = async (q, b) => {
   drr > 0 && (u.rrDay.n = (u.rrDay.n || 0) + drr);
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
+  m && trust.ranked && (m.rk = 1);
   m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
@@ -756,7 +774,7 @@ A.progress = async (q, b) => {
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   const rb = rankOf(rr0);
-  const out = { trusted: trust.ok, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
@@ -811,7 +829,7 @@ A.rooms = async () => {
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(now() - ROOM_TTL * 1000)]);
   const codes = await redis(["ZRANGE", "rooms", "0", "199"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
-  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created }) => ({ code, name, ch, mode, map, n: (players || []).length, max, state, host, created }));
+  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked }) => ({ code, name, ch, mode, map, ranked: !!ranked, n: (players || []).length, max, state, host, created }));
   roomsCache = { rooms, until: now() + 5000 };
   return { rooms };
 };
@@ -833,6 +851,8 @@ A.room_up = async (q, b, req) => {
     players,
     max: Math.min(c.game.maxRoomPlayers, Math.max(2, b.max | 0 || 10)),
     private: !!b.private,
+    // a ranked room can only be opened by an account (never a guest) and is always public
+    ranked: !!b.ranked && !u.guest,
     state: String(b.state || "lobby").slice(0, 10),
     host: u.id,
     ip: ipOf(req),
@@ -863,7 +883,8 @@ A.room_up = async (q, b, req) => {
       x.ban && (!x.ban.until || x.ban.until > now()) && banned.push(toCheck[i]);
     });
   }
-  return { cmds: (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room } };
+  // the owner's room commands (kick, cheats, messages) do not run in a ranked room
+  return { cmds: room.ranked ? [] : (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room } };
 };
 A.room_down = async (q, b) => {
   const u = await who(b.token);
