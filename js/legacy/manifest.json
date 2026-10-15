@@ -81,5 +81,6 @@
   "js/legacy/80-skin-sound-packs-every-weapon-skin-family-has-its-own-guns.js",
   "js/legacy/81-ranked-play-a-room-where-admin-and-cheats-are-off-and-the-ra.js",
   "js/legacy/82-shift-arena-a-small-arena-whose-walls-rise-and-sink-on-a-timer.js",
-  "js/legacy/83-knife-tricks-the-knife-turns-in-the-hand-and-the-arm-stays.js"
+  "js/legacy/83-knife-tricks-the-knife-turns-in-the-hand-and-the-arm-stays.js",
+  "js/legacy/84-aim-assist-the-aim-leans-toward-an-enemy-near-the-crosshair.js"
 ]

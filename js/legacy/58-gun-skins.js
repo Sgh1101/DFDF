@@ -43,14 +43,14 @@
   ];
   const SKINS = [
     { id: "default", ko: "기본", en: "Stock", rar: 0 },
-    { id: "obsidian", ko: "흑요석", en: "Obsidian", rar: 1, body: [0x15171c, 0.5, 0.3], metal: [0x3a3f4a, 0.35, 0.8], dark: [0x0b0c0f, 0.7, 0.2], glow: 0xff2d55, glass: 0xff6b81 },
+    { id: "obsidian", gone: !0, ko: "흑요석", en: "Obsidian", rar: 1, body: [0x15171c, 0.5, 0.3], metal: [0x3a3f4a, 0.35, 0.8], dark: [0x0b0c0f, 0.7, 0.2], glow: 0xff2d55, glass: 0xff6b81 },
     { id: "snow", ko: "설원 위장", en: "Snow camo", rar: 1, body: [0xffffff, 0.85, 0], pat: "camo", pal: ["#eef2f5", "#c7d0d8", "#9aa7b4", "#5f6b78"], metal: [0xb9c2cc, 0.35, 0.75], dark: [0x3a414a, 0.7, 0.2], glow: 0x9be7ff },
     { id: "jungle", ko: "밀림 위장", en: "Jungle camo", rar: 1, body: [0xffffff, 0.88, 0], pat: "camo", pal: ["#4a6a30", "#6f9440", "#26391c", "#8d8a52"], metal: [0x4f5b48, 0.5, 0.6], dark: [0x1f261b, 0.8, 0.1], glow: 0xb2ff59 },
     { id: "desert", ko: "사막 위장", en: "Desert camo", rar: 1, body: [0xffffff, 0.85, 0], pat: "digi", pal: ["#cdb78e", "#a88f63", "#e3d4ab", "#7d6a45"], metal: [0x8c7352, 0.42, 0.7], dark: [0x4a3d2a, 0.8, 0.15], glow: 0xffd180 },
     { id: "carbon", ko: "카본", en: "Carbon", rar: 2, body: [0xffffff, 0.32, 0.55], pat: "carbon", pal: ["#1a1d22", "#30353d", "#0b0c0e"], metal: [0xc9d1d9, 0.2, 0.9], dark: [0x101216, 0.6, 0.3], glow: 0x00e5ff, glass: 0x80f4ff },
     { id: "tiger", ko: "호랑이", en: "Tiger", rar: 2, body: [0xffffff, 0.7, 0.05], pat: "stripes", pal: ["#f08a24", "#1a1410", "#ffb347"], metal: [0x1b1b1b, 0.4, 0.7], dark: [0x0e0c0a, 0.75, 0.2], glow: 0xffab00 },
     { id: "sakura", ko: "벚꽃", en: "Cherry blossom", rar: 2, body: [0xffffff, 0.6, 0.05], pat: "petals", pal: ["#f7d6e0", "#f48fb1", "#fff4f7", "#c2185b"], metal: [0xe8a9a0, 0.3, 0.85], dark: [0x5a3a44, 0.7, 0.2], glow: 0xff80ab },
-    { id: "ice", ko: "얼음", en: "Ice", rar: 2, body: [0xbfe9ff, 0.08, 0.15], emis: [0x2a5a7a, 0.25], metal: [0xdaf2ff, 0.1, 0.95], dark: [0x2f4f66, 0.5, 0.3], glow: 0xe0f7ff, glass: 0xffffff },
+    { id: "ice", gone: !0, ko: "얼음", en: "Ice", rar: 2, body: [0xbfe9ff, 0.08, 0.15], emis: [0x2a5a7a, 0.25], metal: [0xdaf2ff, 0.1, 0.95], dark: [0x2f4f66, 0.5, 0.3], glow: 0xe0f7ff, glass: 0xffffff },
     { id: "celadon", ko: "청자", en: "Celadon", rar: 2, body: [0xffffff, 0.18, 0.05], pat: "crackle", pal: ["#8fc1a9", "#6fa58d", "#a9d3bf", "#3f6f5a"], metal: [0xc9a14a, 0.3, 0.85], dark: [0x2f4a3d, 0.6, 0.2], glow: 0xa5d6a7 },
     { id: "dancheong", ko: "단청", en: "Dancheong", rar: 3, body: [0xffffff, 0.55, 0.05], pat: "dancheong", pal: ["#2e7d5b", "#c62828", "#1e4fa3", "#f2c230", "#f5efe3"], metal: [0xd4af37, 0.3, 0.85], dark: [0x2a1f1a, 0.7, 0.2], glow: 0xffd54f },
     { id: "ink", ko: "수묵", en: "Ink wash", rar: 3, body: [0xffffff, 0.6, 0.02], pat: "ink", pal: ["#f4f1ea", "#1b1b1b", "#555"], metal: [0x1a1a1a, 0.45, 0.7], dark: [0x111111, 0.7, 0.2], glow: 0x90caf9 },
@@ -58,7 +58,7 @@
     { id: "neon", ko: "네온", en: "Neon", rar: 3, body: [0xffffff, 0.5, 0.3], pat: "grid", em: !0, pal: ["#0f1116", "#00e5ff", "#ff2bd6"], anim: "pulse", metal: [0x2a2f3a, 0.35, 0.8], dark: [0x090a0d, 0.7, 0.2], glow: 0x00e5ff, glass: 0x80f4ff },
     { id: "lava", ko: "용암", en: "Lava", rar: 4, body: [0xffffff, 0.85, 0.1], pat: "cracks", em: !0, pal: ["#1a1412", "#ff7a1a", "#ffd166"], anim: "pulse", metal: [0x2b2420, 0.5, 0.7], dark: [0x0d0a09, 0.8, 0.2], glow: 0xff7043, glass: 0xffb27a },
     { id: "galaxy", ko: "은하", en: "Galaxy", rar: 4, body: [0xffffff, 0.45, 0.2], pat: "galaxy", em: !0, pal: ["#120a2a", "#3b1d7a", "#1b3a8a", "#c56bff"], anim: "drift", metal: [0x3a2a5a, 0.35, 0.8], dark: [0x120d1f, 0.7, 0.2], glow: 0xb388ff, glass: 0xd1b3ff },
-    { id: "holo", ko: "홀로그램", en: "Holo", rar: 4, body: [0xe8ecf3, 0.2, 0.6], emis: [0x4080ff, 0.35], anim: "hue", metal: [0xd0d6e0, 0.15, 1], dark: [0x2a2e38, 0.5, 0.4], glow: 0xffffff, glass: 0xffffff },
+    { id: "holo", gone: !0, ko: "홀로그램", en: "Holo", rar: 4, body: [0xe8ecf3, 0.2, 0.6], emis: [0x4080ff, 0.35], anim: "hue", metal: [0xd0d6e0, 0.15, 1], dark: [0x2a2e38, 0.5, 0.4], glow: 0xffffff, glass: 0xffffff },
     // knives that are other knives (only: the one gun they fit; model: its build in KNIVES)
     { id: "flip", ko: "접이식 나이프", en: "Flip knife", rar: 2, only: "knife", model: "flip", body: [0xffffff, 0.32, 0.55], pat: "carbon", pal: ["#1a1d22", "#30353d", "#0b0c0e"], metal: [0xc9d1d9, 0.3, 0.7], dark: [0x101216, 0.6, 0.3], glow: 0x00e5ff },
     { id: "tanto", ko: "탄토", en: "Tanto", rar: 3, only: "knife", model: "tanto", body: [0x14161b, 0.72, 0.1], metal: [0xeef2f6, 0.3, 0.6], dark: [0x2a2e38, 0.6, 0.3], glow: 0xffffff },
@@ -76,9 +76,23 @@
     { id: "aurora", ko: "오로라", en: "Aurora", rar: 3, body: [0xffffff, 0.4, 0.2], pat: "aurora", em: !0, pal: ["#06121f", "#2ef2b0", "#7c4dff", "#29b6f6"], anim: "drift", metal: [0x22313f, 0.3, 0.8], dark: [0x050b13, 0.7, 0.2], glow: 0x64ffda, glass: 0xb2fff0 },
     { id: "phoenix", ko: "봉황", en: "Phoenix", rar: 4, body: [0xffffff, 0.5, 0.2], pat: "flame", em: !0, pal: ["#2a0806", "#d81b0c", "#ff8f00", "#ffe57f"], anim: "pulse", metal: [0xd4af37, 0.25, 0.95], dark: [0x1a0604, 0.7, 0.2], glow: 0xff6d00, glass: 0xffd180 },
     { id: "storm", ko: "뇌전", en: "Thunderstorm", rar: 4, body: [0xffffff, 0.4, 0.3], pat: "storm", em: !0, pal: ["#10131c", "#5c8dff", "#e6f0ff", "#2a3350"], anim: "pulse", metal: [0x3a4258, 0.3, 0.85], dark: [0x0a0c12, 0.7, 0.2], glow: 0x82b1ff, glass: 0xd6e4ff },
+    // five more knives (after the second set, so the numbers sent to a room stay the same), one or two in every tier
+    { id: "bayonet", ko: "총검", en: "Bayonet", rar: 1, only: "knife", model: "bayonet", keep: ["chrome"], body: [0x2a2d33, 0.8, 0.05], metal: [0xb8c0c8, 0.35, 0.75], dark: [0x1d2026, 0.5, 0.6], glow: 0x9be7ff },
+    { id: "gut", ko: "거트 나이프", en: "Gut knife", rar: 1, only: "knife", model: "gut", keep: ["chrome"], body: [0x3a4a30, 0.85, 0.05], metal: [0xc9d1d9, 0.3, 0.75], dark: [0x2e4a2a, 0.9, 0.05], glow: 0xb2ff59 },
+    { id: "bowie", ko: "보위 나이프", en: "Bowie knife", rar: 2, only: "knife", model: "bowie", keep: ["brass", "tan", "woodDark", "chrome"], body: [0x3b2a1e, 0.7, 0.05], metal: [0xdfe5ea, 0.25, 0.85], dark: [0x15171c, 0.6, 0.3], glow: 0xffb74d },
+    { id: "kunai", ko: "쿠나이", en: "Kunai", rar: 3, only: "knife", model: "kunai", keep: ["chrome"], body: [0x111216, 0.6, 0.3], metal: [0x9aa3ad, 0.32, 0.85], dark: [0x4a1030, 0.85, 0.05], glow: 0xff2bd6 },
+    { id: "stiletto", ko: "스틸레토", en: "Stiletto", rar: 4, only: "knife", model: "stiletto", keep: ["chrome"], body: [0x0e0f12, 0.35, 0.6], metal: [0xe8edf2, 0.15, 0.95], dark: [0x3a2c10, 0.3, 0.85], glow: 0xffd54f, anim: "pulse" },
+    // six more (after the knives, so the numbers sent to a room stay the same): drawn at 512 px,
+    // the patterns join up at the edges, the bodies lacquered
+    { id: "koi", ko: "비단잉어", en: "Koi", rar: 3, res: 512, tile: 0.42, pat: "koi", pal: ["#06303a", "#0f5560", "#ff7a1f", "#fff6ea", "#d7261e", "#e9c46a", "#1f5a33"], body: [0xffffff, 0.32, 0.08], coat: [1, 0.08], metal: [0xd4af37, 0.24, 0.95], dark: [0x0a262c, 0.6, 0.3], glow: 0xff8a3d },
+    { id: "kintsugi", ko: "금이음", en: "Kintsugi", rar: 3, res: 512, tile: 0.34, pat: "kintsugi", em: !0, anim: "pulse", pal: ["#0f0f12", "#202027", "#d4a73a", "#ffe9a8"], body: [0xffffff, 0.42, 0.1], coat: [0.7, 0.25], metal: [0xd4a73a, 0.22, 1], dark: [0x0c0c0e, 0.7, 0.2], glow: 0xffd166 },
+    { id: "prism", ko: "프리즘", en: "Prism", rar: 3, res: 512, tile: 0.3, pat: "facet", pal: ["#2b1055", "#5a4fcf", "#00d4c8", "#f6d365", "#ff6fb5"], body: [0xffffff, 0.28, 0.35], coat: [1, 0.05], metal: [0xc7ccff, 0.2, 0.9], dark: [0x1a1033, 0.5, 0.4], glow: 0x00e5d0 },
+    { id: "abyss", ko: "심해", en: "Abyss", rar: 4, res: 512, tile: 0.4, pat: "abyss", em: !0, anim: "pulse", pal: ["#020c1a", "#06264a", "#2ef2ff", "#ff4fd8", "#b8f7ff"], body: [0xffffff, 0.38, 0.2], coat: [1, 0.12], metal: [0x1d3b5a, 0.3, 0.85], dark: [0x020a14, 0.7, 0.2], glow: 0x2ef2ff },
+    { id: "synth", ko: "신스웨이브", en: "Synthwave", rar: 4, res: 512, tile: 0.34, vOff: 0.24, pat: "synth", em: !0, anim: "pulse", pal: ["#1a0633", "#ff2e88", "#ffb347", "#12001f", "#ff3cf0", "#fff27a"], body: [0xffffff, 0.35, 0.2], coat: [0.8, 0.1], metal: [0x3a1a5a, 0.3, 0.85], dark: [0x12001f, 0.6, 0.3], glow: 0xff2e88 },
+    { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, tile: 0.3, pat: "opal", em: !0, pal: ["#dfe9f3", "#bcd0e6", "#efe4ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
   ];
   // which skins a gun can wear
-  const fits = (s, key) => !s.only || s.only === key;
+  const fits = (s, key) => !s.gone && (!s.only || s.only === key);
   // (shown by tier: the second set sits after the knives in the list)
   const skinsFor = (key) => SKINS.filter((s) => fits(s, key)).sort((a, b) => a.rar - b.rar || a.i - b.i);
   // a gun in a skin: the knife skins that are other knives have builds of their own
@@ -99,6 +113,14 @@
   const nameOf = (s) => (EN ? s.en : s.ko);
 
   // ── 3. patterns, painted once each ──
+  // a seeded random, and a drawer that repeats a shape across the tile's edges so the tiles join
+  const rng = (seed) => {
+    let s = seed;
+    return () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  };
+  const wrapper = (W, H) => (x, y, r, draw) => {
+    for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) x + dx + r > 0 && x + dx - r < W && y + dy + r > 0 && y + dy - r < H && draw(x + dx, y + dy);
+  };
   const PAT = {
     camo(g, W, H, pal) {
       g.fillStyle = pal[0];
@@ -557,15 +579,453 @@
         }
       }
     },
+    // ── the newest patterns, drawn at 512 px; anything near an edge is drawn again on the far side, so the tiles join ──
+    koi(g, W, H, pal) {
+      const R = rng(71),
+        wrap = wrapper(W, H);
+      const bg = g.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, pal[0]);
+      bg.addColorStop(0.5, pal[1]);
+      bg.addColorStop(1, pal[0]);
+      g.fillStyle = bg;
+      g.fillRect(0, 0, W, H);
+      // ripples
+      for (let i = 0; i < 9; i++) {
+        const x = R() * W,
+          y = R() * H;
+        wrap(x, y, W * 0.2, (cx, cy) => {
+          for (let k = 1; k <= 3; k++) {
+            g.strokeStyle = `rgba(255,255,255,${0.09 - k * 0.02})`;
+            g.lineWidth = W * 0.004;
+            g.beginPath();
+            g.ellipse(cx, cy, W * 0.05 * k, H * 0.035 * k, 0, 0, 2 * Math.PI);
+            g.stroke();
+          }
+        });
+      }
+      // lily pads
+      for (let i = 0; i < 4; i++) {
+        const x = R() * W,
+          y = R() * H,
+          r = W * (0.06 + 0.03 * R()),
+          a = R() * 6.28;
+        wrap(x, y, r, (cx, cy) => {
+          g.fillStyle = pal[6];
+          g.beginPath();
+          g.moveTo(cx, cy);
+          g.arc(cx, cy, r, a + 0.35, a + 2 * Math.PI - 0.35);
+          g.closePath();
+          g.fill();
+          g.strokeStyle = "rgba(0,0,0,.25)";
+          g.lineWidth = W * 0.003;
+          for (let k = 0; k < 7; k++) {
+            const b = a + 0.5 + k * 0.78;
+            g.beginPath();
+            g.moveTo(cx, cy);
+            g.lineTo(cx + Math.cos(b) * r * 0.9, cy + Math.sin(b) * r * 0.9);
+            g.stroke();
+          }
+        });
+      }
+      // the fish: a white body with orange and red patches, fins and a forked tail
+      const fish = (cx, cy, ang, L, hue) => {
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(ang);
+        g.fillStyle = "rgba(0,0,0,.22)";
+        g.beginPath();
+        g.ellipse(L * 0.04, L * 0.05, L * 0.48, L * 0.13, 0, 0, 2 * Math.PI);
+        g.fill();
+        const body = new Path2D();
+        body.moveTo(L * 0.5, 0);
+        body.bezierCurveTo(L * 0.42, -L * 0.15, -L * 0.1, -L * 0.17, -L * 0.42, -L * 0.03);
+        body.lineTo(-L * 0.42, L * 0.03);
+        body.bezierCurveTo(-L * 0.1, L * 0.17, L * 0.42, L * 0.15, L * 0.5, 0);
+        // tail and fins, a little see-through
+        g.fillStyle = "rgba(255,240,225,.75)";
+        g.beginPath();
+        g.moveTo(-L * 0.4, 0);
+        g.quadraticCurveTo(-L * 0.6, -L * 0.22, -L * 0.72, -L * 0.2);
+        g.quadraticCurveTo(-L * 0.6, 0, -L * 0.72, L * 0.2);
+        g.quadraticCurveTo(-L * 0.6, L * 0.22, -L * 0.4, 0);
+        g.fill();
+        for (const sy of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(L * 0.2, sy * L * 0.1);
+          g.quadraticCurveTo(L * 0.1, sy * L * 0.3, -L * 0.02, sy * L * 0.24);
+          g.quadraticCurveTo(L * 0.06, sy * L * 0.14, L * 0.2, sy * L * 0.1);
+          g.fill();
+        }
+        g.fillStyle = pal[3];
+        g.fill(body);
+        g.save();
+        g.clip(body);
+        g.fillStyle = hue;
+        for (let k = 0; k < 3; k++) {
+          g.beginPath();
+          g.ellipse(L * (0.3 - 0.28 * k), (k % 2 ? 1 : -1) * L * 0.05, L * (0.13 + 0.03 * k), L * 0.11, 0.4 * k, 0, 2 * Math.PI);
+          g.fill();
+        }
+        // scales: a light sheen along the back
+        const sh = g.createLinearGradient(0, -L * 0.15, 0, L * 0.15);
+        sh.addColorStop(0, "rgba(255,255,255,.35)");
+        sh.addColorStop(0.5, "rgba(255,255,255,0)");
+        sh.addColorStop(1, "rgba(0,0,0,.18)");
+        g.fillStyle = sh;
+        g.fill(body);
+        g.restore();
+        g.fillStyle = "#111";
+        g.beginPath();
+        g.arc(L * 0.4, -L * 0.05, L * 0.018, 0, 2 * Math.PI);
+        g.arc(L * 0.4, L * 0.05, L * 0.018, 0, 2 * Math.PI);
+        g.fill();
+        g.restore();
+      };
+      for (let i = 0; i < 6; i++) {
+        const x = R() * W,
+          y = R() * H,
+          L = W * (0.2 + 0.08 * R()),
+          a = R() * 6.28,
+          hue = i % 3 ? pal[2] : pal[4];
+        wrap(x, y, L * 0.75, (cx, cy) => fish(cx, cy, a, L, hue));
+      }
+      // gold leaf
+      for (let i = 0; i < 70; i++) {
+        const x = R() * W,
+          y = R() * H,
+          s = W * (0.004 + 0.008 * R());
+        g.fillStyle = pal[5];
+        g.globalAlpha = 0.5 + 0.4 * R();
+        g.save();
+        g.translate(x, y);
+        g.rotate(R() * 3);
+        g.fillRect(-s, -s * 0.6, 2 * s, 1.2 * s);
+        g.restore();
+      }
+      g.globalAlpha = 1;
+    },
+    kintsugi(g, W, H, pal, em) {
+      const R = rng(37),
+        wrap = wrapper(W, H);
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        g.fillStyle = pal[0];
+        g.fillRect(0, 0, W, H);
+        // the glaze: soft mottling
+        for (let i = 0; i < 260; i++) {
+          const x = R() * W,
+            y = R() * H,
+            r = W * (0.01 + 0.05 * R());
+          wrap(x, y, r, (cx, cy) => {
+            const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+            gr.addColorStop(0, R() < 0.5 ? "rgba(60,60,70,.16)" : "rgba(0,0,0,.2)");
+            gr.addColorStop(1, "rgba(0,0,0,0)");
+            g.fillStyle = gr;
+            g.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+          });
+        }
+      }
+      // the mended cracks: gold seams that wander and branch
+      const seams = [];
+      const walk = (x, y, a, n, w) => {
+        const pts = [[x, y]];
+        for (let i = 0; i < n; i++) {
+          a += (R() - 0.5) * 0.9;
+          x += Math.cos(a) * W * 0.03;
+          y += Math.sin(a) * H * 0.03;
+          pts.push([x, y]);
+          if (R() < 0.12 && w > 0.4) walk(x, y, a + (R() < 0.5 ? 1 : -1) * (0.6 + R()), (n - i) * 0.6, w * 0.6);
+        }
+        seams.push({ pts, w });
+      };
+      for (let i = 0; i < 6; i++) walk(R() * W, R() * H, R() * 6.28, 16 + R() * 14, 1);
+      for (const { pts, w } of seams) {
+        const xs = pts.map((p) => p[0]),
+          ys = pts.map((p) => p[1]),
+          cx = (Math.min(...xs) + Math.max(...xs)) / 2,
+          cy = (Math.min(...ys) + Math.max(...ys)) / 2,
+          rad = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + W * 0.02;
+        wrap(cx, cy, rad, (ox, oy) => {
+          const dx = ox - cx,
+            dy = oy - cy;
+          for (const [lw, col] of em
+            ? [[W * 0.03 * w, "rgba(212,167,58,.35)"], [W * 0.011 * w, pal[2]], [W * 0.004 * w, pal[3]]]
+            : [[W * 0.016 * w, "#6b4d12"], [W * 0.011 * w, pal[2]], [W * 0.004 * w, pal[3]]]) {
+            g.strokeStyle = col;
+            g.lineWidth = lw;
+            g.lineCap = g.lineJoin = "round";
+            g.beginPath();
+            pts.forEach(([x, y], k) => (k ? g.lineTo(x + dx, y + dy) : g.moveTo(x + dx, y + dy)));
+            g.stroke();
+          }
+        });
+      }
+    },
+    facet(g, W, H, pal) {
+      // a low-poly field: a jittered grid that repeats, each triangle a shade between the palette's colours
+      const R = rng(19),
+        N = 7,
+        J = [];
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) J.push([(R() - 0.5) * 0.7, (R() - 0.5) * 0.7]);
+      const P = (i, j) => {
+        const q = J[(((j % N) + N) % N) * N + (((i % N) + N) % N)];
+        return [((i + 0.5 + q[0]) * W) / N, ((j + 0.5 + q[1]) * H) / N];
+      };
+      const mix = (a, b, t) => {
+        const A = parseInt(a.slice(1), 16),
+          B = parseInt(b.slice(1), 16);
+        const c = (s) => Math.round(((A >> s) & 255) * (1 - t) + ((B >> s) & 255) * t);
+        return [c(16), c(8), c(0)];
+      };
+      for (let j = -1; j <= N; j++)
+        for (let i = -1; i <= N; i++) {
+          const a = P(i, j),
+            b = P(i + 1, j),
+            c = P(i, j + 1),
+            d = P(i + 1, j + 1);
+          for (const tri of [[a, b, d], [a, d, c]]) {
+            const mx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3,
+              my = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+            // the colour runs round the tile, so it joins up at the edges
+            const t = (Math.sin((mx / W) * 2 * Math.PI) + Math.cos((my / H) * 2 * Math.PI) + 2) / 4,
+              k = Math.min(pal.length - 2, Math.floor(t * (pal.length - 1))),
+              f = t * (pal.length - 1) - k,
+              [r, gg, bb] = mix(pal[k], pal[k + 1], f),
+              l = 0.68 + 0.42 * R();
+            g.fillStyle = `rgb(${Math.min(255, r * l) | 0},${Math.min(255, gg * l) | 0},${Math.min(255, bb * l) | 0})`;
+            g.beginPath();
+            g.moveTo(tri[0][0], tri[0][1]);
+            g.lineTo(tri[1][0], tri[1][1]);
+            g.lineTo(tri[2][0], tri[2][1]);
+            g.closePath();
+            g.fill();
+            g.strokeStyle = "rgba(255,255,255,.16)";
+            g.lineWidth = W * 0.0025;
+            g.stroke();
+          }
+        }
+    },
+    abyss(g, W, H, pal, em) {
+      const R = rng(53),
+        wrap = wrapper(W, H);
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        g.fillStyle = pal[0];
+        g.fillRect(0, 0, W, H);
+        for (let i = 0; i < 14; i++) {
+          const x = R() * W,
+            y = R() * H,
+            r = W * (0.15 + 0.2 * R());
+          wrap(x, y, r, (cx, cy) => {
+            const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+            gr.addColorStop(0, pal[1] + "aa");
+            gr.addColorStop(1, pal[1] + "00");
+            g.fillStyle = gr;
+            g.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+          });
+        }
+        // light from far above, broken by the water
+        g.strokeStyle = "rgba(120,200,255,.07)";
+        g.lineWidth = W * 0.006;
+        for (let i = 0; i < 10; i++) {
+          const y0 = R() * H;
+          g.beginPath();
+          for (let x = 0; x <= W; x += W / 32) g.lineTo(x, y0 + Math.sin((x / W) * 2 * Math.PI * 3 + i) * H * 0.02);
+          g.stroke();
+        }
+      }
+      // jellyfish: a glowing bell and trailing threads
+      for (let i = 0; i < 6; i++) {
+        const x = R() * W,
+          y = R() * H,
+          r = W * (0.05 + 0.04 * R()),
+          col = i % 2 ? pal[3] : pal[2],
+          ph = R() * 6;
+        wrap(x, y, r * 3.5, (cx, cy) => {
+          const gr = g.createRadialGradient(cx, cy - r * 0.2, r * 0.1, cx, cy, r * 1.1);
+          gr.addColorStop(0, pal[4]);
+          gr.addColorStop(0.45, col);
+          gr.addColorStop(1, col + "00");
+          g.fillStyle = gr;
+          g.globalAlpha = em ? 0.95 : 0.8;
+          g.beginPath();
+          g.ellipse(cx, cy, r, r * 0.8, 0, Math.PI, 2 * Math.PI);
+          g.quadraticCurveTo(cx, cy + r * 0.25, cx - r, cy);
+          g.fill();
+          g.strokeStyle = col;
+          g.lineWidth = W * 0.003;
+          for (let k = 0; k < 6; k++) {
+            const sx = cx - r * 0.8 + (k * r * 1.6) / 5;
+            g.globalAlpha = em ? 0.8 : 0.55;
+            g.beginPath();
+            g.moveTo(sx, cy + r * 0.05);
+            for (let t = 1; t <= 10; t++) g.lineTo(sx + Math.sin(t * 0.8 + ph + k) * r * 0.18, cy + t * r * 0.26);
+            g.stroke();
+          }
+          g.globalAlpha = 1;
+        });
+      }
+      // drifting specks
+      for (let i = 0; i < 160; i++) {
+        const x = R() * W,
+          y = R() * H,
+          s = W * (0.0015 + 0.004 * R());
+        g.fillStyle = R() < 0.7 ? pal[4] : pal[2];
+        g.globalAlpha = em ? 0.9 : 0.6;
+        g.beginPath();
+        g.arc(x, y, s, 0, 2 * Math.PI);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+    },
+    synth(g, W, H, pal, em) {
+      // a sun going down behind a grid: sky above, the grid below
+      const hz = H * 0.64;
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        const sky = g.createLinearGradient(0, 0, 0, hz);
+        sky.addColorStop(0, pal[0]);
+        sky.addColorStop(0.65, pal[1]);
+        sky.addColorStop(1, pal[2]);
+        g.fillStyle = sky;
+        g.fillRect(0, 0, W, hz);
+        const gr = g.createLinearGradient(0, hz, 0, H);
+        gr.addColorStop(0, "#2a0040");
+        gr.addColorStop(1, pal[3]);
+        g.fillStyle = gr;
+        g.fillRect(0, hz, W, H - hz);
+        // stars
+        const R = rng(5);
+        g.fillStyle = "#fff";
+        for (let i = 0; i < 40; i++) {
+          g.globalAlpha = 0.3 + 0.6 * R();
+          g.fillRect(R() * W, R() * hz * 0.5, W * 0.003, W * 0.003);
+        }
+        g.globalAlpha = 1;
+      }
+      // the sun, cut by bars that thicken toward the horizon
+      const sr = W * 0.3,
+        sx = W / 2,
+        sy = hz - sr * 0.15;
+      g.save();
+      g.beginPath();
+      g.rect(0, 0, W, hz);
+      g.clip();
+      const sun = g.createLinearGradient(0, sy - sr, 0, sy + sr);
+      sun.addColorStop(0, pal[5]);
+      sun.addColorStop(0.6, pal[2]);
+      sun.addColorStop(1, pal[1]);
+      g.fillStyle = sun;
+      g.globalAlpha = em ? 0.9 : 1;
+      g.beginPath();
+      g.arc(sx, sy, sr, 0, 2 * Math.PI);
+      g.fill();
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = "destination-out";
+      for (let k = 0; k < 6; k++) {
+        const y = sy + sr * (0.05 + k * 0.17),
+          h = sr * (0.025 + k * 0.018);
+        g.fillRect(sx - sr, y, 2 * sr, h);
+      }
+      g.globalCompositeOperation = "source-over";
+      if (!em) {
+        // what was cut out shows the sky again
+        g.globalCompositeOperation = "destination-over";
+        const sky = g.createLinearGradient(0, 0, 0, hz);
+        sky.addColorStop(0, pal[0]);
+        sky.addColorStop(0.65, pal[1]);
+        sky.addColorStop(1, pal[2]);
+        g.fillStyle = sky;
+        g.fillRect(0, 0, W, hz);
+        g.globalCompositeOperation = "source-over";
+      }
+      g.restore();
+      // the grid
+      g.strokeStyle = pal[4];
+      g.shadowColor = pal[4];
+      g.shadowBlur = W * 0.02;
+      g.lineWidth = W * 0.005;
+      g.beginPath();
+      g.moveTo(0, hz);
+      g.lineTo(W, hz);
+      g.stroke();
+      g.lineWidth = W * 0.0035;
+      for (let k = 1; k <= 8; k++) {
+        const y = hz + (H - hz) * Math.pow(k / 8, 1.8);
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(W, y);
+        g.stroke();
+      }
+      for (let k = -8; k <= 8; k++) {
+        g.beginPath();
+        g.moveTo(W / 2 + k * W * 0.03, hz);
+        g.lineTo(W / 2 + k * W * 0.2, H);
+        g.stroke();
+      }
+      g.shadowBlur = 0;
+    },
+    opal(g, W, H, pal, em) {
+      // milky stone with flashes of every colour (the material adds the shimmer that moves with the light)
+      const R = rng(97),
+        wrap = wrapper(W, H);
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        g.fillStyle = pal[0];
+        g.fillRect(0, 0, W, H);
+        for (let i = 0; i < 30; i++) {
+          const x = R() * W,
+            y = R() * H,
+            r = W * (0.08 + 0.15 * R());
+          wrap(x, y, r, (cx, cy) => {
+            const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+            gr.addColorStop(0, R() < 0.5 ? pal[1] : pal[2]);
+            gr.addColorStop(1, "rgba(255,255,255,0)");
+            g.fillStyle = gr;
+            g.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+          });
+        }
+      }
+      for (let i = 0; i < 300; i++) {
+        const x = R() * W,
+          y = R() * H,
+          r = W * (0.014 + 0.045 * R()),
+          hue = (R() * 360) | 0,
+          n = 5 + ((R() * 3) | 0),
+          rot = R() * 6.28;
+        const pts = [];
+        for (let k = 0; k < n; k++) {
+          const a = rot + (k / n) * 2 * Math.PI,
+            rr = r * (0.55 + 0.45 * R());
+          pts.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+        }
+        wrap(x, y, r, (cx, cy) => {
+          g.fillStyle = `hsla(${hue},100%,${em ? 50 : 56}%,${em ? 0.45 : 0.78})`;
+          g.beginPath();
+          pts.forEach(([px, py], k) => (k ? g.lineTo(cx + px, cy + py) : g.moveTo(cx + px, cy + py)));
+          g.closePath();
+          g.fill();
+        });
+      }
+    },
   };
   const TEX = {};
   function texture(skin, em) {
     const key = skin.id + (em ? "|em" : "");
     if (TEX[key]) return TEX[key];
     const cv = document.createElement("canvas");
-    cv.width = cv.height = 256;
+    const R = skin.res || 256;
+    cv.width = cv.height = R;
     const g = cv.getContext("2d");
-    PAT[skin.pat](g, 256, 256, skin.pal, em);
+    PAT[skin.pat](g, R, R, skin.pal, em);
     const t = new T.CanvasTexture(cv);
     t.colorSpace = T.SRGBColorSpace;
     t.wrapS = t.wrapT = T.RepeatWrapping;
@@ -584,7 +1044,8 @@
     let m = null;
     if ("body" === cls || "metal" === cls || "dark" === cls) {
       const [c, r, mt] = skin[cls];
-      m = new T.MeshStandardMaterial({ color: c, roughness: r, metalness: mt });
+      // a lacquer coat (and, for opal, the play of colour) on the newest skins' bodies
+      m = "body" === cls && (skin.coat || skin.irid) ? new T.MeshPhysicalMaterial({ color: c, roughness: r, metalness: mt, clearcoat: skin.coat ? skin.coat[0] : 0, clearcoatRoughness: skin.coat ? skin.coat[1] : 0, iridescence: skin.irid ? skin.irid[0] : 0, iridescenceIOR: skin.irid ? skin.irid[1] : 1.3, iridescenceThicknessRange: [120, 520] }) : new T.MeshStandardMaterial({ color: c, roughness: r, metalness: mt });
       if ("body" === cls && skin.pat) {
         m.map = texture(skin);
         if (skin.em) {
@@ -616,11 +1077,18 @@
   // a painted part's uv is stretched to its real size, so one tile of the
   // pattern covers TILE metres whether the part is a grip or a receiver
   const TILE = 0.16;
-  function fitUV(mesh) {
+  function fitUV(mesh, tile, vOff) {
+    tile = tile || TILE;
+    // each part starts the pattern where it sits on the gun, so the pattern runs on from part to part
+    const ou = (mesh.position.x + mesh.position.z) / tile,
+      ov = (vOff || 0) + (0.5 * mesh.position.y) / tile;
     const g = mesh.geometry,
       uv = g && g.attributes.uv;
-    if (!uv || g.userData.uvFit) return;
-    g.userData.uvFit = 1;
+    if (!uv || g.userData.uvFit === tile) return;
+    // (the first fit keeps the original uv, so a part dressed again in another skin is fitted from that)
+    g.userData.uv0 = g.userData.uv0 || uv.array.slice();
+    uv.array.set(g.userData.uv0);
+    g.userData.uvFit = tile;
     const P = g.parameters || {},
       t = g.type;
     let f = null;
@@ -644,7 +1112,7 @@
     } else return;
     for (let i = 0; i < uv.count; i++) {
       const [su, sv] = f(i);
-      uv.setXY(i, (uv.getX(i) * su) / TILE, (uv.getY(i) * sv) / TILE);
+      uv.setXY(i, (uv.getX(i) * su) / tile + ou, (uv.getY(i) * sv) / tile + ov);
     }
     uv.needsUpdate = !0;
   }
@@ -661,7 +1129,7 @@
         const m = skinMat(skin, cls, o.material);
         if (!m) return;
         o.material = m;
-        m.map && fitUV(o);
+        m.map && fitUV(o, skin.tile, skin.vOff);
       });
     root.userData.skin = skin.id;
     return root;
@@ -846,7 +1314,7 @@
     const t = {},
       v = GC().botMaxTier,
       cap = null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2,
-      pool = SKINS.filter((s) => s.rar >= 1 && s.rar <= cap);
+      pool = SKINS.filter((s) => !s.gone && s.rar >= 1 && s.rar <= cap);
     let h = (((a.id | 0) + 1) * 2654435761 + seed) >>> 0;
     for (const k of Object.keys(WEAPONS)) {
       h ^= h << 13;
@@ -2790,7 +3258,7 @@
     if (FEAT.length) return FEAT;
     const guns = ["rifle", "vector", "sniper", "carbine", "bullpup", "marksman", "shotgun", "lmg", "smg"].filter((k) => WEAPONS[k]);
     let gi = Math.floor(Math.random() * Math.max(1, guns.length));
-    for (const s of SKINS.filter((x) => 4 === x.rar).concat(SKINS.filter((x) => 3 === x.rar))) {
+    for (const s of SKINS.filter((x) => !x.gone && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && 3 === x.rar))) {
       const g = s.only || guns[gi++ % guns.length];
       g && WEAPONS[g] && FEAT.push({ g, s: s.id });
     }
@@ -2862,10 +3330,10 @@
       H = cv.height;
     if (skin.pat) {
       const src = texture(skin).image;
-      g.drawImage(src, 0, 0, 256, 256, 0, 0, W, H);
+      g.drawImage(src, 0, 0, src.width, src.height, 0, 0, W, H);
       if (skin.em) {
         g.globalCompositeOperation = "lighter";
-        g.drawImage(texture(skin, !0).image, 0, 0, 256, 256, 0, 0, W, H);
+        g.drawImage(texture(skin, !0).image, 0, 0, src.width, src.height, 0, 0, W, H);
         g.globalCompositeOperation = "source-over";
       }
     } else {

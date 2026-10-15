@@ -122,7 +122,7 @@
       else {
         M.insp.t += dt;
         const s = M.insp.t;
-        if (s >= 2.6) M.insp.t = -1;
+        if (s >= (window.KNIVES && KNIVES.inspD && typed() ? KNIVES.inspD(typed()) : 2.6)) M.insp.t = -1;
         else if (own) {
         } else {
           const up = ezS(c01(s / 0.4)) * (1 - ezS(c01((s - 2.1) / 0.5)));
@@ -206,7 +206,7 @@
           const at = KNIVES.attack(m, ++M.alt);
           M.knife = { t: 0, D: at[1], kind: at[0] };
           swish();
-          ("chop" === at[0] || "cleave" === at[0]) && setTimeout(swish, 90);
+          ("chop" === at[0] || "cleave" === at[0] || "sweep" === at[0] || "jab" === at[0]) && setTimeout(swish, 90);
         } else if (t >= 3) {
           M.twirl.t = -1;
           M.idleT = 0;

@@ -192,3 +192,59 @@ test("a guest cannot open or play a ranked room", async () => {
   assert.equal(up.status, 200);
   assert.equal((await h.api("match_start", { token: g.token, ranked: true, room: "GST001" })).status, 403);
 });
+
+test("aim assist: phones on by default, a computer only when the owner opens it, with an end date", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  const me = async () => (await h.api("me", { token: player.token })).user.aim;
+  assert.deepEqual(await me(), { pc: false, mobile: true, until: 0 });
+  assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "aim", pc: true, mobile: false, days: 2 })).status, 200);
+  const a = await me();
+  assert.equal(a.pc, true); assert.equal(a.mobile, false); assert.ok(a.until > h.now());
+  h.advance(3 * 864e5);
+  assert.equal((await me()).pc, false);
+  const owner2 = await login(h, "owner");
+  const cfg = (await h.api("config", {})).config.aim;
+  assert.deepEqual(cfg, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
+  const c = JSON.parse(JSON.stringify(h.config)); c.aim.strength = 140;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 400);
+  c.aim.strength = 60; c.aim.pc = false;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  assert.deepEqual((await h.api("config", {})).config.aim, { mobile: true, pc: false, strength: 60, range: 45, cone: 8, ranked: true });
+});
+
+test("the owner's dashboard summary counts accounts, grants, ranks and the day's log", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "aim", pc: true });
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "rr", rr: 950 });
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 1234 });
+  assert.equal((await h.api("a_summary", { atoken: player.token })).status, 401);
+  const j = await h.api("a_summary", { atoken: owner.atoken });
+  assert.equal(j.status, 200);
+  const s = j.summary;
+  assert.equal(s.scanned, 2); assert.equal(s.aimPc, 1); assert.equal(s.new1, 2);
+  assert.ok(s.gold >= 1234);
+  assert.equal(s.ranks[3], 1, "a gold rank at 950 RR");
+  assert.equal(s.topRR[0].id, "player");
+  assert.equal(s.signups[13], 2, "both signed up today");
+  assert.ok(j.logs.login + j.logs.join >= 1);
+  assert.ok(j.recent.some((r) => /aim/.test(r.msg)));
+  assert.deepEqual(j.config.aim, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
+  assert.equal(j.items, 909);
+});
+
+test("retired skins leave the collection and come back as gold, once", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 0 });
+  const u = h.user("player");
+  u.own = { rifle: ["holo", "lava"], pistol: ["ice", "obsidian"] };
+  u.skins = { m: { rifle: "holo", pistol: "ice" }, t: 1 };
+  h.db.set("user:player", JSON.stringify(u));
+  const j = await h.api("skins", { token: player.token });
+  assert.equal(j.status, 200);
+  assert.deepEqual(j.own, { rifle: ["lava"], pistol: [] });
+  assert.equal(j.gold, 300 * 3 + 300 + 300);
+  assert.equal((await h.api("skins", { token: player.token })).gold, 1500, "only once");
+  assert.equal(h.user("player").skins.m.rifle, undefined);
+  assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "grant", item: "rifle|holo" })).status, 400);
+});

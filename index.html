@@ -306,7 +306,7 @@ function drawMe() {
   $("#meGold").hidden = $("#meSkins").hidden = !wallet;
   $("#meGold").textContent = "🪙 " + (u.gold || 0).toLocaleString();
   $("#meGold").title = t("gold");
-  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 811);
+  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 909);
   // straight to the skin page in the game: pulls, or the skins I own
   $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;
   $("#meSkinPull").textContent = t("skinPull");
