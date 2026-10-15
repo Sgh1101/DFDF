@@ -29,7 +29,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       // the clock: a change every 22 s of a live round; the warning glows the barriers about to move
       S.setPhase(0, true); world.phase = "live"; S.t = 0;
       const seen = [];
-      for (let i = 0; i < 70; i++) { netStep(1); seen.push(S.p); }
+      for (let i = 0; i < 70; i++) { world.phase = "live"; netStep(1); seen.push(S.p); }
       out.clock = { phases: [...new Set(seen)], at3: seen[22], at46: seen[45] };
       S.setPhase(0, true); S.t = PHASE_S_FOR_TEST(S) - 2;
       netStep(0.1);
