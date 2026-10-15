@@ -116,6 +116,9 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
 .mini tr:last-child td{border-bottom:0}
 .feed{display:flex;flex-direction:column;gap:6px;font-size:12.5px}
 .feed div{display:flex;gap:8px;align-items:baseline}.feed .tag{flex:none}.feed small{color:var(--dim);white-space:nowrap;font-size:11px}
+.shopg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.shopg span{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border:1px solid var(--line);border-left:3px solid var(--c);border-radius:9px;background:#0f141d;font-size:12px}
+.shopg small{color:var(--steel);font-size:11px}.shopg em{font-style:normal;color:var(--gold);font-size:11.5px;font-weight:700}
 .qc{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
 .qc label{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0f141d;font-size:12.5px}
 .qc label small{color:var(--dim);font-size:11px}
@@ -389,9 +392,9 @@ const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
 const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
 // on/off switches shown as chips at the top (warn: on is the alarming side)
-const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
+const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
 // numbers the owner tunes most: [path, name, min, max, step, note]
-const QUICK_NUM = [["aim.strength", "에임 보정 세기", 0, 100, 1, "%"], ["aim.range", "에임 보정 거리", 5, 150, 1, "m"], ["aim.cone", "에임 보정 각도", 1, 30, 0.5, "도"], ["game.maxRoomPlayers", "방 최대 인원", 2, 12, 1, "명"], ["gold.perWin", "승리 골드", 0, 2000, 10, ""], ["gold.perLoss", "패배 골드", 0, 2000, 10, ""], ["gold.perKill", "처치당 골드", 0, 200, 1, ""], ["gacha.cost1", "뽑기 1회", 0, 10000, 10, "골드"], ["gacha.cost10", "뽑기 10회", 0, 100000, 50, "골드"], ["rank.win", "승리 RR", 0, 100, 1, ""], ["rank.loss", "패배 RR", 0, 100, 1, ""]];
+const QUICK_NUM = [["aim.strength", "에임 보정 세기", 0, 100, 1, "%"], ["aim.range", "에임 보정 거리", 5, 150, 1, "m"], ["aim.cone", "에임 보정 각도", 1, 30, 0.5, "도"], ["game.maxRoomPlayers", "방 최대 인원", 2, 12, 1, "명"], ["gold.perWin", "승리 골드", 0, 2000, 10, ""], ["gold.perLoss", "패배 골드", 0, 2000, 10, ""], ["gold.perKill", "처치당 골드", 0, 200, 1, ""], ["gacha.cost1", "뽑기 1회", 0, 10000, 10, "골드"], ["gacha.cost10", "뽑기 10회", 0, 100000, 50, "골드"], ["shop.price.common", "상점 일반", 0, 100000, 100, "골드"], ["shop.price.rare", "상점 희귀", 0, 100000, 100, "골드"], ["shop.price.epic", "상점 영웅", 0, 200000, 100, "골드"], ["shop.price.legendary", "상점 전설", 0, 500000, 500, "골드"], ["rank.win", "승리 RR", 0, 100, 1, ""], ["rank.loss", "패배 RR", 0, 100, 1, ""]];
 const getPath = (o, p) => p.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
 const setPath = (o, p, v) => { const ks = p.split("."); let x = o; ks.slice(0, -1).forEach((k) => (x = x[k])); x[ks[ks.length - 1]] = v; };
 async function saveCfg(change, msg) {
@@ -423,6 +426,7 @@ VIEWS.dash = async () => {
       ${kpi(num(S.matches), "누적 경기", `처치 ${num(S.kills)} · 승리 ${num(S.wins)}`, "#c084fc")}
       ${kpi(num(S.gold), "가진 골드 합계", `평균 ${num(S.scanned ? Math.round(S.gold / S.scanned) : 0)}`, "var(--gold)")}
       ${kpi(num(S.pulls), "뽑기 횟수", `보유 스킨 ${num(S.owned)} / ${num(sm.items * S.scanned)}`, "var(--gold)")}
+      ${kpi(num(S.bought), "상점 구매", `쓴 골드 ${num(S.spent)} · 오늘 ${num(G.shop)}건`, "#ff8a3d")}
       ${kpi(num(S.ranked), "티어가 있는 계정", `RR 0 초과`, "#3fd0c9")}
     </div>
     <div class="dgrid">
@@ -433,13 +437,16 @@ VIEWS.dash = async () => {
       <div class="sec"><h3>오늘 하루</h3><div class="d">서버 로그로 센 지난 24시간</div>
         <div class="kpis" style="margin:0;grid-template-columns:repeat(3,1fr)">
           ${kpi(num(G.login), "로그인", "", "var(--green)")}${kpi(num(G.join), "가입", "", "var(--gold)")}${kpi(num(G.guest), "게스트", "", "var(--steel)")}
-          ${kpi(num(G.auth), "로그인 실패", G.auth > 30 ? "많습니다 · 로그 확인" : "", G.auth > 30 ? "var(--red)" : "var(--dim)")}${kpi(num(G.room), "방 기록", "", "var(--blue)")}${kpi(num(G.gacha), "전설 뽑기", "", "#ffc849")}
+          ${kpi(num(G.auth), "로그인 실패", G.auth > 30 ? "많습니다 · 로그 확인" : "", G.auth > 30 ? "var(--red)" : "var(--dim)")}${kpi(num(G.room), "방 기록", "", "var(--blue)")}${kpi(num(G.gacha), "전설 뽑기", `상점 구매 ${num(G.shop)}`, "#ffc849")}
         </div></div>
       <div class="sec"><h3>권한 현황</h3><div class="d">'가입자'에서 계정마다 바꿉니다</div>
         <div class="hbars">${[["관리자 모드", S.admins, "var(--gold)"], ["치트 권한", S.perms, "var(--blue)"], ["PC 에임 보정", S.aimPc, "#3fd0c9"], ["모바일 보정 막힘", S.aimMobileOff, "#ff9aa5"], ["계정 차단", S.banned, "var(--red)"], ["기기·IP 차단", s.bans, "var(--red)"]].map(([n, v, c]) => `<div class="hbar" style="grid-template-columns:110px 1fr 38px"><span>${n}</span><span class="t"><i style="width:${S.scanned ? Math.min(100, Math.max(v ? 4 : 0, Math.round((100 * v) / S.scanned))) : 0}%;background:${c}"></i></span><span class="v">${v}</span></div>`).join("")}</div></div>
       <div class="sec"><h3>티어 상위</h3><div class="d">RR 높은 순</div>${who(S.topRR, (u) => rankTag(u.rank))}</div>
       <div class="sec"><h3>처치 상위</h3><div class="d">누적 처치</div>${who(S.topKills, (u) => `${num(u.kills)}킬 <span class="muted">${u.wins}승 / ${u.matches}판</span>`)}</div>
-      <div class="sec"><h3>최근 운영 기록</h3><div class="d">운영 작업과 전설 뽑기</div><div class="feed">${sm.recent.map((r) => `<div><small>${when(r.t)}</small><span class="tag ${r.type === "gacha" ? "gold" : ""}">${r.type === "gacha" ? "뽑기" : "운영"}</span><span>${esc(r.msg)}</span></div>`).join("") || '<p class="muted">기록 없음</p>'}</div></div>
+      <div class="sec" style="grid-column:1/-1"><h3>오늘의 상점 <span class="muted" style="font-weight:400">${sm.shop.length}칸 · 다음 교체 ${when(sm.shopReset)}${C.shop && !C.shop.on ? " · 닫힘" : ""}</span></h3><div class="d">모두에게 같은 목록입니다. 새로 고치면 지금 바로 다른 20개로 바뀝니다 (이미 산 스킨은 그대로).</div>
+        <div class="shopg">${sm.shop.map((x) => `<span style="--c:${TIER_C[x.r]}"><b>${esc(SKIN_KO[x.s] || x.s)}</b><small>${esc(GUN_KO[x.g] || x.g)}</small><em>🪙 ${num(x.price)}</em></span>`).join("") || '<p class="muted">상점이 닫혀 있거나 비어 있습니다</p>'}</div>
+        <div class="row end" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button id="sh-reroll" class="gold">상점 새로 고침</button></div></div>
+      <div class="sec"><h3>최근 운영 기록</h3><div class="d">운영 작업과 전설 뽑기</div><div class="feed">${sm.recent.map((r) => `<div><small>${when(r.t)}</small><span class="tag ${r.type === "gacha" ? "gold" : r.type === "shop" ? "blue" : ""}">${r.type === "gacha" ? "뽑기" : r.type === "shop" ? "상점" : "운영"}</span><span>${esc(r.msg)}</span></div>`).join("") || '<p class="muted">기록 없음</p>'}</div></div>
       <div class="sec"><h3>저장소 사용량</h3><div class="d">이번 달(${esc(s.month)}) · 무료 한도 ${num(s.usageLimit)}회</div>
         <div class="kpi" style="--c:${usage > 80 ? "var(--red)" : "var(--gold)"}"><div class="n">${usage}%</div><div class="l">약 ${num(s.usage)}회 사용</div><div style="height:8px;background:#0d121a;border-radius:9px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100, usage)}%;background:${usage > 80 ? "var(--red)" : "var(--gold)"}"></i></div></div>
         <p class="muted" style="margin-top:8px">로그 ${num(s.logs)}줄 · 대시보드는 자동으로 새로 고치지 않습니다(사용량 절약)</p></div>
@@ -460,6 +467,10 @@ VIEWS.dash = async () => {
   // a slider and its number box move together
   $("#main").querySelectorAll("[data-r]").forEach((r) => { const n = $(`[data-q="${r.dataset.r}"]`); r.oninput = () => (n.value = r.value); n.oninput = () => (r.value = n.value); });
   $("#qc-reset").onclick = () => VIEWS.dash();
+  $("#sh-reroll").onclick = async () => {
+    if (!confirm("오늘 상점을 지금 다른 목록으로 바꿀까요?")) return;
+    try { await saveCfg((cfg) => (cfg.shop.reroll = (cfg.shop.reroll | 0) + 1), "상점을 새로 고쳤습니다"); VIEWS.dash(); } catch (err) { toast(err.message); }
+  };
   $("#qc-save").onclick = async () => {
     try {
       await saveCfg((cfg) => $("#main").querySelectorAll("[data-q]").forEach((el) => setPath(cfg, el.dataset.q, el.type === "number" ? +el.value : el.value)), "빠른 조절을 저장했습니다");
@@ -551,7 +562,7 @@ VIEWS.bans = async () => {
   };
 };
 VIEWS.logs = async () => {
-  $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;
+  $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option><option value="gacha">뽑기</option><option value="shop">상점</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;
   const load = async () => { const j = await call("a_logs", { type: $("#lt").value, q: $("#lq").value, limit: 2000 });
     $("#ll").innerHTML = `<table class="log"><tr><th>시각</th><th>종류</th><th>내용</th><th>IP</th></tr>${j.logs.map((r) => `<tr><td>${when(r.t)}</td><td><span class="tag">${esc(r.type)}</span></td><td>${esc(r.msg)}</td><td>${esc(r.ip || "")}</td></tr>`).join("")}</table>`; };
   $("#lr").onclick = load; $("#lt").onchange = load; $("#lq").onkeydown = (e) => { if (e.key === "Enter") load(); };
@@ -591,6 +602,7 @@ const LABELS = {
   gold: ["골드", "경기마다 주는 골드. 스킨 뽑기에 씁니다"], "gold.signup": ["가입 골드", "새 계정·새 게스트가 받는 골드 (기존 계정은 다음 로그인 때 한 번)"], "gold.perWin": ["승리 골드"], "gold.perLoss": ["패배 골드"], "gold.perKill": ["처치당 골드"], "gold.maxPerReport": ["한 경기 최대 골드"], "gold.maxPerDay": ["하루 최대 골드", "경기로 받는 골드의 하루 한도 (한국 시간 자정에 다시 채워짐, 0이면 한도 없음). 경기 결과는 게임이 보고하므로, 고친 게임이 결과를 꾸며 골드를 끝없이 쌓지 못하게 합니다"],
   gacha: ["스킨 뽑기", "총 31종 × 스킨 29종 + 나이프 전용 10종 = 909개. 중복은 나오지 않고, 그 등급을 다 모으면 한 단계 위 등급에서 나옵니다"], "gacha.cost1": ["1회 비용"], "gacha.cost10": ["10회 비용"],
   "gacha.odds": ["등급 확률(비율)", "네 값의 합이 100일 필요는 없습니다. 비율로 씁니다"], "gacha.odds.common": ["일반 (설원·밀림·사막·도심·해군 · 총검·거트 나이프)"], "gacha.odds.rare": ["희귀 (카본·호랑이·벚꽃·청자·대리석·벌집·청해파 · 접이식 나이프·보위 나이프)"], "gacha.odds.epic": ["영웅 (단청·수묵·황금·네온·회로·용비늘·오로라·비단잉어·금이음·프리즘 · 탄토·쿠크리·쿠나이)"], "gacha.odds.legendary": ["전설 (용암·은하·봉황·뇌전·심해·신스웨이브·오팔 · 카람빗·발리송·스틸레토)"],
+  shop: ["일일 상점", "매일 자정(한국 시간)에 바뀌는 스킨 상점. 모두에게 같은 목록이 뜨고, 골라서 골드로 바로 삽니다 (뽑기보다 비싸게)"], "shop.on": ["상점 열기"], "shop.mix": ["등급별 개수", "합이 하루에 뜨는 칸 수 (1~40, 기본 20)"], "shop.mix.common": ["일반"], "shop.mix.rare": ["희귀"], "shop.mix.epic": ["영웅"], "shop.mix.legendary": ["전설"], "shop.price": ["등급별 가격 (골드)"], "shop.price.common": ["일반"], "shop.price.rare": ["희귀"], "shop.price.epic": ["영웅"], "shop.price.legendary": ["전설"], "shop.knife": ["칼 모양 스킨 가격 배율", "카람빗·발리송 같은 칼 모양 스킨은 이 배수로 비쌉니다 (1~10)"], "shop.reroll": ["새로 고침 번호", "바꾸면 오늘 상점이 즉시 다른 목록으로 바뀝니다 (대시보드의 '상점 새로 고침' 버튼과 같음)"],
   aim: ["에임 보정", "조준할 때 가까운 적을 조금 따라가는 보정. 모바일은 누구나 설정에서 켜고 끌 수 있고, 컴퓨터는 '가입자'에서 에임 보정 권한을 준 계정(또는 관리자 모드)만 쓸 수 있습니다"], "aim.mobile": ["모바일 에임 보정 허용", "끄면 폰에서 아무도 못 씁니다"], "aim.pc": ["컴퓨터 에임 보정 허용", "끄면 권한을 받은 계정도 못 씁니다"], "aim.strength": ["세기 (%)", "0~100. 기본 35"], "aim.range": ["거리 (m)", "이 거리 안의 적만. 5~150"], "aim.cone": ["각도 (도)", "조준선에서 이 각도 안의 적만. 1~30"], "aim.ranked": ["랭크전에서 모바일 보정 유지", "컴퓨터 보정은 랭크전에서 항상 꺼집니다"],
   "game.extraMaps": ["다시 보일 맵", "맵 목록은 5대5 7개 · 3대3 5개 · 1대1 3개로 줄였습니다. 뺀 맵을 다시 넣으려면 키를 쉼표로 적으세요(all이면 전부). 5대5: harbor 해안 포구, freighter 강철 항로, temple 폐사찰, forge 용암 제련소, g01~g30 · 3대3: s01 항구 창고 · 1대1: d02 모래 투기장"],
   "gacha.botMaxTier": ["봇이 입는 최고 등급", "0 없음 · 1 일반 · 2 희귀 · 3 영웅 · 4 전설"],

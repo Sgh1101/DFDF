@@ -1985,6 +1985,17 @@
 .it i{font-size:9px;letter-spacing:.12em;font-style:normal;font-family:var(--f-display);color:var(--rc)}
 .it.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
 .it.eq::after{content:attr(data-eq);position:absolute;top:5px;right:5px;font-size:9px;padding:1px 6px;border-radius:99px;background:var(--gold);color:#14100a;font-weight:700}
+.pl-shop{margin-top:10px;width:100%;min-height:40px;font-size:12px;border-color:rgba(255,200,73,.45);color:#ffc849}
+.it .pr{font-style:normal;font-family:var(--f-display);font-size:11px;font-weight:700;color:#ffc849;margin-top:1px}
+.it.eq .pr{color:var(--steel-dim);text-decoration:line-through}
+.it.dear .pr{color:#ff8a8a}.it.dear .th{filter:saturate(.6) brightness(.8)}
+.sh-f{flex-wrap:wrap;align-items:center;gap:6px 14px}
+.sh-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sh-hd>b{font-size:15px;color:var(--ink)}.sh-hd span{font-size:11px;color:var(--steel)}.sh-hd span b{font-family:var(--f-display);color:#ffc849;font-size:13px;margin-left:4px;letter-spacing:.06em}
+.sh-note{flex:1 1 280px;font-size:11px;color:var(--steel-dim);line-height:1.45}
+.sh-why{color:#ff9aa5!important}
+#sh-buy.sh-arm{background:#ff6b3d;border-color:#ff6b3d;color:#fff;animation:shArm .5s ease-in-out infinite alternate}
+@keyframes shArm{to{box-shadow:0 0 0 3px rgba(255,107,61,.35)}}
+@media(max-width:860px),(max-height:520px){.sh-note{display:none}.sh-f{gap:4px 10px}}
 .mi-f{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:0 0 auto}
 .mi-f button{padding:5px 12px;border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--steel);min-height:32px}
 .mi-f button.on{border-color:var(--rc,var(--gold));color:var(--rc,var(--gold));background:rgba(255,255,255,.05)}
@@ -2098,7 +2109,7 @@
   ar.id = "armory";
   ar.hidden = !0;
   ar.innerHTML = `<div class="ar-hd"><div><div class="lbl">${L("무기고", "Armoury")}</div><h2>${L("총 스킨", "Gun skins")}</h2></div>
-    <nav class="ar-tabs" id="ar-tabs"><button class="ar-tab" data-tab="pull">${L("뽑기", "Pull")}</button><button class="ar-tab" data-tab="mine">${L("내 스킨", "My skins")}<i id="ar-mine-n"></i></button><button class="ar-tab" data-tab="gun">${L("총별 장착", "By gun")}</button></nav>
+    <nav class="ar-tabs" id="ar-tabs"><button class="ar-tab" data-tab="pull">${L("뽑기", "Pull")}</button><button class="ar-tab" data-tab="shop">${L("상점", "Shop")}</button><button class="ar-tab" data-tab="mine">${L("내 스킨", "My skins")}<i id="ar-mine-n"></i></button><button class="ar-tab" data-tab="gun">${L("총별 장착", "By gun")}</button></nav>
     <div class="ar-hd-r"><span class="ar-gold" id="ar-gold">🪙 0</span><button class="btn btn-go" id="ar-close">${L("닫기", "Close")}</button></div></div>
     <section class="ar-pane" id="ar-p-pull"><div class="pl">
       <div class="pl-card pl-hero">
@@ -2107,12 +2118,16 @@
           <p>${L("상자 하나에 총 한 자루용 스킨이 들어 있습니다 (예: 용암 돌격소총). 이미 가진 스킨은 다시 나오지 않고, 한 등급을 다 모으면 그 위 등급에서 나옵니다.", "Each crate holds a skin for one gun (say, a Lava assault rifle). Nothing you own comes again; once a tier is complete the next one up pays out.")}</p>
           <div class="pl-wallet"><span>${L("내 골드", "My gold")}</span><b id="pl-gold">🪙 0</b></div>
           <div class="pl-btns ar-gacha" id="ar-gacha"><button class="btn ar-pull" id="ar-pull1"></button><button class="btn ar-pull" id="ar-pull10"></button></div>
-          <div class="ar-why" id="ar-why"></div><div class="pl-earn" id="pl-earn"></div></div>
+          <div class="ar-why" id="ar-why"></div><div class="pl-earn" id="pl-earn"></div><button class="btn pl-shop" id="pl-shop">${L("원하는 스킨은 상점에서 골라 사기 →", "Want a particular skin? Buy it in the shop →")}</button></div>
       </div>
       <div class="pl-card"><div class="lbl">${L("모은 스킨", "Collection")}</div><div class="pl-prog"><b id="pl-own">0</b><span id="pl-tot"></span></div><div class="pl-bar"><i id="pl-bar"></i></div><div id="pl-tiers"></div>
         <div class="pl-odds-t"><span class="ar-count" id="ar-count"></span> · <span class="ar-odds" id="ar-odds"></span></div></div>
       <div class="pl-card pl-rec"><div class="lbl">${L("최근 뽑은 스킨", "Recent pulls")}</div><div class="pl-recg" id="pl-recg"></div></div>
     </div></section>
+    <section class="ar-pane" id="ar-p-shop" hidden>
+      <div class="mi-f sh-f" id="sh-f"></div>
+      <div class="mi"><div class="mi-list" id="sh-list"></div><div class="mi-side"><div class="ar-slot" id="slot-shop"></div><div class="mi-info" id="sh-info"></div></div></div>
+    </section>
     <section class="ar-pane" id="ar-p-mine" hidden>
       <div class="mi-f" id="mi-f"></div>
       <div class="mi"><div class="mi-list" id="mi-list"></div><div class="mi-side"><div class="ar-slot" id="slot-mine"></div><div class="mi-info" id="mi-info"></div></div></div>
@@ -2132,7 +2147,7 @@
   const AR = { open: !1, key: "rifle", pv: null, raf: 0, peek: null, view: null, tab: "pull", feat: null, fi: -1, featT: 0 };
   try {
     const t = localStorage.getItem("lgp_ar_tab");
-    ["pull", "mine", "gun"].includes(t) && (AR.tab = t);
+    ["pull", "shop", "mine", "gun"].includes(t) && (AR.tab = t);
   } catch (e) {}
   let noteT = 0;
   function note(msg) {
@@ -2561,6 +2576,7 @@
   function pvTarget() {
     if (RV.on) return RV.item;
     if ("pull" === AR.tab) return AR.feat;
+    if ("shop" === AR.tab) return shopPick();
     const id = AR.peek && BY[AR.peek] ? AR.peek : AR.view && BY[AR.view] ? AR.view : mySkin(AR.key).id;
     return { g: AR.key, s: id };
   }
@@ -2589,7 +2605,7 @@
     const w = new T.Group();
     w.add(g);
     // the showcase and the reveal show every gun the same size; dressing shows it as it is
-    if (RV.on || "pull" === AR.tab) {
+    if (RV.on || "pull" === AR.tab || "shop" === AR.tab) {
       const k = 0.95 / Math.max(s.x, s.y, s.z, 0.05);
       w.scale.setScalar(k);
       P.fit = { L: k * Math.max(s.x, s.z), H: k * s.y, w: RV.on ? 0.48 : 0.6, h: RV.on ? 0.5 : 0.56 };
@@ -2956,7 +2972,7 @@
   // the canvas goes to the reveal while it runs, else to the open tab
   function placeView() {
     const v = ar.querySelector(".ar-view"),
-      slot = $(RV.on ? "slot-rv" : "mine" === AR.tab ? "slot-mine" : "pull" === AR.tab ? "slot-pull" : "slot-gun");
+      slot = $(RV.on ? "slot-rv" : "mine" === AR.tab ? "slot-mine" : "pull" === AR.tab ? "slot-pull" : "shop" === AR.tab ? "slot-shop" : "slot-gun");
     v && slot && v.parentNode !== slot && slot.appendChild(v);
   }
   function startReveal(n) {
@@ -3286,14 +3302,15 @@
   // ── the tabs ──
   let previewFrame = 0;
   function setTab(t) {
-    ["pull", "mine", "gun"].includes(t) || (t = "pull");
+    ["pull", "shop", "mine", "gun"].includes(t) || (t = "pull");
     AR.tab = t;
     AR.peek = null;
     try {
       localStorage.setItem("lgp_ar_tab", t);
     } catch (e) {}
     for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.classList.toggle("on", b.dataset.tab === t);
-    for (const k of ["pull", "mine", "gun"]) $("ar-p-" + k).hidden = k !== t;
+    for (const k of ["pull", "shop", "mine", "gun"]) $("ar-p-" + k).hidden = k !== t;
+    "shop" === t && loadShop();
     if ("mine" === t && MI.sel) {
       const [g, s] = MI.sel.split("|");
       WEAPONS[g] && owns(g, s) ? ((AR.key = g), (AR.view = s)) : (MI.sel = null);
@@ -3315,6 +3332,7 @@
     }
   }
   for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.onclick = () => setTab(b.dataset.tab);
+  $("pl-shop") && ($("pl-shop").onclick = () => setTab("shop"));
 
   const ORDER = ["근접", "보조", "기관단총", "산탄총", "소총", "기관총", "저격총", "중화기"];
   const gunList = () => {
@@ -3471,6 +3489,138 @@
       setTab("gun");
     };
   }
+  // ── the daily shop: twenty skins a day, the same for everyone, bought outright for gold ──
+  const SH = { items: [], day: "", resetAt: 0, on: !0, sel: null, busy: !1, at: 0, err: "", arm: null, armT: 0 };
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+  const shopOk = (x) => x && WEAPONS[x.g] && BY[x.s] && fits(BY[x.s], x.g);
+  async function loadShop(force) {
+    const fresh = SH.at && Date.now() - SH.at < 60000 && !(SH.resetAt && Date.now() >= SH.resetAt);
+    if (fresh && !force) return void paintShop();
+    if (!AC() || !AC().api) {
+      SH.err = L("상점은 게임 서버에 접속했을 때 열립니다", "The shop opens when the game server is reachable");
+      return void paintShop();
+    }
+    try {
+      const j = await AC().api("shop", token() ? { token: token() } : {});
+      SH.items = (j.items || []).filter(shopOk);
+      SH.day = j.day || "";
+      SH.resetAt = +j.resetAt || 0;
+      SH.on = !1 !== j.on;
+      SH.at = Date.now();
+      SH.err = "";
+      "number" == typeof j.gold && setGold(j.gold);
+      (SH.sel && SH.items.some((x) => x.g + "|" + x.s === SH.sel)) || (SH.sel = SH.items.length ? SH.items.slice().sort((a, b) => b.r - a.r)[0].g + "|" + SH.items.slice().sort((a, b) => b.r - a.r)[0].s : null);
+    } catch (e) {
+      SH.err = (e && e.message) || L("상점을 불러오지 못했습니다", "The shop did not load");
+    }
+    if (AR.open && "shop" === AR.tab) {
+      paintShop();
+      pvShow();
+    }
+  }
+  function shopPick() {
+    const it = SH.sel && SH.items.find((x) => x.g + "|" + x.s === SH.sel);
+    return it ? { g: it.g, s: it.s } : null;
+  }
+  const hms = (ms) => {
+    const t = Math.max(0, Math.floor(ms / 1000));
+    return [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60].map((n) => String(n).padStart(2, "0")).join(":");
+  };
+  const owned = (x) => (gated() ? owns(x.g, x.s) : !!x.own);
+  function paintShopTime() {
+    const t = $("sh-t");
+    t && (t.textContent = SH.resetAt ? hms(SH.resetAt - Date.now()) : "--:--:--");
+  }
+  function paintShop() {
+    const f = $("sh-f"),
+      box = $("sh-list"),
+      info = $("sh-info");
+    if (!f || !box) return;
+    const gold = INV.gold || 0,
+      list = SH.items.slice().sort((a, b) => b.r - a.r || a.price - b.price),
+      have = list.filter(owned).length;
+    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
+    paintShopTime();
+    box.innerHTML = "";
+    if (SH.err || !SH.on || !list.length) {
+      box.innerHTML = `<div class="mi-empty"><span>${SH.err ? esc(SH.err) : !SH.on ? L("지금은 상점이 닫혀 있습니다", "The shop is closed for now") : L("불러오는 중…", "Loading…")}</span></div>`;
+      info.innerHTML = "";
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const x of list) {
+      const s = BY[x.s],
+        mine = owned(x),
+        c = itemCard(x.g, s, (SH.sel === x.g + "|" + x.s ? " on" : "") + (mine ? " eq" : "") + (!mine && gold < x.price ? " dear" : ""));
+      mine && (c.dataset.eq = L("보유", "Owned"));
+      const pr = document.createElement("em");
+      pr.className = "pr";
+      pr.textContent = "🪙 " + x.price.toLocaleString();
+      c.appendChild(pr);
+      c.onclick = () => {
+        SH.sel = x.g + "|" + x.s;
+        SH.arm = null;
+        paintShop();
+        pvShow();
+      };
+      frag.appendChild(c);
+    }
+    box.appendChild(frag);
+    box.querySelectorAll("img.th:not(.r)").forEach(thLater);
+    const it = SH.sel && list.find((x) => x.g + "|" + x.s === SH.sel);
+    if (!it) return void (info.innerHTML = `<p>${L("스킨을 누르면 여기서 돌려 보고 삽니다.", "Pick a skin to turn it here and buy it.")}</p>`);
+    const s = BY[it.s],
+      mine = owned(it),
+      short = Math.max(0, it.price - gold),
+      armed = SH.arm === SH.sel && Date.now() - SH.armT < 4000;
+    const why = mine ? "" : !signed() ? L("로그인하면 살 수 있습니다", "Sign in to buy") : short ? L(`골드 ${short.toLocaleString()} 부족 · 경기와 미션으로 모으세요`, `${short.toLocaleString()} gold short · earn it in matches and missions`) : "";
+    info.innerHTML = `<h4>${WEAPONS[it.g].name} · ${nameOf(s)}<i style="color:${RAR[s.rar].c}">${EN ? RAR[s.rar].en : RAR[s.rar].ko}</i></h4>
+      <p>${mine ? L("이미 가진 스킨입니다", "You own this one") : L(`가격 🪙 ${it.price.toLocaleString()} · 내 골드 🪙 ${gold.toLocaleString()}`, `Price 🪙 ${it.price.toLocaleString()} · You have 🪙 ${gold.toLocaleString()}`)}</p>
+      <div class="row">${mine ? (mySkin(it.g).id === it.s ? `<button class="btn" disabled>${L("장착 중", "Worn")}</button>` : `<button class="btn btn-go" id="sh-wear">${L("장착", "Wear")}</button>`) : `<button class="btn btn-go${armed ? " sh-arm" : ""}" id="sh-buy"${why || SH.busy ? " disabled" : ""}>${SH.busy ? L("구매 중…", "Buying…") : armed ? L(`한 번 더 누르면 구매 · 🪙 ${it.price.toLocaleString()}`, `Tap again to buy · 🪙 ${it.price.toLocaleString()}`) : L(`구매 · 🪙 ${it.price.toLocaleString()}`, `Buy · 🪙 ${it.price.toLocaleString()}`)}</button>`}</div>${why ? `<p class="sh-why">${why}</p>` : ""}`;
+    const buy = $("sh-buy"),
+      wear = $("sh-wear");
+    buy &&
+      (buy.onclick = () => {
+        // two presses: the first arms the button (it is a lot of gold), the second buys
+        if (!(SH.arm === SH.sel && Date.now() - SH.armT < 4000)) {
+          SH.arm = SH.sel;
+          SH.armT = Date.now();
+          paintShop();
+          setTimeout(() => SH.arm === it.g + "|" + it.s && Date.now() - SH.armT >= 4000 && ((SH.arm = null), AR.open && "shop" === AR.tab && paintShop()), 4100);
+          return;
+        }
+        buyShop(it.g, it.s);
+      });
+    wear && (wear.onclick = () => (setSkin(it.g, it.s) && note(L("장착했습니다", "Worn")), paintShop(), pvShow()));
+  }
+  async function buyShop(g, sid) {
+    if (SH.busy || !signed()) return null;
+    SH.busy = !0;
+    SH.arm = null;
+    paintShop();
+    let j = null;
+    try {
+      j = await AC().api("shop_buy", { token: token(), g, s: sid, day: SH.day });
+      j.user && syncSession(j.user);
+      takeInv(j);
+      const it = SH.items.find((x) => x.g === g && x.s === sid);
+      it && (it.own = !0);
+      au();
+      note(L(`구매했습니다 · ${WEAPONS[g].name} ${nameOf(BY[sid])}`, `Bought · ${WEAPONS[g].name} ${nameOf(BY[sid])}`));
+    } catch (e) {
+      note((e && e.message) || L("구매하지 못했습니다", "The purchase failed"));
+      /바뀌었/.test((e && e.message) || "") && (SH.at = 0);
+      j = null;
+    }
+    SH.busy = !1;
+    SH.at ? paintShop() : loadShop(!0);
+    return j;
+  }
+  setInterval(() => {
+    if (!AR.open || "shop" !== AR.tab) return;
+    paintShopTime();
+    SH.resetAt && Date.now() >= SH.resetAt + 1500 && Date.now() - SH.at > 5000 && loadShop(!0);
+  }, 1000);
   function paintCap() {
     const shown = AR.peek && BY[AR.peek] ? BY[AR.peek] : AR.view && BY[AR.view] ? BY[AR.view] : mySkin(AR.key),
       r = RAR[shown.rar];
@@ -3480,6 +3630,7 @@
   function armoryPaint() {
     if (!AR.open) return;
     "mine" === AR.tab && paintMine();
+    "shop" === AR.tab && paintShop();
     if (AR.tab !== "gun") { paintGacha(); return; }
     const gl = $("ar-guns");
     gl.innerHTML = "";
@@ -3646,5 +3797,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();

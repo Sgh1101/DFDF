@@ -103,6 +103,11 @@ const DEFAULT_CONFIG = {
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
+  // the daily shop: every day (midnight in Korea) twenty skins, the same for everyone, sold
+  // for gold at a fixed price by tier, dearer than a pull but the skin you choose. mix: how
+  // many of each tier; knife: the knives that are other knives cost this many times more;
+  // reroll: raise it to change today's shop at once
+  shop: { on: !0, mix: { common: 7, rare: 6, epic: 4, legendary: 3 }, price: { common: 1200, rare: 3000, epic: 7000, legendary: 15000 }, knife: 1.5, reroll: 0 },
   // the rank (tier): rating points (RR) after each match. A win adds win + perKill
   // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
   // under half of loss). 100 RR a division, three divisions a tier; a day's
@@ -409,7 +414,7 @@ function trimPicks(u) {
 const A = {};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, channels: c.channels }, store: !!RURL };
+  return { config: { game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -598,6 +603,76 @@ A.prefs = async (q, b) => {
 };
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
 A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
+
+// ── the daily shop ──
+// The day starts at midnight in Korea. The twenty items come from a hash of the day (and
+// the owner's reroll number) keyed with the server secret, so everyone sees the same shop,
+// nobody can work out tomorrow's, and the server works today's out again to check a buy.
+const nextKstMidnight = (t) => {
+  const d = new Date(t + 9 * 36e5);
+  d.setUTCHours(24, 0, 0, 0);
+  return d.getTime() - 9 * 36e5;
+};
+const shopPrice = (c, g, s) => Math.max(0, Math.round((+c.shop.price[TIER_KEYS[SKIN_TIER[s] - 1]] || 0) * (SKIN_ONLY[s] ? Math.max(1, +c.shop.knife || 1) : 1)));
+function shopOf(c, day) {
+  const out = [],
+    usedGun = new Set(),
+    usedSkin = {};
+  TIER_KEYS.forEach((tk, ti) => {
+    const want = Math.max(0, Math.floor(+c.shop.mix[tk] || 0));
+    if (!want) return;
+    const h = crypto.createHmac("sha256", SECRET).update(`shop|${day}|${c.shop.reroll | 0}|${tk}`).digest();
+    let st = h.readUInt32LE(0) >>> 0 || 1;
+    const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0), st / 4294967296);
+    const pool = [];
+    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1) for (const g of GUNS) fits(s, g) && pool.push([g, s]);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    // a spread: a gun once and a skin at most twice while the pool allows, then whatever is left
+    const picked = [];
+    for (const [g, s] of pool) {
+      if (picked.length >= want) break;
+      if (usedGun.has(g) || (usedSkin[s] || 0) >= 2) continue;
+      picked.push([g, s]);
+      usedGun.add(g);
+      usedSkin[s] = (usedSkin[s] || 0) + 1;
+    }
+    for (const it of pool) if (picked.length < want && !picked.includes(it)) picked.push(it);
+    for (const [g, s] of picked) out.push({ g, s, r: ti + 1, price: shopPrice(c, g, s) });
+  });
+  return out;
+}
+A.shop = async (q, b) => {
+  const c = await loadConfig(),
+    t = now(),
+    day = kstDay(t);
+  const u = b && b.token ? await who(b.token).catch(() => null) : null;
+  const items = c.shop.on ? shopOf(c, day) : [];
+  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1 })), gold: u && "number" == typeof u.gold ? u.gold : null };
+};
+A.shop_buy = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("shop:" + rlKey(u), 20, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+  if (!c.shop.on) throw fail(403, "지금은 상점이 닫혀 있습니다");
+  ensureWallet(u, c);
+  const day = kstDay(now());
+  if (b.day && b.day !== day) throw fail(409, "상점이 새로 바뀌었습니다. 다시 확인해 주세요");
+  const it = shopOf(c, day).find((x) => x.g === b.g && x.s === b.s);
+  if (!it) throw fail(404, "오늘 상점에 없는 스킨입니다");
+  if (hasItem(u, it.g, it.s)) throw fail(409, "이미 가진 스킨입니다");
+  if (u.gold < it.price) throw fail(402, `골드가 부족합니다 (${it.price.toLocaleString()} 필요)`);
+  u.gold -= it.price;
+  (u.own[it.g] = u.own[it.g] || []).push(it.s);
+  u.bought = (u.bought || 0) + 1;
+  u.spent = (u.spent || 0) + it.price;
+  await saveUser(u);
+  await log("shop", `${u.id} 구매: ${it.g}/${it.s} (${["", "일반", "희귀", "영웅", "전설"][it.r]}) ${it.price}골드`, { user: u.id });
+  return { item: it, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
+};
 // a pull of one or ten: gold out, items in, never one already owned. The
 // collection and the gold are kept on the account, so a pull is only ever
 // granted here.
@@ -959,7 +1034,7 @@ ADMIN.summary = async () => {
     week = t - 7 * 864e5;
   const ids = ((await redis(["ZRANGE", "users", "0", "-1", "REV"])) || []).slice(0, 2000);
   const recs = ids.length ? (await redis(["MGET", ...ids.map((k) => "user:" + k)])) || [] : [];
-  const S = { users: ids.length, scanned: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, ranked: 0, ranks: Array(RANKS.length).fill(0), signups: Array(14).fill(0) };
+  const S = { users: ids.length, scanned: 0, bought: 0, spent: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, ranked: 0, ranks: Array(RANKS.length).fill(0), signups: Array(14).fill(0) };
   const top = [];
   const d0 = new Date(t);
   d0.setHours(0, 0, 0, 0);
@@ -978,6 +1053,8 @@ ADMIN.summary = async () => {
     u.lastSeen > week && S.act7++;
     S.gold += "number" == typeof u.gold ? u.gold : 0;
     S.pulls += u.pulls || 0;
+    S.bought += u.bought || 0;
+    S.spent += u.spent || 0;
     S.owned += ownedCount(u);
     S.matches += u.matches || 0;
     S.kills += u.kills || 0;
@@ -998,7 +1075,7 @@ ADMIN.summary = async () => {
   S.topRR = top.slice().sort((a, b) => b.rr - a.rr).slice(0, 5);
   S.topKills = top.slice().sort((a, b) => b.kills - a.kills).slice(0, 5);
   // the last day of the log, by kind, and the owner's latest operations
-  const L = { login: 0, join: 0, guest: 0, auth: 0, room: 0, gacha: 0 },
+  const L = { login: 0, join: 0, guest: 0, auth: 0, room: 0, gacha: 0, shop: 0 },
     recent = [];
   for (const x of (await redis(["LRANGE", "logs", "0", "999"])) || []) {
     let e;
@@ -1008,7 +1085,7 @@ ADMIN.summary = async () => {
       continue;
     }
     e.t > day && e.type in L && L[e.type]++;
-    ("admin" === e.type || "gacha" === e.type) && recent.length < 8 && recent.push({ t: e.t, type: e.type, msg: e.msg });
+    ("admin" === e.type || "gacha" === e.type || "shop" === e.type) && recent.length < 10 && recent.push({ t: e.t, type: e.type, msg: e.msg });
   }
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(t - ROOM_TTL * 1000)]);
   const codes = (await redis(["ZRANGE", "rooms", "0", "-1"])) || [];
@@ -1020,7 +1097,7 @@ ADMIN.summary = async () => {
     "lobby" !== r.state && R.playing++;
     R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
   }
-  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank }, t };
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), t };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -1188,7 +1265,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -1204,6 +1281,8 @@ function validateConfig(c) {
   walk(DEFAULT_CONFIG, c);
   if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
   if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
+  const slots = Object.values(c.shop.mix).reduce((a, b) => a + b, 0);
+  if (slots < 1 || slots > 40) throw fail(400, "상점 칸 수(등급별 개수의 합)는 1~40개여야 합니다");
 }
 
 module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipOf(req)]]), async () => {

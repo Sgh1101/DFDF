@@ -248,3 +248,51 @@ test("retired skins leave the collection and come back as gold, once", async () 
   assert.equal(h.user("player").skins.m.rifle, undefined);
   assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "grant", item: "rifle|holo" })).status, 400);
 });
+
+test("the daily shop: twenty skins by tier, the same for everyone all day, bought once for gold", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  const a = await h.api("shop", {}), b = await h.api("shop", { token: player.token });
+  assert.equal(a.status, 200);
+  assert.equal(a.items.length, 20);
+  assert.deepEqual(a.items.map((x) => x.g + "|" + x.s), b.items.map((x) => x.g + "|" + x.s), "the same shop for everyone");
+  assert.deepEqual([1, 2, 3, 4].map((r) => a.items.filter((x) => x.r === r).length), [7, 6, 4, 3]);
+  assert.equal(new Set(a.items.map((x) => x.g + "|" + x.s)).size, 20);
+  assert.ok(a.resetAt > h.now() && a.resetAt - h.now() <= 864e5);
+  for (const x of a.items) assert.equal(x.price, [0, 1200, 3000, 7000, 15000][x.r] * (["flip", "tanto", "kukri", "karambit", "butterfly", "bayonet", "gut", "bowie", "kunai", "stiletto"].includes(x.s) ? 1.5 : 1));
+  const it = a.items.find((x) => x.r === 4);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 1000 });
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, day: a.day })).status, 402);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 40000 });
+  const ok = await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, day: a.day });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.gold, 40000 - it.price);
+  assert.ok(ok.own[it.g].includes(it.s));
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, day: a.day })).status, 409, "not twice");
+  assert.equal((await h.api("shop", { token: player.token })).items.find((x) => x.g === it.g && x.s === it.s).own, true);
+  // something not in today's shop, a stale day, no sign-in
+  const off = ["rifle", "pistol", "smg"].flatMap((g) => ["snow", "lava", "koi"].map((s) => ({ g, s }))).find((x) => !a.items.some((y) => y.g === x.g && y.s === x.s));
+  assert.equal((await h.api("shop_buy", { token: player.token, g: off.g, s: off.s })).status, 404);
+  assert.equal((await h.api("shop_buy", { token: player.token, g: a.items[0].g, s: a.items[0].s, day: "2000-01-01" })).status, 409);
+  assert.equal((await h.api("shop_buy", { g: a.items[0].g, s: a.items[0].s })).status, 401);
+  assert.ok(h.db.get("logs").some((l) => /구매/.test(l)));
+  // tomorrow: a different shop
+  h.advance(864e5);
+  const next = await h.api("shop", {});
+  assert.notDeepEqual(next.items.map((x) => x.g + "|" + x.s), a.items.map((x) => x.g + "|" + x.s));
+  // the owner rerolls, changes the mix and prices, closes it
+  const owner2 = await login(h, "owner");
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.shop.reroll = 1; c.shop.mix = { common: 2, rare: 2, epic: 1, legendary: 1 }; c.shop.price.legendary = 30000;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  const r = await h.api("shop", {});
+  assert.equal(r.items.length, 6);
+  assert.ok(r.items.filter((x) => x.r === 4).every((x) => x.price === 30000 || x.price === 45000));
+  c.shop.mix = { common: 0, rare: 0, epic: 0, legendary: 0 };
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 400);
+  c.shop.mix = { common: 1, rare: 0, epic: 0, legendary: 0 }; c.shop.on = false;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  assert.deepEqual((await h.api("shop", {})).items, []);
+  assert.equal((await h.api("shop_buy", { token: player.token, g: "rifle", s: "snow" })).status, 403);
+});
