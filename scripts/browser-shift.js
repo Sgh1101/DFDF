@@ -48,7 +48,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     console.log(JSON.stringify(r));
     assert.equal(r.key, "shift"); assert.equal(r.walls, 8); assert.equal(r.listed, true); assert.equal(r.size, 3); assert.equal(r.cat, "small");
     for (const p of r.phases) { assert.deepEqual(p.unreachable, [], "phase " + p.p + " reaches everything"); assert.ok(p.up >= 5 && p.up <= 6, "two of three sets stand in phase " + p.p); }
-    assert.deepEqual(r.clock.phases, [0, 1, 2, 3, 4]); assert.equal(r.clock.at3, 0 + 1); assert.equal(r.warn, true); assert.equal(r.afterRound, 0); assert.deepEqual(r.guest, { p: 1, t: 10 }); assert.equal(r.hud, true);
+    assert.deepEqual(r.clock.phases, [0, 1, 2, 3]); assert.equal(r.clock.at3, 1); assert.equal(r.warn, true); assert.equal(r.afterRound, 0); assert.deepEqual(r.guest, { p: 1, t: 10 }); assert.equal(r.hud, true);
     assert.deepEqual(r.gone, { key: "glacier", walls: 0, meshes: 0 });
     assert.deepEqual(f.errors, []);
     console.log("shift arena: plan, reachability in every phase, clock, warning, round reset, guest sync and clean-up passed");

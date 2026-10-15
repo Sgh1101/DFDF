@@ -447,7 +447,7 @@
   // ── the screen: a count, and the barriers on the map ──
   const css = document.createElement("style");
   css.textContent = `
-#shift-hud{position:fixed;top:46px;left:50%;transform:translateX(-50%);z-index:55;display:none;min-width:150px;padding:3px 14px 5px;border-radius:10px;text-align:center;font:700 12px/1.4 var(--f-display,inherit);letter-spacing:.08em;color:#fff3e0;background:rgba(20,28,40,.72);border:1px solid rgba(255,138,42,.55);pointer-events:none}
+#shift-hud{position:fixed;top:112px;left:50%;transform:translateX(-50%);z-index:55;display:none;min-width:150px;padding:3px 14px 5px;border-radius:10px;text-align:center;font:700 12px/1.4 var(--f-display,inherit);letter-spacing:.08em;color:#fff3e0;background:rgba(20,28,40,.72);border:1px solid rgba(255,138,42,.55);pointer-events:none}
 #shift-hud i{display:block;height:3px;margin-top:3px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden}
 #shift-hud i b{display:block;height:100%;background:#ff8a2a;transition:width .2s linear}
 #shift-hud.warn{color:#fff;border-color:#ff8a2a;box-shadow:0 0 18px -2px #ff8a2a;animation:shiftPulse .5s ease-in-out infinite alternate}
