@@ -24,19 +24,68 @@
   window.GUN_COUNT = Object.keys(WEAPONS).length;
   try {
     const M = GUNMAT;
+    // an RPG-7: a steel tube with two wooden heat guards, a flared venturi at
+    // the back, a pistol grip and trigger group, a fore grip, iron sights and a
+    // PGO-7 style optic on the left, sling swivels; the PG-7V rocket's fat
+    // warhead stands out of the muzzle (nose, body, taper and a brass fuse)
     GUN_BUILD.rpg = () => {
-      const b = GunBuilder();
-      b.barrel(M.olive(), 0.05, 0.95, 0, 0.04, -0.2); // launch tube
-      b.barrel(M.black(), 0.058, 0.08, 0, 0.04, 0.28); // rear flare
-      b.barrel(M.black(), 0.056, 0.05, 0, 0.04, -0.66); // muzzle ring
+      const b = GunBuilder(),
+        Y = 0.04;
+      const ring = (mat, r, len, z) => b.barrel(mat, r, len, 0, Y, z);
+      // the tube: front, middle and rear sections
+      ring(M.gunmetal(), 0.038, 0.6, -0.38);
+      ring(M.gunmetal(), 0.041, 0.36, 0.07);
+      // the muzzle and its lip
+      ring(M.black(), 0.046, 0.03, -0.665);
+      ring(M.steel(), 0.04, 0.012, -0.684);
+      // wooden heat guards, banded
+      for (const [z0, z1] of [[-0.36, -0.15], [-0.04, 0.12]]) {
+        ring(M.wood(), 0.053, z1 - z0, (z0 + z1) / 2);
+        ring(M.black(), 0.055, 0.012, z0 + 0.006);
+        ring(M.black(), 0.055, 0.012, z1 - 0.006);
+        for (let i = 1; i < 5; i++) ring(M.woodDark(), 0.0535, 0.003, z0 + ((z1 - z0) * i) / 5);
+      }
+      // the venturi: a flared bell at the back with a ring at its mouth
+      b.cyl(M.gunmetal(), 0.072, 0.043, 0.17, 18, 0, Y, 0.335, Math.PI / 2, 0, 0);
+      ring(M.black(), 0.075, 0.012, 0.42);
+      b.cyl(M.black(), 0.036, 0.036, 0.004, 16, 0, Y, 0.414, Math.PI / 2, 0, 0); // the dark throat
+      // the trigger group, the pistol grip and its guard, the trigger
+      b.box(M.black(), 0.03, 0.04, 0.12, 0, Y - 0.052, -0.02);
+      b.grip(M.wood(), 0.032, 0.105, 0.048, 0, -0.07, 0.03);
+      b.torus(M.black(), 0.018, 0.0035, 14, 0, Y - 0.085, -0.035, 0, Math.PI / 2, 0);
+      b.box(M.steel(), 0.006, 0.022, 0.006, 0, Y - 0.08, -0.036, 0.3, 0, 0);
+      b.box(M.steel(), 0.01, 0.018, 0.012, 0, Y + 0.036, 0.0); // the hammer
+      // the fore grip
+      b.grip(M.wood(), 0.032, 0.095, 0.046, 0, -0.068, -0.3);
+      b.box(M.black(), 0.028, 0.02, 0.06, 0, Y - 0.046, -0.3);
+      // iron sights: a folding post at the front, a notch over the grip
+      b.box(M.black(), 0.012, 0.03, 0.012, 0, Y + 0.052, -0.58);
+      b.box(M.steel(), 0.004, 0.022, 0.004, 0, Y + 0.077, -0.58);
+      b.box(M.black(), 0.026, 0.02, 0.014, 0, Y + 0.05, -0.08);
+      b.box(M.black(), 0.008, 0.012, 0.016, -0.009, Y + 0.064, -0.08);
+      b.box(M.black(), 0.008, 0.012, 0.016, 0.009, Y + 0.064, -0.08);
+      // the optic on the left: mount, body, objective and eyepiece with its rubber cup
+      b.box(M.black(), 0.035, 0.02, 0.06, -0.04, Y + 0.025, -0.07);
+      b.box(M.olive(), 0.034, 0.058, 0.15, -0.072, Y + 0.06, -0.07);
+      b.box(M.black(), 0.036, 0.012, 0.15, -0.072, Y + 0.093, -0.07);
+      b.barrel(M.black(), 0.02, 0.03, -0.072, Y + 0.068, -0.158);
+      b.barrel(M.glass(), 0.016, 0.004, -0.072, Y + 0.068, -0.174);
+      b.barrel(M.black(), 0.016, 0.03, -0.072, Y + 0.068, 0.02);
+      b.barrel(M.rubber(), 0.021, 0.035, -0.072, Y + 0.068, 0.05);
+      b.box(M.black(), 0.012, 0.02, 0.02, -0.092, Y + 0.075, -0.09); // the adjusting knob
+      // sling swivels
+      b.torus(M.steel(), 0.012, 0.0025, 10, 0, Y - 0.045, -0.5, 0, Math.PI / 2, 0);
+      b.torus(M.steel(), 0.012, 0.0025, 10, 0, Y - 0.045, 0.2, 0, Math.PI / 2, 0);
       // the rocket in the tube: drawn on its own so a reload can take it out and put a new one in
-      const wh = b.cyl(M.olive(), 0.03, 0.065, 0.16, 12, 0, 0.04, -0.74, -Math.PI / 2, 0, 0), // warhead
-        nose = b.cone(M.olive(), 0.03, 0.12, 12, 0, 0.04, -0.88, -Math.PI / 2); // nose
-      for (const m of [wh, nose]) m && m.isMesh && ((m.userData.live = !0), (m.userData.isRocket = !0));
-      b.grip(M.black(), 0.035, 0.11, 0.05, 0, -0.06, 0.02);
-      b.grip(M.black(), 0.035, 0.1, 0.05, 0, -0.06, -0.3);
-      b.box(M.black(), 0.03, 0.05, 0.08, 0.06, 0.09, -0.08); // sight
-      b.box(M.glass(), 0.02, 0.03, 0.005, 0.06, 0.11, -0.04);
+      const parts = [
+        b.cyl(M.olive(), 0.024, 0.024, 0.08, 12, 0, Y, -0.72, -Math.PI / 2, 0, 0), // the stem out of the muzzle
+        b.cyl(M.olive(), 0.066, 0.024, 0.06, 16, 0, Y, -0.79, -Math.PI / 2, 0, 0), // the taper up to the warhead
+        b.cyl(M.olive(), 0.066, 0.066, 0.1, 18, 0, Y, -0.87, -Math.PI / 2, 0, 0), // the warhead's body
+        b.cyl(M.tan(), 0.0665, 0.0665, 0.014, 18, 0, Y, -0.85, -Math.PI / 2, 0, 0), // its band
+        b.cyl(M.olive(), 0.066, 0.012, 0.16, 18, 0, Y, -1.0, -Math.PI / 2, 0, 0), // the nose
+        b.cyl(M.brass(), 0.008, 0.008, 0.03, 10, 0, Y, -1.093, -Math.PI / 2, 0, 0), // the fuse
+      ];
+      for (const m of parts) m && m.isMesh && ((m.userData.live = !0), (m.userData.isRocket = !0));
       return b.group;
     };
   } catch (e) {}
