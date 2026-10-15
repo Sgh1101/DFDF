@@ -12,12 +12,16 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const A = AIM_ASSIST, res = {};
       const foe = otherFighters().find((o) => o.team !== player.team && o.alive);
       // a clear line: turn until 9 m ahead is open
+      // (bots throw smoke even when frozen, and smoke blocks sight: clear it first)
       const put = (off) => {
-        for (let k = 0; k < 24; k++) {
-          const yaw = player.yaw + off, x = player.pos.x - Math.sin(yaw) * 9, z = player.pos.z - Math.cos(yaw) * 9;
-          if (!rayBlocked(player.pos.x, player.y + eyeHeight(), player.pos.z, x, player.y + 1.3, z) && !collideXZ(x, z, 0, 0.5)) { foe.pos.x = x; foe.pos.z = z; foe.y = player.y; return true; }
-          player.yaw += Math.PI / 12;
-        }
+        world.smokes && (world.smokes.length = 0);
+        world.phase = "live"; player.alive = true; foe.alive = true;
+        for (const dist of [9, 7, 5, 3.5])
+          for (let k = 0; k < 24; k++) {
+            const yaw = player.yaw + off, x = player.pos.x - Math.sin(yaw) * dist, z = player.pos.z - Math.cos(yaw) * dist;
+            if (!rayBlocked(player.pos.x, player.y + eyeHeight(), player.pos.z, x, player.y + 1.3, z) && !collideXZ(x, z, 0, 0.5)) { foe.pos.x = x; foe.pos.z = z; foe.y = player.y; return true; }
+            player.yaw += Math.PI / 12;
+          }
         return false;
       };
       const err = () => { const dx = foe.pos.x - player.pos.x, dz = foe.pos.z - player.pos.z; let d = Math.atan2(-dx, -dz) - player.yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return Math.abs(d); };
@@ -48,7 +52,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       room.ranked = false; RANKED.locked = false;
       // following: the enemy walks sideways and the view goes a little with it
       A._phone = true; A.pref.mobile = true; A.state.init = false; A.state.tgt = null;
-      put(0); const y0 = player.yaw;
+      res.followPlaced = put(0); const y0 = player.yaw;
       const side = { x: -Math.cos(player.yaw) * 0.03, z: Math.sin(player.yaw) * 0.03 };
       run(40, side);
       res.follow = { turned: +Math.abs(player.yaw - y0 - 40 * 1e-4).toFixed(4), err: +err().toFixed(4) };
@@ -65,6 +69,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     for (const k of ["phoneOff", "pcNoGrant", "pcGrantSwitchOff", "phoneClosedForAccount", "phoneOwnerOff", "pcRanked"]) assert.ok(!out[k].on && !out[k].pulled, k + ": no assist " + JSON.stringify(out[k]));
     assert.match(out.pcNoGrant.why, /권한|owner/);
     assert.match(out.pcRanked.why, /랭크|ranked/);
+    assert.ok(out.followPlaced, "the enemy is placed for the follow check");
     assert.ok(out.follow.turned > 0.02, "the aim follows a moving enemy " + JSON.stringify(out.follow));
     assert.equal(out.err, null);
     assert.ok(out.row.sw && out.row.lvl && out.row.pcDisabled && /권한|owner/.test(out.row.pcText), "the settings switch, locked on a computer without the grant " + JSON.stringify(out.row));
