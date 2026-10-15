@@ -46,6 +46,27 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(await page.locator("#sel-grid .acard").count(), await page.evaluate(() => AGENTS.length));
     await page.waitForFunction(() => { const image = document.querySelector("#sel-grid .acard:not([hidden]) img"); return image.complete && image.naturalWidth > 0; });
     await page.waitForFunction(() => { const image = document.querySelector("#sel-detail .det-img"); return image.complete && image.naturalWidth > 0; });
+    const portraitCost = await page.evaluate(() => {
+      const originalContext = HTMLCanvasElement.prototype.getContext, detail = GFX.detailGun;
+      const keys = ["rifle", "carbine", "smg", "battle", "marksman"], saved = keys.map(key => GUN_BUILD[key]);
+      let webgl = 0, weapons = 0;
+      HTMLCanvasElement.prototype.getContext = function(type, ...args) { if (/^webgl2?$/.test(type)) webgl++; return originalContext.call(this, type, ...args); };
+      keys.forEach(key => { GUN_BUILD[key] = () => { weapons++; return null; }; });
+      GFX.detailGun = true;
+      try {
+        const picture = agentPortrait(AGENTS[0], 122, 154), before = weapons;
+        const body = buildFighter(0x88aabb, AGENTS[0], { bodyOnly: true }), bodyGun = body.gun.children.filter(node => node.isMesh).length;
+        chDispose(body.group);
+        const regular = buildFighter(0x88aabb, AGENTS[0]), normalGun = regular.gun.children.length;
+        chDispose(regular.group);
+        return { style: AGENT_MODELS.style, picture: picture.startsWith("data:image/"), webgl, before, weapons, bodyGun, normalGun };
+      } finally {
+        HTMLCanvasElement.prototype.getContext = originalContext; GFX.detailGun = detail;
+        keys.forEach((key, i) => { GUN_BUILD[key] = saved[i]; });
+      }
+    });
+    assert.deepEqual({ ...portraitCost, normalGun: undefined }, { style: "voxel", picture: true, webgl: 0, before: 0, weapons: 1, bodyGun: 0, normalGun: undefined });
+    assert.ok(portraitCost.normalGun > 0, "normal matches still construct a weapon");
     assert.deepEqual(f.errors, []);
     console.log("initial Armory button, boot deep link, delayed inventory, real pull, hash navigation and visible final portraits passed");
   } catch (error) {

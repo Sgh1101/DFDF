@@ -11,6 +11,8 @@
 | `js/engine/agents.js`, `weapons.js`, `maps.js` | 최초 요원·무기·맵 데이터와 맵 등록 |
 | `js/engine/textures-portraits.js` | 텍스처·초상화 생성 함수 |
 | `js/portrait-loader.js` | 부팅 후 보이는 요원 사진을 한 작업에 하나씩 생성, 대표/선택 요원 우선 처리 |
+| `js/agent-voxel.js` | 최종 40명 네모 모델·능력 장비, 실제 모델에서 투영한 초상화. 80번 확장 뒤 로드 |
+| `js/agent-model-review.js` | `?model-review=1`에서만 로드하는 실제 모델·동작 미리보기 |
 | `js/legacy/03-engine.js` | 렌더링, 물리, 사격, 경기, P2P 기본 구현 |
 | `js/game-catalog.js` | 최종 데이터의 개수와 홈 안내 문구 |
 | `js/legacy/05-game-modes.js` | 모드 규칙과 부활 |

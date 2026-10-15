@@ -12,6 +12,7 @@
     "test:online": "node scripts/browser-online.js",
     "test:followup": "node scripts/browser-followup.js",
     "test:maps": "node scripts/browser-map-cleanup.js",
-    "test:network-recovery": "node scripts/browser-network-recovery.js"
+    "test:network-recovery": "node scripts/browser-network-recovery.js",
+    "test:models": "node scripts/browser-agent-models.js"
   }
 }

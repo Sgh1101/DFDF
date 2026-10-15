@@ -3354,7 +3354,7 @@ function chBaseMats(e, t) {
     sole: chMat(921104, "rubber"),
   };
 }
-function buildFighter(e, t) {
+function buildFighter(e, t, options) {
   const o = t ? t.id || t.key : "_default",
     a = CH_STYLE[o] || CH_STYLE._default,
     n = chBaseMats(CH_OUTFIT[o] ? o : "_default", a),
@@ -3478,7 +3478,7 @@ function buildFighter(e, t) {
     c(h, G_BOX(0.05, 0.03, 0.02), l, -0.1 * r, 0.36, -0.19, { live: 1 }));
   const k = new T.Group();
   let _ = !1;
-  if (void 0 !== GFX && GFX.detailGun)
+  if (!options?.bodyOnly && void 0 !== GFX && GFX.detailGun)
     try {
       const e = ["rifle", "carbine", "smg", "battle", "marksman"][
           Math.floor(5 * Math.random())
@@ -3497,7 +3497,7 @@ function buildFighter(e, t) {
           (_ = !0));
       }
     } catch (e) {}
-  if (!_) {
+  if (!options?.bodyOnly && !_) {
     const e = new T.Mesh(TP_GUN.body, TP_GUN.mBody);
     (e.position.set(0, 0, -0.06),
       (e.castShadow = !0),

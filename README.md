@@ -78,6 +78,7 @@ Node.js 20 이상에서 `npm run dev`로 정적 페이지와 `/api/v1`을 실행
 - `js/game-boot.js`: 모든 스크립트 로딩 뒤 프레임·초대 연결 시작.
 - `npm run test:regression`: 추가 홈 기능·실제 RPG 폭발·부활·수류탄·반복 경기 검사.
 - `npm run test:network-recovery`: 실제 게임을 두 브라우저에서 실행하고 통제된 전송으로 채널 단절·재접속·진행 중 참가를 검사합니다. WebRTC/ICE/TURN 성공 검사는 아닙니다. [멀티 검사 기록](docs/MULTIPLAYER_VERIFICATION.md).
+- `npm run test:models`: 40명 실제 네모 캐릭터의 렌더링·초상화·관절 동작·게임 적용·자원 해제를 검사합니다. `/play.html?model-review=1`에서 회전과 동작을 볼 수 있습니다. [능력별 외형과 실제 화면](docs/VOXEL_AGENTS.md).
 - `npm run test:online`: 두 브라우저의 실제 WebRTC 연결 검사. 테스트용 `peer` 패키지와 PeerJS 브라우저 파일이 필요하며 `DFDF_PEER_SERVER_MODULE`, `DFDF_PEERJS_PATH`로 경로를 지정할 수 있습니다. 로컬 신호 서버를 9000번 포트에서 실행합니다.
 - 구조와 로딩 규칙은 [소스 안내](docs/SOURCE_LAYOUT.md)에 있습니다.
 - `js/game-audio.js`, `js/client-request.js`: 공통 오디오 출력과 요청 시간 제한.
