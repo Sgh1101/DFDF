@@ -1,0 +1,1 @@
+window.BLINK_RANGE=90;for(const g of AGENTS)for(const b of g.abilities)"blink"===b.type&&(b.desc="조준한 곳으로 최대 90m 순간이동.");

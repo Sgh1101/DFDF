@@ -1,0 +1,21 @@
+const test = require("node:test"), assert = require("node:assert/strict"), { execFileSync } = require("node:child_process");
+const { harness } = require("./api-harness");
+test("actual Redis Lua commits preserve parallel pulls and replayable rewards", { skip: !process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET }, async () => {
+  const command = (cmd) => JSON.parse(execFileSync(process.env.DFDF_REDIS_CLI, ["--json", "-s", process.env.DFDF_REDIS_SOCKET, ...cmd.map(String)], { encoding: "utf8" }));
+  const h = harness({ redisCommand: command });
+  const id = "r" + Math.random().toString(36).slice(2, 9);
+  const p = await h.api("auth", { id, pw: "password", device: "redis-test-device" });
+  assert.equal(p.status, 200);
+  const admin = await h.api("auth", { id: "owner", pw: "owner-password", device: "redis-owner-device" });
+  await h.api("a_user_set", { atoken: admin.atoken, id, op: "gold", gold: 900 });
+  const pulls = await Promise.all(Array.from({ length: 3 }, () => h.api("gacha", { token: p.token })));
+  assert.deepEqual(pulls.map((x) => x.status), [200, 200, 200]);
+  const user = () => JSON.parse(command(["GET", "user:" + id]));
+  assert.equal(user().gold, 0); assert.equal(user().pulls, 3); assert.equal(Object.values(user().own).flat().length, 3);
+  const mt = await h.api("match_start", { token: p.token }); h.advance(61000);
+  const report = { token: p.token, mt: mt.ticket, win: true, kills: 4 };
+  const first = await h.api("progress", report), replay = await h.api("progress", report);
+  assert.equal(first.status, 200); assert.deepEqual(replay, first); assert.equal(user().matches, 1); assert.equal(user().gold, 120);
+  const claims = await Promise.all([h.api("mission_claim", { token: p.token, id: "d_win" }), h.api("mission_claim", { token: p.token, id: "d_win" })]);
+  assert.deepEqual(claims.map((x) => x.status).sort(), [200, 409]); assert.equal(user().gold, 270);
+});
