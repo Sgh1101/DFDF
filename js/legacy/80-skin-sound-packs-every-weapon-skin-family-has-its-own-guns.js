@@ -88,6 +88,7 @@
     galaxy: "cosmic", aurora: "cosmic",
     gold: "royal", dancheong: "royal",
     ink: "blade", wave: "blade", tanto: "blade", karambit: "blade",
+    bayonet: "heavy", gut: "heavy", bowie: "heavy", kunai: "blade", stiletto: "blade",
   };
 
   // ── the synth ──

@@ -76,6 +76,12 @@
     { id: "aurora", ko: "오로라", en: "Aurora", rar: 3, body: [0xffffff, 0.4, 0.2], pat: "aurora", em: !0, pal: ["#06121f", "#2ef2b0", "#7c4dff", "#29b6f6"], anim: "drift", metal: [0x22313f, 0.3, 0.8], dark: [0x050b13, 0.7, 0.2], glow: 0x64ffda, glass: 0xb2fff0 },
     { id: "phoenix", ko: "봉황", en: "Phoenix", rar: 4, body: [0xffffff, 0.5, 0.2], pat: "flame", em: !0, pal: ["#2a0806", "#d81b0c", "#ff8f00", "#ffe57f"], anim: "pulse", metal: [0xd4af37, 0.25, 0.95], dark: [0x1a0604, 0.7, 0.2], glow: 0xff6d00, glass: 0xffd180 },
     { id: "storm", ko: "뇌전", en: "Thunderstorm", rar: 4, body: [0xffffff, 0.4, 0.3], pat: "storm", em: !0, pal: ["#10131c", "#5c8dff", "#e6f0ff", "#2a3350"], anim: "pulse", metal: [0x3a4258, 0.3, 0.85], dark: [0x0a0c12, 0.7, 0.2], glow: 0x82b1ff, glass: 0xd6e4ff },
+    // five more knives (after the second set, so the numbers sent to a room stay the same), one or two in every tier
+    { id: "bayonet", ko: "총검", en: "Bayonet", rar: 1, only: "knife", model: "bayonet", keep: ["chrome"], body: [0x2a2d33, 0.8, 0.05], metal: [0xb8c0c8, 0.35, 0.75], dark: [0x1d2026, 0.5, 0.6], glow: 0x9be7ff },
+    { id: "gut", ko: "거트 나이프", en: "Gut knife", rar: 1, only: "knife", model: "gut", keep: ["chrome"], body: [0x3a4a30, 0.85, 0.05], metal: [0xc9d1d9, 0.3, 0.75], dark: [0x2e4a2a, 0.9, 0.05], glow: 0xb2ff59 },
+    { id: "bowie", ko: "보위 나이프", en: "Bowie knife", rar: 2, only: "knife", model: "bowie", keep: ["brass", "tan", "woodDark", "chrome"], body: [0x3b2a1e, 0.7, 0.05], metal: [0xdfe5ea, 0.25, 0.85], dark: [0x15171c, 0.6, 0.3], glow: 0xffb74d },
+    { id: "kunai", ko: "쿠나이", en: "Kunai", rar: 3, only: "knife", model: "kunai", keep: ["chrome"], body: [0x111216, 0.6, 0.3], metal: [0x9aa3ad, 0.32, 0.85], dark: [0x4a1030, 0.85, 0.05], glow: 0xff2bd6 },
+    { id: "stiletto", ko: "스틸레토", en: "Stiletto", rar: 4, only: "knife", model: "stiletto", keep: ["chrome"], body: [0x0e0f12, 0.35, 0.6], metal: [0xe8edf2, 0.15, 0.95], dark: [0x3a2c10, 0.3, 0.85], glow: 0xffd54f, anim: "pulse" },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.only || s.only === key;

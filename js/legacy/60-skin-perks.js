@@ -206,7 +206,7 @@
           const at = KNIVES.attack(m, ++M.alt);
           M.knife = { t: 0, D: at[1], kind: at[0] };
           swish();
-          ("chop" === at[0] || "cleave" === at[0]) && setTimeout(swish, 90);
+          ("chop" === at[0] || "cleave" === at[0] || "sweep" === at[0] || "jab" === at[0]) && setTimeout(swish, 90);
         } else if (t >= 3) {
           M.twirl.t = -1;
           M.idleT = 0;

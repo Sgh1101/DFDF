@@ -252,9 +252,132 @@
       g.add(blade);
       return finish(g);
     },
+    // a bayonet (the M9 kind): a clip point with sawteeth on the spine and the
+    // slot for the wire cutter, a crossguard with the muzzle ring on top, a
+    // chequered grip, a pommel with the rifle latch
+    bayonet() {
+      const g = new T.Group(),
+        bl = GUNMAT.blade(),
+        st = GUNMAT.steel(),
+        bd = GUNMAT.blued(),
+        pm = GUNMAT.darkpoly(),
+        ch = GUNMAT.chrome(),
+        gl = GUNMAT.glow(0x9be7ff);
+      const spine = [[-0.012, 0.031], [-0.07, 0.031]];
+      for (let i = 0; i < 7; i++) spine.push([-0.078 - 0.018 * i, 0.022], [-0.087 - 0.018 * i, 0.031]);
+      spine.push([-0.27, 0.031], [-0.33, 0.026, -0.395, 0.002], [-0.405, -0.004, -0.398, -0.01]);
+      const edge = [[-0.35, -0.046, -0.26, -0.045], [-0.05, -0.043], [-0.04, -0.034], [-0.012, -0.034]];
+      g.add(prof(bl, [...spine, ...edge], 0.016, 0.006, { bs: 0.007, holes: [rrect(-0.095, -0.05, -0.022, -0.008, 0.007)] }));
+      // the swedge along the clip and the fuller stay bright
+      g.add(prof(ch, [[-0.3, 0.024], [-0.37, 0.012], [-0.385, 0.002], [-0.3, 0.017]], 0.0165, 0));
+      g.add(prof(gl, rrect(-0.27, -0.11, 0.006, 0.012, 0.003), 0.0168, 0));
+      g.add(prof(st, rrect(-0.009, 0.009, -0.058, 0.05, 0.005), 0.032, 0.003));
+      g.add(torus(st, 0.015, 0.0055, 18, 0, 0.068, -0.002));
+      g.add(prof(pm, [[0.01, 0.03], [0.12, 0.044, 0.215, 0.032], [0.226, 0.026], [0.226, -0.038], [0.12, -0.056, 0.01, -0.04]], 0.036, 0.011, { uv: 4 }));
+      for (let i = 0; i < 6; i++) g.add(band(pm, 0.0205, 0.004, 1.85, 0, -0.004, 0.035 + 0.031 * i));
+      g.add(prof(bd, rrect(0.226, 0.262, -0.044, 0.03, 0.008), 0.034, 0.006));
+      g.add(box(ch, 0.012, 0.01, 0.026, 0, 0.036, 0.244));
+      g.add(pin(ch, 0.006, 0.038, 0, -0.03, 0.25, 10));
+      return g;
+    },
+    // a gut knife: a drop point with the hook cut into its spine, a short guard,
+    // a rubber grip with finger grooves and a lanyard hole
+    gut() {
+      const g = new T.Group(),
+        bl = GUNMAT.blade(),
+        st = GUNMAT.steel(),
+        rb = GUNMAT.rubber(),
+        ch = GUNMAT.chrome(),
+        gl = GUNMAT.glow(0xb2ff59);
+      const blade = [[-0.012, 0.028], [-0.16, 0.03], [-0.172, 0.03], [-0.19, -0.004, -0.214, 0.012], [-0.226, 0.022, -0.222, 0.04], [-0.3, 0.034, -0.37, -0.004], [-0.376, -0.012, -0.366, -0.02], [-0.33, -0.05, -0.25, -0.048], [-0.05, -0.042], [-0.04, -0.033], [-0.012, -0.033]];
+      g.add(prof(bl, blade, 0.015, 0.0055, { bs: 0.007 }));
+      // the hook's own sharpened edge, polished
+      g.add(prof(ch, [[-0.176, 0.026], [-0.19, 0.0, -0.21, 0.011], [-0.214, 0.016], [-0.19, 0.006, -0.178, 0.03]], 0.0158, 0));
+      g.add(prof(gl, rrect(-0.15, -0.06, -0.006, 0.0, 0.003), 0.0162, 0));
+      g.add(prof(st, rrect(-0.008, 0.008, -0.046, 0.04, 0.005), 0.03, 0.003));
+      const grip = [[0.008, 0.03], [0.1, 0.036, 0.2, 0.03], [0.232, 0.022], [0.236, -0.03], [0.22, -0.046], [0.19, -0.028, 0.16, -0.046], [0.13, -0.03, 0.1, -0.048], [0.07, -0.03, 0.04, -0.046], [0.02, -0.034], [0.008, -0.036]];
+      g.add(prof(rb, grip, 0.034, 0.011, { uv: 3, holes: [arc(0.214, -0.008, 0.008, 0, 2 * PI, 12)] }));
+      g.add(prof(ch, rrect(0.236, 0.246, -0.032, 0.024, 0.004), 0.03, 0.003));
+      g.add(box(gl, 0.036, 0.004, 0.11, 0, 0.032, 0.11));
+      return g;
+    },
+    // a bowie: a long clip point with a sharpened false edge, a brass guard with
+    // balled quillons, a grip of stacked leather rings between spacers, a brass pommel
+    bowie() {
+      const g = new T.Group(),
+        bl = GUNMAT.blade(),
+        ch = GUNMAT.chrome(),
+        br = GUNMAT.brass(),
+        tn = GUNMAT.tan(),
+        wd = GUNMAT.woodDark(),
+        bk = GUNMAT.black();
+      const blade = [[-0.012, 0.034], [-0.27, 0.037], [-0.3, 0.036], [-0.39, 0.026, -0.47, -0.006], [-0.476, -0.012, -0.466, -0.018], [-0.43, -0.06, -0.32, -0.058], [-0.07, -0.05], [-0.06, -0.04], [-0.012, -0.04]];
+      g.add(prof(bl, blade, 0.019, 0.0065, { bs: 0.008 }));
+      g.add(prof(ch, [[-0.3, 0.03], [-0.39, 0.02, -0.455, -0.004], [-0.46, -0.008], [-0.38, 0.012, -0.3, 0.023]], 0.0195, 0));
+      g.add(prof(bk, rrect(-0.27, -0.06, 0.012, 0.02, 0.004), 0.0198, 0));
+      g.add(prof(br, rrect(-0.01, 0.01, -0.072, 0.062, 0.006), 0.026, 0.004));
+      for (const y of [-0.074, 0.064]) g.add(mesh(new T.SphereGeometry(0.011, 12, 9), br, 0, y, 0));
+      g.add(prof(bk, [[0.01, 0.033], [0.24, 0.031], [0.24, -0.043], [0.01, -0.045]], 0.03, 0.009));
+      for (let i = 0; i < 14; i++) g.add(band(i % 4 === 3 ? bk : i % 2 ? tn : wd, 0.0225, 0.0062, 1.6, 0, -0.006, 0.02 + 0.016 * i));
+      g.add(prof(br, rrect(0.24, 0.258, -0.048, 0.036, 0.008), 0.036, 0.006));
+      const dome = mesh(new T.SphereGeometry(0.03, 16, 10, 0, 2 * PI, 0, PI / 2), br, 0, -0.006, 0.258, PI / 2, 0, 0);
+      dome.scale.set(0.6, 0.45, 1.4);
+      g.add(dome);
+      return g;
+    },
+    // a kunai: a leaf-shaped double-edged blade with a ridge down the middle, a
+    // cord-wrapped handle and the ring at its end, which it turns on
+    kunai() {
+      const g = new T.Group(),
+        bl = GUNMAT.blade(),
+        ch = GUNMAT.chrome(),
+        bk = GUNMAT.black(),
+        rb = GUNMAT.rubber(),
+        gl = GUNMAT.glow(0xff2bd6);
+      const leaf = [[-0.012, 0.014], [-0.05, 0.044, -0.12, 0.04], [-0.31, 0.0], [-0.12, -0.04, -0.05, -0.044], [-0.012, -0.014]];
+      g.add(prof(bl, leaf, 0.017, 0.0075, { bs: 0.012 }));
+      g.add(prof(ch, [[-0.02, 0.003], [-0.29, 0.0005], [-0.29, -0.0005], [-0.02, -0.003]], 0.019, 0));
+      g.add(prof(gl, [[-0.03, 0.012], [-0.06, 0.03, -0.11, 0.028], [-0.1, 0.022, -0.04, 0.008]], 0.0175, 0));
+      g.add(prof(gl, [[-0.03, -0.012], [-0.06, -0.03, -0.11, -0.028], [-0.1, -0.022, -0.04, -0.008]], 0.0175, 0));
+      g.add(cyl(bk, 0.012, 0.012, 0.19, 10, 0, 0, 0.09, PI / 2, 0, 0));
+      for (let i = 0; i < 11; i++) g.add(band(rb, 0.0135, 0.0042, 1.25, 0, 0, 0.012 + 0.0155 * i, (i % 2 ? 1 : -1) * 0.5));
+      g.add(cyl(ch, 0.014, 0.011, 0.012, 12, 0, 0, 0.19, PI / 2, 0, 0));
+      g.add(cyl(ch, 0.011, 0.014, 0.01, 12, 0, 0, -0.006, PI / 2, 0, 0));
+      // the ring is its own part: the kunai turns on it, round the finger
+      const ring = part("ring", 0, 0, 0.222);
+      ring.add(torus(ch, 0.026, 0.006, 20, 0, 0, 0, 0, PI / 2, 0));
+      g.add(ring);
+      return finish(g);
+    },
+    // a stiletto that fires out of the front: a slim double-edged dagger blade
+    // that slides out of a machined handle, a thumb slider, chrome ends, a
+    // glass breaker at the back
+    stiletto() {
+      const g = new T.Group(),
+        bl = GUNMAT.blade(),
+        ch = GUNMAT.chrome(),
+        bk = GUNMAT.black(),
+        bd = GUNMAT.blued(),
+        gl = GUNMAT.glow(0xffd54f);
+      const hdl = [[-0.004, 0.026], [0.22, 0.026], [0.236, 0.016], [0.236, -0.03], [0.22, -0.04], [0.15, -0.034, 0.08, -0.04], [-0.004, -0.032]];
+      g.add(prof(bk, hdl, 0.03, 0.006, { uv: 3 }));
+      g.add(prof(bd, rrect(0.0, 0.22, -0.034, 0.022, 0.006), 0.034, 0.002));
+      g.add(prof(gl, rrect(0.02, 0.2, 0.024, 0.028, 0.002), 0.012, 0));
+      g.add(prof(gl, rrect(0.02, 0.2, -0.039, -0.035, 0.002), 0.012, 0));
+      g.add(prof(ch, rrect(-0.018, 0.004, -0.034, 0.028, 0.008), 0.034, 0.005));
+      g.add(prof(ch, rrect(0.232, 0.256, -0.032, 0.02, 0.008), 0.032, 0.005));
+      g.add(mesh(new T.ConeGeometry(0.008, 0.014, 4), ch, 0, -0.006, 0.264, PI / 2, 0, 0));
+      g.add(box(ch, 0.014, 0.008, 0.03, 0, 0.03, 0.08));
+      // the blade on its track: slides back into the handle along z
+      const blade = part("blade", 0, -0.004, -0.004);
+      blade.add(prof(bl, [[0.0, 0.016], [-0.19, 0.016], [-0.245, 0.007, -0.272, 0.0], [-0.245, -0.007, -0.19, -0.016], [0.0, -0.016]], 0.011, 0.005, { bs: 0.007 }));
+      blade.add(prof(ch, [[-0.01, 0.002], [-0.235, 0.0005], [-0.235, -0.0005], [-0.01, -0.002]], 0.0125, 0));
+      g.add(blade);
+      return finish(g);
+    },
   };
   // where the hand closes on each knife: [y, z] of the grip's middle
-  const HAND = { butterfly: [-0.01, 0.19], karambit: [0.004, 0.157], kukri: [-0.016, 0.13], tanto: [-0.014, 0.14], flip: [-0.012, 0.17] };
+  const HAND = { butterfly: [-0.01, 0.19], karambit: [0.004, 0.157], kukri: [-0.016, 0.13], tanto: [-0.014, 0.14], flip: [-0.012, 0.17], bayonet: [-0.008, 0.12], gut: [-0.008, 0.125], bowie: [-0.006, 0.13], kunai: [0, 0.095], stiletto: [-0.006, 0.12] };
   // how a knife is turned in the hand before the hand closes on it: the karambit
   // is held in a reverse grip, the ring up on the index finger, the handle down
   // through the fist and the claw out below it, curling forward
@@ -263,9 +386,9 @@
   // other fingers closed down the handle too: [length along the handle, radius]
   const FIST = { karambit: [0.175, 0.04] };
   // how each knife sits in the hand: [rx, ry, rz, px, py, pz] added to the game's pose, and its size in hand
-  const REST = { butterfly: [0, 0.1, -0.2, 0, 0, 0], karambit: [0.1, 0.25, 0.1, 0.06, -0.12, 0.04], kukri: [0.3, 0.25, -0.7, 0, 0, 0], tanto: [0, 0, 0, 0, 0, 0], flip: [0, 0, 0, 0, 0, 0] };
-  const SIZE = { butterfly: 1.1, karambit: 1.1, kukri: 1.05, tanto: 1.05, flip: 1.1 };
-  const DRAW_D = { butterfly: 0.6, karambit: 0.5, kukri: 0.4, tanto: 0.42, flip: 0.38 };
+  const REST = { butterfly: [0, 0.1, -0.2, 0, 0, 0], karambit: [0.1, 0.25, 0.1, 0.06, -0.12, 0.04], kukri: [0.3, 0.25, -0.7, 0, 0, 0], tanto: [0, 0, 0, 0, 0, 0], flip: [0, 0, 0, 0, 0, 0], bayonet: [0, 0, 0, 0, 0, 0], gut: [0, 0.05, -0.1, 0, 0, 0], bowie: [0.08, 0.1, -0.2, 0, -0.01, 0], kunai: [0, 0, -0.15, 0, 0, 0], stiletto: [0, 0, 0, 0, 0, 0] };
+  const SIZE = { butterfly: 1.1, karambit: 1.1, kukri: 1.05, tanto: 1.05, flip: 1.1, bayonet: 1.05, gut: 1.08, bowie: 1.0, kunai: 1.1, stiletto: 1.1 };
+  const DRAW_D = { butterfly: 0.6, karambit: 0.5, kukri: 0.4, tanto: 0.42, flip: 0.38, bayonet: 0.5, gut: 0.5, bowie: 0.5, kunai: 0.55, stiletto: 0.48 };
   // attack: the kind that alternates and how long it takes
   const ATTACK = {
     butterfly: [
@@ -287,6 +410,26 @@
     flip: [
       ["slash", 0.26],
       ["stab", 0.22],
+    ],
+    bayonet: [
+      ["stab", 0.22],
+      ["slash", 0.26],
+    ],
+    gut: [
+      ["slash", 0.26],
+      ["upper", 0.28],
+    ],
+    bowie: [
+      ["sweep", 0.32],
+      ["chop", 0.34],
+    ],
+    kunai: [
+      ["jab", 0.24],
+      ["cut", 0.22],
+    ],
+    stiletto: [
+      ["lunge", 0.26],
+      ["slash", 0.24],
     ],
   };
 
@@ -411,6 +554,26 @@
         blade && (blade.rotation.x = PI * (1 - c01(o)));
         P.y -= 0.05 * r;
         R.z += 0.35 * r;
+      } else if ("bayonet" === m) {
+        // off the rifle: pulled back and down, then brought up
+        P.z += 0.18 * r;
+        P.y -= 0.1 * r;
+        R.x -= 0.4 * r;
+      } else if ("gut" === m) {
+        P.y -= 0.12 * r;
+        R.z -= 0.5 * r;
+      } else if ("bowie" === m) {
+        // drawn from the hip, heavy
+        P.y -= 0.22 * r;
+        P.x += 0.06 * r;
+        R.x -= 0.4 * r;
+        R.z -= 0.3 * r;
+      } else if ("kunai" === m) {
+        P.y -= 0.08 * r;
+        R.z += 0.4 * Math.sin(k * PI);
+      } else if ("stiletto" === m) {
+        P.y -= 0.06 * r;
+        R.z -= 0.2 * r;
       }
     }
     // inspect: the arm only raises the knife into view and lowers it again; the knife's own
@@ -458,6 +621,30 @@
         R.y += 1.0 - 2.0 * e;
         P.x += 0.16 - 0.34 * e;
         R.z += 0.4 * sn;
+      } else if ("upper" === kind) {
+        // a rising backhand cut
+        R.x += -0.6 + 1.1 * e;
+        P.y += -0.12 + 0.22 * e;
+        P.x += -0.08 + 0.12 * e;
+        R.z += 0.45 * sn;
+      } else if ("sweep" === kind) {
+        // a wide heavy swing right to left
+        R.y += 1.25 - 2.5 * e;
+        P.x += 0.2 - 0.42 * e;
+        P.y += 0.04 * sn;
+        R.z += -0.5 + 0.9 * e;
+      } else if ("jab" === kind) {
+        // two quick jabs
+        const j = Math.abs(Math.sin(k * 2 * PI));
+        P.z -= 0.2 * j;
+        P.x -= 0.03 * j * (k < 0.5 ? 1 : -1);
+        R.x -= 0.15 * j;
+      } else if ("lunge" === kind) {
+        // a long thrust with a twist at the end
+        P.z -= 0.38 * sn;
+        P.y += 0.03 * sn;
+        R.x -= 0.2 * sn;
+        R.z += 0.7 * ezS(seg(k, 0.3, 0.6)) * (1 - ezS(seg(k, 0.7, 1)));
       } else if ("cut" === kind) {
         R.y += -0.6 + 1.2 * e;
         P.x += -0.1 + 0.22 * e;
