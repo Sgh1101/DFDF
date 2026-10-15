@@ -23,11 +23,13 @@
 - **킬 효과**: 처치마다 두 음 "타-단"이 나고, 연속 처치(4.5초 안)할수록 음이 오음계로 올라가 에이스에서 끝납니다. 영웅 이상 스킨은 종·울림을 더하고 배너 색이 스킨을 따릅니다. 스킨 31종은 각자 킬배너가 있습니다 (`js/legacy/61-kill-banners.js`). 소리와 모양만 바뀌고 전투에는 영향이 없습니다.
 - **총소리**: 기본 총소리 밑에 총 크기에 따른 저음·몸통·꼬리를 깝니다 (`js/legacy/63-heavier-gunshots.js`).
 - **해안 포구**: 구역별 색·재질, 랜드마크(크레인, 등대, 시계탑, 터미널), 창문·소품·조명으로 꾸민 맵입니다. 충돌체와 이동 격자는 꾸미기 전과 같습니다 (`js/legacy/76-*`, `77-*`).
+- **랭크전**: "같이 하기"의 `랭크전 찾기`로 열린 랭크 방에 들어가거나 새로 엽니다. 랭크 방에서는 관리자 설정, 치트와 치트 코드, 계정별 치트 권한, 운영자 방 명령, 방장의 규칙 변경이 모두 꺼지고 모드·맵·라운드는 방을 열 때 정해진 대로 갑니다. 서버는 랭크 방에서 시작한 경기의 확인표에만 랭크 표시를 서명하고, 사람이 `rank.minHumans`명 이상일 때만 RR을 바꿉니다. 일반 경기는 XP와 골드만 줍니다 (`js/legacy/81-ranked-*.js`, `api/v1.js`의 `match_start`·`progress`·`room_up`).
+- **시프트 아레나**: 90 × 110 m, 3대3. 가운데 단상과 계단, 블록과 엄폐물, 양옆 탑, 사이트 단상이 있고 세 묶음의 높은 장벽이 22초마다 한 묶음씩 내려갔다가 올라옵니다. 바뀌기 3.5초 전에 해당 장벽이 주황색으로 깜빡이고 화면에 카운트가 뜹니다. 시계는 방장이 가지고 손님에게 알리며, 라운드가 시작되면 처음 모양으로 돌아갑니다 (`js/legacy/82-shift-arena-*.js`).
 - **짧은 가로 화면**: 요원 선택의 맵·모드 칩은 `맵 · 모드 ▾` 버튼 하나로 접히고, 누르면 아래에서 올라옵니다 (`css/review-fixes.css`, `js/select-compact.js`).
 
 ## 테스트
 
-`npm test`는 단위 테스트(`tests/`)입니다. 브라우저 검사(`npm run test:browser`, `test:regression`, `test:startup`, `test:maps`, `test:online`, `test:followup`)는 Playwright가 필요하고 `DFDF_PLAYWRIGHT_MODULE`, `DFDF_BASE_URL` 등을 설정합니다. 소프트웨어 GL(헤드리스) 환경에서는 느려서 `test:regression`의 첫 클릭과 `test:followup`의 실제 클릭이 간헐적으로 시간 초과됩니다. 코드를 바꾸지 않은 브랜치에서도 같았습니다.
+`npm test`는 단위 테스트(`tests/`)입니다. 브라우저 검사(`npm run test:browser`, `test:regression`, `test:startup`, `test:maps`, `test:online`, `test:ranked`, `test:shift`, `test:followup`)는 Playwright가 필요하고 `DFDF_PLAYWRIGHT_MODULE`, `DFDF_BASE_URL` 등을 설정합니다. 소프트웨어 GL(헤드리스) 환경에서는 느려서 `test:regression`의 첫 클릭과 `test:followup`의 실제 클릭이 간헐적으로 시간 초과됩니다. 코드를 바꾸지 않은 브랜치에서도 같았습니다.
 
 ## 파일
 
