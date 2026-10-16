@@ -107,7 +107,9 @@ const DEFAULT_CONFIG = {
   // for gold at a fixed price by tier, dearer than a pull but the skin you choose. mix: how
   // many of each tier; knife: the knives that are other knives cost this many times more;
   // reroll: raise it to change today's shop at once
-  shop: { on: !0, mix: { common: 7, rare: 6, epic: 4, legendary: 3 }, price: { common: 1200, rare: 3000, epic: 7000, legendary: 15000 }, knife: 1.5, reroll: 0 },
+  // weekly: next to it, from Monday (Korea) a few epic and legendary skins at off% off for
+  // the whole week; its own reroll number
+  shop: { on: !0, mix: { common: 7, rare: 6, epic: 4, legendary: 3 }, price: { common: 1200, rare: 3000, epic: 7000, legendary: 15000 }, knife: 1.5, reroll: 0, weekly: { on: !0, mix: { epic: 2, legendary: 3 }, off: 30, reroll: 0 } },
   // the rank (tier): rating points (RR) after each match. A win adds win + perKill
   // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
   // under half of loss). 100 RR a division, three divisions a tier; a day's
@@ -698,14 +700,58 @@ function shopOf(c, day) {
   });
   return out;
 }
+// ── the weekly deal ──
+// From Monday (Korea) to the next: epic and legendary skins at a discount, picked from the week
+// and the owner's weekly reroll number the same way as the daily twenty. Skins only a season gives
+// are never in it.
+const nextKstMonday = (t) => Date.parse(kstWeek(t) + "T00:00:00+09:00") + 7 * 864e5;
+function weeklyOf(c, week) {
+  const W = c.shop.weekly;
+  if (!W || !W.on) return [];
+  const out = [],
+    off = Math.max(0, Math.min(90, +W.off || 0));
+  for (const tk of ["epic", "legendary"]) {
+    const ti = TIER_KEYS.indexOf(tk),
+      want = Math.max(0, Math.floor(+(W.mix && W.mix[tk]) || 0));
+    if (!want) continue;
+    const h = crypto.createHmac("sha256", SECRET).update(`weekly|${week}|${W.reroll | 0}|${tk}`).digest();
+    let st = h.readUInt32LE(0) >>> 0 || 1;
+    const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0), st / 4294967296);
+    const pool = [];
+    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1 && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && pool.push([g, s]);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    // a gun once and a skin at most once while the pool allows
+    const usedGun = new Set(out.map((x) => x.g)),
+      usedSkin = new Set(out.map((x) => x.s)),
+      picked = [];
+    for (const [g, s] of pool) {
+      if (picked.length >= want) break;
+      if (usedGun.has(g) || usedSkin.has(s)) continue;
+      picked.push([g, s]);
+      usedGun.add(g);
+      usedSkin.add(s);
+    }
+    for (const [g, s] of picked) {
+      const was = shopPrice(c, g, s);
+      out.push({ g, s, r: ti + 1, was, price: Math.round((was * (100 - off)) / 100 / 10) * 10, w: 1 });
+    }
+  }
+  return out;
+}
 A.shop = async (q, b) => {
   const c = await loadConfig(),
     t = now(),
     day = kstDay(t);
   const u = b && b.token ? await who(b.token).catch(() => null) : null;
-  const items = c.shop.on ? shopOf(c, day) : [];
+  const weekly = c.shop.on ? weeklyOf(c, kstWeek(t)) : [];
+  // a skin in the weekly deal is not also in the day's list
+  const items = (c.shop.on ? shopOf(c, day) : []).filter((x) => !weekly.some((w) => w.g === x.g && w.s === x.s));
   const wish = u ? cleanWish(u) : [];
-  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1, wished: wish.includes(x.g + "|" + x.s) })), gold: u && "number" == typeof u.gold ? u.gold : null, wish };
+  const mark = (x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1, wished: wish.includes(x.g + "|" + x.s) });
+  return { on: !!c.shop.on, day, week: kstWeek(t), resetAt: nextKstMidnight(t), weekResetAt: weekly.length ? nextKstMonday(t) : 0, items: items.map(mark), weekly: weekly.map(mark), gold: u && "number" == typeof u.gold ? u.gold : null, wish };
 };
 // the wishlist: skins (gun|skin) the player wants; the shop marks them and the game says
 // when one is on sale today. Thirty at most.
@@ -740,8 +786,10 @@ A.shop_buy = async (q, b) => {
   ensureWallet(u, c);
   const day = kstDay(now());
   if (b.day && b.day !== day) throw fail(409, "상점이 새로 바뀌었습니다. 다시 확인해 주세요");
-  const it = shopOf(c, day).find((x) => x.g === b.g && x.s === b.s);
-  if (!it) throw fail(404, "오늘 상점에 없는 스킨입니다");
+  if (b.week && b.week !== kstWeek(now())) throw fail(409, "주간 특가가 새로 바뀌었습니다. 다시 확인해 주세요");
+  // a weekly-deal skin is bought at its weekly price, from the weekly list
+  const it = (b.w ? weeklyOf(c, kstWeek(now())) : shopOf(c, day)).find((x) => x.g === b.g && x.s === b.s);
+  if (!it) throw fail(404, b.w ? "이번 주 특가에 없는 스킨입니다" : "오늘 상점에 없는 스킨입니다");
   if (hasItem(u, it.g, it.s)) throw fail(409, "이미 가진 스킨입니다");
   if (u.gold < it.price) throw fail(402, `골드가 부족합니다 (${it.price.toLocaleString()} 필요)`);
   u.gold -= it.price;
@@ -750,7 +798,7 @@ A.shop_buy = async (q, b) => {
   u.bought = (u.bought || 0) + 1;
   u.spent = (u.spent || 0) + it.price;
   await saveUser(u);
-  await log("shop", `${u.id} 구매: ${it.g}/${it.s} (${["", "일반", "희귀", "영웅", "전설"][it.r]}) ${it.price}골드`, { user: u.id });
+  await log("shop", `${u.id} 구매${it.w ? "(주간 특가)" : ""}: ${it.g}/${it.s} (${["", "일반", "희귀", "영웅", "전설"][it.r]}) ${it.price}골드`, { user: u.id });
   return { item: it, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // a pull of one or ten: gold out, items in, never one already owned. The
@@ -1181,7 +1229,7 @@ ADMIN.summary = async () => {
     "lobby" !== r.state && R.playing++;
     R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
   }
-  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), t };
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), weekly: c.shop.on ? weeklyOf(c, kstWeek(t)) : [], weeklyReset: nextKstMonday(t), t };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -1349,7 +1397,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];

@@ -17,8 +17,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(await page.evaluate((s) => document.querySelector(`#ar-skins .ar-sk[data-s="${s}"]`).classList.contains("wish"), sid), "the card shows the star");
     // a skin in today's shop, wished from the shop tab
     await page.evaluate(() => GUN_SKINS.tab("shop"));
-    await page.waitForFunction(() => document.querySelectorAll("#sh-list .it").length === 20, null, { timeout: 30000 });
-    const it = await page.evaluate(() => GUN_SKINS.shop().items.find((x) => !GUN_SKINS.owns(x.g, x.s)));
+    await page.waitForFunction(() => document.querySelectorAll("#sh-list .it:not(.wk)").length === 20, null, { timeout: 30000 });
+    const it = await page.evaluate(() => GUN_SKINS.shop().items.find((x) => !x.w && !GUN_SKINS.owns(x.g, x.s)));
     await page.click(`#sh-list .it[data-g="${it.g}"][data-s="${it.s}"]`);
     await page.click("#sh-wish");
     await page.waitForFunction(([g, s]) => document.querySelector(`#sh-list .it[data-g="${g}"][data-s="${s}"]`).classList.contains("wish"), [it.g, it.s]);

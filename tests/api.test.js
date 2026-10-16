@@ -367,3 +367,53 @@ test("seasons: the end of one pays by tier, gives the season skin from gold up, 
   const s = (await h.api("a_summary", { atoken: owner2.atoken })).summary;
   assert.equal(s.season.n, 3);
 });
+
+test("the weekly deal: epic and legendary skins at a discount all week, from Monday, bought at the weekly price", async () => {
+  const h = harness({ now: Date.parse("2026-10-14T03:00:00Z") }), player = await login(h), owner = await login(h, "owner");
+  const a = await h.api("shop", { token: player.token }), key = (x) => x.g + "|" + x.s;
+  assert.equal(a.week, "2026-10-12", "the week starts on a Monday (Korea)");
+  assert.deepEqual([3, 4].map((r) => a.weekly.filter((x) => x.r === r).length), [2, 3]);
+  assert.equal(a.weekResetAt, Date.parse("2026-10-18T15:00:00Z"), "the next Monday, midnight in Korea");
+  assert.ok(a.weekly.every((x) => x.w === 1 && x.price < x.was && Math.abs(x.price - x.was * 0.7) <= 10 && x.s !== "laurel"));
+  assert.equal(new Set(a.weekly.map((x) => x.g)).size, a.weekly.length, "a gun once");
+  assert.ok(a.items.every((x) => !a.weekly.some((w) => key(w) === key(x))), "not also in the day's list");
+  // the same all week, a new one on Monday
+  h.advance(3 * 864e5);
+  assert.deepEqual((await h.api("shop", {})).weekly.map(key), a.weekly.map(key));
+  const mon = Date.parse("2026-10-18T15:00:01Z") - h.now();
+  h.advance(mon);
+  const next = await h.api("shop", {});
+  assert.equal(next.week, "2026-10-19");
+  assert.notDeepEqual(next.weekly.map(key), a.weekly.map(key));
+  // bought from the weekly list at the weekly price, not twice, not at the wrong week
+  const it = next.weekly.find((x) => x.r === 4), owner2 = await login(h, "owner");
+  assert.equal((await h.api("a_user_set", { atoken: owner2.atoken, id: "player", op: "gold", gold: 40000 })).status, 200);
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, w: 1, week: "2026-10-12" })).status, 409);
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s })).status, 404, "daily list only without the weekly flag");
+  const ok = await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, w: 1, week: next.week });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.gold, 40000 - it.price);
+  assert.ok(h.db.get("logs").some((l) => /구매\(주간 특가\)/.test(l)));
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, w: 1, week: next.week })).status, 409);
+  // the owner: the discount, the mix, a reroll, off
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.shop.weekly.off = 50; c.shop.weekly.mix = { epic: 1, legendary: 1 };
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  const half = await h.api("shop", {});
+  assert.equal(half.weekly.length, 2);
+  assert.ok(half.weekly.every((x) => Math.abs(x.price - x.was * 0.5) <= 10));
+  c.shop.weekly.off = 95;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 400);
+  c.shop.weekly.off = 50; c.shop.weekly.reroll = 1;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  assert.notDeepEqual((await h.api("shop", {})).weekly.map(key), half.weekly.map(key));
+  c.shop.weekly.on = false;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  const off = await h.api("shop", {});
+  assert.deepEqual([off.weekly.length, off.items.length], [0, 20]);
+  const sm = await h.api("a_summary", { atoken: owner2.atoken });
+  assert.deepEqual(sm.weekly, []);
+});
