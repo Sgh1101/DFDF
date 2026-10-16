@@ -24,6 +24,7 @@
     "test:wish": "node scripts/browser-wish.js",
     "test:train": "node scripts/browser-train.js",
     "test:agents4": "node scripts/browser-agents4.js",
-    "test:season": "node scripts/browser-season.js"
+    "test:season": "node scripts/browser-season.js",
+    "test:infection": "node scripts/browser-infection.js"
   }
 }

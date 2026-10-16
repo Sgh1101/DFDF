@@ -3,7 +3,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   const f = await fixture();
   try {
     const page = await f.page("followup", { width: 852, height: 393 }, { hasTouch: true });
-    assert.deepEqual(await page.evaluate(() => GAME_CATALOG.counts()), { agents: 42, abilities: 168, weapons: 31, maps: 18, modes: 7, skins: 940 });
+    assert.deepEqual(await page.evaluate(() => GAME_CATALOG.counts()), { agents: 42, abilities: 168, weapons: 31, maps: 18, modes: 8, skins: 940 });
     const ch = await page.evaluate(() => { MULTI.paint(); return MULTI.ch(); });
     const rooms = [
       { code: "FULL01", name: "Full", n: 10, max: 10, state: "lobby", created: 1 },

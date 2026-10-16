@@ -9,8 +9,10 @@
     // the two below are run by the knife-fight-and-gun-game module
     knife: { name: "칼 대난투", sub: "개인전 25킬 · 칼만 · 능력 없음", respawn: !0, ffa: !0, kills: 25, time: 420, noAbil: !0, melee: !0 },
     gun: { name: "총기 순환", sub: "개인전 · 킬마다 다음 총 · 마지막은 칼", respawn: !0, ffa: !0, kills: 13, time: 600, noAbil: !0, ladder: !0 },
+    // run by the infection module: one infected to start, the caught join them, survive the time to win
+    inf: { name: "감염", sub: "술래 한 명으로 시작 · 잡히면 같은 편 · 3분 버티면 생존자 승리", respawn: !0, kills: 9999, time: 180, noAbil: !0, infect: !0 },
   };
-  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun"];
+  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "inf"];
   room.mode = room.mode || "std";
   const M = () => MODES[room.mode] || MODES.std;
   const inMatch = () => world.actors && world.actors.length > 0;

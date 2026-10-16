@@ -53,7 +53,7 @@
     (news.innerHTML = [
       [L("요원 36명 · 능력 144개", "36 agents · 144 abilities"), L("재밌는 요원만 남기고 능력을 전부 새로 만들었습니다. 같은 능력은 하나도 없습니다", "Only the fun ones stayed, every ability rebuilt. No two alike")],
       [L("같이 하기", "Play together"), L("서버별 방 목록 · 방 만들기 · 초대 코드가 한 화면에", "Rooms by server, make a room, invite code: one screen")],
-      [L("모드 7종", "7 modes"), L("신속플레이 · 스파이크 돌격 · 팀 데스매치 · 데스매치 · 칼 대난투 · 총기 순환", "Swift · Spike Rush · Team Deathmatch · Deathmatch · Knife Fight · Gun Game")],
+      [L("모드 8종", "8 modes"), L("신속플레이 · 스파이크 돌격 · 팀 데스매치 · 데스매치 · 칼 대난투 · 총기 순환 · 감염", "Swift · Spike Rush · Team Deathmatch · Deathmatch · Knife Fight · Gun Game · Infection")],
     ]
       .map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`)
       .join(""));
