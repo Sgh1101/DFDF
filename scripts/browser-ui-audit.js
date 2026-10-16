@@ -23,7 +23,7 @@ const only = (process.env.DFDF_UI_ONLY || "").split(",").filter(Boolean), viewOn
         // what lies behind an overlay is not the screen being looked at
         const out = await page.evaluate(([s, t, h]) => { const hid = (h || []).flatMap((q) => [...document.querySelectorAll(q)]); hid.forEach((e) => (e.style.visibility = "hidden")); const r = window.__audit(s, { touch: t }); hid.forEach((e) => (e.style.visibility = "")); return r; }, [screen, touch, hide]);
         for (const o of out) found.push({ view: name, ...o });
-        if (shots && out.length) await page.screenshot({ path: `${shots}/${name}-${screen}.png` });
+        if (shots && (out.length || process.env.DFDF_UI_ALL)) await page.screenshot({ path: `${shots}/${name}-${screen}.png` });
       };
       const back = () => page.evaluate(() => { for (const id of ["armory", "pause", "shop", "lobby"]) { const e = document.getElementById(id); e && (e.hidden = true); } try { GUN_SKINS.close(); } catch (e) {} try { closeShop(); } catch (e) {} document.querySelector(".home-practice") && (document.querySelector(".home-practice").open = false); show("s-title"); });
       const click = (sel) => page.evaluate((s) => document.querySelector(s).click(), sel);
