@@ -51,6 +51,19 @@ const { harness } = require("../tests/api-harness");
     await page.waitForFunction(() => /주말 이벤트/.test(document.querySelector("#main").textContent) && document.querySelector('[data-q="aim.strength"]').value === "55");
     const cfg = (await h.api("a_config_get", { atoken: owner.atoken })).config;
     assert.equal(cfg.aim.strength, 55); assert.equal(cfg.gacha.cost1, 250); assert.equal(cfg.game.announcement, "주말 이벤트");
+    // the season: its rewards, and ending it now
+    const n0 = await page.evaluate(() => +document.querySelector("#ssn h3").textContent.match(/시즌 (\d+)/)[1]);
+    await page.fill('[data-q="season.gold.gold"]', "900");
+    await page.selectOption('[data-q="season.skinTier"]', "5");
+    await page.click("#ssn-save");
+    await page.waitForFunction(() => document.querySelector('[data-q="season.gold.gold"]').value === "900" && /다이아몬드 이상은 전용 스킨/.test(document.querySelector("#ssn").textContent));
+    let sc = (await h.api("a_config_get", { atoken: owner.atoken })).config.season;
+    assert.equal(sc.gold.gold, 900); assert.equal(sc.skinTier, 5);
+    await page.click("#ssn-end");
+    await page.waitForFunction((n) => new RegExp("시즌 " + (n + 1) + " ").test(document.querySelector("#ssn h3").textContent), n0);
+    sc = (await h.api("a_config_get", { atoken: owner.atoken })).config.season;
+    const today = new Date(Date.now() + 9 * 36e5);
+    assert.equal(sc.skip, n0); assert.equal(sc.startDay, today.getUTCFullYear() * 1e4 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate());
     // one account: aim assist on a computer for 7 days
     await page.click('#nav button[data-v="users"]');
     await page.waitForSelector('tr[data-id="bravo"] button[data-op="aim"]');

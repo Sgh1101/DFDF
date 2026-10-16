@@ -85,5 +85,6 @@
   "js/legacy/84-aim-assist-the-aim-leans-toward-an-enemy-near-the-crosshair.js",
   "js/legacy/85-knife-fight-and-gun-game-two-free-for-all-modes.js",
   "js/legacy/86-runaway-train-a-3v3-map-on-two-freight-trains-whose-bridges-open-and-close.js",
-  "js/legacy/87-two-more-agents-the-mask-who-copies-and-swaps-and-the-referee.js"
+  "js/legacy/87-two-more-agents-the-mask-who-copies-and-swaps-and-the-referee.js",
+  "js/legacy/88-seasons-the-ranked-season-on-the-title-screen-and-its-end.js"
 ]

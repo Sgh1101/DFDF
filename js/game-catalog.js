@@ -9,12 +9,12 @@
     skins: GUN_SKINS.guns().reduce((n, gun) => n + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0),
   });
   const news = [
-    { title: ["혼자 또는 친구와", "Solo or with friends"], text: ["혼자 하기는 AI 대전, 같이 하기는 방 목록과 초대 코드", "Solo plays against AI; together opens rooms and invite codes"] },
+    { title: ["랭크 시즌", "Ranked seasons"], text: ["4주마다 시즌이 끝납니다. 마친 티어만큼 골드, 골드 이상은 전용 스킨 「월계관」을 모든 총에. RR은 절반부터 다시. 같이 하기 → 랭크전 찾기", "Every four weeks a season ends: gold by the tier you finish on, the Laurel skin on every gun from Gold up, and RR starts again from half. Play together → Find a ranked match"] },
+    { title: ["새 요원 가면 · 심판", "New agents 가면 and 심판"], text: ["적의 능력을 따라 쓰고 적으로 변장하는 가면, 옐로카드·타임아웃·오프사이드·레드카드의 심판", "One copies enemy abilities and wears their faces; the other has cards, a whistle and an offside line"] },
+    { title: ["칼 대난투 · 총기 순환", "Knife Fight · Gun Game"], text: ["칼만 쓰는 개인전, 킬마다 다음 총으로 바뀌어 칼로 끝내는 개인전", "Knives only; or a new gun with every kill, ending on the knife"] },
+    { title: ["달리는 열차", "Runaway Train"], text: ["두 화물열차 위의 3대3. 칸 사이 다리가 20초마다 열리고 닫힙니다", "A 3v3 on two freight trains whose bridges open and close every 20 seconds"] },
+    { title: ["찜하기", "Wishlist"], text: ["무기고·상점에서 ★로 찜해 두면 그 스킨이 오늘 상점에 뜰 때 알려 줍니다", "Star a skin in the armoury or the shop: you're told when it's in today's shop"] },
     { title: ["일일 상점", "Daily shop"], text: ["매일 자정에 스킨 20개가 바뀝니다. 뽑기 대신 원하는 스킨을 골드로 바로 삽니다. 무기고 → 상점", "Twenty skins every midnight: buy the one you want with gold. Armoury → Shop"] },
-    { title: ["새 칼 5종", "Five new knives"], text: ["총검·거트·보위(일반·희귀), 링에 걸어 돌리는 쿠나이(영웅), 칼날이 앞으로 튀어나오는 스틸레토(전설)", "Bayonet, gut and bowie knives, a kunai that spins on its ring, an out-the-front stiletto"] },
-    { title: ["에임 보정", "Aim assist"], text: ["모바일은 설정에서 누구나 켜고 끕니다. 조준선 가까운 적을 조금 따라갑니다", "On phones, a switch in the settings: the aim follows a nearby enemy a little"] },
-    { title: ["랭크전", "Ranked"], text: ["관리자·치트가 모두 꺼진 방에서 RR이 오르내립니다. 같이 하기 → 랭크전 찾기", "Admin and cheats are off and RR moves. Play together → Find a ranked match"] },
-    { title: ["시프트 아레나", "Shift Arena"], text: ["22초마다 장벽이 오르내리는 3대3 맵", "A 3v3 map whose barriers rise and sink every 22 seconds"] },
   ];
   window.GAME_CATALOG = Object.freeze({ counts, news: Object.freeze(news.map((item) => Object.freeze({ title: Object.freeze(item.title), text: Object.freeze(item.text) }))) });
 })();

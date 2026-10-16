@@ -90,6 +90,8 @@
     { id: "abyss", ko: "심해", en: "Abyss", rar: 4, res: 512, tile: 0.4, pat: "abyss", em: !0, anim: "pulse", pal: ["#020c1a", "#06264a", "#2ef2ff", "#ff4fd8", "#b8f7ff"], body: [0xffffff, 0.38, 0.2], coat: [1, 0.12], metal: [0x1d3b5a, 0.3, 0.85], dark: [0x020a14, 0.7, 0.2], glow: 0x2ef2ff },
     { id: "synth", ko: "신스웨이브", en: "Synthwave", rar: 4, res: 512, tile: 0.34, vOff: 0.24, pat: "synth", em: !0, anim: "pulse", pal: ["#1a0633", "#ff2e88", "#ffb347", "#12001f", "#ff3cf0", "#fff27a"], body: [0xffffff, 0.35, 0.2], coat: [0.8, 0.1], metal: [0x3a1a5a, 0.3, 0.85], dark: [0x12001f, 0.6, 0.3], glow: 0xff2e88 },
     { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, tile: 0.3, pat: "opal", em: !0, pal: ["#dfe9f3", "#bcd0e6", "#efe4ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
+    // the season's own skin (excl): no pull and no shop; finishing a season at gold or above
+    { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -1016,6 +1018,129 @@
         });
       }
     },
+    // the season's own skin: gold laurel wreaths on deep green lacquer, a star in each,
+    // a red ribbon where the branches meet; fine gold pinstripes between
+    laurel(g, W, H, pal, em) {
+      const R = rng(53),
+        wrap = wrapper(W, H);
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        const bg = g.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, pal[0]);
+        bg.addColorStop(0.5, pal[1]);
+        bg.addColorStop(1, pal[0]);
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        // pinstripes on the diagonal, drawn on both sides of every edge so they join
+        g.strokeStyle = "rgba(212,175,55,.16)";
+        g.lineWidth = W * 0.004;
+        for (let i = -8; i <= 8; i++) {
+          const x = (i * W) / 8;
+          g.beginPath();
+          g.moveTo(x, 0);
+          g.lineTo(x + W, H);
+          g.stroke();
+        }
+      }
+      const leaf = (x, y, a, L, wd) => {
+        g.save();
+        g.translate(x, y);
+        g.rotate(a);
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.quadraticCurveTo(L * 0.5, -wd, L, 0);
+        g.quadraticCurveTo(L * 0.5, wd, 0, 0);
+        g.closePath();
+        if (em) {
+          g.fillStyle = "rgba(255,214,102,.5)";
+          g.fill();
+        } else {
+          g.fillStyle = pal[2];
+          g.fill();
+          g.strokeStyle = "rgba(60,40,6,.75)";
+          g.lineWidth = W * 0.0025;
+          g.stroke();
+          // the midrib catching the light
+          g.strokeStyle = pal[3];
+          g.lineWidth = W * 0.002;
+          g.beginPath();
+          g.moveTo(L * 0.1, 0);
+          g.lineTo(L * 0.85, 0);
+          g.stroke();
+        }
+        g.restore();
+      };
+      const star = (x, y, r) => {
+        g.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 5,
+            q = i % 2 ? r * 0.42 : r;
+          i ? g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q) : g.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+        }
+        g.closePath();
+        g.fillStyle = em ? "rgba(255,240,190,.85)" : pal[4];
+        g.fill();
+      };
+      const wreath = (cx, cy, r) => {
+        for (const side of [-1, 1]) {
+          // the stem: from the bottom round the side to near the top
+          const a0 = Math.PI / 2 + side * 0.32,
+            a1 = Math.PI / 2 + side * (Math.PI - 0.42),
+            n = 9;
+          if (!em) {
+            g.strokeStyle = "#6b4d12";
+            g.lineWidth = W * 0.006;
+            g.beginPath();
+            g.arc(cx, cy, r, Math.min(a0, a1), Math.max(a0, a1));
+            g.stroke();
+          }
+          for (let k = 0; k < n; k++) {
+            const t = k / (n - 1),
+              a = a0 + (a1 - a0) * t,
+              px = cx + Math.cos(a) * r,
+              py = cy + Math.sin(a) * r,
+              tang = a + side * (Math.PI / 2),
+              L = r * (0.42 - 0.16 * t);
+            leaf(px, py, tang - side * 0.55, L, L * 0.32);
+            leaf(px, py, tang + side * 0.55 + Math.PI * 0.12 * side, L * 0.9, L * 0.3);
+          }
+        }
+        star(cx, cy, r * 0.34);
+        if (!em) {
+          // the ribbon tying the two stems
+          g.fillStyle = pal[5];
+          for (const s of [-1, 1]) {
+            g.beginPath();
+            g.moveTo(cx, cy + r * 1.02);
+            g.lineTo(cx + s * r * 0.34, cy + r * 1.42);
+            g.lineTo(cx + s * r * 0.18, cy + r * 1.46);
+            g.closePath();
+            g.fill();
+          }
+          g.beginPath();
+          g.arc(cx, cy + r, r * 0.09, 0, 2 * Math.PI);
+          g.fill();
+        }
+      };
+      // a staggered grid of wreaths, each a little turned
+      const cols = 3,
+        rows = 3;
+      for (let j = 0; j < rows; j++)
+        for (let i = 0; i < cols; i++) {
+          const x = ((i + (j % 2) * 0.5 + 0.25) * W) / cols,
+            y = ((j + 0.5) * H) / rows,
+            r = W * (0.085 + 0.012 * R());
+          wrap(x, y, r * 1.6, (cx, cy) => {
+            g.save();
+            g.translate(cx, cy);
+            g.rotate((R() - 0.5) * 0.3);
+            wreath(0, 0, r);
+            g.restore();
+          });
+        }
+    },
   };
   const TEX = {};
   function texture(skin, em) {
@@ -1314,7 +1439,7 @@
     const t = {},
       v = GC().botMaxTier,
       cap = null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2,
-      pool = SKINS.filter((s) => !s.gone && s.rar >= 1 && s.rar <= cap);
+      pool = SKINS.filter((s) => !s.gone && !s.excl && s.rar >= 1 && s.rar <= cap);
     let h = (((a.id | 0) + 1) * 2654435761 + seed) >>> 0;
     for (const k of Object.keys(WEAPONS)) {
       h ^= h << 13;
@@ -3286,7 +3411,7 @@
     if (FEAT.length) return FEAT;
     const guns = ["rifle", "vector", "sniper", "carbine", "bullpup", "marksman", "shotgun", "lmg", "smg"].filter((k) => WEAPONS[k]);
     let gi = Math.floor(Math.random() * Math.max(1, guns.length));
-    for (const s of SKINS.filter((x) => !x.gone && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && 3 === x.rar))) {
+    for (const s of SKINS.filter((x) => !x.gone && !x.excl && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && !x.excl && 3 === x.rar))) {
       const g = s.only || guns[gi++ % guns.length];
       g && WEAPONS[g] && FEAT.push({ g, s: s.id });
     }
@@ -3709,7 +3834,7 @@
   function paintCap() {
     const shown = AR.peek && BY[AR.peek] ? BY[AR.peek] : AR.view && BY[AR.view] ? BY[AR.view] : mySkin(AR.key),
       r = RAR[shown.rar];
-    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>` : ""}`;
+    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? (BY[AR.peek] && BY[AR.peek].excl ? `<em>${L("시즌 보상 · 랭크전 시즌을 골드 티어 이상으로 마치면 모든 총에", "Season reward · finish a ranked season at Gold or above for every gun")}</em>` : `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>`) : ""}`;
     const aw = $("ar-wish");
     aw && (aw.onclick = () => toggleWish(AR.key, AR.peek));
   }
