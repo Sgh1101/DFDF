@@ -1,0 +1,114 @@
+/* ── the armoury and the settings window: more depth and atmosphere, same layout ──
+   Colour comes from a warm gold glow in one corner and a cool blue one in the other, a faint diagonal weave over
+   the dark, glass panels with a light rim, and a short entrance. Nothing here moves or resizes a control. ── */
+
+/* ═════════ the armoury ═════════ */
+#armory{
+  background:
+    radial-gradient(900px 520px at 8% -8%,rgba(255,200,73,.13),transparent 62%),
+    radial-gradient(800px 560px at 104% 108%,rgba(56,189,248,.12),transparent 60%),
+    radial-gradient(600px 400px at 60% 40%,rgba(120,90,255,.045),transparent 70%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 1px,transparent 1px 14px),
+    linear-gradient(180deg,#0b0e16,#06080d);
+}
+#armory:not([hidden]){animation:mpIn .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes mpIn{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:none}}
+
+/* header: a bright hairline instead of a flat rule, the title with a gold tick */
+.ar-hd{border-bottom:0;position:relative;padding-bottom:14px}
+.ar-hd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(255,200,73,.7),rgba(255,255,255,.14) 30%,rgba(255,255,255,.04) 80%,transparent)}
+.ar-hd h2{position:relative;padding-left:12px;text-shadow:0 2px 18px rgba(255,200,73,.25)}
+.ar-hd h2::before{content:"";position:absolute;left:0;top:.18em;bottom:.18em;width:3px;border-radius:2px;background:linear-gradient(180deg,var(--gold),rgba(255,200,73,.2));box-shadow:0 0 10px rgba(255,200,73,.6)}
+.ar-hd>div:first-child small,.ar-hd>div:first-child .lbl{letter-spacing:.3em;color:var(--steel-dim)}
+.ar-gold{background:linear-gradient(180deg,rgba(255,200,73,.14),rgba(255,200,73,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 6px 18px -10px rgba(255,200,73,.6)}
+
+/* tabs: a glass tray, the open tab a lit gold pill */
+.ar-tabs{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -8px 16px -12px rgba(0,0,0,.8),0 10px 28px -16px rgba(0,0,0,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ar-tab{transition:color .18s,background .18s,box-shadow .18s,transform .18s}
+.ar-tab:hover{background:rgba(255,255,255,.05)}
+.ar-tab.on{background:linear-gradient(180deg,#ffd869,#f0b72d);box-shadow:0 6px 18px -6px rgba(255,200,73,.75),inset 0 1px 0 rgba(255,255,255,.45)}
+
+/* the gun list: a bar of light on the chosen gun, a slide on hover, labelled groups with a rule */
+.ar-guns{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+.ar-cls{display:flex;align-items:center;gap:8px}
+.ar-cls::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
+.ar-gun{position:relative;transition:background .18s,border-color .18s,transform .18s,box-shadow .18s}
+.ar-gun:hover{transform:translateX(3px);background:linear-gradient(90deg,rgba(255,255,255,.07),rgba(255,255,255,.01))}
+.ar-gun.on{background:linear-gradient(90deg,rgba(255,200,73,.16),rgba(255,200,73,.02));box-shadow:0 8px 22px -14px rgba(255,200,73,.7)}
+.ar-gun.on::before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+
+/* the preview: a spotlight from above, a pool of light on the floor, corner marks, a soft inner shadow */
+.ar-view{
+  border-color:rgba(255,255,255,.1);
+  background:
+    radial-gradient(ellipse 60% 46% at 50% 0%,rgba(255,236,190,.16),transparent 70%),
+    radial-gradient(ellipse 52% 12% at 50% 84%,rgba(255,200,73,.16),transparent 70%),
+    radial-gradient(ellipse at 50% 40%,#1d2434,#0a0d13 72%);
+  box-shadow:inset 0 0 70px rgba(0,0,0,.55),0 26px 60px -34px rgba(0,0,0,.95),0 0 0 1px rgba(0,0,0,.4);
+}
+.ar-view::before,.ar-view::after{content:"";position:absolute;width:18px;height:18px;pointer-events:none;z-index:2;opacity:.55;border:solid var(--gold)}
+.ar-view::before{left:12px;top:12px;border-width:1.5px 0 0 1.5px;border-radius:5px 0 0 0}
+.ar-view::after{right:12px;top:12px;border-width:1.5px 1.5px 0 0;border-radius:0 5px 0 0}
+.ar-cap{text-shadow:0 2px 12px #000}
+
+/* the skin cards: a sheen, a lift and a gold halo on the chosen one, a short cascade on arrival */
+.ar-skins{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+.ar-sk{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015)),var(--panel);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 18px -14px #000;transition:border-color .18s,transform .18s,box-shadow .18s,background .18s;animation:mpCard .38s cubic-bezier(.2,.8,.2,1) both}
+.ar-sk:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 26px -14px rgba(0,0,0,.95)}
+.ar-sk.on{background:linear-gradient(180deg,rgba(255,200,73,.14),rgba(255,200,73,.03)),var(--panel);box-shadow:0 0 0 1px var(--gold),0 12px 30px -10px rgba(255,200,73,.55),inset 0 1px 0 rgba(255,255,255,.12)}
+.ar-sk canvas{box-shadow:0 4px 10px -6px #000}
+@keyframes mpCard{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ar-sk:nth-child(2){animation-delay:.02s}.ar-sk:nth-child(3){animation-delay:.04s}.ar-sk:nth-child(4){animation-delay:.06s}
+.ar-sk:nth-child(5){animation-delay:.08s}.ar-sk:nth-child(6){animation-delay:.10s}.ar-sk:nth-child(7){animation-delay:.12s}
+.ar-sk:nth-child(8){animation-delay:.14s}.ar-sk:nth-child(9){animation-delay:.16s}.ar-sk:nth-child(n+10){animation-delay:.18s}
+
+/* the tools row: a light panel behind it */
+.ar-tools .btn{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border-color:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.ar-tools .btn:hover{border-color:rgba(255,200,73,.55);color:#fff}
+
+/* ═════════ the settings window ═════════ */
+#pause{background:radial-gradient(ellipse at 50% 38%,rgba(10,13,19,.55),rgba(3,5,8,.86) 75%)}
+#pause:not([hidden]) .pz-card{animation:mpIn .3s cubic-bezier(.2,.8,.2,1) both}
+#pause .pz-card{
+  position:relative;border-color:rgba(255,255,255,.12);
+  background:
+    radial-gradient(520px 200px at 0% 0%,rgba(255,200,73,.10),transparent 70%),
+    radial-gradient(520px 260px at 100% 100%,rgba(56,189,248,.08),transparent 70%),
+    linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01)),var(--glass2);
+  box-shadow:0 44px 100px -30px rgba(0,0,0,.95),0 0 0 1px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);
+  overflow:hidden;
+}
+/* a gold line along the top edge, and a title with a small eyebrow above it */
+#pause .pz-card::before{content:"";position:absolute;left:24px;right:24px;top:0;height:2px;border-radius:0 0 2px 2px;background:linear-gradient(90deg,transparent,rgba(255,200,73,.95),rgba(255,200,73,.2) 70%,transparent);box-shadow:0 0 18px rgba(255,200,73,.55)}
+#pause .pz-title{position:relative;padding:0 0 12px;margin-bottom:14px;text-shadow:0 2px 16px rgba(255,200,73,.2)}
+#pause .pz-title::before{content:"SETTINGS";display:block;font:700 9px/1 var(--f-display,inherit);letter-spacing:.34em;color:var(--gold);opacity:.8;margin-bottom:7px}
+#pause .pz-title::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.2),rgba(255,255,255,.04) 70%,transparent)}
+.pz-tabs{background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,.2));box-shadow:inset 0 2px 8px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.05)}
+.pz-tabs button{position:relative}
+.pz-tabs button:hover{background:rgba(255,255,255,.04)}
+.pz-tabs button.on{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 6px 16px -8px rgba(0,0,0,.8)}
+.pz-tabs button.on::after{content:"";position:absolute;left:22%;right:22%;bottom:3px;height:2px;border-radius:2px;background:var(--gold);box-shadow:0 0 8px rgba(255,200,73,.8)}
+.pz-pane.on{animation:mpCard .28s ease both}
+#pause .pz-set{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+#pause .pz-row{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));border-color:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .18s,background .18s,transform .18s}
+#pause .pz-row:hover{border-color:rgba(255,200,73,.35);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}
+#pause .pz-lab{letter-spacing:.02em}
+#pause .pz-sw.on{box-shadow:0 0 16px -2px rgba(255,200,73,.55)}
+#pause .pz-q{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.2))}
+#pause .pz-q.on{background:linear-gradient(180deg,rgba(255,200,73,.28),rgba(255,200,73,.08));box-shadow:0 6px 16px -8px rgba(255,200,73,.7)}
+#pause .pz-btns{padding-top:14px;position:relative}
+#pause .pz-btns::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+#pause .pz-btns .btn:not(.btn-go):not(.btn-red){background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border-color:rgba(255,255,255,.14)}
+
+/* sliders: a glow on the thumb, a lit track (works in any browser as a plain range) */
+#pause input[type=range]{accent-color:var(--gold)}
+
+/* small phones: keep the lights, drop the extra eyebrow line so nothing gets taller */
+@media(max-height:560px){
+  #pause .pz-title::before{display:none}
+  #pause .pz-title{padding-bottom:6px;margin-bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  #armory:not([hidden]),#pause:not([hidden]) .pz-card,.ar-sk,.pz-pane.on{animation:none!important}
+  .ar-gun:hover,.ar-sk:hover{transform:none}
+}
