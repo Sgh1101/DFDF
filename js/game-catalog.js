@@ -5,7 +5,7 @@
     abilities: AGENTS.reduce((n, agent) => n + (agent.abilities || []).length, 0),
     weapons: Object.keys(WEAPONS).length,
     maps: MAP_LIST.length,
-    modes: Object.keys(GAME_MODES).length,
+    modes: Object.keys(GAME_MODES).filter((key) => !GAME_MODES[key].range).length, // the target range is practice, not a mode to pick
     skins: GUN_SKINS.guns().reduce((n, gun) => n + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0),
   });
   const news = [
