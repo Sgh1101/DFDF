@@ -31,6 +31,7 @@
     "test:cosmetics": "node scripts/browser-cosmetics.js",
     "test:newmaps": "node scripts/browser-newmaps.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
+    "test:ctf": "node scripts/browser-ctf.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"
   }

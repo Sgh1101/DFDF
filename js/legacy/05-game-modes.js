@@ -14,9 +14,11 @@
     // run by the infection module: one infected to start, the caught join them, survive the time to win
     // run by the conquest module: a hill that moves; the side holding it scores
     hill: { name: "점령전", sub: "움직이는 점령 지점 · 지키는 쪽이 초당 1점 · 120점 먼저", respawn: !0, team: !0, kills: 9999, time: 540, hill: !0 },
+    // run by the capture-the-flag module: take their flag to your own flag's place; 3 captures win
+    ctf: { name: "깃발 탈취", sub: "적 깃발을 우리 깃발 자리로 · 3점 먼저 · 부활", respawn: !0, team: !0, kills: 9999, time: 600, ctf: !0 },
     inf: { name: "감염", sub: "술래 한 명으로 시작 · 잡히면 같은 편 · 3분 버티면 생존자 승리", respawn: !0, kills: 9999, time: 180, noAbil: !0, infect: !0 },
   };
-  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "inf", "hill"];
+  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "inf", "hill", "ctf"];
   room.mode = room.mode || "std";
   const M = () => MODES[room.mode] || MODES.std;
   const inMatch = () => world.actors && world.actors.length > 0;
