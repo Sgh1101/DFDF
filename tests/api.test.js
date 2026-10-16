@@ -230,7 +230,7 @@ test("the owner's dashboard summary counts accounts, grants, ranks and the day's
   assert.ok(j.logs.login + j.logs.join >= 1);
   assert.ok(j.recent.some((r) => /aim/.test(r.msg)));
   assert.deepEqual(j.config.aim, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
-  assert.equal(j.items, 909);
+  assert.equal(j.items, 940);
 });
 
 test("retired skins leave the collection and come back as gold, once", async () => {
@@ -295,4 +295,75 @@ test("the daily shop: twenty skins by tier, the same for everyone all day, bough
   h.advance(30000);
   assert.deepEqual((await h.api("shop", {})).items, []);
   assert.equal((await h.api("shop_buy", { token: player.token, g: "rifle", s: "snow" })).status, 403);
+});
+
+test("the wishlist: toggled per item, checked, capped, marked in the shop, dropped once bought", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  assert.deepEqual((await h.api("wish", { token: player.token })).wish, []);
+  assert.equal((await h.api("wish", { token: player.token, item: "rifle|nope" })).status, 400);
+  assert.equal((await h.api("wish", { token: player.token, item: "rifle|karambit" })).status, 400, "a knife skin only fits the knife");
+  const shop = await h.api("shop", {});
+  const it = shop.items.find((x) => x.r === 2), key = it.g + "|" + it.s;
+  assert.deepEqual((await h.api("wish", { token: player.token, item: key, on: true })).wish, [key]);
+  assert.deepEqual((await h.api("wish", { token: player.token, item: "rifle|lava", on: true })).wish, [key, "rifle|lava"]);
+  const marked = await h.api("shop", { token: player.token });
+  assert.equal(marked.items.find((x) => x.g === it.g && x.s === it.s).wished, true);
+  assert.deepEqual(marked.wish, [key, "rifle|lava"]);
+  assert.deepEqual((await h.api("wish", { token: player.token, item: "rifle|lava", on: false })).wish, [key]);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 50000 });
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, day: shop.day })).status, 200);
+  assert.deepEqual((await h.api("wish", { token: player.token })).wish, [], "bought, so off the list");
+  assert.equal((await h.api("wish", { item: key, on: true })).status, 401);
+});
+
+test("seasons: the end of one pays by tier, gives the season skin from gold up, keeps half the RR", async () => {
+  const h = harness({ now: Date.parse("2026-10-20T03:00:00Z") }), p = await login(h), owner = await login(h, "owner");
+  const me = async () => (await h.api("me", { token: p.token })).user;
+  let u = await me();
+  assert.deepEqual([u.season.n, u.season.played, u.season.last], [1, 0, null]);
+  assert.equal(u.season.end, Date.parse("2026-10-28T15:00:00Z"), "four weeks from 1 October, midnight in Korea");
+  // a season played: three counted ranked matches, finished at 1000 RR (gold 2)
+  assert.equal((await h.api("room_up", { token: p.token, code: "SSN001", ranked: true, players: ["player"] })).status, 200);
+  for (let i = 0; i < 3; i++) {
+    const mt = await h.api("match_start", { token: p.token, ranked: true, room: "SSN001" });
+    h.advance(61000);
+    assert.equal((await h.api("progress", { token: p.token, mt: mt.ticket, kills: 2, win: true, humans: 6, match: { mode: "std", s: [7, 3] } })).rankedCounted, true);
+  }
+  assert.equal((await me()).season.played, 3);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "rr", rr: 1000 });
+  const gold0 = h.user("player").gold;
+  // the season ends: the reward, the season skin on every gun, half the RR
+  h.advance(9 * 864e5);
+  u = await me();
+  assert.deepEqual([u.season.n, u.season.played], [2, 0]);
+  const L = u.season.last;
+  assert.deepEqual([L.n, L.tier, L.div, L.played, L.gold, L.skin, L.rr, L.after], [1, "gold", 2, 3, 700, 31, 1000, 500]);
+  assert.equal(h.user("player").gold, gold0 + 700);
+  assert.equal(h.user("player").rr, 500);
+  assert.ok(Object.values(h.user("player").own).every((list) => list.includes("laurel")));
+  // seen again: nothing twice
+  await me();
+  assert.equal(h.user("player").gold, gold0 + 700);
+  assert.equal(h.user("player").ssnLog.length, 1);
+  // the season skin: no pull, shop or wishlist gives it; the catalogue lists it
+  assert.equal((await h.api("wish", { token: p.token, item: "rifle|laurel" })).status, 400);
+  assert.ok((await h.api("shop", {})).items.every((x) => x.s !== "laurel"));
+  const cat = await h.api("catalog", {});
+  assert.equal(cat.tiers.laurel, 4); assert.equal(cat.items, 940);
+  // the owner ends the season now: a new one from today; not played, so no reward, the cut still
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.season.startDay = 20261029; c.season.skip = 2;
+  const owner2 = await login(h, "owner");
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 200);
+  h.advance(30000);
+  u = await me();
+  assert.equal(u.season.n, 3);
+  assert.deepEqual([u.season.last.n, u.season.last.gold, u.season.last.after], [2, 0, 250]);
+  assert.equal(h.user("player").gold, gold0 + 700);
+  // a bad setting is refused
+  c.season.weeks = 0;
+  assert.equal((await h.api("a_config_set", { atoken: owner2.atoken, config: c })).status, 400);
+  // the dashboard shows the season and what RR people will have
+  const s = (await h.api("a_summary", { atoken: owner2.atoken })).summary;
+  assert.equal(s.season.n, 3);
 });

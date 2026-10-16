@@ -90,6 +90,8 @@
     { id: "abyss", ko: "심해", en: "Abyss", rar: 4, res: 512, tile: 0.4, pat: "abyss", em: !0, anim: "pulse", pal: ["#020c1a", "#06264a", "#2ef2ff", "#ff4fd8", "#b8f7ff"], body: [0xffffff, 0.38, 0.2], coat: [1, 0.12], metal: [0x1d3b5a, 0.3, 0.85], dark: [0x020a14, 0.7, 0.2], glow: 0x2ef2ff },
     { id: "synth", ko: "신스웨이브", en: "Synthwave", rar: 4, res: 512, tile: 0.34, vOff: 0.24, pat: "synth", em: !0, anim: "pulse", pal: ["#1a0633", "#ff2e88", "#ffb347", "#12001f", "#ff3cf0", "#fff27a"], body: [0xffffff, 0.35, 0.2], coat: [0.8, 0.1], metal: [0x3a1a5a, 0.3, 0.85], dark: [0x12001f, 0.6, 0.3], glow: 0xff2e88 },
     { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, tile: 0.3, pat: "opal", em: !0, pal: ["#dfe9f3", "#bcd0e6", "#efe4ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
+    // the season's own skin (excl): no pull and no shop; finishing a season at gold or above
+    { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -1016,6 +1018,129 @@
         });
       }
     },
+    // the season's own skin: gold laurel wreaths on deep green lacquer, a star in each,
+    // a red ribbon where the branches meet; fine gold pinstripes between
+    laurel(g, W, H, pal, em) {
+      const R = rng(53),
+        wrap = wrapper(W, H);
+      if (em) {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, W, H);
+      } else {
+        const bg = g.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, pal[0]);
+        bg.addColorStop(0.5, pal[1]);
+        bg.addColorStop(1, pal[0]);
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        // pinstripes on the diagonal, drawn on both sides of every edge so they join
+        g.strokeStyle = "rgba(212,175,55,.16)";
+        g.lineWidth = W * 0.004;
+        for (let i = -8; i <= 8; i++) {
+          const x = (i * W) / 8;
+          g.beginPath();
+          g.moveTo(x, 0);
+          g.lineTo(x + W, H);
+          g.stroke();
+        }
+      }
+      const leaf = (x, y, a, L, wd) => {
+        g.save();
+        g.translate(x, y);
+        g.rotate(a);
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.quadraticCurveTo(L * 0.5, -wd, L, 0);
+        g.quadraticCurveTo(L * 0.5, wd, 0, 0);
+        g.closePath();
+        if (em) {
+          g.fillStyle = "rgba(255,214,102,.5)";
+          g.fill();
+        } else {
+          g.fillStyle = pal[2];
+          g.fill();
+          g.strokeStyle = "rgba(60,40,6,.75)";
+          g.lineWidth = W * 0.0025;
+          g.stroke();
+          // the midrib catching the light
+          g.strokeStyle = pal[3];
+          g.lineWidth = W * 0.002;
+          g.beginPath();
+          g.moveTo(L * 0.1, 0);
+          g.lineTo(L * 0.85, 0);
+          g.stroke();
+        }
+        g.restore();
+      };
+      const star = (x, y, r) => {
+        g.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 5,
+            q = i % 2 ? r * 0.42 : r;
+          i ? g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q) : g.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+        }
+        g.closePath();
+        g.fillStyle = em ? "rgba(255,240,190,.85)" : pal[4];
+        g.fill();
+      };
+      const wreath = (cx, cy, r) => {
+        for (const side of [-1, 1]) {
+          // the stem: from the bottom round the side to near the top
+          const a0 = Math.PI / 2 + side * 0.32,
+            a1 = Math.PI / 2 + side * (Math.PI - 0.42),
+            n = 9;
+          if (!em) {
+            g.strokeStyle = "#6b4d12";
+            g.lineWidth = W * 0.006;
+            g.beginPath();
+            g.arc(cx, cy, r, Math.min(a0, a1), Math.max(a0, a1));
+            g.stroke();
+          }
+          for (let k = 0; k < n; k++) {
+            const t = k / (n - 1),
+              a = a0 + (a1 - a0) * t,
+              px = cx + Math.cos(a) * r,
+              py = cy + Math.sin(a) * r,
+              tang = a + side * (Math.PI / 2),
+              L = r * (0.42 - 0.16 * t);
+            leaf(px, py, tang - side * 0.55, L, L * 0.32);
+            leaf(px, py, tang + side * 0.55 + Math.PI * 0.12 * side, L * 0.9, L * 0.3);
+          }
+        }
+        star(cx, cy, r * 0.34);
+        if (!em) {
+          // the ribbon tying the two stems
+          g.fillStyle = pal[5];
+          for (const s of [-1, 1]) {
+            g.beginPath();
+            g.moveTo(cx, cy + r * 1.02);
+            g.lineTo(cx + s * r * 0.34, cy + r * 1.42);
+            g.lineTo(cx + s * r * 0.18, cy + r * 1.46);
+            g.closePath();
+            g.fill();
+          }
+          g.beginPath();
+          g.arc(cx, cy + r, r * 0.09, 0, 2 * Math.PI);
+          g.fill();
+        }
+      };
+      // a staggered grid of wreaths, each a little turned
+      const cols = 3,
+        rows = 3;
+      for (let j = 0; j < rows; j++)
+        for (let i = 0; i < cols; i++) {
+          const x = ((i + (j % 2) * 0.5 + 0.25) * W) / cols,
+            y = ((j + 0.5) * H) / rows,
+            r = W * (0.085 + 0.012 * R());
+          wrap(x, y, r * 1.6, (cx, cy) => {
+            g.save();
+            g.translate(cx, cy);
+            g.rotate((R() - 0.5) * 0.3);
+            wreath(0, 0, r);
+            g.restore();
+          });
+        }
+    },
   };
   const TEX = {};
   function texture(skin, em) {
@@ -1314,7 +1439,7 @@
     const t = {},
       v = GC().botMaxTier,
       cap = null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2,
-      pool = SKINS.filter((s) => !s.gone && s.rar >= 1 && s.rar <= cap);
+      pool = SKINS.filter((s) => !s.gone && !s.excl && s.rar >= 1 && s.rar <= cap);
     let h = (((a.id | 0) + 1) * 2654435761 + seed) >>> 0;
     for (const k of Object.keys(WEAPONS)) {
       h ^= h << 13;
@@ -1985,6 +2110,18 @@
 .it i{font-size:9px;letter-spacing:.12em;font-style:normal;font-family:var(--f-display);color:var(--rc)}
 .it.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
 .it.eq::after{content:attr(data-eq);position:absolute;top:5px;right:5px;font-size:9px;padding:1px 6px;border-radius:99px;background:var(--gold);color:#14100a;font-weight:700}
+.it.wish::before{content:"★";position:absolute;top:4px;left:7px;font-size:13px;color:#ffc849;text-shadow:0 1px 3px #000;z-index:1}
+.ar-sk.wish::before{content:"★";position:absolute;top:5px;left:8px;font-size:12px;color:#ffc849;text-shadow:0 1px 3px #000;z-index:1}
+.ar-cap .ar-wish,.sh-wbtn{pointer-events:auto}
+.ar-wish{display:inline-block;margin-top:6px;padding:5px 11px;border-radius:999px;border:1px solid rgba(255,200,73,.5);background:rgba(10,13,18,.7);color:#ffc849;font-size:11px;font-family:var(--f-body);letter-spacing:0;cursor:pointer}
+.ar-wish.on,.sh-wbtn.on{background:rgba(255,200,73,.16);border-color:#ffc849;color:#ffc849}
+.sh-wn{color:#ffc849}
+#wish-note{position:fixed;left:50%;bottom:max(18px,4vh);transform:translateX(-50%);z-index:58;display:flex;align-items:stretch;border:1px solid rgba(255,200,73,.6);border-radius:14px;background:rgba(14,18,26,.94);box-shadow:0 12px 40px -12px rgba(255,200,73,.45);max-width:min(560px,92vw);animation:wnIn .4s cubic-bezier(.2,.8,.2,1)}
+#wish-note[hidden]{display:none}
+#wish-note .wn-go{display:flex;flex-direction:column;gap:2px;padding:10px 14px;text-align:left;background:none;border:0;color:var(--ink);cursor:pointer;min-height:44px}
+#wish-note .wn-go b{color:#ffc849;font-size:13px}#wish-note .wn-go span{font-size:11px;color:var(--steel)}
+#wish-note .wn-x{padding:0 14px;background:none;border:0;border-left:1px solid var(--line);color:var(--steel);font-size:18px;cursor:pointer;min-width:44px}
+@keyframes wnIn{from{opacity:0;transform:translate(-50%,12px)}}
 .pl-shop{margin-top:10px;width:100%;min-height:40px;font-size:12px;border-color:rgba(255,200,73,.45);color:#ffc849}
 .it .pr{font-style:normal;font-family:var(--f-display);font-size:11px;font-weight:700;color:#ffc849;margin-top:1px}
 .it.eq .pr{color:var(--steel-dim);text-decoration:line-through}
@@ -3274,7 +3411,7 @@
     if (FEAT.length) return FEAT;
     const guns = ["rifle", "vector", "sniper", "carbine", "bullpup", "marksman", "shotgun", "lmg", "smg"].filter((k) => WEAPONS[k]);
     let gi = Math.floor(Math.random() * Math.max(1, guns.length));
-    for (const s of SKINS.filter((x) => !x.gone && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && 3 === x.rar))) {
+    for (const s of SKINS.filter((x) => !x.gone && !x.excl && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && !x.excl && 3 === x.rar))) {
       const g = s.only || guns[gi++ % guns.length];
       g && WEAPONS[g] && FEAT.push({ g, s: s.id });
     }
@@ -3508,6 +3645,7 @@
       SH.on = !1 !== j.on;
       SH.at = Date.now();
       SH.err = "";
+      Array.isArray(j.wish) && token() && takeWish(j.wish);
       "number" == typeof j.gold && setGold(j.gold);
       (SH.sel && SH.items.some((x) => x.g + "|" + x.s === SH.sel)) || (SH.sel = SH.items.length ? SH.items.slice().sort((a, b) => b.r - a.r)[0].g + "|" + SH.items.slice().sort((a, b) => b.r - a.r)[0].s : null);
     } catch (e) {
@@ -3539,7 +3677,7 @@
     const gold = INV.gold || 0,
       list = SH.items.slice().sort((a, b) => b.r - a.r || a.price - b.price),
       have = list.filter(owned).length;
-    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
+    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${(() => { const w = list.filter((x) => !owned(x) && wished(x.g, x.s)).length; return w ? `<b class="sh-wn">★ ${L(`찜한 스킨 ${w}개`, `${w} wishlisted`)}</b> · ` : ""; })()}${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
     paintShopTime();
     box.innerHTML = "";
     if (SH.err || !SH.on || !list.length) {
@@ -3551,7 +3689,7 @@
     for (const x of list) {
       const s = BY[x.s],
         mine = owned(x),
-        c = itemCard(x.g, s, (SH.sel === x.g + "|" + x.s ? " on" : "") + (mine ? " eq" : "") + (!mine && gold < x.price ? " dear" : ""));
+        c = itemCard(x.g, s, (SH.sel === x.g + "|" + x.s ? " on" : "") + (mine ? " eq" : "") + (!mine && gold < x.price ? " dear" : "") + (!mine && wished(x.g, x.s) ? " wish" : ""));
       mine && (c.dataset.eq = L("보유", "Owned"));
       const pr = document.createElement("em");
       pr.className = "pr";
@@ -3576,7 +3714,7 @@
     const why = mine ? "" : !signed() ? L("로그인하면 살 수 있습니다", "Sign in to buy") : short ? L(`골드 ${short.toLocaleString()} 부족 · 경기와 미션으로 모으세요`, `${short.toLocaleString()} gold short · earn it in matches and missions`) : "";
     info.innerHTML = `<h4>${WEAPONS[it.g].name} · ${nameOf(s)}<i style="color:${RAR[s.rar].c}">${EN ? RAR[s.rar].en : RAR[s.rar].ko}</i></h4>
       <p>${mine ? L("이미 가진 스킨입니다", "You own this one") : L(`가격 🪙 ${it.price.toLocaleString()} · 내 골드 🪙 ${gold.toLocaleString()}`, `Price 🪙 ${it.price.toLocaleString()} · You have 🪙 ${gold.toLocaleString()}`)}</p>
-      <div class="row">${mine ? (mySkin(it.g).id === it.s ? `<button class="btn" disabled>${L("장착 중", "Worn")}</button>` : `<button class="btn btn-go" id="sh-wear">${L("장착", "Wear")}</button>`) : `<button class="btn btn-go${armed ? " sh-arm" : ""}" id="sh-buy"${why || SH.busy ? " disabled" : ""}>${SH.busy ? L("구매 중…", "Buying…") : armed ? L(`한 번 더 누르면 구매 · 🪙 ${it.price.toLocaleString()}`, `Tap again to buy · 🪙 ${it.price.toLocaleString()}`) : L(`구매 · 🪙 ${it.price.toLocaleString()}`, `Buy · 🪙 ${it.price.toLocaleString()}`)}</button>`}</div>${why ? `<p class="sh-why">${why}</p>` : ""}`;
+      <div class="row">${mine ? (mySkin(it.g).id === it.s ? `<button class="btn" disabled>${L("장착 중", "Worn")}</button>` : `<button class="btn btn-go" id="sh-wear">${L("장착", "Wear")}</button>`) : `<button class="btn btn-go${armed ? " sh-arm" : ""}" id="sh-buy"${why || SH.busy ? " disabled" : ""}>${SH.busy ? L("구매 중…", "Buying…") : armed ? L(`한 번 더 누르면 구매 · 🪙 ${it.price.toLocaleString()}`, `Tap again to buy · 🪙 ${it.price.toLocaleString()}`) : L(`구매 · 🪙 ${it.price.toLocaleString()}`, `Buy · 🪙 ${it.price.toLocaleString()}`)}</button>`}${mine ? "" : `<button class="btn sh-wbtn${wished(it.g, it.s) ? " on" : ""}" id="sh-wish">${wished(it.g, it.s) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기", "☆ Wishlist")}</button>`}</div>${why ? `<p class="sh-why">${why}</p>` : ""}`;
     const buy = $("sh-buy"),
       wear = $("sh-wear");
     buy &&
@@ -3592,6 +3730,8 @@
         buyShop(it.g, it.s);
       });
     wear && (wear.onclick = () => (setSkin(it.g, it.s) && note(L("장착했습니다", "Worn")), paintShop(), pvShow()));
+    const wb = $("sh-wish");
+    wb && (wb.onclick = () => toggleWish(it.g, it.s));
   }
   async function buyShop(g, sid) {
     if (SH.busy || !signed()) return null;
@@ -3621,10 +3761,82 @@
     paintShopTime();
     SH.resetAt && Date.now() >= SH.resetAt + 1500 && Date.now() - SH.at > 5000 && loadShop(!0);
   }, 1000);
+  // ── the wishlist: ★ on a skin not owned; the game says when one is in today's shop ──
+  const WL = { set: new Set(), busy: !1, tried: !1 };
+  const wkey = (g, s) => g + "|" + s;
+  const wished = (g, s) => WL.set.has(wkey(g, s));
+  try {
+    const j = JSON.parse(localStorage.getItem("lgp_wish") || "null"),
+      me = session() && session().user;
+    j && Array.isArray(j.l) && me && j.id === me.id && (WL.set = new Set(j.l));
+  } catch (e) {}
+  function takeWish(list) {
+    if (!Array.isArray(list)) return;
+    WL.set = new Set(list);
+    try {
+      const me = session() && session().user;
+      localStorage.setItem("lgp_wish", JSON.stringify({ id: me ? me.id : "", l: list }));
+    } catch (e) {}
+  }
+  async function toggleWish(g, sid) {
+    if (!signed()) return void note(L("로그인하면 찜할 수 있습니다", "Sign in to keep a wishlist"));
+    if (WL.busy) return;
+    WL.busy = !0;
+    const on = !wished(g, sid);
+    try {
+      takeWish((await AC().api("wish", { token: token(), item: wkey(g, sid), on })).wish);
+      note(on ? L("찜했습니다 · 오늘의 상점에 뜨면 알려 드립니다", "Wishlisted · you'll hear when it's in the shop") : L("찜을 풀었습니다", "Off the wishlist"));
+    } catch (e) {
+      note((e && e.message) || L("찜하지 못했습니다", "Could not change the wishlist"));
+    }
+    WL.busy = !1;
+    armoryPaint();
+  }
+  // on the title screen, once a day: a wished skin is in today's shop
+  function wishNotice() {
+    let n = $("wish-note");
+    const t = $("s-title"),
+      day = SH.day || "",
+      onTitle = signed() && "menu" === world.phase && t && !t.hidden && "none" !== getComputedStyle(t).display;
+    let seen = "";
+    try {
+      seen = localStorage.getItem("lgp_wish_seen") || "";
+    } catch (e) {}
+    const hits = SH.items.filter((x) => wished(x.g, x.s) && !owned(x));
+    if (!onTitle || !hits.length || seen === day || AR.open) return void (n && (n.hidden = !0));
+    if (!n) {
+      n = document.createElement("div");
+      n.id = "wish-note";
+      n.innerHTML = `<button class="wn-go" id="wn-go"></button><button class="wn-x" id="wn-x" aria-label="${L("닫기", "Close")}">×</button>`;
+      document.body.appendChild(n);
+      const done = () => {
+        try {
+          localStorage.setItem("lgp_wish_seen", SH.day || "");
+        } catch (e) {}
+        n.hidden = !0;
+      };
+      $("wn-go").onclick = () => (done(), openArmory(null, "shop"));
+      $("wn-x").onclick = done;
+    }
+    const first = hits[0];
+    $("wn-go").innerHTML = `<b>★ ${L(`찜한 스킨 ${hits.length}개가 오늘 상점에 있습니다`, `${hits.length} wishlisted skin${hits.length > 1 ? "s are" : " is"} in today's shop`)}</b><span>${WEAPONS[first.g].name} · ${nameOf(BY[first.s])}${hits.length > 1 ? L(` 외 ${hits.length - 1}개`, ` and ${hits.length - 1} more`) : ""} · ${L("보러 가기", "Take a look")} →</span>`;
+    n.hidden = !1;
+  }
+  setInterval(() => {
+    try {
+      if (!signed() || "menu" !== world.phase) return;
+      if (!WL.tried) {
+        WL.tried = !0;
+        loadShop(!0).then(wishNotice);
+      } else wishNotice();
+    } catch (e) {}
+  }, 2500);
   function paintCap() {
     const shown = AR.peek && BY[AR.peek] ? BY[AR.peek] : AR.view && BY[AR.view] ? BY[AR.view] : mySkin(AR.key),
       r = RAR[shown.rar];
-    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? `<em>${L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull")}</em>` : ""}`;
+    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? (BY[AR.peek] && BY[AR.peek].excl ? `<em>${L("시즌 보상 · 랭크전 시즌을 골드 티어 이상으로 마치면 모든 총에", "Season reward · finish a ranked season at Gold or above for every gun")}</em>` : `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>`) : ""}`;
+    const aw = $("ar-wish");
+    aw && (aw.onclick = () => toggleWish(AR.key, AR.peek));
   }
   // by gun: the gun list, the turntable, that gun's skins (owned ones worn on a tap, the rest only looked at)
   function armoryPaint() {
@@ -3660,7 +3872,7 @@
     for (const s of skinsFor(AR.key)) {
       const b = document.createElement("button"),
         has = owns(AR.key, s.id);
-      b.className = "ar-sk" + (s === cur && !AR.peek ? " on" : "") + (has ? "" : " locked") + (AR.peek === s.id ? " peek" : "");
+      b.className = "ar-sk" + (s === cur && !AR.peek ? " on" : "") + (has ? "" : " locked") + (AR.peek === s.id ? " peek" : "") + (!has && wished(AR.key, s.id) ? " wish" : "");
       b.dataset.s = s.id;
       b.dataset.g = AR.key;
       has || (b.title = L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull"));
@@ -3797,5 +4009,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();

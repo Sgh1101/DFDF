@@ -19,6 +19,11 @@
     "test:knife": "node scripts/browser-knife-tricks.js",
     "test:aim": "node scripts/browser-aim.js",
     "test:admin": "node scripts/browser-admin-dash.js",
-    "test:shop": "node scripts/browser-shop.js"
+    "test:shop": "node scripts/browser-shop.js",
+    "test:modes2": "node scripts/browser-modes2.js",
+    "test:wish": "node scripts/browser-wish.js",
+    "test:train": "node scripts/browser-train.js",
+    "test:agents4": "node scripts/browser-agents4.js",
+    "test:season": "node scripts/browser-season.js"
   }
 }

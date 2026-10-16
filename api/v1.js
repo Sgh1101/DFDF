@@ -114,6 +114,12 @@ const DEFAULT_CONFIG = {
   // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
   // only in a ranked room (admin and cheats off) and with at least minHumans people
   rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3 },
+  // seasons: every `weeks` weeks from startDay (a date in Korea, YYYYMMDD) a season ends.
+  // Each account keeps keep% of its RR; whoever played at least minPlay counted ranked
+  // matches in it gets the gold of the tier it finished on, and from skinTier up (0 iron …
+  // 8 radiant, 9 nobody) the season's own skin, 월계관, on every gun. skip: seasons the
+  // owner ended early (the panel's "end it now" moves startDay to today and raises skip)
+  season: { on: !0, weeks: 4, startDay: 20261001, skip: 0, keep: 50, minPlay: 3, skinTier: 3, gold: { iron: 100, bronze: 200, silver: 400, gold: 700, platinum: 1000, diamond: 1500, ascendant: 2200, immortal: 3000, radiant: 5000 } },
   // daily and weekly missions: how many (matches, kills, wins) and the gold each pays
   // when claimed. Counted here from the match reports; a day starts at midnight in
   // Korea, a week on Monday. 0 turns a mission off.
@@ -263,7 +269,7 @@ const rankOf = (rr) => {
 };
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u) };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -325,7 +331,9 @@ const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
-const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4 };
+const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4 };
+// skins no pull or shop gives: only the end of a season (or the owner)
+const EXCLUSIVE = { laurel: "season" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
@@ -363,8 +371,54 @@ function ensureWallet(u, c) {
     u.gold = Math.min(9e6, u.gold + back);
     u.refunded = (u.refunded || 0) + back;
   }
+  seasonRoll(u, c) && (changed = !0);
   changed && trimPicks(u);
   return changed;
+}
+// ── seasons ──
+// Which season it is: counted in whole seasons from the first day (midnight in Korea).
+const KST_MS = 9 * 36e5;
+const ymdStart = (v) => {
+  const n = Math.round(+v) || 20261001;
+  return Date.UTC(Math.floor(n / 1e4), (Math.floor(n / 100) % 100) - 1, n % 100) - KST_MS;
+};
+function seasonNow(c, t = now()) {
+  const S = (c && c.season) || {},
+    len = Math.max(1, Math.round(+S.weeks || 4)) * 7 * 864e5,
+    st = ymdStart(S.startDay),
+    k = Math.max(0, Math.floor((t - st) / len));
+  return { n: 1 + k + Math.max(0, Math.round(+S.skip || 0)), start: st + k * len, end: st + (k + 1) * len, on: !!S.on };
+}
+// what an account's RR would be after the seasons it has not been seen in
+const keepOf = (c) => Math.max(0, Math.min(100, +c.season.keep || 0)) / 100;
+const seasonRR = (u, c, cur) => (c.season.on && isObj(u.ssn) && u.ssn.n < cur.n ? Math.round(Math.max(0, +u.rr || 0) * Math.pow(keepOf(c), cur.n - u.ssn.n)) : Math.max(0, Math.round(+u.rr || 0)));
+// An account seen after its season ended: the reward for the tier it finished on (if it
+// played enough), then the RR cut, once for every season that went by. Guests have no rank.
+function seasonRoll(u, c) {
+  if (!c.season || !c.season.on || u.guest) return !1;
+  const cur = seasonNow(c),
+    need = Math.max(1, Math.round(+c.season.minPlay || 0));
+  if (!isObj(u.ssn)) return (u.ssn = { n: cur.n, end: cur.end, played: 0, need }), !0;
+  if (u.ssn.n >= cur.n) return u.ssn.end !== cur.end || u.ssn.need !== need ? ((u.ssn.end = cur.end), (u.ssn.need = need), !0) : !1;
+  const S = c.season,
+    rk = rankOf(u.rr),
+    played = u.ssn.played | 0;
+  if (played > 0 || rk.rr > 0) {
+    const rec = { n: u.ssn.n, t: rk.t, tier: rk.tier, div: rk.div, rr: rk.rr, played, gold: 0, skin: 0, at: now() };
+    if (played > 0 && played >= Math.max(0, +S.minPlay || 0)) {
+      rec.gold = Math.max(0, Math.round(+(isObj(S.gold) && S.gold[rk.tier]) || 0));
+      u.gold = Math.min(9e6, (+u.gold || 0) + rec.gold);
+      if ((S.skinTier | 0) <= 8 && rk.t >= (S.skinTier | 0)) {
+        isObj(u.own) || (u.own = {});
+        for (const g of GUNS) if (fits("laurel", g) && !hasItem(u, g, "laurel")) ((u.own[g] = Array.isArray(u.own[g]) ? u.own[g] : []).push("laurel"), rec.skin++);
+      }
+    }
+    u.rr = seasonRR(u, c, cur);
+    rec.after = u.rr;
+    u.ssnLog = [rec].concat(Array.isArray(u.ssnLog) ? u.ssnLog : []).slice(0, 12);
+  }
+  u.ssn = { n: cur.n, end: cur.end, played: 0, need };
+  return !0;
 }
 const ownedCount = (u) => {
   let n = 0;
@@ -386,7 +440,7 @@ function rollTier(odds) {
 }
 const poolOf = (u, tier) => {
   const out = [];
-  for (const s of SKIN_IDS) if (SKIN_TIER[s] === tier) for (const g of GUNS) fits(s, g) && !hasItem(u, g, s) && out.push([g, s]);
+  for (const s of SKIN_IDS) if (SKIN_TIER[s] === tier && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && !hasItem(u, g, s) && out.push([g, s]);
   return out;
 };
 // one pull: never a duplicate. The tier is rolled; if every skin of that tier
@@ -625,7 +679,7 @@ function shopOf(c, day) {
     let st = h.readUInt32LE(0) >>> 0 || 1;
     const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0), st / 4294967296);
     const pool = [];
-    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1) for (const g of GUNS) fits(s, g) && pool.push([g, s]);
+    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1 && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && pool.push([g, s]);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(rnd() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -650,7 +704,32 @@ A.shop = async (q, b) => {
     day = kstDay(t);
   const u = b && b.token ? await who(b.token).catch(() => null) : null;
   const items = c.shop.on ? shopOf(c, day) : [];
-  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1 })), gold: u && "number" == typeof u.gold ? u.gold : null };
+  const wish = u ? cleanWish(u) : [];
+  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1, wished: wish.includes(x.g + "|" + x.s) })), gold: u && "number" == typeof u.gold ? u.gold : null, wish };
+};
+// the wishlist: skins (gun|skin) the player wants; the shop marks them and the game says
+// when one is on sale today. Thirty at most.
+const WISH_MAX = 30;
+const cleanWish = (u) => (Array.isArray(u.wish) ? u.wish.filter((x) => "string" == typeof x && /^[a-z]+\|[a-z]+$/.test(x)).filter((x) => { const [g, s] = x.split("|"); return GUNS.includes(g) && SKIN_TIER[s] && !EXCLUSIVE[s] && fits(s, g); }).slice(0, WISH_MAX) : []);
+A.wish = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  let list = cleanWish(u);
+  if (b.item) {
+    if (await limited("wish:" + rlKey(u), 30, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+    const it = String(b.item),
+      [g, s] = it.split("|");
+    if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템입니다");
+    if (EXCLUSIVE[s]) throw fail(400, "시즌 보상 스킨은 찜할 수 없습니다");
+    if (!1 === b.on) list = list.filter((x) => x !== it);
+    else if (!list.includes(it)) {
+      if (list.length >= WISH_MAX) throw fail(409, `찜은 ${WISH_MAX}개까지입니다`);
+      list.push(it);
+    }
+    u.wish = list;
+    await saveUser(u);
+  }
+  return { wish: list, max: WISH_MAX };
 };
 A.shop_buy = async (q, b) => {
   const c = await loadConfig(),
@@ -667,6 +746,7 @@ A.shop_buy = async (q, b) => {
   if (u.gold < it.price) throw fail(402, `골드가 부족합니다 (${it.price.toLocaleString()} 필요)`);
   u.gold -= it.price;
   (u.own[it.g] = u.own[it.g] || []).push(it.s);
+  Array.isArray(u.wish) && (u.wish = u.wish.filter((x) => x !== it.g + "|" + it.s));
   u.bought = (u.bought || 0) + 1;
   u.spent = (u.spent || 0) + it.price;
   await saveUser(u);
@@ -863,6 +943,7 @@ A.progress = async (q, b) => {
   u.rr = Math.max(0, rr0 + drr);
   drr = u.rr - rr0;
   drr > 0 && (u.rrDay.n = (u.rrDay.n || 0) + drr);
+  rankedOk && !draw && isObj(u.ssn) && (u.ssn.played = (u.ssn.played | 0) + 1);
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
@@ -1035,7 +1116,9 @@ ADMIN.summary = async () => {
   const ids = ((await redis(["ZRANGE", "users", "0", "-1", "REV"])) || []).slice(0, 2000);
   const recs = ids.length ? (await redis(["MGET", ...ids.map((k) => "user:" + k)])) || [] : [];
   const S = { users: ids.length, scanned: 0, bought: 0, spent: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, ranked: 0, ranks: Array(RANKS.length).fill(0), signups: Array(14).fill(0) };
-  const top = [];
+  const top = [],
+    cur = seasonNow(c, t);
+  S.season = Object.assign({}, cur, { players: 0 });
   const d0 = new Date(t);
   d0.setHours(0, 0, 0, 0);
   for (const r of recs) {
@@ -1065,7 +1148,8 @@ ADMIN.summary = async () => {
     a.pc && S.aimPc++;
     a.mobile || S.aimMobileOff++;
     u.ban && (!u.ban.until || u.ban.until > t) && S.banned++;
-    const rk = rankOf(u.rr);
+    const rk = rankOf(seasonRR(u, c, cur));
+    isObj(u.ssn) && u.ssn.n === cur.n && (u.ssn.played | 0) > 0 && S.season.players++;
     S.ranks[rk.t]++;
     (u.rr || 0) > 0 && S.ranked++;
     const ago = Math.floor((d0.getTime() + 864e5 - 1 - (u.created || 0)) / 864e5);
@@ -1097,7 +1181,7 @@ ADMIN.summary = async () => {
     "lobby" !== r.state && R.playing++;
     R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
   }
-  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), t };
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), t };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -1265,7 +1349,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];

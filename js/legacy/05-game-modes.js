@@ -6,8 +6,11 @@
     rush: { name: "스파이크 돌격", sub: "4선승 · 전원 스파이크 · 무작위 총", win: 4, rush: !0 },
     tdm: { name: "팀 데스매치", sub: "먼저 100킬 · 부활 · 모든 무기", respawn: !0, team: !0, kills: 100, time: 570 },
     dm: { name: "데스매치", sub: "개인전 40킬 · 능력 없음", respawn: !0, ffa: !0, kills: 40, time: 540, noAbil: !0 },
+    // the two below are run by the knife-fight-and-gun-game module
+    knife: { name: "칼 대난투", sub: "개인전 25킬 · 칼만 · 능력 없음", respawn: !0, ffa: !0, kills: 25, time: 420, noAbil: !0, melee: !0 },
+    gun: { name: "총기 순환", sub: "개인전 · 킬마다 다음 총 · 마지막은 칼", respawn: !0, ffa: !0, kills: 13, time: 600, noAbil: !0, ladder: !0 },
   };
-  const ORDER = ["std", "swift", "rush", "tdm", "dm"];
+  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun"];
   room.mode = room.mode || "std";
   const M = () => MODES[room.mode] || MODES.std;
   const inMatch = () => world.actors && world.actors.length > 0;
