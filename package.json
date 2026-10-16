@@ -20,6 +20,7 @@
     "test:aim": "node scripts/browser-aim.js",
     "test:admin": "node scripts/browser-admin-dash.js",
     "test:shop": "node scripts/browser-shop.js",
-    "test:modes2": "node scripts/browser-modes2.js"
+    "test:modes2": "node scripts/browser-modes2.js",
+    "test:wish": "node scripts/browser-wish.js"
   }
 }

@@ -1985,6 +1985,18 @@
 .it i{font-size:9px;letter-spacing:.12em;font-style:normal;font-family:var(--f-display);color:var(--rc)}
 .it.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
 .it.eq::after{content:attr(data-eq);position:absolute;top:5px;right:5px;font-size:9px;padding:1px 6px;border-radius:99px;background:var(--gold);color:#14100a;font-weight:700}
+.it.wish::before{content:"★";position:absolute;top:4px;left:7px;font-size:13px;color:#ffc849;text-shadow:0 1px 3px #000;z-index:1}
+.ar-sk.wish::before{content:"★";position:absolute;top:5px;left:8px;font-size:12px;color:#ffc849;text-shadow:0 1px 3px #000;z-index:1}
+.ar-cap .ar-wish,.sh-wbtn{pointer-events:auto}
+.ar-wish{display:inline-block;margin-top:6px;padding:5px 11px;border-radius:999px;border:1px solid rgba(255,200,73,.5);background:rgba(10,13,18,.7);color:#ffc849;font-size:11px;font-family:var(--f-body);letter-spacing:0;cursor:pointer}
+.ar-wish.on,.sh-wbtn.on{background:rgba(255,200,73,.16);border-color:#ffc849;color:#ffc849}
+.sh-wn{color:#ffc849}
+#wish-note{position:fixed;left:50%;bottom:max(18px,4vh);transform:translateX(-50%);z-index:58;display:flex;align-items:stretch;border:1px solid rgba(255,200,73,.6);border-radius:14px;background:rgba(14,18,26,.94);box-shadow:0 12px 40px -12px rgba(255,200,73,.45);max-width:min(560px,92vw);animation:wnIn .4s cubic-bezier(.2,.8,.2,1)}
+#wish-note[hidden]{display:none}
+#wish-note .wn-go{display:flex;flex-direction:column;gap:2px;padding:10px 14px;text-align:left;background:none;border:0;color:var(--ink);cursor:pointer;min-height:44px}
+#wish-note .wn-go b{color:#ffc849;font-size:13px}#wish-note .wn-go span{font-size:11px;color:var(--steel)}
+#wish-note .wn-x{padding:0 14px;background:none;border:0;border-left:1px solid var(--line);color:var(--steel);font-size:18px;cursor:pointer;min-width:44px}
+@keyframes wnIn{from{opacity:0;transform:translate(-50%,12px)}}
 .pl-shop{margin-top:10px;width:100%;min-height:40px;font-size:12px;border-color:rgba(255,200,73,.45);color:#ffc849}
 .it .pr{font-style:normal;font-family:var(--f-display);font-size:11px;font-weight:700;color:#ffc849;margin-top:1px}
 .it.eq .pr{color:var(--steel-dim);text-decoration:line-through}
@@ -3508,6 +3520,7 @@
       SH.on = !1 !== j.on;
       SH.at = Date.now();
       SH.err = "";
+      Array.isArray(j.wish) && token() && takeWish(j.wish);
       "number" == typeof j.gold && setGold(j.gold);
       (SH.sel && SH.items.some((x) => x.g + "|" + x.s === SH.sel)) || (SH.sel = SH.items.length ? SH.items.slice().sort((a, b) => b.r - a.r)[0].g + "|" + SH.items.slice().sort((a, b) => b.r - a.r)[0].s : null);
     } catch (e) {
@@ -3539,7 +3552,7 @@
     const gold = INV.gold || 0,
       list = SH.items.slice().sort((a, b) => b.r - a.r || a.price - b.price),
       have = list.filter(owned).length;
-    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
+    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${(() => { const w = list.filter((x) => !owned(x) && wished(x.g, x.s)).length; return w ? `<b class="sh-wn">★ ${L(`찜한 스킨 ${w}개`, `${w} wishlisted`)}</b> · ` : ""; })()}${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
     paintShopTime();
     box.innerHTML = "";
     if (SH.err || !SH.on || !list.length) {
@@ -3551,7 +3564,7 @@
     for (const x of list) {
       const s = BY[x.s],
         mine = owned(x),
-        c = itemCard(x.g, s, (SH.sel === x.g + "|" + x.s ? " on" : "") + (mine ? " eq" : "") + (!mine && gold < x.price ? " dear" : ""));
+        c = itemCard(x.g, s, (SH.sel === x.g + "|" + x.s ? " on" : "") + (mine ? " eq" : "") + (!mine && gold < x.price ? " dear" : "") + (!mine && wished(x.g, x.s) ? " wish" : ""));
       mine && (c.dataset.eq = L("보유", "Owned"));
       const pr = document.createElement("em");
       pr.className = "pr";
@@ -3576,7 +3589,7 @@
     const why = mine ? "" : !signed() ? L("로그인하면 살 수 있습니다", "Sign in to buy") : short ? L(`골드 ${short.toLocaleString()} 부족 · 경기와 미션으로 모으세요`, `${short.toLocaleString()} gold short · earn it in matches and missions`) : "";
     info.innerHTML = `<h4>${WEAPONS[it.g].name} · ${nameOf(s)}<i style="color:${RAR[s.rar].c}">${EN ? RAR[s.rar].en : RAR[s.rar].ko}</i></h4>
       <p>${mine ? L("이미 가진 스킨입니다", "You own this one") : L(`가격 🪙 ${it.price.toLocaleString()} · 내 골드 🪙 ${gold.toLocaleString()}`, `Price 🪙 ${it.price.toLocaleString()} · You have 🪙 ${gold.toLocaleString()}`)}</p>
-      <div class="row">${mine ? (mySkin(it.g).id === it.s ? `<button class="btn" disabled>${L("장착 중", "Worn")}</button>` : `<button class="btn btn-go" id="sh-wear">${L("장착", "Wear")}</button>`) : `<button class="btn btn-go${armed ? " sh-arm" : ""}" id="sh-buy"${why || SH.busy ? " disabled" : ""}>${SH.busy ? L("구매 중…", "Buying…") : armed ? L(`한 번 더 누르면 구매 · 🪙 ${it.price.toLocaleString()}`, `Tap again to buy · 🪙 ${it.price.toLocaleString()}`) : L(`구매 · 🪙 ${it.price.toLocaleString()}`, `Buy · 🪙 ${it.price.toLocaleString()}`)}</button>`}</div>${why ? `<p class="sh-why">${why}</p>` : ""}`;
+      <div class="row">${mine ? (mySkin(it.g).id === it.s ? `<button class="btn" disabled>${L("장착 중", "Worn")}</button>` : `<button class="btn btn-go" id="sh-wear">${L("장착", "Wear")}</button>`) : `<button class="btn btn-go${armed ? " sh-arm" : ""}" id="sh-buy"${why || SH.busy ? " disabled" : ""}>${SH.busy ? L("구매 중…", "Buying…") : armed ? L(`한 번 더 누르면 구매 · 🪙 ${it.price.toLocaleString()}`, `Tap again to buy · 🪙 ${it.price.toLocaleString()}`) : L(`구매 · 🪙 ${it.price.toLocaleString()}`, `Buy · 🪙 ${it.price.toLocaleString()}`)}</button>`}${mine ? "" : `<button class="btn sh-wbtn${wished(it.g, it.s) ? " on" : ""}" id="sh-wish">${wished(it.g, it.s) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기", "☆ Wishlist")}</button>`}</div>${why ? `<p class="sh-why">${why}</p>` : ""}`;
     const buy = $("sh-buy"),
       wear = $("sh-wear");
     buy &&
@@ -3592,6 +3605,8 @@
         buyShop(it.g, it.s);
       });
     wear && (wear.onclick = () => (setSkin(it.g, it.s) && note(L("장착했습니다", "Worn")), paintShop(), pvShow()));
+    const wb = $("sh-wish");
+    wb && (wb.onclick = () => toggleWish(it.g, it.s));
   }
   async function buyShop(g, sid) {
     if (SH.busy || !signed()) return null;
@@ -3621,10 +3636,82 @@
     paintShopTime();
     SH.resetAt && Date.now() >= SH.resetAt + 1500 && Date.now() - SH.at > 5000 && loadShop(!0);
   }, 1000);
+  // ── the wishlist: ★ on a skin not owned; the game says when one is in today's shop ──
+  const WL = { set: new Set(), busy: !1, tried: !1 };
+  const wkey = (g, s) => g + "|" + s;
+  const wished = (g, s) => WL.set.has(wkey(g, s));
+  try {
+    const j = JSON.parse(localStorage.getItem("lgp_wish") || "null"),
+      me = session() && session().user;
+    j && Array.isArray(j.l) && me && j.id === me.id && (WL.set = new Set(j.l));
+  } catch (e) {}
+  function takeWish(list) {
+    if (!Array.isArray(list)) return;
+    WL.set = new Set(list);
+    try {
+      const me = session() && session().user;
+      localStorage.setItem("lgp_wish", JSON.stringify({ id: me ? me.id : "", l: list }));
+    } catch (e) {}
+  }
+  async function toggleWish(g, sid) {
+    if (!signed()) return void note(L("로그인하면 찜할 수 있습니다", "Sign in to keep a wishlist"));
+    if (WL.busy) return;
+    WL.busy = !0;
+    const on = !wished(g, sid);
+    try {
+      takeWish((await AC().api("wish", { token: token(), item: wkey(g, sid), on })).wish);
+      note(on ? L("찜했습니다 · 오늘의 상점에 뜨면 알려 드립니다", "Wishlisted · you'll hear when it's in the shop") : L("찜을 풀었습니다", "Off the wishlist"));
+    } catch (e) {
+      note((e && e.message) || L("찜하지 못했습니다", "Could not change the wishlist"));
+    }
+    WL.busy = !1;
+    armoryPaint();
+  }
+  // on the title screen, once a day: a wished skin is in today's shop
+  function wishNotice() {
+    let n = $("wish-note");
+    const t = $("s-title"),
+      day = SH.day || "",
+      onTitle = signed() && "menu" === world.phase && t && !t.hidden && "none" !== getComputedStyle(t).display;
+    let seen = "";
+    try {
+      seen = localStorage.getItem("lgp_wish_seen") || "";
+    } catch (e) {}
+    const hits = SH.items.filter((x) => wished(x.g, x.s) && !owned(x));
+    if (!onTitle || !hits.length || seen === day || AR.open) return void (n && (n.hidden = !0));
+    if (!n) {
+      n = document.createElement("div");
+      n.id = "wish-note";
+      n.innerHTML = `<button class="wn-go" id="wn-go"></button><button class="wn-x" id="wn-x" aria-label="${L("닫기", "Close")}">×</button>`;
+      document.body.appendChild(n);
+      const done = () => {
+        try {
+          localStorage.setItem("lgp_wish_seen", SH.day || "");
+        } catch (e) {}
+        n.hidden = !0;
+      };
+      $("wn-go").onclick = () => (done(), openArmory(null, "shop"));
+      $("wn-x").onclick = done;
+    }
+    const first = hits[0];
+    $("wn-go").innerHTML = `<b>★ ${L(`찜한 스킨 ${hits.length}개가 오늘 상점에 있습니다`, `${hits.length} wishlisted skin${hits.length > 1 ? "s are" : " is"} in today's shop`)}</b><span>${WEAPONS[first.g].name} · ${nameOf(BY[first.s])}${hits.length > 1 ? L(` 외 ${hits.length - 1}개`, ` and ${hits.length - 1} more`) : ""} · ${L("보러 가기", "Take a look")} →</span>`;
+    n.hidden = !1;
+  }
+  setInterval(() => {
+    try {
+      if (!signed() || "menu" !== world.phase) return;
+      if (!WL.tried) {
+        WL.tried = !0;
+        loadShop(!0).then(wishNotice);
+      } else wishNotice();
+    } catch (e) {}
+  }, 2500);
   function paintCap() {
     const shown = AR.peek && BY[AR.peek] ? BY[AR.peek] : AR.view && BY[AR.view] ? BY[AR.view] : mySkin(AR.key),
       r = RAR[shown.rar];
-    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? `<em>${L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull")}</em>` : ""}`;
+    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>` : ""}`;
+    const aw = $("ar-wish");
+    aw && (aw.onclick = () => toggleWish(AR.key, AR.peek));
   }
   // by gun: the gun list, the turntable, that gun's skins (owned ones worn on a tap, the rest only looked at)
   function armoryPaint() {
@@ -3660,7 +3747,7 @@
     for (const s of skinsFor(AR.key)) {
       const b = document.createElement("button"),
         has = owns(AR.key, s.id);
-      b.className = "ar-sk" + (s === cur && !AR.peek ? " on" : "") + (has ? "" : " locked") + (AR.peek === s.id ? " peek" : "");
+      b.className = "ar-sk" + (s === cur && !AR.peek ? " on" : "") + (has ? "" : " locked") + (AR.peek === s.id ? " peek" : "") + (!has && wished(AR.key, s.id) ? " wish" : "");
       b.dataset.s = s.id;
       b.dataset.g = AR.key;
       has || (b.title = L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull"));
@@ -3797,5 +3884,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();

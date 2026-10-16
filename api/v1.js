@@ -650,7 +650,31 @@ A.shop = async (q, b) => {
     day = kstDay(t);
   const u = b && b.token ? await who(b.token).catch(() => null) : null;
   const items = c.shop.on ? shopOf(c, day) : [];
-  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1 })), gold: u && "number" == typeof u.gold ? u.gold : null };
+  const wish = u ? cleanWish(u) : [];
+  return { on: !!c.shop.on, day, resetAt: nextKstMidnight(t), items: items.map((x) => Object.assign(x, { own: u ? hasItem(u, x.g, x.s) : !1, wished: wish.includes(x.g + "|" + x.s) })), gold: u && "number" == typeof u.gold ? u.gold : null, wish };
+};
+// the wishlist: skins (gun|skin) the player wants; the shop marks them and the game says
+// when one is on sale today. Thirty at most.
+const WISH_MAX = 30;
+const cleanWish = (u) => (Array.isArray(u.wish) ? u.wish.filter((x) => "string" == typeof x && /^[a-z]+\|[a-z]+$/.test(x)).filter((x) => { const [g, s] = x.split("|"); return GUNS.includes(g) && SKIN_TIER[s] && fits(s, g); }).slice(0, WISH_MAX) : []);
+A.wish = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  let list = cleanWish(u);
+  if (b.item) {
+    if (await limited("wish:" + rlKey(u), 30, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+    const it = String(b.item),
+      [g, s] = it.split("|");
+    if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템입니다");
+    if (!1 === b.on) list = list.filter((x) => x !== it);
+    else if (!list.includes(it)) {
+      if (list.length >= WISH_MAX) throw fail(409, `찜은 ${WISH_MAX}개까지입니다`);
+      list.push(it);
+    }
+    u.wish = list;
+    await saveUser(u);
+  }
+  return { wish: list, max: WISH_MAX };
 };
 A.shop_buy = async (q, b) => {
   const c = await loadConfig(),
@@ -667,6 +691,7 @@ A.shop_buy = async (q, b) => {
   if (u.gold < it.price) throw fail(402, `골드가 부족합니다 (${it.price.toLocaleString()} 필요)`);
   u.gold -= it.price;
   (u.own[it.g] = u.own[it.g] || []).push(it.s);
+  Array.isArray(u.wish) && (u.wish = u.wish.filter((x) => x !== it.g + "|" + it.s));
   u.bought = (u.bought || 0) + 1;
   u.spent = (u.spent || 0) + it.price;
   await saveUser(u);

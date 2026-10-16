@@ -296,3 +296,22 @@ test("the daily shop: twenty skins by tier, the same for everyone all day, bough
   assert.deepEqual((await h.api("shop", {})).items, []);
   assert.equal((await h.api("shop_buy", { token: player.token, g: "rifle", s: "snow" })).status, 403);
 });
+
+test("the wishlist: toggled per item, checked, capped, marked in the shop, dropped once bought", async () => {
+  const h = harness(), player = await login(h), owner = await login(h, "owner");
+  assert.deepEqual((await h.api("wish", { token: player.token })).wish, []);
+  assert.equal((await h.api("wish", { token: player.token, item: "rifle|nope" })).status, 400);
+  assert.equal((await h.api("wish", { token: player.token, item: "rifle|karambit" })).status, 400, "a knife skin only fits the knife");
+  const shop = await h.api("shop", {});
+  const it = shop.items.find((x) => x.r === 2), key = it.g + "|" + it.s;
+  assert.deepEqual((await h.api("wish", { token: player.token, item: key, on: true })).wish, [key]);
+  assert.deepEqual((await h.api("wish", { token: player.token, item: "rifle|lava", on: true })).wish, [key, "rifle|lava"]);
+  const marked = await h.api("shop", { token: player.token });
+  assert.equal(marked.items.find((x) => x.g === it.g && x.s === it.s).wished, true);
+  assert.deepEqual(marked.wish, [key, "rifle|lava"]);
+  assert.deepEqual((await h.api("wish", { token: player.token, item: "rifle|lava", on: false })).wish, [key]);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 50000 });
+  assert.equal((await h.api("shop_buy", { token: player.token, g: it.g, s: it.s, day: shop.day })).status, 200);
+  assert.deepEqual((await h.api("wish", { token: player.token })).wish, [], "bought, so off the list");
+  assert.equal((await h.api("wish", { item: key, on: true })).status, 401);
+});
