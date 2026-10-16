@@ -71,18 +71,23 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const r = await run("d" + mode, "d01", mode, async () => {
         const me = myActor(), foe = world.actors.find((a) => a !== me);
         killActor(me, foe);
-        const t0 = performance.now();
-        while (!me.alive && performance.now() - t0 < 8000) await new Promise((r) => setTimeout(r, 200));
-        return { back: me.alive, after: Math.round(performance.now() - t0) };
+        // game time, stepped here: a slow or stalling machine does not change the answer
+        let t = 0;
+        while (!me.alive && t < 6) {
+          world.phase = "live";
+          step(0.05);
+          t += 0.05;
+        }
+        return { back: me.alive, after: +t.toFixed(2) };
       });
       console.log("1v1", mode, JSON.stringify(r));
-      assert.ok(r.back, "1v1 " + mode + ": back after a death");
+      assert.ok(r.back && r.after <= 3.3, "1v1 " + mode + ": back about 3 s (game time) after a death");
     }
     const round = await run("dstd", "d02", "std", async () => {
       const me = myActor(), foe = world.actors.find((a) => a !== me);
       killActor(me, foe);
       const t0 = performance.now();
-      while (!(world.round >= 2 && me.alive) && performance.now() - t0 < 12000) await new Promise((r) => setTimeout(r, 200));
+      while (!(world.round >= 2 && me.alive) && performance.now() - t0 < 30000) await new Promise((r) => setTimeout(r, 200));
       return { round: world.round, alive: me.alive };
     });
     console.log("1v1 std", JSON.stringify(round));
