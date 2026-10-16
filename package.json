@@ -26,6 +26,7 @@
     "test:agents4": "node scripts/browser-agents4.js",
     "test:season": "node scripts/browser-season.js",
     "test:infection": "node scripts/browser-infection.js",
-    "test:conquest": "node scripts/browser-conquest.js"
+    "test:conquest": "node scripts/browser-conquest.js",
+    "test:range": "node scripts/browser-range.js"
   }
 }

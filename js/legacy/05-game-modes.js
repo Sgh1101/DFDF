@@ -9,6 +9,8 @@
     // the two below are run by the knife-fight-and-gun-game module
     knife: { name: "칼 대난투", sub: "개인전 25킬 · 칼만 · 능력 없음", respawn: !0, ffa: !0, kills: 25, time: 420, noAbil: !0, melee: !0 },
     gun: { name: "총기 순환", sub: "개인전 · 킬마다 다음 총 · 마지막은 칼", respawn: !0, ffa: !0, kills: 13, time: 600, noAbil: !0, ladder: !0 },
+    // the target range (solo only, not in the mode lists): run by the range module
+    range: { name: "표적 사격", sub: "60초 · 움직이는 표적을 쏘세요", respawn: !0, ffa: !0, kills: 9999, time: 60, noAbil: !0, range: !0 },
     // run by the infection module: one infected to start, the caught join them, survive the time to win
     // run by the conquest module: a hill that moves; the side holding it scores
     hill: { name: "점령전", sub: "움직이는 점령 지점 · 지키는 쪽이 초당 1점 · 120점 먼저", respawn: !0, team: !0, kills: 9999, time: 540, hill: !0 },
@@ -123,7 +125,7 @@
   };
   const _sg = startGame;
   startGame = function (e, t) {
-    t && (room.mode = "std");
+    t && "range" !== room.mode && (room.mode = "std");
     return _sg.apply(this, arguments);
   };
   const _ls = lobbyStart;
