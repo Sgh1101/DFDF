@@ -116,6 +116,9 @@ const DEFAULT_CONFIG = {
   // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
   // only in a ranked room (admin and cheats off) and with at least minHumans people
   rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3 },
+  // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
+  // its tier (1 common … 4 legendary); on switches the whole thing
+  cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
   // seasons: every `weeks` weeks from startDay (a date in Korea, YYYYMMDD) a season ends.
   // Each account keeps keep% of its RR; whoever played at least minPlay counted ranked
   // matches in it gets the gold of the tier it finished on, and from skinTier up (0 iron …
@@ -271,7 +274,7 @@ const rankOf = (rr) => {
 };
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -660,6 +663,74 @@ A.prefs = async (q, b) => {
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
 A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
 
+// ── profile cosmetics ──
+// slot title / card / banner, tier 1-4. The names and looks are in js/cosmetics.js (a test checks the ids
+// and tiers match); the server decides who owns what and what is on.
+const COS = [];
+const cosAdd = (s, r, ids) => ids.split(" ").forEach((id) => COS.push({ id, s, r }));
+cosAdd("title", 1, "rookie scout patrol scrap");
+cosAdd("title", 2, "marksman bulwark shade tempest");
+cosAdd("title", 3, "commander deadeye phoenix wraith");
+cosAdd("title", 4, "legend13 sovereign flawless");
+cosAdd("card", 1, "snow dusk");
+cosAdd("card", 2, "neoncity dancheong");
+cosAdd("card", 3, "galaxy magma");
+cosAdd("card", 4, "laurelc aurorac");
+cosAdd("banner", 2, "gold bolt sakura");
+cosAdd("banner", 3, "neonpink flame frost");
+cosAdd("banner", 4, "ink stars");
+const COS_BY = Object.fromEntries(COS.map((x) => [x.id, x]));
+const cosPrice = (c, x) => Math.max(0, Math.round(+(c.cos && c.cos.price && c.cos.price[x.r]) || 0));
+const cosOf = (u) => {
+  const o = isObj(u.cos) ? u.cos : {},
+    own = (Array.isArray(o.own) ? o.own : []).filter((id) => COS_BY[id]),
+    eq = {};
+  for (const x of ["title", "card", "banner"]) eq[x] = isObj(o.eq) && COS_BY[o.eq[x]] && COS_BY[o.eq[x]].s === x && own.includes(o.eq[x]) ? o.eq[x] : "";
+  return { own, eq };
+};
+A.cos = async (q, b) => {
+  const c = await loadConfig();
+  const u = b && b.token ? await who(b.token).catch(() => null) : null;
+  const me = u ? cosOf(u) : { own: [], eq: { title: "", card: "", banner: "" } };
+  return { on: !!c.cos.on, items: COS.map((x) => ({ id: x.id, s: x.s, r: x.r, price: cosPrice(c, x) })), own: me.own, eq: me.eq, gold: u && "number" == typeof u.gold ? u.gold : null };
+};
+A.cos_buy = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("cos:" + rlKey(u), 20, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+  if (!c.cos.on) throw fail(403, "지금은 꾸미기 상점이 닫혀 있습니다");
+  ensureWallet(u, c);
+  const x = COS_BY[String(b.id)];
+  if (!x) throw fail(404, "없는 아이템입니다");
+  const me = cosOf(u);
+  if (me.own.includes(x.id)) throw fail(409, "이미 가진 아이템입니다");
+  const price = cosPrice(c, x);
+  if (u.gold < price) throw fail(402, `골드가 부족합니다 (${price.toLocaleString()} 필요)`);
+  u.gold -= price;
+  u.cos = { own: me.own.concat(x.id), eq: me.eq };
+  u.spent = (u.spent || 0) + price;
+  u.cosBought = (u.cosBought || 0) + 1;
+  await saveUser(u);
+  await log("shop", `${u.id} 꾸미기 구매: ${x.s}/${x.id} (${["", "일반", "희귀", "영웅", "전설"][x.r]}) ${price}골드`, { user: u.id });
+  return { item: x.id, gold: u.gold, own: u.cos.own, eq: u.cos.eq, user: publicUser(u, c.xp.perLevel) };
+};
+A.cos_equip = async (q, b) => {
+  const c = await loadConfig(),
+    u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("cosq:" + rlKey(u), 40, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+  const slot = String(b.slot);
+  if (!["title", "card", "banner"].includes(slot)) throw fail(400, "없는 칸입니다");
+  const me = cosOf(u),
+    id = b.id ? String(b.id) : "";
+  if (id && !(COS_BY[id] && COS_BY[id].s === slot)) throw fail(400, "이 칸에 맞지 않는 아이템입니다");
+  if (id && !me.own.includes(id)) throw fail(403, "가지고 있지 않은 아이템입니다");
+  me.eq[slot] = id;
+  u.cos = { own: me.own, eq: me.eq };
+  await saveUser(u);
+  return { own: me.own, eq: me.eq, user: publicUser(u, c.xp.perLevel) };
+};
 // ── the daily shop ──
 // The day starts at midnight in Korea. The twenty items come from a hash of the day (and
 // the owner's reroll number) keyed with the server secret, so everyone sees the same shop,
@@ -1185,6 +1256,7 @@ ADMIN.summary = async () => {
     S.gold += "number" == typeof u.gold ? u.gold : 0;
     S.pulls += u.pulls || 0;
     S.bought += u.bought || 0;
+    S.cosBought = (S.cosBought || 0) + (u.cosBought || 0);
     S.spent += u.spent || 0;
     S.owned += ownedCount(u);
     S.matches += u.matches || 0;
@@ -1397,7 +1469,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -1453,3 +1525,4 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
 });
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };
+module.exports.COS = COS;

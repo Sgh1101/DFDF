@@ -417,3 +417,54 @@ test("the weekly deal: epic and legendary skins at a discount all week, from Mon
   const sm = await h.api("a_summary", { atoken: owner2.atoken });
   assert.deepEqual(sm.weekly, []);
 });
+
+test("profile cosmetics: bought with gold, owned once, equipped only in their own slot, kept on the account", async () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  // the game's own list (js/cosmetics.js) and the server's name the same items, slots and tiers
+  const win = {}, ctx = { window: win, localStorage: { getItem: () => "ko" } };
+  new Function("window", "localStorage", fs.readFileSync(path.join(__dirname, "..", "js", "cosmetics.js"), "utf8"))(win, ctx.localStorage);
+  const a = await h.api("cos", { token: p.token });
+  assert.equal(a.status, 200);
+  assert.deepEqual(a.items.map((x) => x.id + ":" + x.s + ":" + x.r).sort(), win.COSMETICS.items.map((x) => x.id + ":" + x.s + ":" + x.r).sort(), "the server and the game agree on the catalogue");
+  assert.deepEqual(a.items.filter((x) => x.r === 1).map((x) => x.price), a.items.filter((x) => x.r === 1).map(() => 600));
+  assert.deepEqual(a.own, []);
+  assert.deepEqual(a.eq, { title: "", card: "", banner: "" });
+  // too poor, then bought, not twice
+  assert.equal((await h.api("cos_buy", { token: p.token, id: "marksman" })).status, 402, "300 gold only");
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 12000 });
+  const ok = await h.api("cos_buy", { token: p.token, id: "marksman" });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.gold, 12000 - 1800);
+  assert.deepEqual(ok.own, ["marksman"]);
+  assert.equal((await h.api("cos_buy", { token: p.token, id: "marksman" })).status, 409);
+  assert.equal((await h.api("cos_buy", { token: p.token, id: "nothing" })).status, 404);
+  assert.equal((await h.api("cos_buy", { id: "gold" })).status, 401);
+  assert.ok(h.db.get("logs").some((l) => /꾸미기 구매: title\/marksman/.test(l)));
+  // equipped: only what is owned, only in its own slot, off again with an empty id
+  assert.equal((await h.api("cos_equip", { token: p.token, slot: "title", id: "rookie" })).status, 403, "not owned");
+  assert.equal((await h.api("cos_equip", { token: p.token, slot: "card", id: "marksman" })).status, 400, "wrong slot");
+  assert.equal((await h.api("cos_equip", { token: p.token, slot: "hat", id: "marksman" })).status, 400);
+  const eq = await h.api("cos_equip", { token: p.token, slot: "title", id: "marksman" });
+  assert.equal(eq.status, 200);
+  assert.deepEqual(eq.eq, { title: "marksman", card: "", banner: "" });
+  // the account carries it (the profile the game and the homepage read)
+  const me = await h.api("me", { token: p.token });
+  assert.deepEqual(me.user.cos, { own: ["marksman"], eq: { title: "marksman", card: "", banner: "" } });
+  assert.deepEqual(h.user("player").cos, { own: ["marksman"], eq: { title: "marksman", card: "", banner: "" } });
+  assert.deepEqual((await h.api("cos_equip", { token: p.token, slot: "title", id: "" })).eq.title, "");
+  // the owner: prices and the switch
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.cos.price[4] = 25000; c.cos.on = false;
+  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).status, 200);
+  h.advance(30000);
+  assert.equal((await h.api("cos_buy", { token: p.token, id: "legend13" })).status, 403, "closed");
+  const closed = await h.api("cos", { token: p.token });
+  assert.equal(closed.on, false);
+  assert.equal(closed.items.find((x) => x.id === "legend13").price, 25000);
+  // a retired or unknown id in an account's record is dropped, never shown as owned
+  const u = h.user("player");
+  u.cos = { own: ["marksman", "gone"], eq: { title: "gone", card: "marksman", banner: "" } };
+  h.db.set("user:player", JSON.stringify(u));
+  assert.deepEqual((await h.api("me", { token: p.token })).user.cos, { own: ["marksman"], eq: { title: "", card: "", banner: "" } });
+});

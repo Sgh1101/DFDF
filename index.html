@@ -80,6 +80,8 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .tbar{height:6px;border-radius:3px;background:#1d2533;margin:5px 0 3px;overflow:hidden;width:170px}
 .tbar i{display:block;height:100%;background:var(--tc);border-radius:3px}
 .tier small{color:var(--steel);font-size:11px}
+.ttl{margin-top:2px;font:700 12px/1.3 var(--fd);letter-spacing:.08em}
+.card.has-card{background-blend-mode:normal}
 .tier .ssn{display:block;margin-top:2px;color:var(--tc);opacity:.9}
 .tier .ssn[hidden]{display:none}
 .ssn-end{display:flex;align-items:center;gap:10px;margin:12px auto 0;max-width:100%;width:max-content;padding:9px 12px 9px 14px;border-radius:14px;border:1px solid rgba(255,200,73,.45);background:linear-gradient(90deg,rgba(255,200,73,.14),rgba(255,200,73,.03));color:var(--steel);font-size:12px;line-height:1.45}
@@ -150,6 +152,7 @@ footer a{color:var(--steel)}
 .banned b{font-size:22px;color:#ff9aa5}
 </style>
 <script src="./js/client-request.js"></script>
+<script src="./js/cosmetics.js"></script>
 </head>
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
@@ -186,6 +189,7 @@ footer a{color:var(--steel)}
           <div class="lvl"><small>LV</small><b id="meLv">1</b></div></div>
         <div class="who">
           <div class="nm" id="meName"></div>
+          <div class="ttl" id="meTitle" hidden></div>
           <span class="rank" id="meRank"></span>
           <div class="xpbar"><i id="meXp"></i></div>
           <div class="xpt" id="meXpT"></div>
@@ -194,7 +198,7 @@ footer a{color:var(--steel)}
       <div class="tier" id="meTier" hidden><div class="tb" id="meTierB"></div><div class="ti"><b id="meTierN"></b><div class="tbar"><i id="meTierX"></i></div><small id="meTierT"></small><small class="ssn" id="meSeason"></small></div></div>
       <div class="ssn-end" id="ssnEnd" hidden><span id="ssnEndT"></span><button type="button" id="ssnEndOk"></button></div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
-      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
@@ -226,7 +230,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
+    logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
     modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
@@ -240,7 +244,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
+    logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
     modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
@@ -320,6 +324,13 @@ function drawMe() {
   $("#meSkinMine").textContent = t("skinMine");
   $("#meSkinPull").href = gameUrl("") + "#skins";
   $("#meSkinMine").href = gameUrl("") + "#skins-mine";
+  // profile cosmetics: the title under the name, the name card behind the profile
+  $("#meCos").hidden = !wallet; $("#meCos").textContent = t("style"); $("#meCos").href = gameUrl("") + "#cos";
+  const cs = window.COSMETICS ? COSMETICS.equipped(u) : { title: null, card: null };
+  $("#meTitle").hidden = !cs.title;
+  if (cs.title) { $("#meTitle").textContent = COSMETICS.name(cs.title); $("#meTitle").style.color = COSMETICS.tier(cs.title.r)[2]; }
+  const cardEl = document.querySelector(".card");
+  if (cardEl) { cardEl.style.background = cs.card ? cs.card.css : ""; cardEl.classList.toggle("has-card", !!cs.card); }
   // the rank: the tier badge, its division and the RR into it
   const rk = u.rank;
   $("#meTier").hidden = !rk;
