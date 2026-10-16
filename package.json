@@ -28,6 +28,7 @@
     "test:infection": "node scripts/browser-infection.js",
     "test:conquest": "node scripts/browser-conquest.js",
     "test:range": "node scripts/browser-range.js",
-    "test:cosmetics": "node scripts/browser-cosmetics.js"
+    "test:cosmetics": "node scripts/browser-cosmetics.js",
+    "test:newmaps": "node scripts/browser-newmaps.js"
   }
 }

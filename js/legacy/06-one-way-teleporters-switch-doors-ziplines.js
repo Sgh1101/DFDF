@@ -30,6 +30,7 @@
     pogu: { door: [{ x: 18, z: -12, w: 0.6, d: 8, h: 6, sw: [[15.5, -9.5], [20.5, -14.5]] }] },
   };
   const G = { key: null, tp: [], door: [], zip: [], meshes: [] };
+  G.DEF = DEF; // maps added by later modules put their own gimmicks here
   window.MAP_GIMMICKS = G;
   function clear() {
     // These nodes and their geometry/materials are created by this module.
