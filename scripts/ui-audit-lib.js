@@ -9,6 +9,8 @@ module.exports.AUDIT_SRC = `(() => {
       const s = getComputedStyle(n);
       if (s.display === "none" || s.visibility === "hidden" || +s.opacity < 0.05 || n.hidden || n.inert) return false;
       if (s.pointerEvents === "none" && n === e) return false;
+      // the inside of a closed <details> is not on the screen (only its summary is)
+      if (n.tagName === "DETAILS" && !n.open && e !== n && !(e.tagName === "SUMMARY" && e.parentElement === n)) return false;
     }
     return true;
   };

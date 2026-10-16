@@ -40,9 +40,10 @@ const only = (process.env.DFDF_UI_ONLY || "").split(",").filter(Boolean), viewOn
       await page.evaluate(() => { room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); });
       await page.waitForTimeout(600);
       await run("game-buy", async () => { await page.evaluate(() => { world.phase = "buy"; openShop(); }); }, ["#hud"]);
-      await run("game-live", async () => { await page.evaluate(() => { closeShop(); world.phase = "live"; }); });
+      await run("game-live", async () => { await page.evaluate(() => { closeShop(); world.phase = "live"; myActor().nades = 2; }); await page.waitForTimeout(900); });
       await run("game-scoreboard", async () => { await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { code: "Tab", key: "Tab" }))); });
       await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keyup", { code: "Tab", key: "Tab" })));
+      await page.evaluate(() => { try { document.getElementById("bd-x").click(); } catch (e) {} });
       await run("game-pause", async () => { await page.evaluate(() => { try { openPause(); } catch (e) { document.getElementById("pause").hidden = false; } }); }, ["#hud"]);
       await run("game-over", async () => { await page.evaluate(() => { document.getElementById("pause").hidden = true; world.round = 3; world.scoreAtk = 13; gameOver(); }); });
       await page.context().close();
