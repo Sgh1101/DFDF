@@ -92,5 +92,6 @@
   "js/legacy/91-target-range-moving-targets-a-minute-and-a-score.js",
   "js/legacy/92-profile-cosmetics-titles-name-cards-and-kill-effects-for-gold.js",
   "js/legacy/93-two-more-maps-the-night-harbor-and-the-rooftop-city.js",
-  "js/legacy/94-capture-the-flag-take-theirs-home-while-yours-is-safe.js"
+  "js/legacy/94-capture-the-flag-take-theirs-home-while-yours-is-safe.js",
+  "js/legacy/95-shrinking-zone-last-one-standing-in-a-circle-that-closes.js"
 ]

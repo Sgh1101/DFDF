@@ -16,9 +16,11 @@
     hill: { name: "점령전", sub: "움직이는 점령 지점 · 지키는 쪽이 초당 1점 · 120점 먼저", respawn: !0, team: !0, kills: 9999, time: 540, hill: !0 },
     // run by the capture-the-flag module: take their flag to your own flag's place; 3 captures win
     ctf: { name: "깃발 탈취", sub: "적 깃발을 우리 깃발 자리로 · 3점 먼저 · 부활", respawn: !0, team: !0, kills: 9999, time: 600, ctf: !0 },
+    // run by the shrinking-zone module: free for all, one life, a safe circle that closes; last one standing wins
+    zone: { name: "축소전", sub: "개인전 · 한 번뿐인 목숨 · 줄어드는 구역 밖은 피해 · 마지막 한 명", respawn: !0, ffa: !0, kills: 9999, time: 420, noAbil: !0, zone: !0 },
     inf: { name: "감염", sub: "술래 한 명으로 시작 · 잡히면 같은 편 · 3분 버티면 생존자 승리", respawn: !0, kills: 9999, time: 180, noAbil: !0, infect: !0 },
   };
-  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "inf", "hill", "ctf"];
+  const ORDER = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "inf", "hill", "ctf", "zone"];
   room.mode = room.mode || "std";
   const M = () => MODES[room.mode] || MODES.std;
   const inMatch = () => world.actors && world.actors.length > 0;
