@@ -5,10 +5,13 @@
     abilities: AGENTS.reduce((n, agent) => n + (agent.abilities || []).length, 0),
     weapons: Object.keys(WEAPONS).length,
     maps: MAP_LIST.length,
-    modes: Object.keys(GAME_MODES).length,
+    modes: Object.keys(GAME_MODES).filter((key) => !GAME_MODES[key].range).length, // the target range is practice, not a mode to pick
     skins: GUN_SKINS.guns().reduce((n, gun) => n + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0),
   });
   const news = [
+    { title: ["새 맵 · 야간 항구 · 옥상 도시", "New maps: Night Harbor and Rooftop City"], text: ["밤의 항구 3대3(가로등과 크레인 탐조등), 계단으로 오르는 옥상과 집라인의 5대5 도시", "A 3v3 harbor after dark with street lamps and a crane searchlight; a 5v5 city whose roofs you climb by stairs, with ziplines"] },
+    { title: ["감염 · 점령전", "Infection · Conquest"], text: ["술래에게 잡히면 술래가 되는 생존전, 90초마다 옮겨 가는 구역을 오래 차지하는 점령전", "Survive the seeker, or the caught join it; and a hill that moves every 90 seconds"] },
+    { title: ["꾸미기 · 주간 특가 · 사격장", "Looks, weekly deal, range"], text: ["골드로 칭호·네임카드·킬 효과를, 주마다 바뀌는 전설 특가를, 혼자 하기 → 사격장에서 표적 연습을", "Titles, name cards and kill effects for gold; a weekly legendary deal; a target range in solo play"] },
     { title: ["랭크 시즌", "Ranked seasons"], text: ["4주마다 시즌이 끝납니다. 마친 티어만큼 골드, 골드 이상은 전용 스킨 「월계관」을 모든 총에. RR은 절반부터 다시. 같이 하기 → 랭크전 찾기", "Every four weeks a season ends: gold by the tier you finish on, the Laurel skin on every gun from Gold up, and RR starts again from half. Play together → Find a ranked match"] },
     { title: ["새 요원 가면 · 심판", "New agents 가면 and 심판"], text: ["적의 능력을 따라 쓰고 적으로 변장하는 가면, 옐로카드·타임아웃·오프사이드·레드카드의 심판", "One copies enemy abilities and wears their faces; the other has cards, a whistle and an offside line"] },
     { title: ["칼 대난투 · 총기 순환", "Knife Fight · Gun Game"], text: ["칼만 쓰는 개인전, 킬마다 다음 총으로 바뀌어 칼로 끝내는 개인전", "Knives only; or a new gun with every kill, ending on the knife"] },

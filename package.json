@@ -24,6 +24,11 @@
     "test:wish": "node scripts/browser-wish.js",
     "test:train": "node scripts/browser-train.js",
     "test:agents4": "node scripts/browser-agents4.js",
-    "test:season": "node scripts/browser-season.js"
+    "test:season": "node scripts/browser-season.js",
+    "test:infection": "node scripts/browser-infection.js",
+    "test:conquest": "node scripts/browser-conquest.js",
+    "test:range": "node scripts/browser-range.js",
+    "test:cosmetics": "node scripts/browser-cosmetics.js",
+    "test:newmaps": "node scripts/browser-newmaps.js"
   }
 }

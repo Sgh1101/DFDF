@@ -2127,6 +2127,10 @@
 .it.eq .pr{color:var(--steel-dim);text-decoration:line-through}
 .it.dear .pr{color:#ff8a8a}.it.dear .th{filter:saturate(.6) brightness(.8)}
 .sh-f{flex-wrap:wrap;align-items:center;gap:6px 14px}
+.it.wk{box-shadow:0 0 0 1px rgba(255,107,61,.75),0 0 18px -4px rgba(255,107,61,.55)}
+.it .wkr{position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:99px;background:#ff6b3d;color:#fff;font-style:normal;font:700 10px/1.4 var(--f-display);letter-spacing:.04em;pointer-events:none}
+.it .pr s{color:var(--steel);font-weight:400;margin-right:3px}
+.sh-hd .sh-wk{color:#ff9a73}.sh-hd .sh-wk b{color:#ff6b3d}
 .sh-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sh-hd>b{font-size:15px;color:var(--ink)}.sh-hd span{font-size:11px;color:var(--steel)}.sh-hd span b{font-family:var(--f-display);color:#ffc849;font-size:13px;margin-left:4px;letter-spacing:.06em}
 .sh-note{flex:1 1 280px;font-size:11px;color:var(--steel-dim);line-height:1.45}
 .sh-why{color:#ff9aa5!important}
@@ -3627,7 +3631,7 @@
     };
   }
   // ── the daily shop: twenty skins a day, the same for everyone, bought outright for gold ──
-  const SH = { items: [], day: "", resetAt: 0, on: !0, sel: null, busy: !1, at: 0, err: "", arm: null, armT: 0 };
+  const SH = { items: [], day: "", week: "", weekResetAt: 0, resetAt: 0, on: !0, sel: null, busy: !1, at: 0, err: "", arm: null, armT: 0 };
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
   const shopOk = (x) => x && WEAPONS[x.g] && BY[x.s] && fits(BY[x.s], x.g);
   async function loadShop(force) {
@@ -3639,8 +3643,11 @@
     }
     try {
       const j = await AC().api("shop", token() ? { token: token() } : {});
-      SH.items = (j.items || []).filter(shopOk);
+      // the weekly deal's skins ride in the same list, marked w
+      SH.items = (j.weekly || []).map((x) => Object.assign(x, { w: 1 })).concat(j.items || []).filter(shopOk);
       SH.day = j.day || "";
+      SH.week = j.week || "";
+      SH.weekResetAt = +j.weekResetAt || 0;
       SH.resetAt = +j.resetAt || 0;
       SH.on = !1 !== j.on;
       SH.at = Date.now();
@@ -3668,6 +3675,12 @@
   function paintShopTime() {
     const t = $("sh-t");
     t && (t.textContent = SH.resetAt ? hms(SH.resetAt - Date.now()) : "--:--:--");
+    const w = $("sh-wt");
+    if (w) {
+      const left = Math.max(0, SH.weekResetAt - Date.now()),
+        d = Math.floor(left / 864e5);
+      w.textContent = d >= 1 ? L(`${d}일 ${Math.floor((left % 864e5) / 36e5)}시간 남음`, `${d}d ${Math.floor((left % 864e5) / 36e5)}h left`) : hms(left);
+    }
   }
   function paintShop() {
     const f = $("sh-f"),
@@ -3675,9 +3688,9 @@
       info = $("sh-info");
     if (!f || !box) return;
     const gold = INV.gold || 0,
-      list = SH.items.slice().sort((a, b) => b.r - a.r || a.price - b.price),
+      list = SH.items.slice().sort((a, b) => (b.w | 0) - (a.w | 0) || b.r - a.r || a.price - b.price),
       have = list.filter(owned).length;
-    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span></span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${(() => { const w = list.filter((x) => !owned(x) && wished(x.g, x.s)).length; return w ? `<b class="sh-wn">★ ${L(`찜한 스킨 ${w}개`, `${w} wishlisted`)}</b> · ` : ""; })()}${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
+    f.innerHTML = `<span class="sh-hd"><b>${L("오늘의 상점", "Today's shop")}</b><span>${L("다음 교체까지", "New items in")} <b id="sh-t"></b></span>${SH.weekResetAt ? `<span class="sh-wk">${L("주간 특가", "Weekly deal")} <b id="sh-wt"></b></span>` : ""}</span><span class="sh-note">${L("원하는 스킨을 골라 골드로 바로 삽니다. 뽑기보다 비싸지만 고른 스킨이 확실히 들어옵니다. 매일 자정(한국 시간)에 20개가 바뀝니다.", "Pick the skin you want and buy it outright. Dearer than a pull, but you get the one you chose. Twenty new ones every midnight (Korea time).")}</span><span class="mi-n">${(() => { const w = list.filter((x) => !owned(x) && wished(x.g, x.s)).length; return w ? `<b class="sh-wn">★ ${L(`찜한 스킨 ${w}개`, `${w} wishlisted`)}</b> · ` : ""; })()}${L(`보유 ${have}/${list.length}`, `${have}/${list.length} owned`)} · 🪙 ${gold.toLocaleString()}</span>`;
     paintShopTime();
     box.innerHTML = "";
     if (SH.err || !SH.on || !list.length) {
@@ -3693,8 +3706,15 @@
       mine && (c.dataset.eq = L("보유", "Owned"));
       const pr = document.createElement("em");
       pr.className = "pr";
-      pr.textContent = "🪙 " + x.price.toLocaleString();
+      pr.innerHTML = (x.w && x.was ? `<s>${x.was.toLocaleString()}</s> ` : "") + "🪙 " + x.price.toLocaleString();
       c.appendChild(pr);
+      if (x.w) {
+        c.classList.add("wk");
+        const rb = document.createElement("i");
+        rb.className = "wkr";
+        rb.textContent = L(`주간 −${Math.round(100 - (100 * x.price) / (x.was || x.price))}%`, `Weekly −${Math.round(100 - (100 * x.price) / (x.was || x.price))}%`);
+        c.appendChild(rb);
+      }
       c.onclick = () => {
         SH.sel = x.g + "|" + x.s;
         SH.arm = null;
@@ -3740,7 +3760,8 @@
     paintShop();
     let j = null;
     try {
-      j = await AC().api("shop_buy", { token: token(), g, s: sid, day: SH.day });
+      const wk = SH.items.find((x) => x.g === g && x.s === sid);
+      j = await AC().api("shop_buy", { token: token(), g, s: sid, day: SH.day, w: wk && wk.w ? 1 : 0, week: wk && wk.w ? SH.week : "" });
       j.user && syncSession(j.user);
       takeInv(j);
       const it = SH.items.find((x) => x.g === g && x.s === sid);
@@ -3759,7 +3780,7 @@
   setInterval(() => {
     if (!AR.open || "shop" !== AR.tab) return;
     paintShopTime();
-    SH.resetAt && Date.now() >= SH.resetAt + 1500 && Date.now() - SH.at > 5000 && loadShop(!0);
+    ((SH.resetAt && Date.now() >= SH.resetAt + 1500) || (SH.weekResetAt && Date.now() >= SH.weekResetAt + 1500)) && Date.now() - SH.at > 5000 && loadShop(!0);
   }, 1000);
   // ── the wishlist: ★ on a skin not owned; the game says when one is in today's shop ──
   const WL = { set: new Set(), busy: !1, tried: !1 };
