@@ -83,5 +83,6 @@
   "js/legacy/82-shift-arena-a-small-arena-whose-walls-rise-and-sink-on-a-timer.js",
   "js/legacy/83-knife-tricks-the-knife-turns-in-the-hand-and-the-arm-stays.js",
   "js/legacy/84-aim-assist-the-aim-leans-toward-an-enemy-near-the-crosshair.js",
-  "js/legacy/85-knife-fight-and-gun-game-two-free-for-all-modes.js"
+  "js/legacy/85-knife-fight-and-gun-game-two-free-for-all-modes.js",
+  "js/legacy/86-runaway-train-a-3v3-map-on-two-freight-trains-whose-bridges-open-and-close.js"
 ]
