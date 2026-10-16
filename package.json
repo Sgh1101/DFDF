@@ -29,6 +29,9 @@
     "test:conquest": "node scripts/browser-conquest.js",
     "test:range": "node scripts/browser-range.js",
     "test:cosmetics": "node scripts/browser-cosmetics.js",
-    "test:newmaps": "node scripts/browser-newmaps.js"
+    "test:newmaps": "node scripts/browser-newmaps.js",
+    "test:ui-fixes": "node scripts/browser-ui-fixes.js",
+    "audit:ui": "node scripts/browser-ui-audit.js",
+    "audit:ui-home": "node scripts/browser-ui-audit-home.js"
   }
 }
