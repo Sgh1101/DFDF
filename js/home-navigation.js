@@ -23,6 +23,19 @@
     fb.insertAdjacentHTML("afterbegin", icon("M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"));
     fb.onclick = () => FEEDBACK.open();
     $("go-set").after(fb);
+    // paid cheats (shown only once the owner has opened the sale)
+    if (window.ORDERS) {
+      const od = document.createElement("button");
+      od.className = "tt-item tt-mini";
+      od.id = "go-order";
+      od.type = "button";
+      od.style.display = "none";
+      od.innerHTML = `<b>${L("치트 구매", "Buy cheats")}</b>`;
+      od.insertAdjacentHTML("afterbegin", icon("M12 2l2.6 6.2 6.7.6-5.1 4.4 1.6 6.6L12 16.4 6.2 19.8l1.6-6.6L2.7 8.8l6.7-.6z"));
+      od.onclick = () => ORDERS.open();
+      fb.after(od);
+      ORDERS.isOn().then((on) => (od.style.display = on ? "" : "none"));
+    }
     const pz = document.querySelector("#pause .pz-btns");
     if (pz && !$("pz-feedback")) {
       const b = document.createElement("button");

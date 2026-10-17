@@ -34,6 +34,7 @@
     "test:ctf": "node scripts/browser-ctf.js",
     "test:zone": "node scripts/browser-zone.js",
     "test:feedback": "node scripts/browser-feedback.js",
+    "test:orders": "node scripts/browser-orders.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"
   }
