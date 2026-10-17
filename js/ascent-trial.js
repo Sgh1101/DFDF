@@ -262,7 +262,9 @@
   async function load() {
     start.disabled=true;S.status='loading';msg.textContent='원본 지형을 준비하는 중…';
     try {
-      const [mr,br]=await Promise.all([fetch('./assets/maps/ascent/manifest.json'),fetch('./assets/maps/ascent/geometry.bin')]);
+      // The service worker caches assets by URL. Keep the textured ASC2 map
+      // separate from any previously visited flat-color ASC1 trial.
+      const [mr,br]=await Promise.all([fetch('./assets/maps/ascent/manifest.json?v=vanilla2'),fetch('./assets/maps/ascent/geometry.bin?v=vanilla2')]);
       if(!mr.ok||!br.ok)throw Error('지형 파일을 불러오지 못했어');
       const meta=await mr.json(),bytes=await br.arrayBuffer(),v=new DataView(bytes);
       if(bytes.byteLength<16||bytes.byteLength>64000000||![0x41534331,0x41534332].includes(v.getUint32(0,false))||![1,2].includes(meta.version)||meta.quads!==v.getUint32(4,true)||meta.colliders!==v.getUint32(8,true)||bytes.byteLength!==16+meta.quads*24+meta.colliders*12)throw Error('지형 데이터가 맞지 않아');
