@@ -148,6 +148,27 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       await at("atrium", 0, 0, 22, 0, -0.02); await at("balcony", -18, 4, 22, -0.35, -0.28); await at("lobby", 0, 0, 36, 0, 0); await at("bridge", -14, 8, 5, -1.57, -0.2);
     }
 
+    // ── the graphics presets: more light and sharper surfaces on the stronger ones, the bank freed afterwards ──
+    const tiers = await page.evaluate(() => {
+      const out = {}, was = SETTINGS.quality;
+      for (const q of ["perf", "balance", "visual", "ultra", "balance"]) {
+        setQuality(q);
+        const mats = new Set(HOSPITAL.meshes.map((m) => m.material)), has = (k) => [...mats].some((m) => m[k] && m[k].image);
+        const wall = [...mats].find((m) => m.map && m.map.image && m.map.image.width >= 256 && m.normalMap !== void 0 && m.vertexColors);
+        const sizes = [...mats].filter((m) => m.map && m.map.image).map((m) => m.map.image.width);
+        out[q + (out[q] ? "2" : "")] = { lights: HOSPITAL.lights.length, mapMax: Math.max(...sizes), normal: has("normalMap"), rough: has("roughnessMap"), aniso: Math.max(...[...mats].filter((m) => m.map).map((m) => m.map.anisotropy)), key: HOSPITAL.key, bankMs: HOSPITAL.bankMs };
+      }
+      setQuality(was);
+      return out;
+    });
+    console.log("tiers", JSON.stringify(tiers));
+    assert.deepEqual([tiers.perf.lights, tiers.balance.lights, tiers.visual.lights, tiers.ultra.lights], [3, 4, 7, 9], "lights follow the preset");
+    assert.ok(tiers.perf.mapMax < tiers.balance.mapMax && tiers.balance.mapMax < tiers.visual.mapMax, "sharper surfaces on stronger presets: " + [tiers.perf.mapMax, tiers.balance.mapMax, tiers.visual.mapMax]);
+    assert.ok(!tiers.perf.normal && !tiers.balance.normal && tiers.visual.normal && tiers.visual.rough && tiers.ultra.normal, "relief and gloss maps only from the visual preset");
+    assert.ok(tiers.visual.aniso >= tiers.balance.aniso, "filtering is not weaker on the stronger preset");
+    assert.ok(!tiers.balance2.normal && tiers.balance2.mapMax === tiers.balance.mapMax, "going back to a weaker preset frees the stronger textures");
+    assert.ok(tiers.visual.bankMs < 6000, "the textures of the strongest preset are made quickly (" + tiers.visual.bankMs + " ms; reading a GPU canvas back used to take 14 s)");
+
     // ── taking it down ──
     const gone = await page.evaluate(() => { loadMap("glacier"); return { key: CUR_MAP_KEY, lights: HOSPITAL.lights.length, meshes: HOSPITAL.meshes.length, y0: COLLIDERS.filter((c) => c.y0 > 0).length, built: HOSPITAL.key }; });
     assert.deepEqual(gone, { key: "glacier", lights: 0, meshes: 0, y0: 0, built: null }, "nothing of the hospital is left on the next map");

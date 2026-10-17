@@ -81,12 +81,11 @@
     srgb !== !1 && "colorSpace" in t && T.SRGBColorSpace && (t.colorSpace = T.SRGBColorSpace);
     return t;
   };
-  const rnd = (() => {
-    let s = 7041;
-    return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
-  })();
+  // the same stream for every texture bank, so a sharper bank paints the same stains in the same places
+  let seedV = 7041;
+  const rnd = () => ((seedV = (seedV * 1664525 + 1013904223) >>> 0) / 4294967296);
   // one storey of interior wall: tile skirting, plaster with water stains, coving
-  const wallTex = tex((g, w, h) => {
+  const drawWall = (g, w, h) => {
     g.fillStyle = "#c9cdc6";
     g.fillRect(0, 0, w, h);
     for (let i = 0; i < 26; i++) {
@@ -141,20 +140,33 @@
     g.fillRect(0, h - th - 40, w, th + 40);
     g.fillStyle = "rgba(30,34,36,.35)";
     g.fillRect(0, 0, w, h * 0.035);
-    // peeling patches
-    for (let i = 0; i < 7; i++) {
-      g.fillStyle = "rgba(120,126,118,.55)";
-      g.beginPath();
+    // damp patches where the paint has lifted: soft in the middle, a thin shadow along the edge
+    for (let i = 0; i < 6; i++) {
       const x = rnd() * w,
-        y = rnd() * h * 0.5;
-      g.moveTo(x, y);
-      for (let k = 0; k < 7; k++) g.lineTo(x + Math.cos(k) * (10 + rnd() * 14), y + Math.sin(k) * (10 + rnd() * 14));
+        y = rnd() * h * 0.5,
+        rr = 9 + rnd() * 15,
+        n = 11;
+      g.beginPath();
+      for (let k = 0; k < n; k++) {
+        const an = (k / n) * 6.283,
+          r = rr * (0.55 + rnd() * 0.7),
+          px = x + Math.cos(an) * r * 1.4,
+          py = y + Math.sin(an) * r;
+        k ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.closePath();
+      const gr = g.createRadialGradient(x, y, 1, x, y, rr * 1.5);
+      gr.addColorStop(0, "rgba(104,98,82,.3)");
+      gr.addColorStop(1, "rgba(104,98,82,.08)");
+      g.fillStyle = gr;
       g.fill();
+      g.strokeStyle = "rgba(40,38,30,.22)";
+      g.lineWidth = 1;
+      g.stroke();
     }
-  }, 256, 256, 1, 1);
+  };
   // the outside: stained concrete with a boarded window every cell (the cracks of light are the glow map)
-  const extPair = (() => {
-    const draw = (glow) => (g, w, h) => {
+  const drawExt = (glow) => (g, w, h) => {
       g.fillStyle = glow ? "#000" : "#8e9188";
       g.fillRect(0, 0, w, h);
       if (!glow) {
@@ -200,10 +212,8 @@
         g.lineWidth = 5;
         g.strokeRect(wx, wy, ww, wh);
       }
-    };
-    return [tex(draw(!1), 256, 256, 1, 1), tex(draw(!0), 256, 256, 1, 1)];
-  })();
-  const floorTex = tex((g, w, h) => {
+  };
+  const drawFloor = (g, w, h) => {
     g.fillStyle = "#cfcdc4";
     g.fillRect(0, 0, w, h);
     const n = 4,
@@ -247,8 +257,8 @@
       g.fillStyle = gr;
       g.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
-  }, 256, 256, 1, 1);
-  const ceilTex = tex((g, w, h) => {
+  };
+  const drawCeil = (g, w, h) => {
     g.fillStyle = "#c6c4b8";
     g.fillRect(0, 0, w, h);
     const n = 4,
@@ -277,8 +287,8 @@
       g.fillStyle = gr;
       g.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
-  }, 256, 256, 1, 1);
-  const concTex = tex((g, w, h) => {
+  };
+  const drawConc = (g, w, h) => {
     g.fillStyle = "#9a9c98";
     g.fillRect(0, 0, w, h);
     for (let i = 0; i < 1400; i++) {
@@ -297,7 +307,7 @@
       for (let k = 0; k < 5; k++) g.lineTo((x += (rnd() - 0.5) * 40), (y += (rnd() - 0.5) * 40));
       g.stroke();
     }
-  }, 256, 256, 1, 1);
+  };
   const fenceTex = tex((g, w, h) => {
     g.clearRect(0, 0, w, h);
     g.strokeStyle = "rgba(170,176,182,.95)";
@@ -311,7 +321,7 @@
       g.stroke();
     }
   }, 128, 128, 1, 1);
-  const decalTex = tex((g, w, h) => {
+  const drawDecal = (g, w, h) => {
     g.clearRect(0, 0, w, h);
     const hs = w / 2;
     const blob = (x, y, r, col, a) => {
@@ -349,7 +359,7 @@
       g.stroke();
       g.restore();
     }
-  }, 256, 256, 1, 1);
+  };
   const beamTex = tex((g, w, h) => {
     const gr = g.createLinearGradient(0, 0, 0, h);
     gr.addColorStop(0, "rgba(255,255,255,.0)");
@@ -366,15 +376,343 @@
     g.fillRect(0, 0, w, h);
   }, 64, 256, 1, 1);
 
+  // ── texture banks: the same paintings, painted again larger with fine detail on top ──
+  // tier 0 = 256 px as before; 1 = 512 px with grain, bevels and hairline cracks; 2 = 1024 px, and a relief
+  // (normal) map and a gloss (roughness) map made from the painting, so the lights have something to play on.
+  // The tier follows the graphics preset (lamps), and a change of preset reloads the map: nothing here costs a polygon.
+  const QSCALE = [1, 2, 4],
+    ANISO = [4, 8, 16];
+  const tierNow = () => ("undefined" == typeof GFX ? 1 : GFX.lamps >= 12 ? 2 : GFX.lamps >= 4 ? 1 : 0);
+  const maxAniso = () => {
+    try {
+      return renderer.capabilities.getMaxAnisotropy() || 4;
+    } catch (e) {
+      return 4;
+    }
+  };
+  let fseed = 1;
+  const fr = () => ((fseed = (fseed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  // the context is made here, with the hint that the pixels will be read back: a GPU canvas answers a
+  // read with a stall that cost seconds, a software one answers at once
+  const canvasOf = (w, h) => {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    c.getContext("2d", { willReadFrequently: !0 });
+    return c;
+  };
+  const texOf = (c, q, srgb) => {
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping;
+    t.anisotropy = Math.min(ANISO[q], maxAniso());
+    srgb && "colorSpace" in t && T.SRGBColorSpace && (t.colorSpace = T.SRGBColorSpace);
+    return t;
+  };
+  // fine detail, in the pixels of the large canvas (k = its scale over the 256 px painting)
+  const specks = (g, W, H, n, size, amax) => {
+    for (let i = 0; i < n; i++) {
+      g.fillStyle = fr() < 0.55 ? `rgba(24,22,16,${(fr() * amax).toFixed(3)})` : `rgba(255,252,240,${(fr() * amax * 0.8).toFixed(3)})`;
+      const s = (0.5 + fr() * size) * (W / 256) * 0.5 + 0.5;
+      g.fillRect(fr() * W, fr() * H, s, s);
+    }
+  };
+  const crack = (g, k, x, y, steps, step, depth) => {
+    const pts = [[x, y]];
+    let a = fr() * 6.28;
+    for (let i = 0; i < steps; i++) {
+      a += (fr() - 0.5) * 1.1;
+      x += Math.cos(a) * step;
+      y += Math.sin(a) * step;
+      pts.push([x, y]);
+      depth < 2 && fr() < 0.13 && crack(g, k, x, y, Math.max(2, (steps - i) >> 1), step * 0.8, depth + 1);
+    }
+    for (const [dx, col, w] of [[0, "rgba(30,26,20,.55)", 0.7], [1, "rgba(255,255,255,.1)", 0.5]]) {
+      g.strokeStyle = col;
+      g.lineWidth = w * k;
+      g.beginPath();
+      pts.forEach(([px, py], i) => (i ? g.lineTo(px + dx * k * 0.6, py + dx * k * 0.6) : g.moveTo(px + dx * k * 0.6, py + dx * k * 0.6)));
+      g.stroke();
+    }
+  };
+  // a tile with a lit upper-left edge, a dark lower-right edge and a patch of glaze
+  const bevel = (g, x, y, w, h, k, lit, glaze) => {
+    g.lineWidth = 1.3 * k;
+    g.strokeStyle = `rgba(255,255,255,${lit})`;
+    g.beginPath();
+    g.moveTo(x + 1, y + h - 1);
+    g.lineTo(x + 1, y + 1);
+    g.lineTo(x + w - 1, y + 1);
+    g.stroke();
+    g.strokeStyle = "rgba(0,0,0,.28)";
+    g.beginPath();
+    g.moveTo(x + w - 1, y + 1);
+    g.lineTo(x + w - 1, y + h - 1);
+    g.lineTo(x + 1, y + h - 1);
+    g.stroke();
+    if (glaze) {
+      const gr = g.createLinearGradient(x, y, x + w, y + h);
+      gr.addColorStop(0, `rgba(255,255,255,${glaze})`);
+      gr.addColorStop(0.5, "rgba(255,255,255,0)");
+      g.fillStyle = gr;
+      g.fillRect(x, y, w, h);
+    }
+  };
+  const FINE = {
+    wall(g, W, H, k) {
+      specks(g, W, H, (W * H) / 55, 1.4, 0.07);
+      for (let i = 0; i < 4; i++) crack(g, k, fr() * W, fr() * H * 0.6, 9, 12 * k, 0);
+      for (let i = 0; i < 3; i++) {
+        const x = fr() * W,
+          y = fr() * H * 0.4,
+          r = (60 + fr() * 70) * k,
+          gr = g.createRadialGradient(x, y, r * 0.2, x, y, r);
+        gr.addColorStop(0, "rgba(70,64,44,.09)");
+        gr.addColorStop(0.85, "rgba(70,64,44,.07)");
+        gr.addColorStop(1, "rgba(70,64,44,0)");
+        g.fillStyle = gr;
+        g.fillRect(x - r, y - r, 2 * r, 2 * r);
+        g.strokeStyle = "rgba(90,78,44,.1)";
+        g.lineWidth = 1.5 * k;
+        g.beginPath();
+        g.arc(x, y, r * 0.8, 0.3, 4.4);
+        g.stroke();
+      }
+      // the skirting tiles: bevels, glaze, a few chipped corners
+      const th = H * 0.28,
+        tw = W / 8,
+        thh = th / 4;
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) bevel(g, c * tw, H - th + r * thh, tw, thh, k, 0.16, 0.1);
+      for (let i = 0; i < 7; i++) {
+        g.fillStyle = "rgba(20,26,24,.55)";
+        const s = (2 + fr() * 3) * k;
+        g.fillRect(Math.floor(fr() * 8) * tw + (fr() < 0.5 ? 0 : tw - s), H - th + Math.floor(fr() * 4) * thh + (fr() < 0.5 ? 0 : thh - s), s, s);
+      }
+    },
+    floor(g, W, H, k) {
+      const s = W / 4;
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) bevel(g, c * s, r * s, s, s, k, 0.2, 0.1);
+      specks(g, W, H, (W * H) / 40, 1.6, 0.08);
+      g.strokeStyle = "rgba(20,18,12,.4)";
+      g.lineWidth = 2.4 * k;
+      for (let i = 0; i <= 4; i++) {
+        g.beginPath();
+        g.moveTo(i * s, 0);
+        g.lineTo(i * s, H);
+        g.moveTo(0, i * s);
+        g.lineTo(W, i * s);
+        g.stroke();
+      }
+      // scuffs from boots and trolleys
+      for (let i = 0; i < 46; i++) {
+        const x = fr() * W,
+          y = fr() * H,
+          a = fr() * 6.28,
+          l = (8 + fr() * 34) * k;
+        g.strokeStyle = fr() < 0.5 ? "rgba(255,255,255,.08)" : "rgba(10,10,6,.1)";
+        g.lineWidth = (0.8 + fr() * 1.4) * k;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + fr() * 6, y + Math.sin(a) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l);
+        g.stroke();
+      }
+      for (let i = 0; i < 3; i++) crack(g, k, fr() * W, fr() * H, 8, 14 * k, 0);
+    },
+    ceil(g, W, H, k) {
+      const s = W / 4;
+      // acoustic tiles: pin holes in a grid, a lit edge and a dark edge, rings where the roof leaks
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+        bevel(g, c * s, r * s, s, s, k, 0.1, 0);
+        g.fillStyle = "rgba(40,36,28,.34)";
+        for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) fr() < 0.82 && g.fillRect(c * s + (x + 0.7) * (s / 11.5), r * s + (y + 0.7) * (s / 11.5), 0.9 * k, 0.9 * k);
+      }
+      for (let i = 0; i < 3; i++) {
+        const x = fr() * W,
+          y = fr() * H;
+        for (let j = 0; j < 4; j++) {
+          g.strokeStyle = `rgba(86,66,32,${0.18 - j * 0.035})`;
+          g.lineWidth = (1.6 - j * 0.25) * k;
+          g.beginPath();
+          g.arc(x, y, (14 + j * 9 + fr() * 4) * k, 0, 6.28);
+          g.stroke();
+        }
+      }
+    },
+    conc(g, W, H, k) {
+      for (let i = 0; i < W * H / 220; i++) {
+        const v = 100 + fr() * 90;
+        g.fillStyle = `rgba(${v},${v},${v - 6},${0.18 + fr() * 0.3})`;
+        const s = (1.5 + fr() * 3.5) * (W / 256) * 0.5;
+        g.fillRect(fr() * W, fr() * H, s, s);
+      }
+      // formwork joints and the tie holes
+      g.strokeStyle = "rgba(20,20,18,.22)";
+      g.lineWidth = 1.4 * k;
+      g.beginPath();
+      g.moveTo(0, H * 0.5);
+      g.lineTo(W, H * 0.5);
+      g.moveTo(W * 0.5, 0);
+      g.lineTo(W * 0.5, H);
+      g.stroke();
+      g.fillStyle = "rgba(20,20,18,.5)";
+      for (const [x, y] of [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]]) {
+        g.beginPath();
+        g.arc(W * x, H * y, 2.4 * k, 0, 6.28);
+        g.fill();
+      }
+      for (let i = 0; i < 9; i++) {
+        const x = fr() * W,
+          l = (30 + fr() * 120) * k,
+          gr = g.createLinearGradient(0, 0, 0, l);
+        gr.addColorStop(0, "rgba(40,40,34,.22)");
+        gr.addColorStop(1, "rgba(40,40,34,0)");
+        g.fillStyle = gr;
+        g.fillRect(x, fr() * H * 0.3, (2 + fr() * 5) * k, l);
+      }
+      for (let i = 0; i < 3; i++) crack(g, k, fr() * W, fr() * H, 8, 15 * k, 0);
+    },
+    ext(g, W, H, k) {
+      specks(g, W, H, (W * H) / 50, 1.6, 0.07);
+      // moss at the foot, rust from under the window
+      const gr = g.createLinearGradient(0, H * 0.82, 0, H);
+      gr.addColorStop(0, "rgba(62,84,50,0)");
+      gr.addColorStop(1, "rgba(62,84,50,.32)");
+      g.fillStyle = gr;
+      g.fillRect(0, H * 0.82, W, H * 0.18);
+      for (let i = 0; i < 7; i++) {
+        const x = W * (0.22 + fr() * 0.56),
+          l = (24 + fr() * 70) * k,
+          rg = g.createLinearGradient(0, H * 0.74, 0, H * 0.74 + l);
+        rg.addColorStop(0, "rgba(112,62,30,.3)");
+        rg.addColorStop(1, "rgba(112,62,30,0)");
+        g.fillStyle = rg;
+        g.fillRect(x, H * 0.74, (2 + fr() * 4) * k, l);
+      }
+      for (let i = 0; i < 3; i++) crack(g, k, fr() * W, fr() * H, 8, 12 * k, 0);
+    },
+  };
+  // a normal map from the lightness of the painting (grout, cracks, stains sink; clean tile stays up), a
+  // roughness map from the same (dirt is dull, glaze is glossy), and a few wet patches that are mirrors.
+  // Made at 512 px: shrinking the painting is the blur, and a quarter of the pixels is a quarter of the wait.
+  function reliefOf(c, k, o) {
+    const W = 512,
+      H = 512,
+      sc = canvasOf(W, H),
+      sg = sc.getContext("2d");
+    sg.drawImage(c, 0, 0, W, H);
+    const src = sg.getImageData(0, 0, W, H).data,
+      L = new Float32Array(W * H);
+    for (let i = 0, j = 0; i < src.length; i += 4, j++) L[j] = (src[i] * 0.299 + src[i + 1] * 0.587 + src[i + 2] * 0.114) / 255;
+    const lut = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) lut[i] = Math.max(0, Math.min(1, o.rLo + (o.rHi - o.rLo) * Math.pow(1 - Math.min(1, (i / 255) * 1.05), o.gam || 1))) * 255;
+    const nc = canvasOf(W, H),
+      rc = canvasOf(W, H),
+      ng = nc.getContext("2d"),
+      rg = rc.getContext("2d"),
+      ni = ng.createImageData(W, H),
+      ri = rg.createImageData(W, H),
+      nd = ni.data,
+      rd = ri.data,
+      bump = o.bump;
+    for (let y = 0; y < H; y++) {
+      const ym = (y ? y - 1 : H - 1) * W,
+        y0 = y * W,
+        yp = (y < H - 1 ? y + 1 : 0) * W;
+      for (let x = 0; x < W; x++) {
+        const xm = x ? x - 1 : W - 1,
+          xp = x < W - 1 ? x + 1 : 0,
+          nx = (L[y0 + xm] - L[y0 + xp]) * bump,
+          ny = (L[yp + x] - L[ym + x]) * bump,
+          inv = 1 / Math.sqrt(nx * nx + ny * ny + 1),
+          i = (y0 + x) * 4,
+          rv = lut[(L[y0 + x] * 255) | 0];
+        nd[i] = (nx * inv * 0.5 + 0.5) * 255;
+        nd[i + 1] = (ny * inv * 0.5 + 0.5) * 255;
+        nd[i + 2] = (inv * 0.5 + 0.5) * 255;
+        nd[i + 3] = 255;
+        rd[i] = rd[i + 1] = rd[i + 2] = rv;
+        rd[i + 3] = 255;
+      }
+    }
+    // wet patches: smooth to a mirror and flat to the light, inside a soft-edged ellipse
+    for (let n = 0; n < (o.wet || []).length; n++) {
+      const wx = 0.2 + fr() * 0.6,
+        wy = 0.2 + fr() * 0.6,
+        rx = 0.1 + fr() * 0.07,
+        ry = 0.07 + fr() * 0.05;
+      for (let y = Math.max(0, ((wy - ry) * H) | 0); y < Math.min(H, ((wy + ry) * H + 1) | 0); y++)
+        for (let x = Math.max(0, ((wx - rx) * W) | 0); x < Math.min(W, ((wx + rx) * W + 1) | 0); x++) {
+          const d = Math.hypot((x / W - wx) / rx, (y / H - wy) / ry);
+          if (d >= 1) continue;
+          const t = Math.min(1, (1 - d) * 3),
+            i = (y * W + x) * 4;
+          rd[i] = rd[i + 1] = rd[i + 2] = rd[i] + (15 - rd[i]) * t;
+          nd[i] += (128 - nd[i]) * t;
+          nd[i + 1] += (128 - nd[i + 1]) * t;
+          nd[i + 2] += (255 - nd[i + 2]) * t;
+        }
+    }
+    ng.putImageData(ni, 0, 0);
+    rg.putImageData(ri, 0, 0);
+    return [nc, rc];
+  }
+  const BANKS = [null, null, null];
+  function makeBank(q) {
+    const k = QSCALE[q],
+      b = {};
+    seedV = 7041;
+    const paint = (draw, w, h, fine, seed) => {
+      const c = canvasOf(w * k, h * k),
+        g = c.getContext("2d");
+      g.save();
+      g.scale(k, k);
+      draw(g, w, h);
+      g.restore();
+      if (q >= 1 && fine) {
+        fseed = seed;
+        fine(g, c.width, c.height, k);
+      }
+      return c;
+    };
+    const full = (name, c, rel) => {
+      b[name] = texOf(c, q, !0);
+      if (q >= 2 && rel) {
+        const t0 = performance.now();
+        const [n, r] = reliefOf(c, k, rel);
+        S.reliefMs = (S.reliefMs || 0) + Math.round(performance.now() - t0);
+        b[name + "N"] = texOf(n, q, !1);
+        b[name + "R"] = texOf(r, q, !1);
+      }
+    };
+    // the same order as the first version, so the stains stay where they were
+    full("wall", paint(drawWall, 256, 256, FINE.wall, 9101), { bump: 2.4, rLo: 0.55, rHi: 0.98, gam: 1.2 });
+    full("ext", paint(drawExt(!1), 256, 256, FINE.ext, 9102), { bump: 3, rLo: 0.7, rHi: 1, gam: 1 });
+    b.extG = texOf(paint(drawExt(!0), 256, 256, null, 0), q, !0);
+    full("floor", paint(drawFloor, 256, 256, FINE.floor, 9103), { bump: 3.4, rLo: 0.3, rHi: 0.92, gam: 1.3, wet: [1, 2] });
+    full("ceil", paint(drawCeil, 256, 256, FINE.ceil, 9104), { bump: 2.2, rLo: 0.8, rHi: 1, gam: 1 });
+    full("conc", paint(drawConc, 256, 256, FINE.conc, 9105), { bump: 3.2, rLo: 0.72, rHi: 1, gam: 1 });
+    b.decal = texOf(paint(drawDecal, 256, 256, null, 0), q, !0);
+    // the parking lot is the concrete again, repeated
+    const rep = ((C * CELL + 12) / 5) | 0,
+      repz = ((R * CELL + 12) / 5) | 0;
+    for (const n of ["conc", "concN", "concR"]) {
+      if (!b[n]) continue;
+      b["lot" + n.slice(4)] = b[n].clone();
+      b["lot" + n.slice(4)].repeat.set(rep, repz);
+      b["lot" + n.slice(4)].needsUpdate = !0;
+    }
+    return b;
+  }
+  const disposeBank = (b) => b && Object.values(b).forEach((t) => t && t.dispose && t.dispose());
+
   const M = (o) => new T.MeshStandardMaterial(o);
   const MT = {
-    wall: M({ map: wallTex, vertexColors: !0, roughness: 0.93, metalness: 0 }),
-    ext: M({ map: extPair[0], emissiveMap: extPair[1], emissive: 0xbad4ff, emissiveIntensity: 0.85, vertexColors: !0, roughness: 0.95, metalness: 0 }),
-    floor: M({ map: floorTex, vertexColors: !0, roughness: 0.5, metalness: 0.08 }),
-    ceil: M({ map: ceilTex, vertexColors: !0, roughness: 0.96, metalness: 0 }),
-    conc: M({ map: concTex, vertexColors: !0, roughness: 0.95, metalness: 0.02 }),
+    wall: M({ vertexColors: !0, roughness: 0.93, metalness: 0 }),
+    ext: M({ emissive: 0xbad4ff, emissiveIntensity: 0.85, vertexColors: !0, roughness: 0.95, metalness: 0 }),
+    floor: M({ vertexColors: !0, roughness: 0.5, metalness: 0.08 }),
+    ceil: M({ vertexColors: !0, roughness: 0.96, metalness: 0 }),
+    conc: M({ vertexColors: !0, roughness: 0.95, metalness: 0.02 }),
     fence: new T.MeshStandardMaterial({ map: fenceTex, transparent: !0, alphaTest: 0.4, side: T.DoubleSide, roughness: 0.6, metalness: 0.5, color: 0xaab0b6 }),
-    decal: new T.MeshBasicMaterial({ map: decalTex, transparent: !0, depthWrite: !1, polygonOffset: !0, polygonOffsetFactor: -3, polygonOffsetUnits: -3, fog: !0, vertexColors: !0 }),
+    decal: new T.MeshBasicMaterial({ transparent: !0, depthWrite: !1, polygonOffset: !0, polygonOffsetFactor: -3, polygonOffsetUnits: -3, fog: !0, vertexColors: !0 }),
     beam: new T.MeshBasicMaterial({ map: beamTex, transparent: !0, depthWrite: !1, blending: T.AdditiveBlending, side: T.DoubleSide, color: 0xbcd8ff, opacity: 0.5, fog: !0 }),
     matte: M({ vertexColors: !0, roughness: 0.92, metalness: 0 }),
     metal: M({ vertexColors: !0, roughness: 0.42, metalness: 0.75 }),
@@ -387,11 +725,8 @@
     flick: new T.MeshBasicMaterial({ color: 0xe8f2ff, fog: !0 }),
     dying: new T.MeshBasicMaterial({ color: 0x6a7480, fog: !0 }),
   };
-  const lotTex = concTex.clone();
-  lotTex.repeat.set(((C * CELL + 12) / 5) | 0, ((R * CELL + 12) / 5) | 0);
-  lotTex.needsUpdate = !0;
   THEMES.hospital = {
-    floor: M({ map: lotTex, color: 0x62666b, roughness: 0.9, metalness: 0.02 }),
+    floor: M({ color: 0x62666b, roughness: 0.9, metalness: 0.02 }),
     wall: MT.wall,
     strut: MT.conc,
     trim: MT.conc,
@@ -404,6 +739,36 @@
     sun: hex("#9db4c4"), sunInt: 0.5, glow: "#bcd2e4",
     tint: [0.97, 1.02, 1.01], lift: [0, 0.006, 0.01], sat: 0.9, con: 1.09, vig: 0.4, bloom: 1.3,
   };
+
+  // ── the tier in use: maps onto the materials, the prop shapes ──
+  const TIER = { q: -1 };
+  function useTier(q) {
+    TIER.q = q;
+    for (let i = 0; i < 3; i++) i !== q && BANKS[i] && (disposeBank(BANKS[i]), (BANKS[i] = null));
+    if (!BANKS[q]) {
+      const t0 = performance.now();
+      BANKS[q] = makeBank(q);
+      S.bankMs = Math.round(performance.now() - t0);
+    }
+    const b = BANKS[q];
+    const set = (m, o, ns) => {
+      for (const key in o) m[key] = o[key];
+      m.normalMap && m.normalScale && m.normalScale.set(ns || 0.8, ns || 0.8);
+      m.needsUpdate = !0;
+    };
+    const rough = (m, map, base) => ({ roughnessMap: map || null, roughness: map ? 1 : base });
+    set(MT.wall, { map: b.wall, normalMap: b.wallN || null, ...rough(MT.wall, b.wallR, 0.93) });
+    set(MT.ext, { map: b.ext, emissiveMap: b.extG, normalMap: b.extN || null, ...rough(MT.ext, b.extR, 0.95) });
+    set(MT.floor, { map: b.floor, normalMap: b.floorN || null, ...rough(MT.floor, b.floorR, 0.5) }, 0.9);
+    set(MT.ceil, { map: b.ceil, normalMap: b.ceilN || null, ...rough(MT.ceil, b.ceilR, 0.96) }, 0.6);
+    set(MT.conc, { map: b.conc, normalMap: b.concN || null, ...rough(MT.conc, b.concR, 0.95) });
+    set(THEMES.hospital.floor, { map: b.lot, normalMap: b.lotN || null, ...rough(THEMES.hospital.floor, b.lotR, 0.9) });
+    MT.decal.map = b.decal;
+    MT.decal.needsUpdate = !0;
+    // the props: round things are rounder on the strong presets
+    geoCyl = new T.CylinderGeometry(1, 1, 1, 2 === q ? 12 : 8);
+    geoSph = new T.SphereGeometry(1, 2 === q ? 10 : 8, 2 === q ? 8 : 6);
+  }
 
   // zone colours: wall tint, floor tint
   const ZC = {
@@ -485,12 +850,13 @@
     const f = o.faces || "nx px ny py nz pz",
       us = o.us || CELL,
       vb = o.vBase || 0,
-      vs = o.vs || FH;
+      vs = o.vs || FH,
+      uo = o.uo || 0;
     const has = (k) => f.indexOf(k) >= 0;
-    has("pz") && g.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], [[x0 / us, (y0 - vb) / vs], [x1 / us, (y0 - vb) / vs], [x1 / us, (y1 - vb) / vs], [x0 / us, (y1 - vb) / vs]], col);
-    has("nz") && g.quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], [[x1 / us, (y0 - vb) / vs], [x0 / us, (y0 - vb) / vs], [x0 / us, (y1 - vb) / vs], [x1 / us, (y1 - vb) / vs]], col);
-    has("px") && g.quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], [[z1 / us, (y0 - vb) / vs], [z0 / us, (y0 - vb) / vs], [z0 / us, (y1 - vb) / vs], [z1 / us, (y1 - vb) / vs]], col);
-    has("nx") && g.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], [[z0 / us, (y0 - vb) / vs], [z1 / us, (y0 - vb) / vs], [z1 / us, (y1 - vb) / vs], [z0 / us, (y1 - vb) / vs]], col);
+    has("pz") && g.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], [[x0 / us + uo, (y0 - vb) / vs], [x1 / us + uo, (y0 - vb) / vs], [x1 / us + uo, (y1 - vb) / vs], [x0 / us + uo, (y1 - vb) / vs]], col);
+    has("nz") && g.quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], [[x1 / us + uo, (y0 - vb) / vs], [x0 / us + uo, (y0 - vb) / vs], [x0 / us + uo, (y1 - vb) / vs], [x1 / us + uo, (y1 - vb) / vs]], col);
+    has("px") && g.quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], [[z1 / us + uo, (y0 - vb) / vs], [z0 / us + uo, (y0 - vb) / vs], [z0 / us + uo, (y1 - vb) / vs], [z1 / us + uo, (y1 - vb) / vs]], col);
+    has("nx") && g.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], [[z0 / us + uo, (y0 - vb) / vs], [z1 / us + uo, (y0 - vb) / vs], [z1 / us + uo, (y1 - vb) / vs], [z0 / us + uo, (y1 - vb) / vs]], col);
     has("py") && g.quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], [[x0 / us, z1 / us], [x1 / us, z1 / us], [x1 / us, z0 / us], [x0 / us, z0 / us]], col);
     has("ny") && g.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0], [[x0 / us, z0 / us], [x1 / us, z0 / us], [x1 / us, z1 / us], [x0 / us, z1 / us]], col);
   }
@@ -552,7 +918,7 @@
                 const tint = zoneTint(n, i, rr, side),
                   g = tint ? G.wall : G.ext;
                 const cc = tint || colOf("#b9bab4", 0.9 + 0.2 * hash(i, l, n));
-                boxTo(g, x0, x1, b, top, zz, zz, cc, { faces: nz < 0 ? "nz" : "pz", vBase: b });
+                boxTo(g, x0, x1, b, top, zz, zz, cc, { faces: nz < 0 ? "nz" : "pz", vBase: b, uo: Math.floor(hash(i, l, n * 2 + side) * 8) / 8 });
               }
             } else {
               const z0 = ez(i) + lo,
@@ -562,7 +928,7 @@
                 const tint = zoneTint(n, cc2, i, side + 2),
                   g = tint ? G.wall : G.ext;
                 const cc = tint || colOf("#b9bab4", 0.9 + 0.2 * hash(l, i, n));
-                boxTo(g, xx, xx, b, top, z0, z1, cc, { faces: nx < 0 ? "nx" : "px", vBase: b });
+                boxTo(g, xx, xx, b, top, z0, z1, cc, { faces: nx < 0 ? "nx" : "px", vBase: b, uo: Math.floor(hash(l, i, n * 2 + side + 7) * 8) / 8 });
               }
             }
           }
@@ -754,9 +1120,8 @@
     bench: [2.4, 0.7, 0.8], crate: [1.3, 1.3, 1.3], wheelchair: [0.7, 0.9, 0.9], mri: [2.6, 3.4, 2.4], vending: [1.1, 0.9, 1.9], ambulance: [2.4, 5.8, 2.5],
     car: [2.0, 4.3, 1.5], rubble: [2.2, 2.2, 1.0], ac: [2.2, 1.6, 1.4], tank: [2.6, 2.6, 3.0], dumpster: [1.9, 1.3, 1.4], counter: [3.6, 0.9, 1.1], pillar: [0.5, 0.5, 4.0],
   };
+  let geoCyl, geoSph;
   const geoBox = new T.BoxGeometry(1, 1, 1),
-    geoCyl = new T.CylinderGeometry(1, 1, 1, 8),
-    geoSph = new T.SphereGeometry(1, 8, 6),
     geoCone = new T.ConeGeometry(1, 1, 8);
   const _m = new T.Matrix4(),
     _q = new T.Quaternion(),
@@ -1081,6 +1446,7 @@
   }
   function build() {
     clear();
+    useTier(tierNow());
     S.key = "hospital";
     colliders.length = 0;
     for (const k in G) G[k] = new Geo();
@@ -1151,11 +1517,21 @@
       scene.add(l);
       return l;
     };
-    // four, not nine: every light is paid for on every pixel of every standard material
-    lamp(0xcfe3ff, 2.6, 46, 0, 8, ez(18));
-    lamp(0x9ad8d2, 1.6, 28, P.sites[0].x, 3, P.sites[0].z);
-    lamp(0xffd9a0, 1.6, 28, P.sites[1].x, 3, P.sites[1].z);
-    lamp(0xffd9b0, 1.5, 34, 0, 3, cz(29));
+    // every light is paid for on every pixel of every standard material: four on the default setting, fewer
+    // on the weak ones, up to nine on the strongest (the ER, the dock, the ICU and the two wards come last)
+    const LAMPS = [
+      [0xcfe3ff, 2.6, 46, 0, 8, ez(18)],
+      [0x9ad8d2, 1.6, 28, P.sites[0].x, 3, P.sites[0].z],
+      [0xffd9a0, 1.6, 28, P.sites[1].x, 3, P.sites[1].z],
+      [0xffd9b0, 1.5, 34, 0, 3, cz(29)],
+      [0xffb8a8, 1.3, 26, nodes.er.x, 3, nodes.er.z],
+      [0xbcd0ff, 1.3, 26, nodes.dock.x, 3, nodes.dock.z],
+      [0xaec4ff, 1.4, 26, nodes.icuF.x, 3, nodes.icuF.z],
+      [0xd8f0d0, 1.2, 24, nodes.wardW.x, 7, nodes.wardW.z],
+      [0xd8f0d0, 1.2, 24, nodes.wardE.x, 7, nodes.wardE.z],
+    ];
+    const want = "undefined" == typeof GFX ? 4 : GFX.lamps >= 20 ? 9 : GFX.lamps >= 12 ? 7 : GFX.lamps >= 4 ? 4 : GFX.lamps > 0 ? 3 : 2;
+    for (const l of LAMPS.slice(0, want)) lamp(...l);
     // the tubes that flicker, the dying ones stay dim
     // while you stand in a roofed room on the ground floor the third floor cannot be seen, and the other
     // way round: those chunks are not drawn (never near the atrium, the stairs, the decks or outside)
@@ -1296,7 +1672,7 @@
     "hospital" === key && (DATA.walls.length = 0);
     const r = _lm.apply(this, arguments);
     try {
-      "hospital" === key && !1 !== r ? build() : clear();
+      "hospital" === key && !1 !== r ? build() : (clear(), BANKS.forEach((b, i) => b && (disposeBank(b), (BANKS[i] = null))));
     } catch (e) {
       console.warn("hospital", e);
     }
