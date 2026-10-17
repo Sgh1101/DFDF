@@ -209,7 +209,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
 
     // the select screen: both, with their own pictures
     await page.evaluate(() => { world.phase = "menu"; picked = AGENTS.find((a) => "gamyeon" === a.id); renderSelect(); show("s-select"); });
-    await page.waitForTimeout(900);
+    await page.waitForFunction(() => { const i = document.querySelector("#sel-detail .det-img"); return !!(i && i.src); }, null, { timeout: 15000 }); // the portrait loader sets the picture a moment after the screen opens
     const sel = await page.evaluate(() => ({ cards: document.querySelectorAll("#sel-grid .acard").length, names: [...document.querySelectorAll("#sel-grid .acard-name")].slice(-2).map((e) => e.textContent), img: !!document.querySelector("#sel-detail .det-img").src }));
     assert.deepEqual(sel, { cards: 42, names: ["가면", "심판"], img: true });
     const dir = process.env.SHOT_DIR || "/tmp";
