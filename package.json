@@ -52,6 +52,7 @@
     "test:feedback": "node scripts/browser-feedback.js",
     "test:orders": "node scripts/browser-orders.js",
     "test:champion": "node scripts/browser-champion.js",
+    "test:touchlay": "node scripts/browser-touchlay.js",
     "test:finisher": "node scripts/browser-finisher.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"
