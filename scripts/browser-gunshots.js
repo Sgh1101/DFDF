@@ -83,6 +83,43 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(pack.layered.buffers >= 1 && pack.layered.oscillators >= 1, "the skin's pack layer plays on top of the new shot: " + JSON.stringify(pack.layered));
     assert.ok(pack.preview.buffers >= 3, "the preview's three shots are the new shot: " + JSON.stringify(pack.preview));
 
+    // the sound strip in the skin window follows the gun in view (it stayed on the rifle when another gun was chosen)
+    const strip = await page.evaluate(async () => {
+      document.getElementById("go-armory").click();
+      await new Promise((r) => setTimeout(r, 800));
+      GUN_SKINS.tab("gun");
+      await new Promise((r) => setTimeout(r, 500));
+      const out = {}, click = (name) => [...document.querySelectorAll("#ar-guns .ar-gun")].find((b) => b.querySelector("b").textContent === name).click();
+      for (const [key, name] of [["carbine", WEAPONS.carbine.name], ["sniper", WEAPONS.sniper.name], ["pistol", WEAPONS.pistol.name]]) {
+        click(name);
+        await new Promise((r) => setTimeout(r, 400));
+        const t = document.querySelector("#skin-sample-label");
+        out[key] = { gun: t.querySelector(".ss-gun").textContent, note: t.querySelector(".ss-note").textContent, want: GUNSYNTH.SPEC[key].note };
+      }
+      // a skin looked at on that gun stays in the strip
+      click(WEAPONS.carbine.name);
+      await new Promise((r) => setTimeout(r, 400));
+      document.querySelector('#ar-skins [data-s="tiger"]').click();
+      await new Promise((r) => setTimeout(r, 500));
+      out.peek = document.querySelector("#skin-sample-label .ss-title b").textContent;
+      // and the button hands that gun to the preview
+      const asked = [], pv = SOUNDPACK.preview;
+      SOUNDPACK.preview = function (skin, part, gun) { asked.push(part + ":" + gun); return pv.apply(this, arguments); };
+      click(WEAPONS.carbine.name);
+      await new Promise((r) => setTimeout(r, 400));
+      document.querySelector('[data-sample="shot"]').click();
+      await new Promise((r) => setTimeout(r, 300));
+      SOUNDPACK.preview = pv;
+      SOUNDPACK.stop();
+      out.asked = asked;
+      GUN_SKINS.close();
+      return out;
+    });
+    console.log("strip", JSON.stringify(strip));
+    for (const k of ["carbine", "sniper", "pistol"]) { assert.equal(strip[k].gun, k === "carbine" ? "카빈" : k === "sniper" ? "저격총" : "권총", k + " is named"); assert.equal(strip[k].note, strip[k].want, k + " has its own description"); }
+    assert.equal(strip.peek, "호랑이", "a skin looked at on the carbine is the one in the strip");
+    assert.deepEqual(strip.asked, ["shot:carbine"], "the shot button asks the preview for the carbine");
+
     // the knife keeps its own sound
     const knife = await page.evaluate(() => GUNSYNTH.has("knife"));
     assert.equal(knife, false);

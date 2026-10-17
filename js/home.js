@@ -110,6 +110,22 @@
     settle();
   }
   updateSample("default");
+  // the gun list (by gun) has no key on its buttons, and re-draws its skin cards for the chosen gun: follow that, so
+  // the strip describes the gun in view (the carbine, not the rifle it started on) and plays its shot
+  const skinList = $("ar-skins");
+  if (skinList) {
+    let syncT = 0;
+    new MutationObserver(() => {
+      clearTimeout(syncT);
+      syncT = setTimeout(() => {
+        const first = skinList.querySelector("[data-g]");
+        if (!first || !WEAPONS[first.dataset.g] || first.dataset.g === selectedGun) return;
+        // a new gun: show the skin it wears (a skin picked on the same gun is the click's, below)
+        const worn = skinList.querySelector(".ar-sk.on") || first;
+        updateSample(worn.dataset.s, first.dataset.g);
+      }, 40);
+    }).observe(skinList, { childList: true });
+  }
   document.addEventListener("click", (e) => {
     const card = e.target.closest("[data-s],[data-th]");
     if (!card || !$("armory").contains(card)) return;
