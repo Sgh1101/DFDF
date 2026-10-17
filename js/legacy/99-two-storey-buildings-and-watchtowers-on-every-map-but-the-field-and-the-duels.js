@@ -321,6 +321,7 @@
     return "wall" === kind ? th.wall : "trim" === kind ? th.strut || th.wall : "slab" === kind ? th.trim || th.wall : "stair" === kind ? th.crate || th.wall : "acc" === kind ? colMat(st.acc) : "roof" === kind ? colMat(new T.Color(st.rf).lerp(new T.Color(0xffffff), 0.32).getHex()) : colMat(st.lamp, !0);
   };
 
+  const THEMED = ["wall", "trim", "slab", "stair"];
   const FRAMES = new Map(); // key → boxes in the frame, built once per look and size
   const frameOf = (kind, name, L, S) => {
     const id = kind + "|" + name + "|" + L + "x" + S;
@@ -348,7 +349,7 @@
       const { name, st } = styleOf(key, kind, idx);
       for (const b of frameOf(kind, name, L, S)) {
         const w = toWorld(b, cx, cz, L, S, rot, flip),
-          k = b[6] + "|" + name;
+          k = THEMED.includes(b[6]) ? b[6] : b[6] + "|" + name; // the map's own materials merge across looks; a look's colours stay its own
         (byKind[k] || (byKind[k] = { kind: b[6], st, list: [] })).list.push(w);
         if (b[7] || "lamp" === b[6]) continue;
         cols.push({ minX: r2(w[0]), maxX: r2(w[1]), minZ: r2(w[4]), maxZ: r2(w[5]), y0: w[2] > 0.05 ? r2(w[2]) : 0, h: r2(w[3]), kind: k });

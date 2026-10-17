@@ -46,6 +46,8 @@
     "test:feedback": "node scripts/browser-feedback.js",
     "test:orders": "node scripts/browser-orders.js",
     "test:champion": "node scripts/browser-champion.js",
+    "test:buildings": "node scripts/browser-buildings.js",
+    "test:raycast": "node scripts/browser-raycast.js",
     "test:touchlay": "node scripts/browser-touchlay.js",
     "test:buildings": "node scripts/browser-buildings.js",
     "test:finisher": "node scripts/browser-finisher.js",
