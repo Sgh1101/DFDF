@@ -1,0 +1,13 @@
+Source: SeafleNeonValorant-NoSound-1.0.0-release.jar
+Creator credited in the supplied mod: Seafle - UnfixedGames
+
+28 PNG/JSON data assets are preserved byte for byte, without image recompression,
+resolution changes or simplified arm geometry. manifest.json records sizes and
+SHA-256 hashes. The JAR, Java classes and Minecraft runtime are not distributed
+or executed by DFDF.
+
+The source has arms, skill icons, particles and animations. It does not contain
+a full-body player character model. DFDF's full-body outfit and portrait are new
+adaptations. Skill mechanics, camera placement, timing and balance are adapted
+to DFDF's host-authoritative browser combat. This is not a full Minecraft mod
+runtime reproduction. The supplied NoSound version contains no voice recordings.

@@ -9,8 +9,8 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.equal(await p.locator("#champion-shop").isVisible(), false, "the regular pull screen has no Champions purchase panel");
     assert.match(await p.locator("#ar-odds").innerText(), /0\.00000000000000001%/);
     await p.locator('#ar-tabs [data-tab="gun"]').click();
-    await p.evaluate(() => GUN_SKINS.open("carbine", "gun"));
-    assert.equal(await p.locator('#ar-skins [data-s="champions_atk"]').getAttribute("data-g"), "carbine");
+    await p.evaluate(() => GUN_SKINS.open("rifle", "gun"));
+    assert.equal(await p.locator('#ar-skins [data-s="champions_atk"]').getAttribute("data-g"), "rifle");
     await p.locator('#ar-tabs [data-tab="champions"]').click();
     assert.equal(await p.locator("#champion-shop").isVisible(), true);
     assert.equal(await p.locator('#ar-p-champions #ar-cv').count(), 1, "the shared weapon preview moves into the Champions page");
@@ -29,7 +29,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await p.locator('[data-phantom-skin="champions_def"]').click();
     await p.screenshot({ path: path.join(dir, "bundled-original-defense.png") });
     await p.locator('[data-phantom-skin="champions_atk"]').click();
-    assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "default", "unowned preview never grants equipment");
+    assert.equal(await p.evaluate(() => GUN_SKINS.of("rifle").id), "default", "unowned preview never grants equipment");
     assert.equal(await p.evaluate(() => GUN_SKINS.curTab()), "champions", "preview stays on the purchase page");
     await p.locator("#skin-tier-guide summary").click();
     assert.equal(await p.locator("#skin-tier-guide tbody tr").first().getAttribute("data-tier"), "5");
@@ -46,9 +46,9 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     const goldBefore = f.h.user("phantom").gold;
     await buy.click(); assert.equal(f.h.user("phantom").championCoins, 700, "the first press only confirms the price");
     assert.match(await buy.innerText(), /구매 확인/);
-    const saved = p.waitForResponse((response) => response.url().includes("a=skins") && response.request().postDataJSON()?.set?.carbine === "champions_atk" && response.status() === 200);
+    const saved = p.waitForResponse((response) => response.url().includes("a=skins") && response.request().postDataJSON()?.set?.rifle === "champions_atk" && response.status() === 200);
     await buy.click(); await saved;
-    await p.waitForFunction(() => GUN_SKINS.of("carbine").id === "champions_atk" && document.getElementById("champion-coins").textContent.endsWith(" 0"));
+    await p.waitForFunction(() => GUN_SKINS.of("rifle").id === "champions_atk" && document.getElementById("champion-coins").textContent.endsWith(" 0"));
     assert.equal(f.h.user("phantom").gold, goldBefore); assert.equal(f.h.user("phantom").championCoins, 0);
     assert.equal(await p.evaluate(() => GUN_SKINS.curTab()), "champions", "buy and equip stay on the purchase page");
     await p.screenshot({ path: path.join(dir, "transcendent-shop.png") });
@@ -66,13 +66,13 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await p.locator('#ar-tabs [data-tab="champions"]').click();
     assert.equal(await p.locator("#ar-p-cos").isVisible(), false);
     await p.locator('[data-phantom-skin="champions_atk"]').click();
-    const stats = await p.evaluate(() => JSON.stringify(WEAPONS.carbine));
+    const stats = await p.evaluate(() => JSON.stringify(WEAPONS.rifle));
     const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "phantom-owner" });
-    for (const id of ["champions_atk", "champions_def"]) await f.h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "carbine|" + id });
+    for (const id of ["champions_atk", "champions_def"]) await f.h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "rifle|" + id });
     await p.evaluate(() => GUN_SKINS.sync());
-    await p.waitForFunction(() => GUN_SKINS.owns("carbine", "champions_atk"));
+    await p.waitForFunction(() => GUN_SKINS.owns("rifle", "champions_atk"));
     await p.locator('[data-phantom-skin="champions_atk"]').click();
-    assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "champions_atk");
+    assert.equal(await p.evaluate(() => GUN_SKINS.of("rifle").id), "champions_atk");
     await p.locator('[data-phantom-demo="kill"]').click();
     assert.equal(await p.locator("#killfx").isVisible(), true);
     assert.equal(await p.locator("#phantom-emblems span").count(), 5);
@@ -95,7 +95,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       assert.match(await p.locator("#killfx").getAttribute("style"), /blob:/);
       await p.locator("#phantom-stop").click();
       await p.locator('[data-phantom-skin="champions_def"]').click();
-      await p.waitForFunction(() => GUN_SKINS.of("carbine").id === "champions_def");
+      await p.waitForFunction(() => GUN_SKINS.of("rifle").id === "champions_def");
       await p.screenshot({ path: path.join(dir, "original-defense.png") });
       await p.locator('[data-phantom-demo="reload"]').click();
       await p.waitForFunction(() => { const bone = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-bone-mag_and_lefthand"); return !!bone; });
@@ -103,7 +103,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       const combat = await p.evaluate(() => {
         GUN_SKINS.close(); titleCam = () => {}; render = () => {};
         room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true;
-        const me = myActor(); player.weapons.primary = me.weapons.primary = "carbine"; player.slot = me.slot = "primary";
+        const me = myActor(); player.weapons.primary = me.weapons.primary = "rifle"; player.slot = me.slot = "primary";
         updateViewmodel(true);
         const rig = !!VM.current.getObjectByName("phantom-rig"), mag = VM.current.getObjectByName("phantom-bone-magazine");
         player.reloading = 2; tickViewmodel(0.016); const before = mag.position.clone(), beforeRotation = mag.quaternion.clone(); let moved = 0;
@@ -113,7 +113,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
         for (const foe of foes) foe.alive = foe === victim;
         victim.hp = 1; victim.invuln = victim.armor = victim.shielded = 0;
         const events = []; addEventListener("kill-confirmed", (e) => events.push(e.detail));
-        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "carbine", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
+        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "rifle", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
         const event = events.at(-1), count = FINISHERS.active.size;
         const dragon = [...FINISHERS.active][0]?.children[0]?.children.length > 3;
         if (event) NET.onEvent(event);
@@ -128,11 +128,11 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       assert.equal(combat.count, 1); assert.equal(combat.dragon, true); assert.equal(combat.afterReplay, 1); assert.equal(combat.reduced, false);
       await p.reload({ waitUntil: "domcontentloaded" });
       await p.waitForFunction(() => CHAMPIONS_PHANTOM?.loaded() && !document.documentElement.dataset.gameLoading);
-      await p.evaluate(() => GUN_SKINS.open("carbine", "champions"));
-      assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "champions_def", "equipment persists across reload");
+      await p.evaluate(() => GUN_SKINS.open("rifle", "champions"));
+      assert.equal(await p.evaluate(() => GUN_SKINS.of("rifle").id), "champions_def", "equipment persists across reload");
       await p.evaluate(() => {
         const drop = new T.Group(), skin = GUN_SKINS.list.find((s) => s.id === "champions_def");
-        drop.name = "phantom-test-drop"; drop.userData.spin = GUN_SKINS.buildFor("carbine", skin); GUN_SKINS.apply(drop.userData.spin, skin);
+        drop.name = "phantom-test-drop"; drop.userData.spin = GUN_SKINS.buildFor("rifle", skin); GUN_SKINS.apply(drop.userData.spin, skin);
         drop.userData.skinDone = 1; drop.add(drop.userData.spin); scene.add(drop);
       });
       await p.locator("#phantom-remove").click();
@@ -143,7 +143,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
         request.onsuccess = () => { const db = request.result, tx = db.transaction("assets"), read = tx.objectStore("assets").get("local"); tx.oncomplete = () => { resolve(read.result === undefined); db.close(); }; };
       })), true, "restoring the supplied original removes the browser override");
     }
-    assert.equal(await p.evaluate(() => JSON.stringify(WEAPONS.carbine)), stats, "cosmetics preserve weapon balance");
+    assert.equal(await p.evaluate(() => JSON.stringify(WEAPONS.rifle)), stats, "cosmetics preserve weapon balance");
     await p.setViewportSize({ width: 852, height: 393 });
     await p.locator('[data-phantom-skin="champions_atk"]').click();
     await buy.scrollIntoViewIfNeeded();

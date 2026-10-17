@@ -42,15 +42,15 @@ test("numeric tracks interpolate deterministically and never evaluate expression
   const assets = fixture(); const g = A.json(assets, A.required[0]); g["minecraft:geometry"][0].bones[0].parent = "root"; assets[A.required[0]] = Buffer.from(JSON.stringify(g));
   assert.throws(() => A.validate(assets), /계층/);
 });
-test("Phantom account grants and saved equipment fit the carbine only", async () => {
+test("Phantom account grants and saved equipment fit the assault rifle only", async () => {
   const h = harness(), player = await h.api("auth", { id: "phantom", pw: "password", device: "phantom-device" }), owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "owner-device" });
   for (const id of ["champions_atk", "champions_def"]) {
-    assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "rifle|" + id })).status, 400);
-    assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "carbine|" + id })).status, 200);
+    assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "carbine|" + id })).status, 400);
+    assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "rifle|" + id })).status, 200);
     await h.api("skins", { token: player.token, set: { carbine: id, rifle: id }, t: h.now() });
-    assert.equal(h.user("phantom").skins.m.carbine, id); assert.equal(h.user("phantom").skins.m.rifle, undefined);
+    assert.equal(h.user("phantom").skins.m.rifle, id); assert.equal(h.user("phantom").skins.m.carbine, undefined);
     h.advance(1000);
   }
   const result = await h.api("skins", { token: player.token });
-  assert.deepEqual(result.own.carbine, ["champions_atk", "champions_def"]);
+  assert.deepEqual(result.own.rifle, ["champions_atk", "champions_def"]);
 });

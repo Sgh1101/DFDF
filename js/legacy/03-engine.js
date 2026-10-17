@@ -16848,10 +16848,10 @@ let killStreak = 0,
   killFxT = 0;
 const STREAK_NAMES = ["", "", "더블 킬", "트리플 킬", "쿼드라 킬", "에이스"];
 function playKillFx(e, t) {
-  (killStreak++,
-    (streakTimer = 4.5),
-    SFX.kill(t),
-    killStreak >= 2 && setTimeout(() => SFX.multi(killStreak), 230));
+  killStreak++;
+  streakTimer = 4.5;
+  const genericKillSound = SFX.kill(t) !== false;
+  genericKillSound && killStreak >= 2 && setTimeout(() => SFX.multi(killStreak), 230);
   const o = $("killfx"),
     a = $("kf-main"),
     n = $("kf-sub"),
