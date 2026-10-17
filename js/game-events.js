@@ -80,7 +80,9 @@
       studio.sc.add(group);
       if (phantom) {
         const before = { fit: studio.fit, dist: studio.dist, d: studio.d, ty: studio.ty, tyc: studio.tyc, pitch: studio.pitch, pc: studio.pc, auto: studio.auto }, obj = studio.obj, far = studio.cam.far;
-        const box = new T.Box3().setFromObject(group), size = box.getSize(new T.Vector3()), center = box.getCenter(new T.Vector3());
+        const box = new T.Box3().setFromObject(group);
+        group.traverse(part => { if (part.userData.previewBounds) box.union(part.userData.previewBounds.clone().applyMatrix4(part.matrixWorld)); });
+        const size = box.getSize(new T.Vector3()), center = box.getCenter(new T.Vector3());
         group.position.x -= center.x; group.position.z -= center.z;
         studio.fit = { L: Math.max(size.x, size.z), H: size.y, w: 0.8, h: 0.8 };
         studio.ty = studio.tyc = center.y; studio.pitch = studio.pc = 0.1; studio.auto = false;
@@ -139,6 +141,7 @@
       const kind = cause ? cause.kind : gunDepth ? gun === "knife" ? "melee" : "gun" : "ability";
       const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
       event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, finisherYaw: Math.atan2(killer.pos.x - victim.pos.x, killer.pos.z - victim.pos.z), kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
+      event.finisherTick = Math.floor(performance.now() / 50);
       event.finisher = !claimedRound && GAME_RULES.finisher(event);
     }
     const previous = window.KILL_EVENT, previousDeadline = world.championsFinishUntil;

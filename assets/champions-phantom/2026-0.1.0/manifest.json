@@ -40,6 +40,56 @@
       "sha256": "4bfcafb9741645c0bfd9402442aa19da4ff334050d0475a2486d56a602d546d4"
     },
     {
+      "name": "textures/finisher/fx/diamond.png",
+      "size": 116,
+      "sha256": "6a3280ea1b47b664ebdb7c5ffc183705045f16be854f693061d16b98ab1fd05f"
+    },
+    {
+      "name": "textures/finisher/fx/ember.png",
+      "size": 112,
+      "sha256": "4dae2abaa441347e5c82e8873d48d4496c4b263e9155a56ffafa536b338580c6"
+    },
+    {
+      "name": "textures/finisher/fx/glow.png",
+      "size": 340,
+      "sha256": "9919fbf3de1aa74b5754bb0624e89d9c223bbfbcb22b52ae896acfb06546856e"
+    },
+    {
+      "name": "textures/finisher/fx/ray.png",
+      "size": 218,
+      "sha256": "f54b03090c0500cf02d86217a0c2e9ad6c27438e3804776f0020f79622d7a354"
+    },
+    {
+      "name": "textures/finisher/fx/ribbon_red.png",
+      "size": 146,
+      "sha256": "ea60dae25d4002d81ec316edb58b4b6cfa711ad54574bec546d2f21e63178c04"
+    },
+    {
+      "name": "textures/finisher/fx/ribbon_white.png",
+      "size": 139,
+      "sha256": "7ff0d14b74f91a58c3e59c6ad9f0271e538ac8fc3d53969050bba890dacca059"
+    },
+    {
+      "name": "textures/finisher/fx/ring.png",
+      "size": 857,
+      "sha256": "f127602bedf400a6c88080dce9cfabec3060becf423eda60e28ec7b5bb5e808c"
+    },
+    {
+      "name": "textures/finisher/fx/star8.png",
+      "size": 628,
+      "sha256": "6481261728dc519cc104987723a673486b50872081251a1f2e336ecb592ac72d"
+    },
+    {
+      "name": "textures/finisher/fx/swirl.png",
+      "size": 574,
+      "sha256": "ac204eeab75fb16635d31e78e8e3486951af8ded877b9d89df204ff375a0067c"
+    },
+    {
+      "name": "textures/finisher/fx/white.png",
+      "size": 78,
+      "sha256": "508e92238640e05034d4f6ac7d906a3288e82dbe047b7e8f55ff4d993a7523ef"
+    },
+    {
       "name": "textures/finisher/serpent_cream.png",
       "size": 21065,
       "sha256": "40de4495d9689068ded72c7360615db717a239dac6d8deb2df7fcf04de451852"

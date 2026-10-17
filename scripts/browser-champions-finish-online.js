@@ -40,9 +40,11 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     await guest.waitForFunction(() => [...FINISHERS.active].some(g => g.getObjectByName("champions-original-finisher")?.visible), null, { timeout: 10000 });
     const shape = await guest.evaluate(() => {
       const figure = [...FINISHERS.active].map(g => g.getObjectByName("champions-original-finisher")).find(Boolean);
-      return { snake: figure.userData.serpent, height: new T.Box3().setFromObject(figure).getSize(new T.Vector3()).y, min: figure.userData.playerHeight * 5, round: world.round, phase: world.phase };
+      const motion = [...FINISHERS.active].map(g => g.getObjectByName("champions-source-motion")).find(Boolean);
+      return { snake: figure.userData.serpent, height: new T.Box3().setFromObject(figure).getSize(new T.Vector3()).y, min: figure.userData.playerHeight * 5, round: world.round, phase: world.phase, seed: motion.userData.seed, vertices: motion.userData.vertices };
     });
     assert.equal(shape.snake, "red"); assert.ok(shape.height >= shape.min); assert.equal(shape.round, round); assert.equal(shape.phase, "end");
+    assert.ok(shape.vertices > 0); assert.equal(shape.seed, await host.evaluate(() => [...FINISHERS.active].map(g => g.getObjectByName("champions-source-motion")).find(Boolean).userData.seed), "host and guest share the source random seed");
     await host.waitForFunction(r => world.round === r + 1 && world.phase === "buy", round, { timeout: 12000 });
     await guest.waitForFunction(r => world.round === r + 1 && world.phase === "buy" && FINISHERS.active.size === 0, round, { timeout: 10000 });
     assert.deepEqual(f.errors, []);

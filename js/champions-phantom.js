@@ -133,12 +133,14 @@
     figure.rotation.y = Number.isFinite(event.finisherYaw) ? event.finisherYaw : 0;
     figure.userData.playerHeight = playerHeight; figure.userData.height = size.y * enlargement;
     figure.userData.serpent = snake; figure.visible = false; group.add(figure);
+    const effects = PHANTOM_FINISHER_MOTION.create(group, texture, skin.id === ids[0], event, enlargement, figure.position.y, figure.rotation.y);
     return (t) => {
       const seconds = t * 8;
       figure.visible = seconds >= 2.66 && seconds < 8;
       mats[0].map = texture("textures/finisher/dragon_low_" + (skin.id === ids[1] && seconds >= 2.8 ? "white" : "black") + ".png");
       // Original one-second alpha exit, with the hold shortened for the requested 8s round transition.
       for (const material of mats) material.opacity = 1 - Math.max(0, Math.min(1, seconds - 7));
+      effects.step(seconds, group.userData.previewScene ? GUN_SKINS._pv().cam : camera);
     };
   }
   function banner(id, kills = 1, final = false) {
@@ -205,6 +207,7 @@
     try {
       const weaponTextures = ["attacker", "defender"].flatMap(side => ["", "_glowmask"].map(suffix => `textures/item/phantom_${side}${suffix}.png`));
       const finisherTextures = ["dragon_low_black", "dragon_low_white", "serpent_cream", "serpent_red"].map(name => `textures/finisher/${name}.png`);
+      finisherTextures.push(...PHANTOM_FINISHER_MOTION.textures.map(name => `textures/finisher/fx/${name}.png`));
       const decoded = await Promise.allSettled([...weaponTextures, ...finisherTextures].map(async name => {
         if (!next[name]) return;
         const address = URL.createObjectURL(new Blob([next[name]], { type: "image/png" })); stagedUrls.set(name, address);

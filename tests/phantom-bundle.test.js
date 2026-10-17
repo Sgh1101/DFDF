@@ -6,7 +6,7 @@ const fetcher = async (address) => new Response(fs.readFileSync(path.join(root, 
 test("bundled Phantom preserves all 878 source cubes and full-resolution textures with verified bytes", async () => {
   const assets = await A.bundled(fetcher, "bundle/"), { geo } = A.validate(assets);
   assert.equal(geo.bones.reduce((n, b) => n + (b.cubes?.length || 0), 0), 878);
-  assert.equal(manifest.files.length, 23);
+  assert.equal(manifest.files.length, 33);
   for (const [name, count] of [["dragon_low", 214], ["serpent_red", 256], ["serpent_cream", 259]]) {
     const original = JSON.parse(new TextDecoder().decode(assets[`geo/finisher/${name}.geo.json`]))["minecraft:geometry"][0];
     assert.equal(original.bones.reduce((n, b) => n + (b.cubes?.length || 0), 0), count, name + " keeps all source cubes");

@@ -9,6 +9,7 @@
     "test:phantom": "node scripts/browser-phantom.js",
     "test:champions-finish": "node scripts/browser-champions-finish.js",
     "test:champions-finish-online": "node scripts/browser-champions-finish-online.js",
+    "test:phantom-motion": "node scripts/browser-phantom-motion.js",
     "test:neon-online": "node scripts/browser-neon-online.js",
     "test:neon": "node scripts/browser-neon.js",
     "test:phantom-audio": "node scripts/browser-phantom-audio.js",
