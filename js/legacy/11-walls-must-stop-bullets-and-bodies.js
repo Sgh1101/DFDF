@@ -32,6 +32,8 @@
   }
   // nearest wall hit along a ray (direction need not be unit; t is in its units)
   function wallT(ox, oy, oz, dx, dy, dz, maxT, skip) {
+    if (window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial')
+      return ASCENT_TRIAL.rayT(ox, oy, oz, dx, dy, dz, maxT, skip);
     let best = maxT;
     for (const c of COLLIDERS) {
       if (c === skip || !(c.h > 0.02)) continue;
@@ -140,7 +142,9 @@
     const y = a.y || 0;
     for (let pass = 0; pass < 3; pass++) {
       let moved = !1;
-      for (const c of COLLIDERS) {
+      const nearby = window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial'
+        ? ASCENT_TRIAL.nearby(a.pos.x, a.pos.z, PR) : COLLIDERS;
+      for (const c of nearby) {
         if (!(c.h > y + STEP_H) || c.h < 0.3 || (c.y0 && y + 2.3 <= c.y0)) continue; // things you can step onto are fine (and floors overhead)
         const px = a.pos.x,
           pz = a.pos.z;
