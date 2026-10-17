@@ -92,6 +92,9 @@
     { id: "opal", ko: "오팔", en: "Opal", rar: 4, res: 512, tile: 0.3, pat: "opal", em: !0, pal: ["#dfe9f3", "#bcd0e6", "#efe4ff"], body: [0xffffff, 0.22, 0.1], coat: [1, 0.04], irid: [1, 1.35], metal: [0xe6eef8, 0.12, 1], dark: [0x2a3442, 0.4, 0.5], glow: 0x9ad1ff, glass: 0xe0f0ff },
     // the season's own skin (excl): no pull and no shop; finishing a season at gold or above
     { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
+    // 챔피언의 물결: our own legendary, gloss-black armour with pale-grey plates edged in orange and gold and a purple-pink
+    // plasma flame flowing over it in waves; shots send rings of light out of the muzzle (96-…champion…js)
+    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, tile: 0.36, pat: "champion", kit: "champion", em: !0, anim: "pulse", pal: ["#09090e", "#d6d9e2", "#e3b13e", "#ff8f1f", "#8a35ff", "#ff3fb0"], body: [0xffffff, 0.3, 0.4], coat: [1, 0.04], metal: [0xe3b13e, 0.2, 1], dark: [0x07070b, 0.45, 0.5], glow: 0xc060ff, glass: 0xe8c6ff },
   ];
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -1141,6 +1144,109 @@
           });
         }
     },
+    // 챔피언의 물결: gloss-black armour with pale-grey plates edged in orange and gold, and a flame of purple-to-pink
+    // plasma flowing across it in waves. Base: black, plates, trim, a dim flame; emissive: the flame and the orange lines
+    champion(g, W, H, pal, em) {
+      const wrap = wrapper(W, H),
+        R = rng(2024);
+      g.fillStyle = "#000";
+      g.fillRect(0, 0, W, H);
+      if (!em) {
+        g.fillStyle = pal[0];
+        g.fillRect(0, 0, W, H);
+        // fine chevron ribs in the black, like machined armour
+        g.strokeStyle = "rgba(255,255,255,.06)";
+        g.lineWidth = W * 0.004;
+        for (let i = 0; i < 12; i++) {
+          const y = (i / 12) * H;
+          g.beginPath();
+          g.moveTo(0, y + H * 0.04);
+          g.lineTo(W * 0.5, y);
+          g.lineTo(W, y + H * 0.04);
+          g.stroke();
+        }
+      }
+      // the plates: angular, pale grey with a black rim, an orange line inside, a gold shard at one corner
+      const plate = (cx, cy, s, rot) => {
+        const P = [[-1, -0.5], [0.4, -0.78], [1, -0.18], [0.8, 0.62], [-0.3, 0.8], [-0.95, 0.3]];
+        wrap(cx, cy, s * 1.3, (x, y) => {
+          const path = (k) => {
+            g.beginPath();
+            P.forEach(([a, b], n) => {
+              const px = a * k * s,
+                py = b * k * s,
+                rx = x + px * Math.cos(rot) - py * Math.sin(rot),
+                ry = y + px * Math.sin(rot) + py * Math.cos(rot);
+              n ? g.lineTo(rx, ry) : g.moveTo(rx, ry);
+            });
+            g.closePath();
+          };
+          if (!em) {
+            path(1);
+            g.fillStyle = "#06060a";
+            g.fill();
+            path(0.9);
+            g.fillStyle = pal[1];
+            g.fill();
+            path(0.9);
+            g.lineWidth = W * 0.004;
+            g.strokeStyle = "rgba(0,0,0,.55)";
+            g.stroke();
+            // the gold shard
+            const gx = x + s * 0.55,
+              gy = y - s * 0.55;
+            g.beginPath();
+            g.moveTo(gx, gy);
+            g.lineTo(gx + s * 0.34, gy + s * 0.06);
+            g.lineTo(gx + s * 0.1, gy + s * 0.34);
+            g.closePath();
+            g.fillStyle = pal[2];
+            g.fill();
+          }
+          path(0.74);
+          g.lineWidth = W * (em ? 0.0085 : 0.006);
+          g.strokeStyle = em ? "rgba(255,150,40,.95)" : pal[3];
+          g.stroke();
+        });
+      };
+      for (let i = 0; i < 6; i++) plate(R() * W, R() * H, W * (0.1 + 0.05 * R()), R() * 6.28);
+      // the flame: strokes of a wave (a whole number of turns across the tile, so it joins), each wider and cooler
+      // at the edge, hot at the core — purple, then pink, then orange
+      const flame = (y0, amp, turns, ph, w) => {
+        const wave = (k) => {
+          g.beginPath();
+          for (let x = 0; x <= W; x += W / 64) {
+            const t = (x / W) * turns * 2 * Math.PI + ph,
+              y = y0 + Math.sin(t) * amp * k + Math.sin(t * 2.3 + ph) * amp * 0.25;
+            x ? g.lineTo(x, y) : g.moveTo(x, y);
+          }
+        };
+        g.lineCap = "round";
+        [[pal[4], 1, em ? 0.55 : 0.4], [pal[5], 0.6, em ? 0.85 : 0.6], [pal[3], 0.26, em ? 1 : 0.7]].forEach(([c, k, a]) => {
+          wave(1);
+          g.lineWidth = w * k;
+          g.globalAlpha = a;
+          g.strokeStyle = c;
+          g.stroke();
+        });
+        g.globalAlpha = 1;
+      };
+      flame(H * 0.2, H * 0.06, 2, 0.4, H * 0.1);
+      flame(H * 0.52, H * 0.07, 3, 2.1, H * 0.13);
+      flame(H * 0.84, H * 0.05, 2, 4.0, H * 0.09);
+      // sparks thrown off the flame
+      for (let i = 0; i < 26; i++) {
+        const x = R() * W,
+          y = R() * H,
+          r = W * (0.004 + 0.006 * R());
+        g.fillStyle = i % 3 ? pal[5] : pal[3];
+        g.globalAlpha = em ? 0.95 : 0.5;
+        g.beginPath();
+        g.arc(x, y, r, 0, 2 * Math.PI);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+    },
   };
   const TEX = {};
   function texture(skin, em) {
@@ -1241,13 +1347,122 @@
     }
     uv.needsUpdate = !0;
   }
+  // ── a skin's own shell: parts added over the gun so its outline changes, sized from the gun's own box ──
+  const KITS = {
+    // 챔피언의 물결: armour plates down both sides, a six-sided open stock, a gold fin under the fore-end, a
+    // gold crown at the muzzle, a lit core in the side with a gold ring, orange lines along the plates, a raised top rail
+    champion(root, skin) {
+      root.updateMatrixWorld(!0);
+      const inv = root.matrixWorld.clone().invert(),
+        box = new T.Box3();
+      root.traverse((o) => {
+        if (!o.isMesh || !o.geometry || o.userData.kit) return;
+        o.geometry.boundingBox || o.geometry.computeBoundingBox();
+        box.union(o.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld)));
+      });
+      if (box.isEmpty()) return;
+      const z0 = box.min.z,
+        z1 = box.max.z,
+        y0 = box.min.y,
+        y1 = box.max.y,
+        L = z1 - z0,
+        H = y1 - y0;
+      if (L < 0.2 || H < 0.08) return;
+      const hw = Math.max(0.03, Math.min(0.07, (box.max.x - box.min.x) * 0.3)),
+        kit = new T.Group();
+      kit.userData.kitOf = skin.id;
+      kit.name = "skinKit";
+      const body = skinMat(skin, "body"),
+        gold = skinMat(skin, "metal"),
+        dark = skinMat(skin, "dark"),
+        M = KITS._m || (KITS._m = { glow: new T.MeshBasicMaterial({ color: 0xff9a2e }), core: new T.MeshBasicMaterial({ color: 0xb85cff }), panel: new T.MeshPhysicalMaterial({ color: 0xc4c8d3, roughness: 0.34, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.05 }) }),
+        panel = M.panel,
+        glow = M.glow,
+        core = M.core;
+      const Z = (u) => z0 + u * L,
+        Y = (v) => y0 + v * H;
+      // a shape in the gun's side view (z across, y up), thick along x, centred on x
+      const plate = (pts, holes, depth, x, mat, uvTile) => {
+        const sh = new T.Shape(pts.map(([u, v]) => new T.Vector2(Z(u), Y(v))));
+        for (const h of holes || []) sh.holes.push(new T.Path(h.map(([u, v]) => new T.Vector2(Z(u), Y(v)))));
+        const g = new T.ExtrudeGeometry(sh, { depth, bevelEnabled: !1 });
+        g.translate(0, 0, -depth / 2);
+        if (uvTile) {
+          const uv = g.attributes.uv;
+          for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / uvTile, uv.getY(i) / uvTile);
+        }
+        const m = new T.Mesh(g, mat);
+        m.rotation.y = -Math.PI / 2;
+        m.position.x = x;
+        m.userData.kit = !0;
+        return m;
+      };
+      const bar = (a, b, th, x, mat) => {
+        // a thin strip along (u,v)→(u,v), standing out from the plate
+        const za = Z(a[0]), ya = Y(a[1]), zb = Z(b[0]), yb = Y(b[1]),
+          len = Math.hypot(zb - za, yb - ya),
+          m = new T.Mesh(new T.BoxGeometry(th, th, len), mat);
+        m.position.set(x, (ya + yb) / 2, (za + zb) / 2);
+        m.rotation.x = -Math.atan2(yb - ya, zb - za); // the box's long side (z) turned along the strip
+        m.userData.kit = !0;
+        return m;
+      };
+      const T0 = Math.max(0.006, 0.01 * L);
+      // 1. the side armour: a broken-line plate from fore-end to receiver, one each side
+      const armour = [[0.2, 0.42], [0.3, 0.86], [0.62, 0.94], [0.74, 0.7], [0.66, 0.34], [0.44, 0.28]];
+      for (const sd of [-1, 1]) {
+        const x = sd * (hw + T0 * 0.5);
+        kit.add(plate(armour, null, T0, x, panel));
+        // 2. orange lines inset along the plate's upper edges
+        const edge = [[0.24, 0.5], [0.33, 0.8], [0.61, 0.87], [0.69, 0.68]];
+        for (let i = 0; i < edge.length - 1; i++) kit.add(bar(edge[i], edge[i + 1], T0 * 0.35, sd * (hw + T0 + T0 * 0.2), glow));
+        // 3. the core: a lit disc in a gold ring, low on the receiver
+        const cy = Y(0.52),
+          cz = Z(0.52),
+          cr = Math.min(H * 0.17, L * 0.07),
+          disc = new T.Mesh(new T.CylinderGeometry(cr, cr, T0 * 0.6, 20), core);
+        disc.rotation.z = Math.PI / 2;
+        disc.position.set(sd * (hw + T0 + T0 * 0.4), cy, cz);
+        const ring = new T.Mesh(new T.TorusGeometry(cr * 1.25, cr * 0.16, 6, 28), gold);
+        ring.rotation.y = Math.PI / 2;
+        ring.position.copy(disc.position);
+        disc.userData.kit = ring.userData.kit = !0;
+        kit.add(disc, ring);
+      }
+      // 4. the open six-sided stock at the back: a grey frame round a gold inner frame
+      const hex = (cu, cv, ru, rv) => [[cu - ru, cv], [cu - ru * 0.5, cv + rv], [cu + ru * 0.5, cv + rv], [cu + ru, cv], [cu + ru * 0.5, cv - rv], [cu - ru * 0.5, cv - rv]];
+      const sU = 0.86,
+        sV = 0.5;
+      kit.add(plate(hex(sU, sV, 0.15, 0.58), [hex(sU, sV, 0.093, 0.34).reverse()], hw * 0.7, 0, panel));
+      kit.add(plate(hex(sU, sV, 0.1, 0.38), [hex(sU, sV, 0.083, 0.3).reverse()], hw * 0.55, 0, gold));
+      // 5. a gold fin under the fore-end, pointing back
+      kit.add(plate([[0.3, 0.3], [0.52, 0.3], [0.44, -0.12], [0.32, -0.02]], null, hw * 0.45, 0, gold));
+      // 6. a raised top rail with a dark housing; a gold crown at the muzzle
+      const rail = new T.Mesh(new T.BoxGeometry(hw * 0.8, H * 0.1, L * 0.46), dark);
+      rail.position.set(0, y1 + H * 0.045, Z(0.52));
+      const hood = new T.Mesh(new T.BoxGeometry(hw * 0.7, H * 0.12, L * 0.1), gold);
+      hood.position.set(0, y1 + H * 0.07, Z(0.3));
+      const crown = new T.Mesh(new T.BoxGeometry(hw * 1.5, Math.min(H * 0.3, 0.05), L * 0.07), gold);
+      crown.position.set(0, Y(0.7), z0 + L * 0.02);
+      const lens = new T.Mesh(new T.BoxGeometry(hw * 0.5, H * 0.04, L * 0.04), core);
+      lens.position.set(0, y1 + H * 0.12, Z(0.36));
+      for (const o of [rail, hood, crown, lens]) o.userData.kit = !0;
+      kit.add(rail, hood, crown, lens);
+      root.add(kit);
+    },
+  };
   // dress a built gun (or anything with GUNMAT parts) in a skin
   function applySkin(root, skin) {
     skin = "string" == typeof skin ? skinById(skin) : skin || SKINS[0];
     if (!root) return root;
+    // a skin with its own shell (kit) reshapes the gun: the old shell comes off before another skin goes on
+    for (const k of root.children.filter((c) => c.userData && c.userData.kitOf)) {
+      root.remove(k);
+      k.traverse((o) => o.geometry && o.geometry.dispose());
+    }
     if ("default" !== skin.id)
       root.traverse((o) => {
-        if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
+        if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
         const kind = o.material.userData && o.material.userData.kind,
           cls = kind && CLASS[kind];
         if (!cls || (skin.keep && skin.keep.includes(kind))) return;
@@ -1257,6 +1472,10 @@
         m.map && fitUV(o, skin.tile, skin.vOff);
       });
     root.userData.skin = skin.id;
+    if (skin.kit && KITS[skin.kit])
+      try {
+        KITS[skin.kit](root, skin);
+      } catch (e) {}
     return root;
   }
   // the skins that move: lights breathe, the holo sheen cycles, the galaxy drifts
