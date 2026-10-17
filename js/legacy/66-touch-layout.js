@@ -93,9 +93,17 @@
   // the size slider in the settings moves the global size: follow it
   setInterval(() => {
     try {
-      Object.keys(TL.m).length && globalSize() !== appliedG && applyAll();
+      if (!Object.keys(TL.m).length) return;
+      globalSize() !== appliedG && applyAll();
+      // a part whose inline place was wiped (the game rebuilt it) is put back where the player left it
+      for (const k in TL.m) {
+        const el = BY[k] && BY[k][1]();
+        el && !el.style.getPropertyValue("left") && place(k);
+      }
     } catch (e) {}
   }, 500);
+  // the screen changes shape (a phone turning, the browser's bar sliding away, full screen): the layout is placed again
+  for (const ev of ["resize", "orientationchange", "fullscreenchange"]) addEventListener(ev, () => { try { Object.keys(TL.m).length && applyAll(); } catch (e) {} });
 
   // ── the account keeps it ──
   const AC = () => window.ACCOUNT || null;
@@ -193,6 +201,9 @@ body.mb-editing #hud{visibility:visible!important;z-index:64!important;pointer-e
 body.mb-editing #hud #touch,body.mb-editing #hud #tbtns,body.mb-editing #hud #tabil{pointer-events:none}
 body.mb-editing .mbe-part{pointer-events:auto!important;outline:2px dashed rgba(56,214,255,.75);outline-offset:3px;cursor:move;touch-action:none;display:grid!important;opacity:1!important;transition:none!important}
 body.mb-editing .mbe-part.hide{display:grid!important}
+/* the top strip and the minimap keep the shape they have in the game: forced to a grid they stood on end (a column) in the editor and lay down again in the match */
+body.mb-editing #mb-util.mbe-part{display:flex!important}
+body.mb-editing #mini.mbe-part{display:block!important}
 body.mb-editing .mbe-part.mbe-sel{outline:3px solid #ffc849;box-shadow:0 0 0 6px rgba(255,200,73,.25)}
 body.mb-editing #mb-util,body.mb-editing #mini{pointer-events:auto!important}
 body.mb-editing #mb-util .mb{pointer-events:none!important}
