@@ -84,9 +84,10 @@
     }
     const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
     // Source points down +X; DFDF points down -Z. Fit to the carbine's existing grip.
-    rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.0125); wrapper.add(rig);
-    const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3());
-    rig.position.set(-center.x, -center.y + 0.015, -center.z - 0.18);
+    // (drawn at 1.6x the first fit (2.4x with the 1.5x every gun gets in hand), which read small next to the other guns; its rear stays where the carbine's was, the extra length goes forward)
+    rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.02); wrapper.add(rig);
+    const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
+    rig.position.set(-center.x, -center.y + 0.02, -center.z + 0.3 - size.z / 2);
     return wrapper;
   }
   function fallback(root, skin) {
