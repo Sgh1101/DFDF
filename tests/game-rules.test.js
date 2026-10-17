@@ -23,3 +23,9 @@ test("draw and deathmatch outcomes use data independent of UI text", () => {
   assert.equal(rules.outcome("std", [13, 7]), "win");
   assert.equal(rules.outcome("dm", [39, 40], 2), "loss");
 });
+
+test("the eight-second presentation is reserved for Champions last-enemy finishers", () => {
+  const event = { mode: "std", last: true, kind: "gun", killer: 1, victim: 2 };
+  for (const skin of ["champion", "champions_atk", "champions_def"]) assert.equal(rules.championsFinisher({ ...event, skin }), true);
+  for (const patch of [{ skin: "dragon" }, { skin: "champions_atk", mode: "tdm" }, { skin: "champions_atk", last: false }, { skin: "champions_atk", kind: "ability" }, { skin: "champions_def", finisher: false }]) assert.equal(rules.championsFinisher({ ...event, ...patch }), false);
+});

@@ -14,6 +14,7 @@
   function clearFinishers() {
     cancelAnimationFrame(previewFrame); previewFrame = 0;
     for (const mesh of active) if (mesh.userData.previewScene) {
+      mesh.userData.previewRestore && mesh.userData.previewRestore();
       mesh.userData.previewScene.remove(mesh);
       mesh.traverse((part) => { part.geometry && part.geometry.dispose(); part.material && part.material.dispose(); });
     }
@@ -29,28 +30,34 @@
     const skin = GUN_SKINS.list.find((s) => s.id === event.skin);
     if (!skin || skin.id === "default" || SETTINGS.motion === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     const pack = SOUNDPACK.skins[skin.id], color = skin.glow || skin.edge || 0x80caff;
+    const duration = GAME_RULES.championsSkin(skin.id) ? 8 : 1.8;
+    const started = performance.now();
     const studio = preview && GUN_SKINS._pv();
     if (preview && !studio) return false;
     const origin = preview ? new T.Vector3(0, 0, 0) : new T.Vector3(event.x, event.y, event.z);
     const group = new T.Group(); group.position.copy(origin);
-    const phantom = window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id) ? CHAMPIONS_PHANTOM.finisher(group, skin) : null;
-    const rings = pack === "cosmic" ? 3 : 2;
-    for (let i = 0; i < rings; i++) {
-      const ring = new T.Mesh(new T.TorusGeometry(0.5 + i * 0.18, 0.018, 5, 36), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false }));
-      ring.rotation.x = Math.PI / 2; ring.position.y = 0.1 + i * 0.3;
-      group.add(ring);
-    }
-    const count = SETTINGS.quality === "fast" || SETTINGS.quality === "low" ? 8 : 16;
-    for (let i = 0; i < count; i++) {
-      const crystal = pack === "crystal" || pack === "royal";
-      const mesh = new T.Mesh(crystal ? new T.OctahedronGeometry(0.09) : new T.TetrahedronGeometry(0.08), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
-      mesh.userData.angle = i * Math.PI * 2 / count; mesh.userData.height = i % 4 * 0.18;
-      group.add(mesh);
+    const phantom = window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id) ? CHAMPIONS_PHANTOM.finisher(group, skin, event) : null;
+    if (window.CHAMPIONS_PHANTOM?.isSkin(skin.id) && !phantom) return false;
+    if (!phantom) {
+      const rings = pack === "cosmic" ? 3 : 2;
+      for (let i = 0; i < rings; i++) {
+        const ring = new T.Mesh(new T.TorusGeometry(0.5 + i * 0.18, 0.018, 5, 36), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false }));
+        ring.rotation.x = Math.PI / 2; ring.position.y = 0.1 + i * 0.3;
+        group.add(ring);
+      }
+      const count = SETTINGS.quality === "fast" || SETTINGS.quality === "low" ? 8 : 16;
+      for (let i = 0; i < count; i++) {
+        const crystal = pack === "crystal" || pack === "royal";
+        const mesh = new T.Mesh(crystal ? new T.OctahedronGeometry(0.09) : new T.TetrahedronGeometry(0.08), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+        mesh.userData.angle = i * Math.PI * 2 / count; mesh.userData.height = i % 4 * 0.18;
+        group.add(mesh);
+      }
     }
     if (!preview) finishedRound = true;
     if (!preview && window.FINISHER_LEGEND) try { FINISHER_LEGEND.play(event, skin); } catch (e) {}
     active.add(group);
     const animate = (mesh, t) => {
+      if (duration === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
       if (phantom) phantom(t);
       const radius = pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t;
       mesh.children.forEach((part, i) => {
@@ -66,19 +73,32 @@
           part.rotation.set(t * 7, angle, t * 4); part.scale.setScalar(1 - t * 0.7);
         }
       });
-      if (t > 0.98 && !preview) active.delete(mesh);
+      if (t > 0.98 && !preview && duration !== 8) active.delete(mesh);
     };
     if (preview) {
       group.userData.previewScene = studio.sc;
       studio.sc.add(group);
-      const started = performance.now();
+      if (phantom) {
+        const before = { fit: studio.fit, dist: studio.dist, d: studio.d, ty: studio.ty, tyc: studio.tyc, pitch: studio.pitch, pc: studio.pc, auto: studio.auto }, obj = studio.obj, far = studio.cam.far;
+        const box = new T.Box3().setFromObject(group);
+        group.traverse(part => { if (part.userData.previewBounds) box.union(part.userData.previewBounds.clone().applyMatrix4(part.matrixWorld)); });
+        const size = box.getSize(new T.Vector3()), center = box.getCenter(new T.Vector3());
+        group.position.x -= center.x; group.position.z -= center.z;
+        studio.fit = { L: Math.max(size.x, size.z), H: size.y, w: 0.8, h: 0.8 };
+        studio.ty = studio.tyc = center.y; studio.pitch = studio.pc = 0.1; studio.auto = false;
+        const tan = Math.tan(studio.cam.fov * Math.PI / 360);
+        studio.dist = studio.d = Math.max(studio.fit.L / (2 * tan * studio.cam.aspect * 0.8), size.y / (2 * tan * 0.8));
+        studio.cam.far = Math.max(far, studio.dist * 2 + size.z * 2); studio.cam.updateProjectionMatrix();
+        if (obj) obj.visible = false;
+        group.userData.previewRestore = () => { studio.cam.far = far; studio.cam.updateProjectionMatrix(); if (studio.obj === obj) { Object.assign(studio, before); if (obj) obj.visible = true; } };
+      }
       const frame = () => {
-        const t = (performance.now() - started) / 1800;
+        const t = (performance.now() - started) / (duration * 1000);
         if (t >= 1 || !GUN_SKINS.isOpen()) return clearFinishers();
         animate(group, t); previewFrame = requestAnimationFrame(frame);
       };
       previewFrame = requestAnimationFrame(frame);
-    } else addFx(group, 1.8, animate);
+    } else addFx(group, duration, animate);
     return true;
   }
   window.FINISHERS = { play: visual, clear: clearFinishers, active, preview(skin) {
@@ -120,10 +140,14 @@
       const last = room.mode === "std" && world.phase === "live" && !foes.some((a) => a !== victim && a.alive);
       const kind = cause ? cause.kind : gunDepth ? gun === "knife" ? "melee" : "gun" : "ability";
       const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
-      event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
+      event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, finisherYaw: Math.atan2(killer.pos.x - victim.pos.x, killer.pos.z - victim.pos.z), kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
+      event.finisherTick = Math.floor(performance.now() / 50);
       event.finisher = !claimedRound && GAME_RULES.finisher(event);
     }
-    const previous = window.KILL_EVENT; window.KILL_EVENT = event;
+    const previous = window.KILL_EVENT, previousDeadline = world.championsFinishUntil;
+    const champions = event && event.finisher && GAME_RULES.championsFinisher(event);
+    if (champions) world.championsFinishUntil = performance.now() + 8000;
+    window.KILL_EVENT = event;
     try {
       const result = kill.apply(this, arguments);
       if (event && !victim.alive && remember(event)) {
@@ -134,7 +158,10 @@
         if (NET.mode === "host") sendEventAll(event);
       }
       return result;
-    } finally { window.KILL_EVENT = previous; }
+    } finally {
+      if (champions && victim.alive) world.championsFinishUntil = previousDeadline;
+      window.KILL_EVENT = previous;
+    }
   };
   const input = NET.onInput;
   NET.onInput = function (peer, data) { if (GAME_RULES.validInput(data)) return input.apply(this, arguments); };
@@ -186,6 +213,7 @@
       if (!remember(event)) return;
       event = { ...event, finisher: !claimedRound && GAME_RULES.finisher(event) };
       if (event.finisher) claimedRound = true;
+      if (GAME_RULES.championsFinisher(event) && !(world.championsFinishUntil > performance.now())) world.championsFinishUntil = performance.now() + 8000;
       if (event.killer === currentActor().id) {
         const previous = window.KILL_EVENT; window.KILL_EVENT = event;
         try { playKillFx(event.name, event.head); } finally { window.KILL_EVENT = previous; }
@@ -206,10 +234,31 @@
     }
     return result;
   };
+  const build = buildSnapshot, apply = applySnapshot;
+  buildSnapshot = function () {
+    const result = build.apply(this, arguments);
+    result.championsFinishMs = Math.max(0, Math.ceil((world.championsFinishUntil || 0) - performance.now()));
+    return result;
+  };
+  applySnapshot = function (value) {
+    const result = apply.apply(this, arguments);
+    if (Number.isFinite(value.championsFinishMs)) world.championsFinishUntil = performance.now() + Math.max(0, Math.min(8000, value.championsFinishMs));
+    return result;
+  };
+  const hud = updateHUD;
+  updateHUD = function () {
+    const result = hud.apply(this, arguments), remaining = (world.championsFinishUntil || 0) - performance.now();
+    if (world.phase === "end" && remaining > 0) {
+      const final = world.scoreAtk >= winRounds() || world.scoreDef >= winRounds();
+      document.getElementById("tb-time").textContent = String(Math.ceil(remaining / 1000));
+      document.getElementById("tb-phase").textContent = final ? L("챔피언스 마무리 · 결과 대기", "Champions finisher · Results next") : L("챔피언스 마무리 · 다음 라운드", "Champions finisher · Next round");
+    }
+    return result;
+  };
   const round = startRound;
   startRound = function () { clearFinishers(); roundKills.clear(); finishedRound = claimedRound = false; return round.apply(this, arguments); };
   const shutdown = netShutdown;
-  netShutdown = function () { clearFinishers(); reconnectKeys.clear(); seen.clear(); pendingKills.clear(); return shutdown.apply(this, arguments); };
+  netShutdown = function () { world.championsFinishUntil = 0; clearFinishers(); reconnectKeys.clear(); seen.clear(); pendingKills.clear(); return shutdown.apply(this, arguments); };
   const over = gameOver;
   gameOver = function () {
     const wasOver = world.phase === "over", result = over.apply(this, arguments);

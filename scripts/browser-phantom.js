@@ -115,7 +115,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
         const events = []; addEventListener("kill-confirmed", (e) => events.push(e.detail));
         DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "rifle", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
         const event = events.at(-1), count = FINISHERS.active.size;
-        const dragon = [...FINISHERS.active][0]?.children[0]?.children.length > 3;
+        const dragon = [...FINISHERS.active][0]?.getObjectByName("original-dragon_low")?.userData.source === "geo/finisher/dragon_low.geo.json";
         if (event) NET.onEvent(event);
         const afterReplay = FINISHERS.active.size;
         FINISHERS.clear();

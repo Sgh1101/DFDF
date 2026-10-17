@@ -15695,7 +15695,14 @@ function resetActorsForRound() {
     console.warn("aiBuy", e);
   }
 }
+let roundEndTimer = null;
+function cancelRoundEnd() {
+  if (roundEndTimer !== null) clearTimeout(roundEndTimer);
+  roundEndTimer = null;
+}
 function startRound() {
+  cancelRoundEnd();
+  world.championsFinishUntil = 0;
   ((world.phase = "buy"),
     (world.roundTime = 14),
     (world.over = !1),
@@ -15824,8 +15831,12 @@ function endRound(e, t) {
       o ? `라운드 승리 · ${t}` : `라운드 패배 · ${t}`,
       o ? "#4ade80" : "#ff3b4e",
     ),
-    updateHUD(),
-    setTimeout(() => {
+    updateHUD());
+  const endedRound = world.round;
+  const delay = Math.max(3600, (world.championsFinishUntil || 0) - performance.now());
+  roundEndTimer = setTimeout(() => {
+      roundEndTimer = null;
+      if (world.phase !== "end" || world.round !== endedRound || NET.mode === "client") return;
       const e = winRounds();
       if (world.scoreAtk >= e || world.scoreDef >= e) gameOver();
       else {
@@ -15866,7 +15877,7 @@ function endRound(e, t) {
         }
         startRound();
       }
-    }, 3600));
+    }, delay);
 }
 function checkRoundEnd() {
   if (world.over || "live" !== world.phase) return;
@@ -15896,6 +15907,7 @@ function halfTime() {
   return Math.max(2, Math.ceil((12 * winRounds()) / 13));
 }
 function gameOver() {
+  cancelRoundEnd();
   ((world.phase = "over"), document.exitPointerLock());
   const e =
     ("atk" === player.team ? world.scoreAtk : world.scoreDef) >= winRounds();
@@ -17813,6 +17825,7 @@ function clientRecv(e) {
       : void (NET.onEvent && NET.onEvent(e));
 }
 function netShutdown() {
+  cancelRoundEnd();
   NET.intent = (NET.intent || 0) + 1;
   netCloseTransport();
   NET.conns.clear();

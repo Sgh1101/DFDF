@@ -25,7 +25,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       res.activeLegend = FINISHERS.active.size;
       for (let i = 0; i < 22; i++) step(0.05);
       res.skyDuring = sky() !== base;
-      for (let i = 0; i < 60; i++) step(0.05);
+      for (let i = 0; i < 144; i++) step(0.05);
       res.skyAfter = sky() === base;
       res.plainAdded = lastKill("default");
       res.activePlain = FINISHERS.active.size;
@@ -38,7 +38,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       for (const id of Object.keys(FINISHER_LEGEND.themes)) {
         world.round++; startRound(); world.phase = "live";
         const ok = FINISHER_LEGEND.play({ x: me.pos.x + 5, y: 1, z: me.pos.z }, { id });
-        for (let i = 0; i < 70; i++) step(0.05);
+        for (let i = 0; i < (id === "champion" ? 162 : 70); i++) step(0.05);
         res.themes[id] = ok && sky() === base;
       }
       // a new round ends one in the middle

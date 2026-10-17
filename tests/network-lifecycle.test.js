@@ -1,7 +1,7 @@
 const test = require('node:test'), assert = require('node:assert/strict'), vm = require('node:vm'), fs = require('node:fs');
 const { EventEmitter } = require('node:events');
 const engine = fs.readFileSync('js/legacy/03-engine.js', 'utf8');
-const transport = engine.slice(engine.indexOf('const NET = {'), engine.indexOf('const room = {'));
+const transport = engine.slice(engine.indexOf('let roundEndTimer ='), engine.indexOf('function startRound()')) + engine.slice(engine.indexOf('const NET = {'), engine.indexOf('const room = {'));
 const recovery = fs.readFileSync('js/legacy/30-multiplayer-drops-a-guest-used-to-be-thrown-back-to-the-ti.js', 'utf8');
 const fallback = fs.readFileSync('js/legacy/45-fewer-dropped-players-each-guest-has-two-links-to-the-host.js', 'utf8');
 function setup() {

@@ -42,6 +42,7 @@
     el && (el.style.opacity = "0");
   }
   function world(th, life) {
+    const started = performance.now();
     if (!tint) tint = { bg: scene.background && scene.background.clone ? scene.background.clone() : hex(0), fog: scene.fog ? scene.fog.color.clone() : hex(0) };
     const base = tint,
       target = hex(th.world),
@@ -60,6 +61,7 @@
     const ctl = new T.Group();
     ctl.userData.noCollide = !0;
     addFx(ctl, life, (o, t) => {
+      if (life === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
       if (tint !== base) return; // a newer finisher or a new round took over
       let k = hold(t, 0.12, 0.7);
       th.flicker && (k *= 0.7 + 0.3 * Math.abs(Math.sin(t * 38) * Math.sin(t * 11)));
@@ -307,15 +309,16 @@
   function play(event, skin) {
     const th = skin && THEMES[skin.id];
     if (!th || !FIG[th.fig] || event.x == null) return !1;
-    const life = 2.9,
+    const started = performance.now(), life = window.GAME_RULES && GAME_RULES.championsSkin(skin.id) ? 8 : 2.9,
       g = new T.Group();
     g.position.set(event.x, Math.max(0, event.y - 0.6), event.z);
     g.userData.noCollide = !0;
     const step = FIG[th.fig](g, th, life);
     window.FINISHERS && FINISHERS.active.add(g);
     addFx(g, life, (o, t) => {
+      if (life === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
       step(t);
-      if (t > 0.985) window.FINISHERS && FINISHERS.active.delete(o);
+      if (t > 0.985 && life !== 8) window.FINISHERS && FINISHERS.active.delete(o);
     });
     world(th, life);
     return !0;
