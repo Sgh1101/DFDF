@@ -742,12 +742,15 @@
     const h = HOLD.on;
     chip.hidden = (!n && !h) || !inMatch();
     chip.classList.toggle("hold", h);
-    chip.innerHTML = h
+    // the markup is written only when it changes (this runs every frame, and writing it forced a layout each time)
+    const chipHtml = h
       ? `<b>${L("좌클릭", "Click")}</b><span>💣 ${L("던지기", "Throw")}</span><em>G ${L("취소", "cancel")}</em>`
       : `<b>G</b><span>💣 ${L("수류탄", "Grenade")}</span><em>×${n}</em>`;
+    chip._html !== chipHtml && ((chip._html = chipHtml), (chip.innerHTML = chipHtml));
     tb.hidden = (!n && !h) || !inMatch();
     tb.classList.toggle("hold", h);
-    tb.innerHTML = `<em class="nd-ic">💣</em><i>${h ? "✕" : n}</i>`;
+    const tbHtml = `<em class="nd-ic">💣</em><i>${h ? "✕" : n}</i>`;
+    tb._html !== tbHtml && ((tb._html = tbHtml), (tb.innerHTML = tbHtml));
     // Follow Q on custom layouts; compact defaults place the grenade above the pair.
     if (!tb.hidden && !(window.TOUCHLAY && TOUCHLAY.layout().m["tb-nade"])) {
       const q = document.querySelector('#tabil .tab[data-a="0"]'),

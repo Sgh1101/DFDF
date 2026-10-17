@@ -8,22 +8,42 @@
   // 3) Solid-looking props at leg height with no collider get one at map load.
 
   // first t in (t0, t1] where the ray o + d*t enters the box, or Infinity
+  // (no arrays, no destructuring: this runs for every collider of the map on every shot and every sight line)
   function boxT(c, ox, oy, oz, dx, dy, dz, t1) {
     let lo = 0,
-      hi = t1;
-    const ax = [
-      [ox, dx, c.minX, c.maxX],
-      [oy, dy, (c.y0 || 0) - 0.01, c.h],
-      [oz, dz, c.minZ, c.maxZ],
-    ];
-    for (const [o, d, mn, mx] of ax) {
-      if (Math.abs(d) < 1e-9) {
-        if (o <= mn || o >= mx) return Infinity;
-        continue;
-      }
-      let a = (mn - o) / d,
-        b = (mx - o) / d;
-      if (a > b) [a, b] = [b, a];
+      hi = t1,
+      a,
+      b,
+      t;
+    // x
+    if (dx > -1e-9 && dx < 1e-9) {
+      if (ox <= c.minX || ox >= c.maxX) return Infinity;
+    } else {
+      a = (c.minX - ox) / dx;
+      b = (c.maxX - ox) / dx;
+      if (a > b) (t = a), (a = b), (b = t);
+      a > lo && (lo = a);
+      b < hi && (hi = b);
+      if (lo > hi) return Infinity;
+    }
+    // y (a floor has a bottom)
+    if (dy > -1e-9 && dy < 1e-9) {
+      if (oy <= (c.y0 || 0) - 0.01 || oy >= c.h) return Infinity;
+    } else {
+      a = ((c.y0 || 0) - 0.01 - oy) / dy;
+      b = (c.h - oy) / dy;
+      if (a > b) (t = a), (a = b), (b = t);
+      a > lo && (lo = a);
+      b < hi && (hi = b);
+      if (lo > hi) return Infinity;
+    }
+    // z
+    if (dz > -1e-9 && dz < 1e-9) {
+      if (oz <= c.minZ || oz >= c.maxZ) return Infinity;
+    } else {
+      a = (c.minZ - oz) / dz;
+      b = (c.maxZ - oz) / dz;
+      if (a > b) (t = a), (a = b), (b = t);
       a > lo && (lo = a);
       b < hi && (hi = b);
       if (lo > hi) return Infinity;
@@ -35,6 +55,10 @@
     let best = maxT;
     for (const c of COLLIDERS) {
       if (c === skip || !(c.h > 0.02)) continue;
+      // the part of the ray that can still matter (up to the nearest hit so far) against the box, on the ground plane
+      const ex = ox + dx * best,
+        ez = oz + dz * best;
+      if ((ox < c.minX && ex < c.minX) || (ox > c.maxX && ex > c.maxX) || (oz < c.minZ && ez < c.minZ) || (oz > c.maxZ && ez > c.maxZ)) continue;
       const t = boxT(c, ox, oy, oz, dx, dy, dz, best);
       t < best && (best = t);
     }
@@ -52,7 +76,13 @@
       dy = n - t,
       dz = r - o;
     if (Math.hypot(dx, dy, dz) < 0.001) return !1;
-    for (const c of COLLIDERS) if (c !== s && c.h > 0.02 && boxT(c, e, t, o, dx, dy, dz, 1) < 1) return !0;
+    const fx = e + dx,
+      fz = o + dz;
+    for (const c of COLLIDERS) {
+      if (c === s || !(c.h > 0.02)) continue;
+      if ((e < c.minX && fx < c.minX) || (e > c.maxX && fx > c.maxX) || (o < c.minZ && fz < c.minZ) || (o > c.maxZ && fz > c.maxZ)) continue;
+      if (boxT(c, e, t, o, dx, dy, dz, 1) < 1) return !0;
+    }
     // smoke volumes are big spheres; sampling is fine for them
     const d = Math.hypot(dx, dy, dz),
       h = Math.max(2, Math.ceil(d / 0.8));
@@ -140,7 +170,16 @@
     const y = a.y || 0;
     for (let pass = 0; pass < 3; pass++) {
       let moved = !1;
-      for (const c of COLLIDERS) {
+      // the colliders in the grid cells the body touches (a margin for the push), not every one on the map
+      (!CHASH.dirty && CHASH.buckets) || chashBuild();
+      const m = PR + 0.1,
+        c0 = Math.max(0, Math.floor((a.pos.x - m - CHASH.minX) / CHASH.cell)),
+        c1 = Math.min(CHASH.cols - 1, Math.floor((a.pos.x + m - CHASH.minX) / CHASH.cell)),
+        r0 = Math.max(0, Math.floor((a.pos.z - m - CHASH.minZ) / CHASH.cell)),
+        r1 = Math.min(CHASH.rows - 1, Math.floor((a.pos.z + m - CHASH.minZ) / CHASH.cell)),
+        near = [];
+      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const bk = CHASH.buckets[r * CHASH.cols + c]; if (bk) for (let i = 0; i < bk.length; i++) near.includes(bk[i]) || near.push(bk[i]); }
+      for (const c of near) {
         if (!(c.h > y + STEP_H) || c.h < 0.3 || (c.y0 && y + 2.3 <= c.y0)) continue; // things you can step onto are fine (and floors overhead)
         const px = a.pos.x,
           pz = a.pos.z;
