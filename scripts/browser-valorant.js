@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{fixture}=require('./browser-fixture');
 (async()=>{const f=await fixture();try{
- const page=await f.page('packtester',{width:1280,height:720});
+ const page=await f.page('packtester',{width:1280,height:720},{},{bootTimeout:120000});
  await page.waitForFunction(()=>VALORANT_PACK.status==='ready',{},{timeout:120000});
  const models=await page.evaluate(()=>{
   return [...VALORANT_PACK.items.values()].map(item=>{
@@ -39,7 +39,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  await page.evaluate(()=>{GUN_SKINS.close();const a=myActor();a.weapons.secondary='knife';a.slot='secondary';updateViewmodel(true);for(let i=0;i<180;i++)tickViewmodel(1/60);});
  const settle=async()=>{
   await page.evaluate(()=>{const a=myActor();a.yaw=0;a.pitch=0;a.vel.set(0,0,0);followCamera(a,.1);for(let i=0;i<180;i++)tickViewmodel(1/60);updateHUD();renderer.render(scene,camera);});
-  if(await page.locator('#lockhint .lh-title').isVisible())await page.locator('#lockhint .lh-title').click();
+  if(!await page.evaluate(()=>document.pointerLockElement===document.getElementById('cv')))await page.locator('#cv').click({force:true});
   await page.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
  };
  await settle();

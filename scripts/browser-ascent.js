@@ -3,12 +3,12 @@ const {fixture}=require('./browser-fixture');
 (async()=>{
  const f=await fixture();fs.mkdirSync('test-results',{recursive:true});
  try{
-  const page=await f.page('ascenttester',{width:1280,height:720},{},{path:'/play.html?ascent-trial=1'});
+  const page=await f.page('ascenttester',{width:1280,height:720},{},{path:'/play.html?ascent-trial=1',bootTimeout:120000});
   await page.waitForFunction(()=>window.ASCENT_TRIAL?.status==='ready');
   await page.getByRole('button',{name:'이 맵으로 연습 시작'}).click({timeout:120000});
   await page.waitForFunction(()=>ASCENT_TRIAL.started,{},{timeout:120000});
   await page.evaluate(()=>{ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;});
-  await page.locator('#lockhint .lh-title').click();
+  if(!await page.evaluate(()=>document.pointerLockElement===document.getElementById('cv')))await page.locator('#cv').click({force:true});
   await page.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
   const state=await page.evaluate(()=>({key:CUR_MAP_KEY,name:MAP.name,textures:ASCENT_TRIAL.textureCount,mesh:ASCENT_TRIAL.meshes.length,walk:ASCENT_TRIAL.walkable,components:ASCENT_TRIAL.nav.groups.slice(0,10),spawn:world.actors.map(a=>({y:a.y,free:!collideXZ(a.pos.x,a.pos.z,a.y,PR)})),routes:[MAP.defendSpawn,...MAP.sites].map(p=>findPath(MAP.attackSpawn.x,MAP.attackSpawn.z,p.x,p.z).length)}));
   assert.equal(state.name,'마크X발로');assert.equal(state.textures,239);
