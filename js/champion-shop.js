@@ -6,7 +6,7 @@
   let sequence = 0;
   const box = document.createElement("section"); box.id = "champion-shop";
   box.innerHTML = `<div class="champion-heading"><h3>${L("챔피언스 구매", "Buy Champions")}</h3><b id="champion-coins" aria-live="polite"></b></div>
-    <p>${L("장착 대상: 돌격소총 · 경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "Equips on the assault rifle · 1 Transcendent coin per completed match · 700 per skin")}</p>
+    <p>${L("장착 대상: 카빈 · 경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "Equips on the carbine · 1 Transcendent coin per completed match · 700 per skin")}</p>
     <div class="champion-offers">${ids.map((id, i) => `<button type="button" data-champion-buy="${id}" disabled><strong>${i ? L("수비 · 상아빛", "Defense · Ivory") : L("공격 · 붉은빛", "Attack · Crimson")}</strong><span></span></button>`).join("")}</div>
     <p id="champion-shop-status" role="status"></p>`;
   $("phantom-panel").before(box);
@@ -14,7 +14,7 @@
     const same = state.token === token(), ready = same && state.ready;
     $("champion-coins").textContent = L("초월 코인 ", "Transcendent coins ") + (ready ? state.coins.toLocaleString() : "—");
     for (const button of box.querySelectorAll("[data-champion-buy]")) {
-      const id = button.dataset.championBuy, owned = ready && GS.owns("rifle", id);
+      const id = button.dataset.championBuy, owned = ready && GS.owns("carbine", id);
       button.disabled = state.busy || !ready || (!owned && state.coins < 700);
       button.classList.toggle("owned", owned); button.classList.toggle("armed", state.armed === id);
       button.querySelector("span").textContent = owned ? L("보유 중 · 장착", "Owned · Equip") : state.armed === id ? L("700코인으로 구매 확인", "Confirm purchase · 700 coins") : L("700 초월 코인", "700 Transcendent coins");
@@ -35,12 +35,12 @@
   }
   async function buy(id) {
     if (state.busy || !state.ready || state.token !== token()) return;
-    if (GS.owns("rifle", id)) return CHAMPIONS_PHANTOM.choose(id);
+    if (GS.owns("carbine", id)) return CHAMPIONS_PHANTOM.choose(id);
     if (state.coins < 700) return;
     if (state.armed !== id) { state.armed = id; state.message = L("한 번 더 누르면 초월 코인 700개를 사용합니다.", "Press again to spend 700 Transcendent coins."); return paint(); }
     const captured = token(); ++sequence; state.busy = true; state.armed = ""; paint();
     try {
-      const result = await ACCOUNT.api("champion_buy", { token: captured, g: "rifle", s: id });
+      const result = await ACCOUNT.api("champion_buy", { token: captured, g: "carbine", s: id });
       if (captured !== token()) return;
       GS.receive(result); state.coins = result.championCoins;
       CHAMPIONS_PHANTOM.choose(id); state.message = L("구매하고 장착했습니다. 초월 코인 700개를 사용했습니다.", "Purchased and equipped. Spent 700 Transcendent coins.");
@@ -56,7 +56,7 @@
   addEventListener("champions-open", () => { state.armed = ""; state.message = ""; refresh(); });
   addEventListener("storage", (event) => { if (event.key === "lgp_session" && GS.isOpen()) refresh(); });
   new MutationObserver(() => { state.armed = ""; state.message = ""; if (!$("armory").hidden) refresh(); }).observe($("armory"), { attributes: true, attributeFilter: ["hidden"] });
-  const hash = () => { if (location.hash !== "#champion-shop") return; GS.open("rifle", "champions"); refresh(); };
+  const hash = () => { if (location.hash !== "#champion-shop") return; GS.open("carbine", "champions"); refresh(); };
   addEventListener("hashchange", hash); GAME_BOOT.ready.then(hash);
   window.CHAMPION_SHOP = { refresh }; paint();
 })();

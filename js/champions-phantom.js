@@ -32,7 +32,7 @@
       materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
     }
     const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
-    // Source points down +X; DFDF points down -Z. Fit to the rifle's grip.
+    // Source points down +X; DFDF points down -Z. Fit to the carbine's grip.
     // Preserve the larger Phantom fit and the shared 1.5x first-person gun sizing.
     rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.02); wrapper.add(rig);
     const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
@@ -247,7 +247,7 @@
       $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`원본 ${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Original kill ${killPreviewCount} · press again for next`); $("kf-streak").hidden = true;
       banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
     }
-    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, "rifle");
+    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, "carbine");
     else if (motion()) {
       const studio = GS._pv(); if (!studio) return;
       const obj = studio.obj;
@@ -268,12 +268,12 @@
   }
   function choose(id) {
     if (id !== selected) killPreviewCount = 0;
-    stop(); selected = id; GS.open("rifle", "champions");
-    if (GS.owns("rifle", id)) GS.set("rifle", id);
+    stop(); selected = id; GS.open("carbine", "champions");
+    if (GS.owns("carbine", id)) GS.set("carbine", id);
     showSelected();
   }
   function showSelected() {
-    GS.preview("rifle", selected);
+    GS.preview("carbine", selected);
     const studio = GS._pv();
     if (studio?.obj) {
       const size = new T.Box3().setFromObject(studio.obj).getSize(new T.Vector3());
@@ -290,7 +290,7 @@
   $("slot-champions").appendChild(notice); availability();
   const panel = document.createElement("section"); panel.id = "phantom-panel";
   panel.innerHTML = `<details open><summary>${L("챔피언스 팬텀 · 스킨과 연출 미리보기", "Champions Phantom · Skin & effects preview")}</summary><div class="phantom-content">
-    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 돌격소총 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Assault rifle Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
+    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 카빈 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Carbine Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
     <div class="phantom-buttons"><button type="button" data-phantom-skin="champions_atk" aria-pressed="true">${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" data-phantom-skin="champions_def" aria-pressed="false">${L("수비 · 상아빛", "Defense · Ivory")}</button></div>
     <div class="phantom-buttons">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")], ["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(([k, v]) => `<button type="button" data-phantom-demo="${k}">${v}</button>`).join("")}<button type="button" id="phantom-stop">${L("중지", "Stop")}</button></div>
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
