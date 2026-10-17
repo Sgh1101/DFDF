@@ -5,11 +5,11 @@
   const state = { token: "", coins: null, ready: false, busy: false, armed: "", message: "" };
   let sequence = 0;
   const box = document.createElement("section"); box.id = "champion-shop";
-  box.innerHTML = `<div class="champion-heading"><h3>${L("초월 상점", "Transcendent shop")}</h3><b id="champion-coins" aria-live="polite"></b></div>
-    <p>${L("경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개 · 뽑기 확률 0.00000000000000001%", "1 Transcendent coin per completed match · 700 per skin · Pull chance 0.00000000000000001%")}</p>
+  box.innerHTML = `<div class="champion-heading"><h3>${L("챔피언스 구매", "Buy Champions")}</h3><b id="champion-coins" aria-live="polite"></b></div>
+    <p>${L("경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "1 Transcendent coin per completed match · 700 per skin")}</p>
     <div class="champion-offers">${ids.map((id, i) => `<button type="button" data-champion-buy="${id}" disabled><strong>${i ? L("수비 · 상아빛", "Defense · Ivory") : L("공격 · 붉은빛", "Attack · Crimson")}</strong><span></span></button>`).join("")}</div>
     <p id="champion-shop-status" role="status"></p>`;
-  $("phantom-panel").querySelector(".phantom-content").prepend(box);
+  $("phantom-panel").before(box);
   function paint() {
     const same = state.token === token(), ready = same && state.ready;
     $("champion-coins").textContent = L("초월 코인 ", "Transcendent coins ") + (ready ? state.coins.toLocaleString() : "—");
@@ -53,9 +53,10 @@
     state.coins = event.detail.coins; paint();
   });
   addEventListener("account-reward", () => { if (GS.isOpen()) refresh(); });
+  addEventListener("champions-open", () => { state.armed = ""; state.message = ""; refresh(); });
   addEventListener("storage", (event) => { if (event.key === "lgp_session" && GS.isOpen()) refresh(); });
   new MutationObserver(() => { state.armed = ""; state.message = ""; if (!$("armory").hidden) refresh(); }).observe($("armory"), { attributes: true, attributeFilter: ["hidden"] });
-  const hash = () => { if (location.hash !== "#champion-shop") return; GS.open("carbine", "gun"); $("phantom-panel").querySelector("details").open = true; box.scrollIntoView({ block: "nearest" }); refresh(); };
+  const hash = () => { if (location.hash !== "#champion-shop") return; GS.open("carbine", "champions"); refresh(); };
   addEventListener("hashchange", hash); GAME_BOOT.ready.then(hash);
   window.CHAMPION_SHOP = { refresh }; paint();
 })();

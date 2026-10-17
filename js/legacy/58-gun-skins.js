@@ -2260,7 +2260,7 @@
   ar.id = "armory";
   ar.hidden = !0;
   ar.innerHTML = `<div class="ar-hd"><div><div class="lbl">${L("무기고", "Armoury")}</div><h2>${L("총 스킨", "Gun skins")}</h2></div>
-    <nav class="ar-tabs" id="ar-tabs"><button class="ar-tab" data-tab="pull">${L("뽑기", "Pull")}</button><button class="ar-tab" data-tab="shop">${L("상점", "Shop")}</button><button class="ar-tab" data-tab="mine">${L("내 스킨", "My skins")}<i id="ar-mine-n"></i></button><button class="ar-tab" data-tab="gun">${L("총별 장착", "By gun")}</button></nav>
+    <nav class="ar-tabs" id="ar-tabs"><button class="ar-tab" data-tab="pull">${L("뽑기", "Pull")}</button><button class="ar-tab" data-tab="shop">${L("상점", "Shop")}</button><button class="ar-tab" data-tab="champions">${L("챔피언스", "Champions")}</button><button class="ar-tab" data-tab="mine">${L("내 스킨", "My skins")}<i id="ar-mine-n"></i></button><button class="ar-tab" data-tab="gun">${L("총별 장착", "By gun")}</button></nav>
     <div class="ar-hd-r"><span class="ar-gold" id="ar-gold">🪙 0</span><button class="btn btn-go" id="ar-close">${L("닫기", "Close")}</button></div></div>
     <section class="ar-pane" id="ar-p-pull"><div class="pl">
       <div class="pl-card pl-hero">
@@ -2287,6 +2287,9 @@
       <div class="ar-tools"><span class="ar-tip">${L("총마다 스킨을 고릅니다. 내 손, 다른 사람 눈, 바닥에 떨어진 총에 모두 보입니다. 🔒 스킨은 눌러서 미리 보기만 됩니다.", "Pick a skin for each gun. It shows in your hands, to others and on the ground. 🔒 skins are preview only.")}</span><button class="btn" id="ar-all">${L("모든 총에 적용", "Apply to all")}</button><button class="btn" id="ar-rand">${L("무작위", "Random")}</button><button class="btn" id="ar-reset">${L("전부 기본", "All stock")}</button></div>
       <div class="ar-body"><div class="ar-guns" id="ar-guns"></div><div class="ar-slot" id="slot-gun"><div class="ar-view"><canvas id="ar-cv"></canvas><div class="ar-cap" id="ar-cap"></div><div class="ar-hint">${L("끌어서 돌리기", "Drag to turn")}</div></div></div><div class="ar-skins" id="ar-skins"></div></div>
     </section>
+    <section class="ar-pane" id="ar-p-champions" hidden>
+      <div class="champions-layout"><div class="ar-slot" id="slot-champions"></div><div id="champions-content"><h2>${L("챔피언스", "Champions")}</h2><p class="champions-intro">${L("초월 등급 팬텀 · 경기 완료로 모은 코인으로 원하는 스킨을 구매하세요. 뽑기는 기존 뽑기 탭에서 함께 진행합니다.", "Transcendent Phantom · Buy your skin with coins earned by completing matches. Champions drops remain in the regular Pull tab.")}</p></div></div>
+    </section>
     <div id="ar-reveal" hidden><div class="rv-bg"><i class="rv-rays"></i></div><div class="rv-flash"></div><div class="rv-fx" id="rv-fx"></div>
       <div class="rv-box"><div class="rv-hd"><div class="lbl">${L("뽑기", "Pull")}</div><h3 id="rv-title"></h3></div>
         <div class="rv-main"><div class="rv-show"><div class="ar-slot" id="slot-rv"></div><div class="rv-cap" id="rv-cap"></div></div><div class="rv-grid" id="rv-grid"></div></div>
@@ -2298,7 +2301,7 @@
   const AR = { open: !1, key: "rifle", pv: null, raf: 0, peek: null, view: null, tab: "pull", feat: null, fi: -1, featT: 0 };
   try {
     const t = localStorage.getItem("lgp_ar_tab");
-    ["pull", "shop", "mine", "gun"].includes(t) && (AR.tab = t);
+    ["pull", "shop", "champions", "mine", "gun"].includes(t) && (AR.tab = t);
   } catch (e) {}
   let noteT = 0;
   function note(msg) {
@@ -3124,7 +3127,7 @@
   // the canvas goes to the reveal while it runs, else to the open tab
   function placeView() {
     const v = ar.querySelector(".ar-view"),
-      slot = $(RV.on ? "slot-rv" : "mine" === AR.tab ? "slot-mine" : "pull" === AR.tab ? "slot-pull" : "shop" === AR.tab ? "slot-shop" : "slot-gun");
+      slot = $(RV.on ? "slot-rv" : "mine" === AR.tab ? "slot-mine" : "pull" === AR.tab ? "slot-pull" : "shop" === AR.tab ? "slot-shop" : "champions" === AR.tab ? "slot-champions" : "slot-gun");
     v && slot && v.parentNode !== slot && slot.appendChild(v);
   }
   function startReveal(n) {
@@ -3455,14 +3458,14 @@
   // ── the tabs ──
   let previewFrame = 0;
   function setTab(t) {
-    ["pull", "shop", "mine", "gun"].includes(t) || (t = "pull");
+    ["pull", "shop", "champions", "mine", "gun"].includes(t) || (t = "pull");
     AR.tab = t;
-    AR.peek = null;
+    if (t !== "champions") AR.peek = null;
     try {
       localStorage.setItem("lgp_ar_tab", t);
     } catch (e) {}
     for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.classList.toggle("on", b.dataset.tab === t);
-    for (const k of ["pull", "shop", "mine", "gun"]) $("ar-p-" + k).hidden = k !== t;
+    for (const pane of ar.querySelectorAll(":scope > .ar-pane")) pane.hidden = pane.id !== "ar-p-" + t;
     "shop" === t && loadShop();
     if ("mine" === t && MI.sel) {
       const [g, s] = MI.sel.split("|");
@@ -3485,6 +3488,13 @@
     }
   }
   for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.onclick = () => setTab(b.dataset.tab);
+  const championPane = $("ar-p-champions");
+  let championWasHidden = true;
+  new MutationObserver(() => {
+    const entered = championWasHidden && !championPane.hidden;
+    championWasHidden = championPane.hidden;
+    if (entered) dispatchEvent(new CustomEvent("champions-open"));
+  }).observe(championPane, { attributes: true, attributeFilter: ["hidden"] });
   $("pl-shop") && ($("pl-shop").onclick = () => setTab("shop"));
 
   const ORDER = ["근접", "보조", "기관단총", "산탄총", "소총", "기관총", "저격총", "중화기"];
@@ -3571,6 +3581,11 @@
     pvShow();
     const c = document.querySelector(`#mi-list .it[data-g="${g}"][data-s="${s}"]`);
     c && c.scrollIntoView && c.scrollIntoView({ block: "nearest" });
+  }
+  function previewItem(g, id) {
+    if (!WEAPONS[g] || !BY[id] || !fits(BY[id], g)) return;
+    AR.key = g; AR.peek = id;
+    paintCap(); pvShow();
   }
   // this one skin on every gun that has it (the rest keep theirs)
   function wearEverywhere(id) {
@@ -4068,5 +4083,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { receive: takeInv, shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { preview: previewItem, receive: takeInv, shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();

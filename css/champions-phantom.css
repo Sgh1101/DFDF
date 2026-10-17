@@ -1,6 +1,11 @@
-#phantom-panel{flex:0 0 auto;margin:6px 14px 10px;color:#e9e3d5;font-size:12px;max-height:36vh;overflow:auto;border:1px solid #786142;border-radius:10px;background:linear-gradient(120deg,#25171d,#111820)}
+#phantom-panel{margin:12px 0 0;color:#e9e3d5;font-size:12px;border:1px solid #786142;border-radius:10px;background:linear-gradient(120deg,#25171d,#111820)}
+#ar-tabs{max-width:100%;overflow-x:auto}.ar-tab{flex-shrink:0}
+#ar-p-champions{overflow:auto;padding-right:4px}
+.champions-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,1.1fr);gap:20px;align-items:start}
+#slot-champions{min-height:clamp(220px,55vh,520px);position:sticky;top:0}
+#champions-content{min-width:0;padding-bottom:12px}#champions-content>h2{margin:0;color:#ffdbef;font-size:24px}.champions-intro{font-size:12px;color:#c9b9ce;line-height:1.7}
 #skin-tier-guide{flex:0 0 auto;margin:8px 0 0;border:1px solid #5e3857;border-radius:9px;background:#15101c;color:#e8dfea;font-size:12px}
-#armory:has(#skin-tier-guide[open])>.ar-pane{overflow:hidden}#phantom-panel{position:relative;z-index:3}
+#armory:has(#skin-tier-guide[open])>.ar-pane:not(#ar-p-champions){overflow:hidden}
 #skin-tier-guide summary{padding:8px 12px;cursor:pointer;font-weight:700}#skin-tier-guide summary span{margin-left:10px;color:#ff7bd5;font-weight:400}
 .skin-tier-scroll{max-height:26vh;overflow:auto}#skin-tier-guide table{width:100%;border-collapse:collapse;text-align:left}#skin-tier-guide caption{text-align:left;padding:4px 12px 8px;color:#c4b4c9}#skin-tier-guide th,#skin-tier-guide td{padding:6px 12px;border-top:1px solid #392b40}#skin-tier-guide .highest{background:linear-gradient(90deg,#43203f,#201329)}#skin-tier-guide .highest td{font-weight:700}
 #skin-tier-guide summary:focus-visible{outline:2px solid #ff7bd5;outline-offset:2px}.rv-card.transcendent .rv-f{border-color:#ff7bd5;box-shadow:0 0 24px #ff7bd56b}
@@ -9,7 +14,7 @@
 .phantom-buttons{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 #champion-shop{padding:10px;margin-bottom:12px;border:1px solid #9d4c86;border-radius:8px;background:#241326}
 .champion-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.champion-heading h3{margin:0;color:#ff7bd5;font-size:15px}.champion-heading b{color:#ffe3f7}
-.champion-offers{display:flex;gap:8px;flex-wrap:wrap}#phantom-panel .champion-offers button{flex:1 1 170px;display:flex;justify-content:space-between;gap:12px;border-color:#a15c8b}#phantom-panel .champion-offers button:disabled{opacity:.55;cursor:default}#phantom-panel .champion-offers button.armed{background:#61294e;border-color:#ffb4e6}.champion-offers span{color:#ffbce9}#champion-shop-status{font-size:11px;color:#dac6dd;line-height:1.5}
+.champion-offers{display:flex;gap:8px;flex-wrap:wrap}#champion-shop .champion-offers button{flex:1 1 170px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:10px 12px;border:1px solid #a15c8b;border-radius:6px;background:#24252a;color:#f8ead0;font:inherit;text-align:left;cursor:pointer}#champion-shop .champion-offers button:disabled{opacity:.55;cursor:default}#champion-shop .champion-offers button.armed{background:#61294e;border-color:#ffb4e6}#champion-shop button:focus-visible{outline:2px solid #ffb4e6;outline-offset:2px}.champion-offers span{color:#ffbce9}#champion-shop-status{font-size:11px;color:#dac6dd;line-height:1.5}
 .pl-tier b,.pl-tier em{overflow-wrap:anywhere}
 #phantom-panel button,.phantom-import{display:inline-flex;align-items:center;min-height:34px;padding:6px 12px;color:#f8ead0;background:#24252a;border:1px solid #676055;border-radius:6px;font:inherit;cursor:pointer}
 #phantom-panel button[aria-pressed=true]{border-color:#f0ca7b;background:#503c2c}#phantom-panel button:focus-visible,.phantom-import:focus-within{outline:2px solid #ffe5a3;outline-offset:2px}
@@ -18,5 +23,6 @@
 #killfx.phantom-attack #kf-badge,#killfx.phantom-defense #kf-badge{border:1px solid #e7c47e;background:var(--phantom-frame) center/contain no-repeat,linear-gradient(160deg,#241620ed,#0c1019ed);box-shadow:0 0 30px -4px var(--phantom-accent);padding:10px 34px;color:#fff0cb}
 #killfx.phantom-attack #kf-main,#killfx.phantom-defense #kf-main{color:#fff0cb;text-shadow:0 0 12px var(--phantom-accent)}
 #phantom-emblems{grid-column:1/-1;display:flex;justify-content:center;gap:9px;color:var(--phantom-accent);background-position:center;background-size:contain;background-repeat:no-repeat;min-height:24px;align-items:center;text-shadow:0 0 6px var(--phantom-accent)}
-@media(max-height:500px){#phantom-panel{max-height:33vh;margin:3px 8px 5px}#phantom-panel summary{padding:6px 10px}.phantom-content{padding:0 10px 8px}.phantom-content small{font-size:10px}}
+@media(max-width:650px){.champions-layout{grid-template-columns:minmax(0,1fr);gap:12px}#slot-champions{position:relative;min-height:220px}.ar-tabs{border-radius:14px}}
+@media(max-height:500px){.champions-layout{gap:12px}#slot-champions{min-height:210px}#phantom-panel summary{padding:6px 10px}.phantom-content{padding:0 10px 8px}.phantom-content small{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#killfx.phantom-attack *,#killfx.phantom-defense *{animation:none!important}}

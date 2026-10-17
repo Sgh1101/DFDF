@@ -4,11 +4,20 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
   try {
     const p = await f.page("phantom", { width: 1280, height: 800 });
     assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 942);
-    await p.locator("#go-armory").click(); await p.locator("#phantom-panel summary").click();
+    await p.locator("#go-armory").click();
+    await p.locator('#ar-tabs [data-tab="pull"]').click();
+    assert.equal(await p.locator("#champion-shop").isVisible(), false, "the regular pull screen has no Champions purchase panel");
+    assert.match(await p.locator("#ar-odds").innerText(), /0\.00000000000000001%/);
+    await p.locator('#ar-tabs [data-tab="gun"]').click();
+    await p.evaluate(() => GUN_SKINS.open("carbine", "gun"));
+    assert.equal(await p.locator('#ar-skins [data-s="champions_atk"]').getAttribute("data-g"), "carbine");
+    await p.locator('#ar-tabs [data-tab="champions"]').click();
+    assert.equal(await p.locator("#champion-shop").isVisible(), true);
+    assert.equal(await p.locator('#ar-p-champions #ar-cv').count(), 1, "the shared weapon preview moves into the Champions page");
     await p.locator('[data-phantom-skin="champions_atk"]').click();
     await p.waitForFunction(() => GUN_SKINS._pv()?.obj?.getObjectByProperty("type", "Mesh"));
     assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "default", "unowned preview never grants equipment");
-    assert.equal(await p.locator('#ar-skins [data-s="champions_atk"]').getAttribute("data-g"), "carbine");
+    assert.equal(await p.evaluate(() => GUN_SKINS.curTab()), "champions", "preview stays on the purchase page");
     await p.locator("#skin-tier-guide summary").click();
     assert.equal(await p.locator("#skin-tier-guide tbody tr").first().getAttribute("data-tier"), "5");
     assert.match(await p.locator('#skin-tier-guide tr[data-tier="5"]').innerText(), /초월/);
@@ -28,6 +37,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await buy.click(); await saved;
     await p.waitForFunction(() => GUN_SKINS.of("carbine").id === "champions_atk" && document.getElementById("champion-coins").textContent.endsWith(" 0"));
     assert.equal(f.h.user("phantom").gold, goldBefore); assert.equal(f.h.user("phantom").championCoins, 0);
+    assert.equal(await p.evaluate(() => GUN_SKINS.curTab()), "champions", "buy and equip stay on the purchase page");
     await p.screenshot({ path: path.join(dir, "transcendent-shop.png") });
     await p.locator("#skin-tier-guide summary").click();
     await p.evaluate(() => GUN_SKINS.tab("pull"));
@@ -36,6 +46,12 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await p.locator('#mi-f [data-r="5"]').click();
     assert.equal(await p.locator('#mi-list .it[data-s="champions_atk"]').count(), 1);
     assert.equal(await p.locator("#mi-list .it").count(), 1, "the Transcendent filter excludes Legendary and lower tiers");
+    assert.equal(await p.locator("#champion-shop").isVisible(), false);
+    await p.locator('#ar-tabs [data-tab="champions"]').click();
+    await p.locator("#ar-tab-cos").click();
+    assert.equal(await p.locator("#champion-shop").isVisible(), false, "the Style tab hides the Champions page");
+    await p.locator('#ar-tabs [data-tab="champions"]').click();
+    assert.equal(await p.locator("#ar-p-cos").isVisible(), false);
     await p.locator('[data-phantom-skin="champions_atk"]').click();
     const stats = await p.evaluate(() => JSON.stringify(WEAPONS.carbine));
     const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "phantom-owner" });
@@ -99,9 +115,8 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       assert.equal(combat.count, 1); assert.equal(combat.dragon, true); assert.equal(combat.afterReplay, 1); assert.equal(combat.reduced, false);
       await p.reload({ waitUntil: "domcontentloaded" });
       await p.waitForFunction(() => CHAMPIONS_PHANTOM?.loaded() && !document.documentElement.dataset.gameLoading);
-      await p.evaluate(() => GUN_SKINS.open("carbine", "gun"));
+      await p.evaluate(() => GUN_SKINS.open("carbine", "champions"));
       assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "champions_def", "equipment persists across reload");
-      await p.locator("#phantom-panel summary").click();
       await p.evaluate(() => {
         const drop = new T.Group(), skin = GUN_SKINS.list.find((s) => s.id === "champions_def");
         drop.name = "phantom-test-drop"; drop.userData.spin = GUN_SKINS.buildFor("carbine", skin); GUN_SKINS.apply(drop.userData.spin, skin);
@@ -114,11 +129,22 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.equal(await p.evaluate(() => JSON.stringify(WEAPONS.carbine)), stats, "cosmetics preserve weapon balance");
     await p.setViewportSize({ width: 852, height: 393 });
     await p.locator('[data-phantom-skin="champions_atk"]').click();
-    const bounds = await p.locator("#phantom-panel").boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 853 && bounds.y + bounds.height <= 394);
+    await buy.scrollIntoViewIfNeeded();
+    let bounds = await buy.boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 853 && bounds.y >= 0 && bounds.y + bounds.height <= 394);
     await p.screenshot({ path: path.join(dir, "mobile.png") });
+    await p.setViewportSize({ width: 390, height: 844 });
+    await buy.scrollIntoViewIfNeeded();
+    bounds = await buy.boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 391 && bounds.y >= 0 && bounds.y + bounds.height <= 845);
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "portrait layout does not overflow horizontally");
+    await p.screenshot({ path: path.join(dir, "champions-phone.png") });
+    await p.locator('#ar-tabs [data-tab="pull"]').click();
+    assert.equal(await p.locator("#champion-shop").isVisible(), false);
+    await p.evaluate(() => { location.hash = "champion-shop"; });
+    await p.waitForFunction(() => GUN_SKINS.curTab() === "champions" && !document.getElementById("ar-p-champions").hidden);
+    assert.equal(await p.locator("#champion-shop").isVisible(), true, "the homepage coin link opens the Champions purchase page");
     await p.evaluate(() => GUN_SKINS.close());
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     assert.deepEqual(f.errors, []);
-    console.log("Phantom: tier guide, exact chance display, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, mobile" + (process.env.PHANTOM_JAR ? ", original JAR, merged geometry, reload persistence and removal" : " (set PHANTOM_JAR to check original assets)"));
+    console.log("Phantom: separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", original JAR, merged geometry, reload persistence and removal" : " (set PHANTOM_JAR to check original assets)"));
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });
