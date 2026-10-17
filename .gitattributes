@@ -1,0 +1,2 @@
+# Preserve original visual bytes and manifest hashes across Windows/Linux checkouts.
+assets/champions-phantom/** -text whitespace=cr-at-eol

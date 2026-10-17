@@ -43,7 +43,7 @@ function harness(options = {}) {
     }
   }
   const sandbox = {
-    require, module: { exports: {} }, Buffer, Date: Clock, AbortController, setTimeout, clearTimeout,
+    require: (name) => name === "crypto" && options.randomBytes ? { ...crypto, randomBytes: options.randomBytes } : require(name), module: { exports: {} }, Buffer, Date: Clock, AbortController, setTimeout, clearTimeout,
     process: { env: { KV_REST_API_URL: "https://redis.test", KV_REST_API_TOKEN: "test", ADMIN_MASTER_PASS: "owner-password", OWNER_ID: "owner", SESSION_SECRET: "test-secret" } },
     fetch: async (url, options) => {
       // Yield before execution, so parallel calls read overlapping snapshots.

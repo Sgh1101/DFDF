@@ -501,7 +501,7 @@
     try {
       if ("client" !== NET.mode && e && t && t !== e) {
         const s = skinHeld(t);
-        if (s && 4 === s.rar && s.glow) {
+        if (s && s.rar >= 4 && s.glow) {
           const x = e.pos.x,
             y = (e.y || 0) + 1,
             z = e.pos.z;

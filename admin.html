@@ -145,6 +145,7 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
 .fbx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 </style>
 <script src="./js/client-request.js"></script>
+<script src="./js/skin-tiers.js"></script>
 </head>
 <body>
 <div class="login" id="login">
@@ -328,11 +329,11 @@ function aimEditor(u, done) {
 
 // ── skins: every gun against every skin; pick cells (or a whole gun, a whole skin, a tier) and grant or take back ──
 const GUN_KO = { knife: "전투 나이프", pistol: "권총", silenced: "소음권총", revolver: "리볼버", machpist: "기관권총", handcan: "핸드캐논", smg: "기관단총", vector: "속사 SMG", pdw: "경량 PDW", shotgun: "산탄총", autoshot: "자동 산탄총", slugger: "슬러그건", rifle: "돌격소총", carbine: "카빈", battle: "전투소총", burst: "점사소총", lmg: "경기관총", hmg: "중기관총", marksman: "지정사수총", sniper: "저격총", stinger: "독침 권총", pocketshot: "산탄 권총", ripper: "드럼 기관단총", whisper: "소음 기관단총", burstsmg: "점사 기관단총", doublebarrel: "더블배럴", scout: "정찰 소총", bullpup: "불펍 소총", minigun: "회전 기관총", antimat: "대물 저격총", rpg: "RPG" };
-const SKIN_KO = { obsidian: "흑요석", snow: "설원 위장", jungle: "밀림 위장", desert: "사막 위장", carbon: "카본", tiger: "호랑이", sakura: "벚꽃", ice: "얼음", celadon: "청자", dancheong: "단청", ink: "수묵", gold: "황금", neon: "네온", lava: "용암", galaxy: "은하", holo: "홀로그램", flip: "접이식 나이프", tanto: "탄토", kukri: "쿠크리", karambit: "카람빗", butterfly: "발리송", urban: "도심 위장", navy: "해군 위장", marble: "대리석", hex: "벌집", wave: "청해파", circuit: "회로", dragon: "용비늘", aurora: "오로라", phoenix: "봉황", storm: "뇌전", bayonet: "총검", gut: "거트 나이프", bowie: "보위 나이프", kunai: "쿠나이", stiletto: "스틸레토", koi: "비단잉어", kintsugi: "금이음", prism: "프리즘", abyss: "심해", synth: "신스웨이브", opal: "오팔", laurel: "월계관" };
+const SKIN_KO = { obsidian: "흑요석", snow: "설원 위장", jungle: "밀림 위장", desert: "사막 위장", carbon: "카본", tiger: "호랑이", sakura: "벚꽃", ice: "얼음", celadon: "청자", dancheong: "단청", ink: "수묵", gold: "황금", neon: "네온", lava: "용암", galaxy: "은하", holo: "홀로그램", flip: "접이식 나이프", tanto: "탄토", kukri: "쿠크리", karambit: "카람빗", butterfly: "발리송", urban: "도심 위장", navy: "해군 위장", marble: "대리석", hex: "벌집", wave: "청해파", circuit: "회로", dragon: "용비늘", aurora: "오로라", phoenix: "봉황", storm: "뇌전", bayonet: "총검", gut: "거트 나이프", bowie: "보위 나이프", kunai: "쿠나이", stiletto: "스틸레토", koi: "비단잉어", kintsugi: "금이음", prism: "프리즘", abyss: "심해", synth: "신스웨이브", opal: "오팔", laurel: "월계관", champions_atk: "챔피언스 팬텀 · 공격", champions_def: "챔피언스 팬텀 · 수비" };
 // the rank tiers (the server sends t 0..8, the division and RR)
 const RANK_KO = ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], RANK_C = ["#8a8f98", "#c07a4a", "#c9d3de", "#ffc849", "#3fd0c9", "#b48cff", "#3ddc84", "#ff4d6d", "#fff3a0"];
 const rankTag = (r) => r ? `<span class="tag" style="color:${RANK_C[r.t] || "#8a97ab"};border-color:${RANK_C[r.t] || "#8a97ab"}">${RANK_KO[r.t] || "?"}${r.div ? " " + r.div : ""}</span> <span class="muted">${r.rr} RR</span>` : "";
-const TIER_KO = ["", "일반", "희귀", "영웅", "전설"], TIER_C = ["", "#4ade80", "#38bdf8", "#c084fc", "#ffc849"];
+const TIER_KO = ["", ...SKIN_TIERS.list.map((tier) => tier.ko)], TIER_C = ["", ...SKIN_TIERS.list.map((tier) => tier.c)];
 async function skinEditor(u, done) {
   const box = document.createElement("div");
   box.className = "modal";
@@ -343,7 +344,7 @@ async function skinEditor(u, done) {
   let j;
   try { j = await call("a_user_skins", { id: u.id }); }
   catch (e) { box.querySelector(".sheet").innerHTML = `<h3>${esc(u.id)} · 스킨</h3><p class="err">${esc(e.message)}</p><div class="row end"><span style="flex:1"></span><button id="sk-x">닫기</button></div>`; $("#sk-x", box).onclick = close; return; }
-  const guns = j.guns, tiers = j.tiers, only = j.only || {}, items = j.items || 971;
+  const guns = j.guns, tiers = j.tiers, only = j.only || {}, items = j.items || 973;
   // colour skins by tier, the knife-only ones after them
   const skins = Object.keys(tiers).sort((a, b) => (only[a] ? 1 : 0) - (only[b] ? 1 : 0) || tiers[a] - tiers[b]);
   const fit = (s, g) => !only[s] || only[s] === g;
@@ -353,11 +354,11 @@ async function skinEditor(u, done) {
   box.querySelector(".sheet").innerHTML = `<h3>${esc(u.id)} · 스킨 지급·회수</h3>
     <p class="muted">칸을 누르면 고르고, 총 이름을 누르면 그 총의 스킨 전부, 스킨 이름을 누르면 모든 총의 그 스킨을 고릅니다. 고른 뒤 <b>선택 지급</b> 또는 <b>선택 회수</b>. 바로 게임에 반영됩니다(다음 동기화 때, 몇 초 안).</p>
     <div class="sk-tools"><span>보유 <b id="sk-own"></b> / ${items}</span><span class="muted">· 선택 <b id="sk-n">0</b>개</span><span class="sp"></span>
-      ${[1, 2, 3, 4].map((t) => `<button data-tier="${t}" style="color:${TIER_C[t]}">${TIER_KO[t]} 전부</button>`).join("")}
+      ${SKIN_TIERS.list.map(({ id: t }) => `<button data-tier="${t}" style="color:${TIER_C[t]}">${TIER_KO[t]} 전부</button>`).join("")}
       <button id="sk-miss">없는 것 전부</button><button id="sk-have">가진 것 전부</button><button id="sk-clear">선택 해제</button></div>
     <div class="sk-wrap"><table class="sk"><tr><th class="corner">총 \\ 스킨</th>${skins.map((s) => `<th data-col="${s}" style="color:${TIER_C[tiers[s]]}" title="${TIER_KO[tiers[s]]} · 눌러서 이 스킨 전부 고르기">${esc(SKIN_KO[s] || s)}</th>`).join("")}</tr>
       ${guns.map((g) => `<tr><th data-row="${g}" title="눌러서 이 총의 스킨 전부 고르기">${esc(GUN_KO[g] || g)}</th>${skins.map((s) => (fit(s, g) ? `<td data-g="${g}" data-s="${s}" style="--c:${TIER_C[tiers[s]]}" title="${esc((GUN_KO[g] || g) + " · " + (SKIN_KO[s] || s))}"></td>` : '<td class="na"></td>')).join("")}</tr>`).join("")}</table></div>
-    <div class="sk-key">${[1, 2, 3, 4].map((t) => `<span><i style="background:${TIER_C[t]}"></i>${TIER_KO[t]} 보유</span>`).join("")}<span><i style="box-shadow:inset 0 0 0 2px #fff"></i>선택</span><span><i style="background:repeating-linear-gradient(45deg,#0d121a 0 3px,#2a3444 3px 6px)"></i>그 총에는 없는 스킨</span></div>
+    <div class="sk-key">${SKIN_TIERS.list.map(({ id: t }) => `<span><i style="background:${TIER_C[t]}"></i>${TIER_KO[t]} 보유</span>`).join("")}<span><i style="box-shadow:inset 0 0 0 2px #fff"></i>선택</span><span><i style="background:repeating-linear-gradient(45deg,#0d121a 0 3px,#2a3444 3px 6px)"></i>그 총에는 없는 스킨</span></div>
     <div class="row end" style="flex-wrap:wrap"><button id="sk-all" class="gold">전부 지급 (${items})</button><button id="sk-none" class="bad">전부 회수</button><span style="flex:1"></span><button id="sk-give" class="go">선택 지급</button><button id="sk-take" class="bad">선택 회수</button><button id="sk-x">닫기</button></div>`;
   const cells = [...box.querySelectorAll("td[data-g]")];
   const K = (c) => c.dataset.g + "|" + c.dataset.s;
@@ -459,7 +460,7 @@ VIEWS.dash = async () => {
       <div class="sec"><h3>오늘 하루</h3><div class="d">서버 로그로 센 지난 24시간</div>
         <div class="kpis" style="margin:0;grid-template-columns:repeat(3,1fr)">
           ${kpi(num(G.login), "로그인", "", "var(--green)")}${kpi(num(G.join), "가입", "", "var(--gold)")}${kpi(num(G.guest), "게스트", "", "var(--steel)")}
-          ${kpi(num(G.auth), "로그인 실패", G.auth > 30 ? "많습니다 · 로그 확인" : "", G.auth > 30 ? "var(--red)" : "var(--dim)")}${kpi(num(G.room), "방 기록", "", "var(--blue)")}${kpi(num(G.gacha), "전설 뽑기", `상점 구매 ${num(G.shop)}`, "#ffc849")}
+          ${kpi(num(G.auth), "로그인 실패", G.auth > 30 ? "많습니다 · 로그 확인" : "", G.auth > 30 ? "var(--red)" : "var(--dim)")}${kpi(num(G.room), "방 기록", "", "var(--blue)")}${kpi(num(G.gacha), "전설·초월 뽑기", `상점 구매 ${num(G.shop)}`, "#ffc849")}
         </div></div>
       <div class="sec"><h3>권한 현황</h3><div class="d">'가입자'에서 계정마다 바꿉니다</div>
         <div class="hbars">${[["관리자 모드", S.admins, "var(--gold)"], ["치트 권한", S.perms, "var(--blue)"], ["PC 에임 보정", S.aimPc, "#3fd0c9"], ["모바일 보정 막힘", S.aimMobileOff, "#ff9aa5"], ["계정 차단", S.banned, "var(--red)"], ["기기·IP 차단", s.bans, "var(--red)"]].map(([n, v, c]) => `<div class="hbar" style="grid-template-columns:110px 1fr 38px"><span>${n}</span><span class="t"><i style="width:${S.scanned ? Math.min(100, Math.max(v ? 4 : 0, Math.round((100 * v) / S.scanned))) : 0}%;background:${c}"></i></span><span class="v">${v}</span></div>`).join("")}</div></div>
@@ -475,7 +476,7 @@ VIEWS.dash = async () => {
         <div class="qc" style="margin-top:8px">${RANK_KO.map((n, i) => { const k = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"][i]; return `<label><span style="color:${RANK_C[i]}">${n}</span> <small>골드</small><input type="number" min="0" max="1000000" step="50" value="${getPath(C, "season.gold." + k)}" data-q="season.gold.${k}"></label>`; }).join("")}
           <label>전용 스킨 「월계관」 <small>이 티어 이상으로 마치면</small><select data-q="season.skinTier" data-n="1">${RANK_KO.map((n, i) => `<option value="${i}" ${C.season.skinTier === i ? "selected" : ""}>${n} 이상</option>`).join("")}<option value="9" ${C.season.skinTier > 8 ? "selected" : ""}>주지 않음</option></select></label></div>
         <div class="row end" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button id="ssn-end" class="bad">지금 시즌 끝내기</button><button class="go" id="ssn-save">시즌 보상 저장</button></div></div>
-      <div class="sec"><h3>최근 운영 기록</h3><div class="d">운영 작업과 전설 뽑기</div><div class="feed">${sm.recent.map((r) => `<div><small>${when(r.t)}</small><span class="tag ${r.type === "gacha" ? "gold" : r.type === "shop" ? "blue" : ""}">${r.type === "gacha" ? "뽑기" : r.type === "shop" ? "상점" : "운영"}</span><span>${esc(r.msg)}</span></div>`).join("") || '<p class="muted">기록 없음</p>'}</div></div>
+      <div class="sec"><h3>최근 운영 기록</h3><div class="d">운영 작업과 전설·초월 뽑기</div><div class="feed">${sm.recent.map((r) => `<div><small>${when(r.t)}</small><span class="tag ${r.type === "gacha" ? "gold" : r.type === "shop" ? "blue" : ""}">${r.type === "gacha" ? "뽑기" : r.type === "shop" ? "상점" : "운영"}</span><span>${esc(r.msg)}</span></div>`).join("") || '<p class="muted">기록 없음</p>'}</div></div>
       <div class="sec"><h3>저장소 사용량</h3><div class="d">이번 달(${esc(s.month)}) · 무료 한도 ${num(s.usageLimit)}회</div>
         <div class="kpi" style="--c:${usage > 80 ? "var(--red)" : "var(--gold)"}"><div class="n">${usage}%</div><div class="l">약 ${num(s.usage)}회 사용</div><div style="height:8px;background:#0d121a;border-radius:9px;margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100, usage)}%;background:${usage > 80 ? "var(--red)" : "var(--gold)"}"></i></div></div>
         <p class="muted" style="margin-top:8px">로그 ${num(s.logs)}줄 · 대시보드는 자동으로 새로 고치지 않습니다(사용량 절약)</p></div>
@@ -526,7 +527,7 @@ VIEWS.users = async () => {
     $("#ul").innerHTML = `<table><tr><th>아이디</th><th>레벨 / 티어</th><th>골드 / 스킨</th><th>상태</th><th>마지막 접속</th><th>전적</th><th>가입</th><th>IP / 기기</th><th></th></tr>${j.users.map((u) => `<tr data-id="${esc(u.id)}">
       <td><b>${esc(u.id)}</b>${u.note ? `<div class="muted">${esc(u.note)}</div>` : ""}</td>
       <td>Lv.${u.level} <span class="muted">${u.xp}xp</span><div>${rankTag(u.rank)}</div></td>
-      <td>🪙 ${(u.gold || 0).toLocaleString()}<div class="muted">스킨 ${u.owned || 0}/${u.items || 971} · 뽑기 ${u.pulls || 0}회</div></td>
+      <td>🪙 ${(u.gold || 0).toLocaleString()}<div class="muted">초월 코인 ${u.championCoins || 0} · 스킨 ${u.owned || 0}/${u.items || 973} · 뽑기 ${u.pulls || 0}회</div></td>
       <td>${(u.ban && (!u.ban.until || u.ban.until > Date.now())) ? `<span class="tag red">차단 ${u.ban.until ? "~" + when(u.ban.until) : "영구"}</span><div class="muted">${esc(u.ban.reason)}</div>` : '<span class="tag green">정상</span>'} ${adminTag(u)}${permTag(u)}${aimTag(u)}</td>
       <td>${when(u.lastSeen)}</td><td>${u.kills}킬 · ${u.wins}승 / ${u.matches}판</td><td>${when(u.created)}</td>
       <td class="muted">${esc(u.lastIp)}<br>${esc((u.dev || "").slice(0, 14))}</td>
@@ -729,15 +730,16 @@ const LABELS = {
   "room.infAll": ["모든 능력 무제한(모두)"], "room.freezeAI": ["봇 정지"],
   xp: ["레벨", "경험치 규칙"], "xp.perKill": ["처치당 경험치"], "xp.perWin": ["승리 경험치"], "xp.perMatch": ["경기 참가 경험치"], "xp.perLevel": ["레벨당 필요 경험치", "레벨 n → n+1에 이 값 × n"], "xp.maxPerReport": ["한 경기 최대 경험치"],
   gold: ["골드", "경기마다 주는 골드. 스킨 뽑기에 씁니다"], "gold.signup": ["가입 골드", "새 계정·새 게스트가 받는 골드 (기존 계정은 다음 로그인 때 한 번)"], "gold.perWin": ["승리 골드"], "gold.perLoss": ["패배 골드"], "gold.perKill": ["처치당 골드"], "gold.maxPerReport": ["한 경기 최대 골드"], "gold.maxPerDay": ["하루 최대 골드", "경기로 받는 골드의 하루 한도 (한국 시간 자정에 다시 채워짐, 0이면 한도 없음). 경기 결과는 게임이 보고하므로, 고친 게임이 결과를 꾸며 골드를 끝없이 쌓지 못하게 합니다"],
-  gacha: ["스킨 뽑기", "총 31종 × 스킨 30종 + 나이프 전용 10종 + 시즌 전용 「월계관」(총 31종) = 971개. 월계관은 뽑기·상점에 나오지 않습니다. 중복은 나오지 않고, 그 등급을 다 모으면 한 단계 위 등급에서 나옵니다"], season: ["시즌", "몇 주마다 시즌이 끝나고, RR 일부만 남기고, 마친 티어에 따라 보상을 줍니다 (계정이 다음에 접속할 때)"], "season.on": ["시즌 켜기"], "season.weeks": ["시즌 길이 (주)", "1~26"], "season.startDay": ["첫 시즌 시작일", "한국 시간 날짜, YYYYMMDD (예: 20261001)"], "season.skip": ["앞당겨 끝낸 시즌 수", "대시보드의 '지금 시즌 끝내기'가 올립니다"], "season.keep": ["시즌 뒤 남는 RR (%)", "50이면 1000 RR이 500이 됩니다"], "season.minPlay": ["보상 받는 최소 랭크전 수"], "season.skinTier": ["전용 스킨 받는 티어", "0 아이언 … 8 레디언트, 9는 주지 않음"], "season.gold": ["티어별 보상 골드"], "season.gold.iron": ["아이언"], "season.gold.bronze": ["브론즈"], "season.gold.silver": ["실버"], "season.gold.gold": ["골드"], "season.gold.platinum": ["플래티넘"], "season.gold.diamond": ["다이아몬드"], "season.gold.ascendant": ["초월자"], "season.gold.immortal": ["불멸"], "season.gold.radiant": ["레디언트"], "gacha.cost1": ["1회 비용"], "gacha.cost10": ["10회 비용"],
-  "gacha.odds": ["등급 확률(비율)", "네 값의 합이 100일 필요는 없습니다. 비율로 씁니다"], "gacha.odds.common": ["일반 (설원·밀림·사막·도심·해군 · 총검·거트 나이프)"], "gacha.odds.rare": ["희귀 (카본·호랑이·벚꽃·청자·대리석·벌집·청해파 · 접이식 나이프·보위 나이프)"], "gacha.odds.epic": ["영웅 (단청·수묵·황금·네온·회로·용비늘·오로라·비단잉어·금이음·프리즘 · 탄토·쿠크리·쿠나이)"], "gacha.odds.legendary": ["전설 (용암·은하·봉황·뇌전·심해·신스웨이브·오팔 · 카람빗·발리송·스틸레토)"],
+  gacha: ["스킨 뽑기", "총 31종 × 스킨 30종 + 나이프 전용 10종 + 시즌 전용 「월계관」(총 31종) + 카빈 전용 챔피언스 팬텀 공격·수비 2종 = 973개. 월계관은 뽑기·상점에 나오지 않습니다. 중복은 나오지 않고, 그 등급을 다 모으면 한 단계 위 등급에서 나옵니다"], season: ["시즌", "몇 주마다 시즌이 끝나고, RR 일부만 남기고, 마친 티어에 따라 보상을 줍니다 (계정이 다음에 접속할 때)"], "season.on": ["시즌 켜기"], "season.weeks": ["시즌 길이 (주)", "1~26"], "season.startDay": ["첫 시즌 시작일", "한국 시간 날짜, YYYYMMDD (예: 20261001)"], "season.skip": ["앞당겨 끝낸 시즌 수", "대시보드의 '지금 시즌 끝내기'가 올립니다"], "season.keep": ["시즌 뒤 남는 RR (%)", "50이면 1000 RR이 500이 됩니다"], "season.minPlay": ["보상 받는 최소 랭크전 수"], "season.skinTier": ["전용 스킨 받는 티어", "0 아이언 … 8 레디언트, 9는 주지 않음"], "season.gold": ["티어별 보상 골드"], "season.gold.iron": ["아이언"], "season.gold.bronze": ["브론즈"], "season.gold.silver": ["실버"], "season.gold.gold": ["골드"], "season.gold.platinum": ["플래티넘"], "season.gold.diamond": ["다이아몬드"], "season.gold.ascendant": ["초월자"], "season.gold.immortal": ["불멸"], "season.gold.radiant": ["레디언트"], "gacha.cost1": ["1회 비용"], "gacha.cost10": ["10회 비용"],
+  "gacha.odds": ["등급 확률(비율)", "골드 뽑기 네 등급의 합이 100일 필요는 없습니다. 초월은 별도 고정 확률 0.00000000000000001%입니다"], "gacha.odds.common": ["일반 (설원·밀림·사막·도심·해군 · 총검·거트 나이프)"], "gacha.odds.rare": ["희귀 (카본·호랑이·벚꽃·청자·대리석·벌집·청해파 · 접이식 나이프·보위 나이프)"], "gacha.odds.epic": ["영웅 (단청·수묵·황금·네온·회로·용비늘·오로라·비단잉어·금이음·프리즘 · 탄토·쿠크리·쿠나이)"], "gacha.odds.legendary": ["전설 (용암·은하·봉황·뇌전·심해·신스웨이브·오팔 · 카람빗·발리송·스틸레토)"],
   cos: ["꾸미기 상점", "칭호·네임카드·킬 효과를 골드로 삽니다. 등급별 가격이 하나씩이고, 끄면 사지도 못하고 새로 입히지도 못합니다(이미 입은 것은 그대로 보입니다)"], "cos.on": ["꾸미기 상점 열기"], "cos.price": ["등급별 가격 (골드)"], "cos.price.1": ["일반"], "cos.price.2": ["희귀"], "cos.price.3": ["영웅"], "cos.price.4": ["전설"],
   shop: ["일일 상점", "매일 자정(한국 시간)에 바뀌는 스킨 상점. 모두에게 같은 목록이 뜨고, 골라서 골드로 바로 삽니다 (뽑기보다 비싸게)"], "shop.on": ["상점 열기"], "shop.mix": ["등급별 개수", "합이 하루에 뜨는 칸 수 (1~40, 기본 20)"], "shop.mix.common": ["일반"], "shop.mix.rare": ["희귀"], "shop.mix.epic": ["영웅"], "shop.mix.legendary": ["전설"], "shop.price": ["등급별 가격 (골드)"], "shop.price.common": ["일반"], "shop.price.rare": ["희귀"], "shop.price.epic": ["영웅"], "shop.price.legendary": ["전설"], "shop.knife": ["칼 모양 스킨 가격 배율", "카람빗·발리송 같은 칼 모양 스킨은 이 배수로 비쌉니다 (1~10)"], "shop.weekly": ["주간 특가", "월요일 0시(한국 시간)에 바뀌어 한 주 내내 할인되는 영웅·전설 스킨. 일일 상점 목록에 같이 뜹니다"], "shop.weekly.on": ["주간 특가 열기"], "shop.weekly.mix": ["등급별 개수"], "shop.weekly.mix.epic": ["영웅"], "shop.weekly.mix.legendary": ["전설"], "shop.weekly.off": ["할인율 (%)", "0~90, 가격은 일일 상점 가격에서 이 비율만큼 깎입니다"], "shop.weekly.reroll": ["새로 고침 번호", "바꾸면 이번 주 특가가 즉시 다른 목록으로 바뀝니다"], "shop.reroll": ["새로 고침 번호", "바꾸면 오늘 상점이 즉시 다른 목록으로 바뀝니다 (대시보드의 '상점 새로 고침' 버튼과 같음)"],
   aim: ["에임 보정", "조준할 때 가까운 적을 조금 따라가는 보정. 모바일은 누구나 설정에서 켜고 끌 수 있고, 컴퓨터는 '가입자'에서 에임 보정 권한을 준 계정(또는 관리자 모드)만 쓸 수 있습니다"], "aim.mobile": ["모바일 에임 보정 허용", "끄면 폰에서 아무도 못 씁니다"], "aim.pc": ["컴퓨터 에임 보정 허용", "끄면 권한을 받은 계정도 못 씁니다"], "aim.strength": ["세기 (%)", "0~100. 기본 35"], "aim.range": ["거리 (m)", "이 거리 안의 적만. 5~150"], "aim.cone": ["각도 (도)", "조준선에서 이 각도 안의 적만. 1~30"], "aim.ranked": ["랭크전에서 모바일 보정 유지", "컴퓨터 보정은 랭크전에서 항상 꺼집니다"],
   "game.extraMaps": ["다시 보일 맵", "맵 목록은 5대5 7개 · 3대3 5개 · 1대1 3개로 줄였습니다. 뺀 맵을 다시 넣으려면 키를 쉼표로 적으세요(all이면 전부). 5대5: harbor 해안 포구, freighter 강철 항로, temple 폐사찰, forge 용암 제련소, g01~g30 · 3대3: s01 항구 창고 · 1대1: d02 모래 투기장"],
-  "gacha.botMaxTier": ["봇이 입는 최고 등급", "0 없음 · 1 일반 · 2 희귀 · 3 영웅 · 4 전설"],
+  "gacha.botMaxTier": ["봇이 입는 최고 등급", "0 없음 · 1 일반 · 2 희귀 · 3 영웅 · 4 전설 · 5 초월"],
   rank: ["티어", "경기마다 오르내리는 티어 점수(RR). 100마다 한 단계, 세 단계가 한 티어 (아이언 → 브론즈 → 실버 → 골드 → 플래티넘 → 다이아몬드 → 초월자 → 불멸 → 레디언트)"], "rank.win": ["승리 RR"], "rank.loss": ["패배 RR", "지면 이만큼 내려갑니다 (처치가 많으면 절반까지 덜 내려감)"], "rank.perKill": ["처치당 추가 RR"], "rank.maxKill": ["처치 보너스 최대"], "rank.maxPerDay": ["하루 최대 상승 RR", "0이면 한도 없음. 경기 결과는 게임이 보고하므로 꾸민 결과로 끝없이 올리지 못하게 합니다"], mission: ["미션", "일일 미션(한국 시간 자정에 새로)과 주간 미션(월요일에 새로). 숫자는 목표, 골드는 받기를 누르면 주는 보상. 목표를 0으로 하면 그 미션은 꺼집니다"], "mission.dPlay": ["일일 · 경기 수"], "mission.dPlayGold": ["일일 · 경기 보상"], "mission.dKill": ["일일 · 처치 수"], "mission.dKillGold": ["일일 · 처치 보상"], "mission.dWin": ["일일 · 승리 수"], "mission.dWinGold": ["일일 · 승리 보상"], "mission.wPlay": ["주간 · 경기 수"], "mission.wPlayGold": ["주간 · 경기 보상"], "mission.wKill": ["주간 · 처치 수"], "mission.wKillGold": ["주간 · 처치 보상"], "mission.wWin": ["주간 · 승리 수"], "mission.wWinGold": ["주간 · 승리 보상"],
 };
+Object.assign(LABELS, { "transcendent": ["초월", "경기 완료 코인 700개로 구매하거나 0.00000000000000001% 고정 확률로 뽑습니다. 일반 등급 비율과 별도로 추첨합니다"] });
 VIEWS.config = async () => {
   const { config, defaults } = await call("a_config_get");
   const form = (obj, pre) => Object.keys(obj).filter((k) => k !== "channels").map((k) => {
