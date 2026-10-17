@@ -47,6 +47,7 @@
       group.add(mesh);
     }
     if (!preview) finishedRound = true;
+    if (!preview && window.FINISHER_LEGEND) try { FINISHER_LEGEND.play(event, skin); } catch (e) {}
     active.add(group);
     const animate = (mesh, t) => {
       const radius = pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t;

@@ -35,6 +35,8 @@
     "test:zone": "node scripts/browser-zone.js",
     "test:feedback": "node scripts/browser-feedback.js",
     "test:orders": "node scripts/browser-orders.js",
+    "test:champion": "node scripts/browser-champion.js",
+    "test:finisher": "node scripts/browser-finisher.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"
   }
