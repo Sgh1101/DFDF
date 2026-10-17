@@ -36,6 +36,7 @@ function harness(options = {}) {
       case "ZADD": case "ZREM": case "ZREMRANGEBYSCORE": return 1;
       case "LPUSH": case "RPUSH": { const list = db.get(key) || []; op === "LPUSH" ? list.unshift(args[0]) : list.push(args[0]); db.set(key, list); return list.length; }
       case "LTRIM": return "OK";
+      case "LREM": { db.set(key, (db.get(key) || []).filter((x) => x !== args[1])); return 1; }
       case "ZRANGE": return [...db.keys()].filter((x) => x.startsWith("user:")).map((x) => x.slice(5));
       case "LRANGE": return db.get(key) || [];
       default: throw new Error("unsupported redis command: " + op);
