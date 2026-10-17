@@ -67,6 +67,19 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       assert.ok(r.reach.def && r.reach.sites && r.reach.nodes === 0, r.key + ": nothing cut off " + JSON.stringify(r.reach));
       assert.ok(r.clear, r.key + ": no spawn or site inside a building");
     }
+    // every map has its own kinds of building: no two maps share the same set, and a map's own buildings differ from each other
+    const looks = await page.evaluate(() => Object.fromEntries(Object.entries(BUILDINGS.mapStyles).map(([k, v]) => [k, v.slice(0, BUILDINGS.plan[k].b.length)])));
+    const seen = new Map();
+    for (const [k, list] of Object.entries(looks)) {
+      assert.ok(new Set(list).size >= 2, k + ": its buildings are not all alike: " + list);
+      const id = list.slice().sort().join();
+      assert.ok(!seen.has(id), k + " and " + seen.get(id) + " would have the same buildings");
+      seen.set(id, k);
+    }
+    const all = new Set(Object.values(looks).flat());
+    assert.ok(all.size >= 28, "a wide choice of looks: " + all.size);
+    const roofs = new Set(), wins = new Set();
+    await page.evaluate(() => 0);
     assert.deepEqual(f.errors, []);
     console.log("buildings: " + want.length + " maps with two-storey houses and a tower, stairs climbed, nothing cut off");
   } finally { await f.browser.close(); }
