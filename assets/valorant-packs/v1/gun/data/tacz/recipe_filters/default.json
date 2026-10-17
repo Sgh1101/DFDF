@@ -1,0 +1,9 @@
+{
+  "whitelist": [
+    "tacz:test"
+  ],
+  "blacklist": [
+    "^valorant:.*$",
+    "^crystals:.*$"
+  ]
+}

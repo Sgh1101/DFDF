@@ -1,0 +1,48 @@
+{
+  "state_machine": "valorant:judge_state_machine",
+  "state_machine_param": {
+    "rpm_rate": 1
+  },
+  "model": "valorant:gun/judge_geo",
+  "texture": "valorant:gun/uv/judge",
+  "iron_zoom": 1,
+  "zoom_model_fov": 70,
+  "ammo_count_style": "normal",
+  "damage_style": "per_projectile",
+  "show_crosshair": true,
+  "transform": {
+    "scale": {
+      "thirdperson": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "ground": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "fixed": [
+        1.2,
+        1.2,
+        1.2
+      ]
+    }
+  },
+  "sounds": {
+    "shoot": "valorant:judge/judge_shoot",
+    "shoot_3p": "valorant:judge/judge_shoot_3p",
+    "inspect": "valorant:judge/judge_inspect",
+    "inspect_empty": "valorant:judge/judge_inspect",
+    "reload_empty": "valorant:judge/judge_reload",
+    "reload_tactical": "valorant:judge/judge_reload",
+    "draw": "valorant:judge/judge_draw",
+    "head_hit": "valorant:head_hit",
+    "flesh_hit": "valorant:hit"
+  },
+  "animation": "valorant:judge",
+  "use_default_animation": "rifle",
+  "third_person_animation": "default",
+  "hud": "valorant:gun/hud/judge_hud",
+  "slot": "valorant:gun/slot/judge_slot"
+}

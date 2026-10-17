@@ -1,0 +1,13 @@
+{
+  "slot": "valorant:attachment/slot/scope_outlaw_default",
+  "model": "valorant:attachment/scope_outlaw_default_geo",
+  "texture": "valorant:attachment/uv/scope_outlaw_default",
+  "scope": true,
+  "zoom": [
+    2.5
+  ],
+  "views": [
+    1
+  ],
+  "fov": 36
+}

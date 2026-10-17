@@ -349,15 +349,18 @@ const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
 const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
+const VALORANT = require('../js/valorant-data');
+for (const skin of VALORANT.knives) SKIN_TIER[skin.id] = skin.rar;
 SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 // skins no pull or shop gives: only the end of a season (or the owner)
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = "carbine";
+for (const skin of VALORANT.knives) SKIN_ONLY[skin.id] = 'knife';
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
-const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"];
+const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"].filter(key => !VALORANT.aliases[key]);
 const ITEMS = GUNS.reduce((n, g) => n + SKIN_IDS.filter((s) => fits(s, g)).length, 0);
 const TIER_KEYS = SKIN_TIERS.list.map((tier) => tier.key);
 // the summary of a match the game sends with its report: only these fields,
@@ -394,6 +397,29 @@ function ensureWallet(u, c) {
     u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
   }
   let back = 0;
+  // Preserve retired copies in an archive and move skins without charging.
+  for (const [old, target] of Object.entries(VALORANT.aliases)) {
+    if (Array.isArray(u.own[old])) {
+      const list = u.own[old];
+      u.weaponArchive = isObj(u.weaponArchive) ? u.weaponArchive : {};
+      u.weaponArchive[old] = [...new Set([...(Array.isArray(u.weaponArchive[old]) ? u.weaponArchive[old] : []), ...list])];
+      u.own[target] = Array.isArray(u.own[target]) ? u.own[target] : [];
+      for (const skin of new Set(list)) {
+        if (u.own[target].includes(skin)) back += Math.max(0, Math.round(+c.gacha.cost1 || 0)) * (SKIN_TIER[skin] === 4 ? 3 : 1);
+        else u.own[target].push(skin);
+      }
+      delete u.own[old]; changed = true;
+    }
+    if (isObj(u.skins?.m) && u.skins.m[old]) {
+      const skin = u.skins.m[old];
+      if ((!u.skins.m[target] || u.skins.m[target] === 'default') && hasItem(u, target, skin)) u.skins.m[target] = skin;
+      delete u.skins.m[old]; u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
+    }
+  }
+  if (Array.isArray(u.wish)) {
+    const wish = [...new Set(u.wish.map(value => { if (typeof value !== 'string') return value; const [g,s] = value.split('|'); return VALORANT.canonical(g) + '|' + s; }))];
+    if (JSON.stringify(wish) !== JSON.stringify(u.wish)) { u.wish = wish; changed = true; }
+  }
   for (const g in u.own) {
     if (!Array.isArray(u.own[g])) continue;
     const keep = u.own[g].filter((s) => !RETIRED[s]);

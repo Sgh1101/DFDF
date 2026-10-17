@@ -1,0 +1,14 @@
+{
+  "weight": 0.25,
+  "extended_mag_level": 1,
+  "damage": {
+    "addend": 10
+  },
+  "pierce": {
+    "addend": 1
+  },
+  "ignite": {
+    "entity": true,
+    "block": false
+  }
+}

@@ -1,0 +1,48 @@
+# 제공된 무기 팩 적용
+
+`Valorant_gunpack_v0.1.4_beta3_fix1`의 기본 총 9종과 `Valorant Knife Pack-0.1.0`의 칼 6종을 DFDF에 연결합니다. 작업은 로컬 브랜치에 있으며 병합·운영 배포는 별도입니다.
+
+## 총과 보유 정보
+
+| 게임 ID | 새 기본 모델 |
+| --- | --- |
+| pistol | 클래식 |
+| silenced | 고스트 |
+| revolver | 셰리프 |
+| rifle | 밴달 |
+| carbine | 팬텀 |
+| autoshot | 저지 |
+| hmg | 오딘 |
+| marksman | 아웃로 |
+| sniper | 오퍼레이터 |
+
+중복 무기를 칼 포함 31종에서 17종으로 줄였습니다. `handcan→revolver`, `vector/pdw/burstsmg/ripper/whisper→smg`, `slugger→shotgun`, `doublebarrel→pocketshot`, `battle→rifle`, `bullpup→carbine`, `lmg/minigun→hmg`, `scout→marksman`, `antimat→sniper`입니다. 기존 네트워크 인덱스와 옛 ID 직접 참조는 유지하며 구매·스킨 목록에서는 통합된 ID만 보입니다.
+
+서버는 기존 보유 스킨을 통합 총으로 옮기고 원래 보유 목록을 `weaponArchive`에 남깁니다. 같은 스킨이 이미 있으면 기존 중복 환급 기준으로 한 번만 보상합니다. 대상 총의 장착 선택을 우선 보존하고 빈 선택은 이전 장착으로 채우며 위시리스트도 통합합니다. 챔피언스는 계속 **카빈(carbine)** 전용입니다.
+
+탄창·연사·자동 사격·재장전 시간은 팩 데이터를 사용하고 가격·피해·사거리는 DFDF 밸런스를 유지합니다. 기존 특수 스킨은 유지됩니다. 추가 namespace의 Crystal Industry 변형은 자료로 보관하며 별도 총으로 등록하지 않습니다.
+
+## 칼 스킨
+
+욕망의 검, 영원의 도끼, 영원의 카람빗, 미래 나비칼, 미래 단검, 천둥 망치를 전설 등급의 **나이프 전용 스킨**으로 등록합니다. 무기 성능과 피해량은 기존 나이프와 같습니다. 스킨 창 미리보기와 실제 장착은 같은 원본 모델을 사용합니다.
+
+## 원본과 런타임
+
+`assets/valorant-packs/v1/manifest.json`은 JSON·PNG·OGG 485개, 15,816,481바이트의 SHA-256과 출처 경로를 기록합니다. 파일을 다시 저장하거나 텍스처 해상도를 낮추지 않습니다. classic에 선언된 `classic_n.png`는 제공된 원본에도 없어 선택 항목 누락으로 기록합니다.
+
+원본의 Bedrock 뼈대·큐브·UV와 수치 키프레임을 기존 Three.js 엔진으로 읽습니다. DFDF 손과 겹치는 원본 마인크래프트 손 큐브는 표시하지 않으며 무기 본체와 원본 파일은 보존합니다. 게임 카메라에 맞춰 전체 배율·장착 위치를 조정합니다. 발사·재장전·꺼내기·Y 살펴보기와 칼 공격을 연결하고, 칼 공격 애니메이션은 기존 공격 주기에 맞춰 재생합니다. 원본 OGG를 게임 오디오 출력에 연결합니다.
+
+Minecraft 모드 자체를 실행하는 방식은 아닙니다. Lua·Java·셰이더 코드·Molang 수식은 실행하지 않으며 수치로 표현된 애니메이션만 해석합니다. 모드의 모든 외부 효과·특수 이벤트를 동일하게 재현했다고 보장하지 않습니다. 제작자·권리 표기는 원본 `gunpack_info.json` 등에 보존합니다. gunpack의 제작자 표기는 幻梦星璇, 라이선스 표기는 CC BY-NC-ND 4.0입니다. Minecraft 텍스처의 권리는 원 권리자에게 있습니다.
+
+## 재생성과 확인
+
+```sh
+node scripts/package-valorant.js <gun-folder> <knife-folder>
+npm run check
+npm test
+npm run test:valorant
+```
+
+브라우저 검사에는 실행 중인 개발 서버와 Playwright/Chromium이 필요합니다. `DFDF_BASE_URL`, `DFDF_PLAYWRIGHT_MODULE`, `CHROME_BIN`을 기존 검사와 동일하게 설정합니다.
+
+단위 검사는 모든 원본 파일 해시, 15종 모델의 큐브 수와 애니메이션, 데이터 해석, 무기 통합과 중복 환급의 중복 실행 방지를 확인합니다. 브라우저 검사는 실제 스킨·구매 UI, 6종 칼 미리보기와 장착, 원본 공격 움직임, 원본 발사 오디오 스케줄링과 탄약 감소, 챔피언스 카빈 호환성을 확인합니다. 구매는 메모리 API를 사용한 테스트이며 실제 결제 검증이 아닙니다. Android 실기기·온라인 혼합 버전 클라이언트는 검증하지 않았습니다.

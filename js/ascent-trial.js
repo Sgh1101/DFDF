@@ -3,14 +3,14 @@
   'use strict';
   if (new URLSearchParams(location.search).get('ascent-trial') !== '1') return;
   const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'loading',active:false,meshes:[],meta:null};
-  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','어센트 맵 시험');
+  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','마크X발로 맵 시험');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
-  const title=document.createElement('strong');title.textContent='어센트 · 원본 지형 시험';
+  const title=document.createElement('strong');title.textContent='마크X발로';
   const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='원본 지형을 준비하는 중…';msg.style.margin='8px 0';
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
   const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px';
   panel.append(title,msg,start,exit);document.body.append(panel);
-  let material, buffer, navHeight, navEdges, previousNav=null, previousCell;
+  let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
   const flows=new Map();
   const on=()=>S.active&&CUR_MAP_KEY===KEY;
   const sourcePoint=(x,z)=>({x:(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*S.meta.scale,z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*S.meta.scale});
@@ -76,6 +76,7 @@
     for(const m of S.meshes){scene.remove(m);m.geometry.dispose();}
     S.meshes.length=0;
     if(material){material.dispose();material=null;}
+    if(glassMaterial){glassMaterial.dispose();glassMaterial=null;}
     if(S.active)floor.visible=true;
     S.active=false;navHeight=null;navEdges=null;S.nav=null;flows.clear();
     if(previousNav){NAV.length=0;NAV.push(...previousNav);GRID.cell=previousCell;previousNav=null;}
@@ -85,21 +86,39 @@
   function geometry() {
     const d=new DataView(buffer),n=d.getUint32(4,true),count=d.getUint32(8,true),s=S.meta.scale/16,dim=S.meta.dimensions;
     const origin=[-dim[0]*S.meta.scale/2,0,-dim[2]*S.meta.scale/2],chunks=new Map();
-    material=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
+    function atlasMaterial(transparent){
+      const m=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide,map:atlasTexture,alphaTest:.05,transparent,depthWrite:!transparent});
+      m.onBeforeCompile=shader=>{
+        shader.vertexShader='attribute vec2 atlasOffset; varying vec2 vAtlasOffset;\n'+shader.vertexShader;
+        shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\nvAtlasOffset = atlasOffset;');
+        shader.fragmentShader='varying vec2 vAtlasOffset;\n'+shader.fragmentShader;
+        shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`vec4 sampledDiffuseColor = texture2D(map, (vAtlasOffset + vec2(2.0) + fract(vMapUv) * 16.0) / vec2(${palette.width.toFixed(1)}, ${palette.height.toFixed(1)})); diffuseColor *= sampledDiffuseColor;`);
+      };
+      return m;
+    }
+    material=palette?atlasMaterial(false):new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
+    glassMaterial=palette?atlasMaterial(true):null;
     for(let i=0;i<n;i++) {
-      const p=16+i*24, q=Array.from({length:9},(_,a)=>d.getUint16(p+a*2,true)*s), k=Math.floor(q[0]/40)+','+Math.floor(q[2]/40)+','+Math.floor(q[1]/40);
-      if(!chunks.has(k))chunks.set(k,{pos:[],normal:[],color:[],indices:[]});
+      const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*s),tile=palette?d.getUint16(p+21,true):0,transparent=!!palette?.tiles[tile]?.transparent,k=Math.floor(q[0]/40)+','+Math.floor(q[2]/40)+','+Math.floor(q[1]/40)+','+transparent;
+      if(!chunks.has(k))chunks.set(k,{pos:[],normal:[],color:[],uv:[],atlas:[],indices:[],transparent});
       const c=chunks.get(k),base=c.pos.length/3,u=q.slice(3,6),v=q.slice(6,9),normal=new T.Vector3(...u).cross(new T.Vector3(...v)).normalize();
       const color=new T.Color((d.getUint8(p+18)<<16)|(d.getUint8(p+19)<<8)|d.getUint8(p+20));
       for(const [a,b] of [[0,0],[1,0],[1,1],[0,1]]) {
         for(let j=0;j<3;j++)c.pos.push(q[j]+a*u[j]+b*v[j]+origin[j]);
         c.normal.push(normal.x,normal.y,normal.z);c.color.push(color.r,color.g,color.b);
+        if(palette){
+          const pos=q.slice(0,3).map((x,j)=>(x+a*u[j]+b*v[j])/S.meta.scale),n=normal;
+          let uv=Math.abs(n.y)>.9?[pos[0],n.y>0?-pos[2]:pos[2]]:Math.abs(n.x)>.9?[n.x>0?-pos[2]:pos[2],pos[1]]:[n.z>0?pos[0]:-pos[0],pos[1]];
+          if(Math.abs(n.x)>.1&&Math.abs(n.z)>.1)uv=[a,b];
+          c.uv.push(...uv);c.atlas.push((tile%palette.columns)*palette.cell,palette.height-(Math.floor(tile/palette.columns)+1)*palette.cell);
+        }
       }
       c.indices.push(base,base+1,base+2,base,base+2,base+3);
     }
     for(const c of chunks.values()) {
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(c.pos,3));g.setAttribute('normal',new T.Float32BufferAttribute(c.normal,3));g.setAttribute('color',new T.Float32BufferAttribute(c.color,3));g.setIndex(c.indices);g.computeBoundingSphere();
-      const mesh=new T.Mesh(g,material);mesh.userData.ascent=true;scene.add(mesh);S.meshes.push(mesh);
+      if(palette){g.setAttribute('uv',new T.Float32BufferAttribute(c.uv,2));g.setAttribute('atlasOffset',new T.Float32BufferAttribute(c.atlas,2));}
+      const mesh=new T.Mesh(g,c.transparent?glassMaterial:material);mesh.userData.ascent=true;scene.add(mesh);S.meshes.push(mesh);
     }
     let p=16+n*24;
     for(let i=0;i<count;i++,p+=12) {
@@ -218,6 +237,11 @@
     if(S.status!=='ready')return false;
     clearMapGeometry();previousNav=NAV.slice();previousCell=GRID.cell;CUR_MAP_KEY=KEY;S.active=true;
     applyMapData(MAPS[KEY]);THEME.cur=THEMES.glacier;THEME.key='glacier';applyMapMood(MAPS[KEY]);
+    // Neutral daylight keeps vanilla stone/wool colors intact rather than
+    // applying another map's blue cinematic tint to the supplied blocks.
+    POST.tint=[1,1,1];POST.lift=[0,0,0];POST.sat=1;POST.contrast=1;POST.vignette=.12;
+    hemi.color.setHex(0xffffff);hemi.groundColor.setHex(0xbcbcbc);hemi.intensity=.9;
+    sun.color.setHex(0xfff4df);sun.intensity=1.1;renderer.toneMappingExposure=1;
     geometry();floor.visible=false;buildNav();
     NAV.length=0;NAV.push(...Object.values(MAP.nodes));
     if(VM.root&&!VM.root.parent)scene.add(VM.root);
@@ -241,12 +265,19 @@
       const [mr,br]=await Promise.all([fetch('./assets/maps/ascent/manifest.json'),fetch('./assets/maps/ascent/geometry.bin')]);
       if(!mr.ok||!br.ok)throw Error('지형 파일을 불러오지 못했어');
       const meta=await mr.json(),bytes=await br.arrayBuffer(),v=new DataView(bytes);
-      if(bytes.byteLength<16||bytes.byteLength>64000000||v.getUint32(0,false)!==0x41534331||meta.version!==1||meta.quads!==v.getUint32(4,true)||meta.colliders!==v.getUint32(8,true)||bytes.byteLength!==16+meta.quads*24+meta.colliders*12)throw Error('지형 데이터가 맞지 않아');
+      if(bytes.byteLength<16||bytes.byteLength>64000000||![0x41534331,0x41534332].includes(v.getUint32(0,false))||![1,2].includes(meta.version)||meta.quads!==v.getUint32(4,true)||meta.colliders!==v.getUint32(8,true)||bytes.byteLength!==16+meta.quads*24+meta.colliders*12)throw Error('지형 데이터가 맞지 않아');
       const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
       if(digest!==meta.geometrySha256)throw Error('지형 파일 검증에 실패했어');
       S.meta=meta;buffer=bytes;
+      if(meta.textures){
+        const r=await fetch('./assets/maps/ascent/'+meta.textures);if(!r.ok)throw Error('원본 블록 재질 목록 로딩 실패');palette=await r.json();
+        const ar=await fetch('./assets/maps/ascent/'+meta.atlas);if(!ar.ok)throw Error('원본 블록 텍스처 로딩 실패');const ab=await ar.arrayBuffer();
+        const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',ab)),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==meta.atlasSha256)throw Error('원본 블록 텍스처 검증 실패');
+        const url=URL.createObjectURL(new Blob([ab],{type:'image/png'}));atlasTexture=await new T.TextureLoader().loadAsync(url);URL.revokeObjectURL(url);atlasTexture.colorSpace=T.SRGBColorSpace;atlasTexture.magFilter=T.NearestFilter;atlasTexture.minFilter=T.NearestMipmapNearestFilter;
+        S.textureCount=palette.tiles.length;
+      }
       MAPS[KEY]={
-        key:KEY,name:'어센트 · 시험',theme:'glacier',fog:.002,
+        key:KEY,name:'마크X발로',theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
         attackSpawn:sourcePoint(95,193),defendSpawn:sourcePoint(175,55),
         sites:[{id:'A',label:'A 거점',...sourcePoint(220,177),r:6},{id:'B',label:'B 거점',...sourcePoint(105,70),r:6}],
@@ -255,7 +286,7 @@
       (window.MAP_EXTRA||=[]).push({key:KEY,name:MAPS[KEY].name});
       if(window.POGU){POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push({key:KEY,name:MAPS[KEY].name});
       S.status='ready';start.disabled=false;
-      msg.textContent='24만 블록의 원본 배치로 이동·사격을 시험해봐. 텍스처가 없는 파일이라 색상 재질로 표시해. 제작 중인 로컬 시험 맵이야.';
+      msg.textContent='원본 지형에 마인크래프트 기본 블록 텍스처를 복원했어. 이동·사격을 시험해봐. 제작 중인 로컬 시험 맵이야.';
     }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;}
   }
   start.onclick=async()=>{

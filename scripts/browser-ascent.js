@@ -10,7 +10,8 @@ const {fixture}=require('./browser-fixture');
   await page.evaluate(()=>{ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;});
   await page.locator('#lockhint .lh-title').click();
   await page.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
-  const state=await page.evaluate(()=>({key:CUR_MAP_KEY,mesh:ASCENT_TRIAL.meshes.length,walk:ASCENT_TRIAL.walkable,components:ASCENT_TRIAL.nav.groups.slice(0,10),spawn:world.actors.map(a=>({y:a.y,free:!collideXZ(a.pos.x,a.pos.z,a.y,PR)})),routes:[MAP.defendSpawn,...MAP.sites].map(p=>findPath(MAP.attackSpawn.x,MAP.attackSpawn.z,p.x,p.z).length)}));
+  const state=await page.evaluate(()=>({key:CUR_MAP_KEY,name:MAP.name,textures:ASCENT_TRIAL.textureCount,mesh:ASCENT_TRIAL.meshes.length,walk:ASCENT_TRIAL.walkable,components:ASCENT_TRIAL.nav.groups.slice(0,10),spawn:world.actors.map(a=>({y:a.y,free:!collideXZ(a.pos.x,a.pos.z,a.y,PR)})),routes:[MAP.defendSpawn,...MAP.sites].map(p=>findPath(MAP.attackSpawn.x,MAP.attackSpawn.z,p.x,p.z).length)}));
+  assert.equal(state.name,'마크X발로');assert.equal(state.textures,239);
   console.log('map',JSON.stringify(state));assert.equal(state.key,'ascent_trial');assert.ok(state.mesh>0&&state.mesh<150);assert.ok(state.walk>1000);assert.ok(state.spawn.every(p=>p.y>0&&p.free));assert.ok(state.routes.every(n=>n>0),'all match objectives reachable');
   // Real keyboard input through gatherInput/netStep, starting in an observed
   // open street. Select a clear heading from the actual collision solver.

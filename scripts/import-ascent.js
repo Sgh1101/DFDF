@@ -5,7 +5,7 @@ const { readSchematic, blockShape, blockColor } = require('./schematic');
 
 // Coordinates are encoded in sixteenths of a source block. No world-edit
 // offsets or tile-entity payloads are carried into the running game.
-function convert(s) {
+function convert(s, options = {}) {
   const {width:W,height:H,length:L,ids,data} = s;
   const index = (x,y,z) => x+W*(z+L*y);
   const at = (x,y,z) => x<0||y<0||z<0||x>=W||y>=H||z>=L ? 0 : ids[index(x,y,z)];
@@ -20,25 +20,31 @@ function convert(s) {
   const dims=max.map((v,a)=>v-min[a]+1), [w,h,l]=dims;
   const ci=(x,y,z)=>x+w*(z+l*y), cube=new Uint32Array(w*h*l);
   const full=new Uint8Array(cube.length), quads=[], boxes=[];
-  function quad(p,u,v,color) { quads.push([...p,...u,...v,(color>>16)&255,(color>>8)&255,color&255]); }
-  function boxFaces(b,color) {
+  const palette=options.palette;
+  const face=(id,data,n)=>{const p=palette?.palette[id+':'+(data&15)];if(palette&&!p)throw Error('Missing texture state '+id+':'+data);return p?{color:p.tints[n],tile:p.tiles[n]}:{color:blockColor(id,data),tile:0};};
+  function quad(p,u,v,mat) { const color=typeof mat==='number'?mat:mat.color;quads.push([...p,...u,...v,(color>>16)&255,(color>>8)&255,color&255,mat.tile||0]); }
+  function boxFaces(b,materials) {
     const [x,y,z,X,Y,Z]=b, dx=X-x,dy=Y-y,dz=Z-z;
-    quad([x,y,z],[0,dy,0],[dx,0,0],color); // -Z
-    quad([x,y,Z],[dx,0,0],[0,dy,0],color);
-    quad([x,y,z],[0,0,dz],[0,dy,0],color); // -X
-    quad([X,y,z],[0,dy,0],[0,0,dz],color);
-    quad([x,y,z],[dx,0,0],[0,0,dz],color); // -Y
-    quad([x,Y,z],[0,0,dz],[dx,0,0],color);
+    quad([x,y,z],[0,dy,0],[dx,0,0],materials[0]);
+    quad([x,y,Z],[dx,0,0],[0,dy,0],materials[1]);
+    quad([x,y,z],[0,0,dz],[0,dy,0],materials[2]);
+    quad([X,y,z],[0,dy,0],[0,0,dz],materials[3]);
+    quad([x,y,z],[dx,0,0],[0,0,dz],materials[4]);
+    quad([x,Y,z],[0,0,dz],[dx,0,0],materials[5]);
   }
   for (let y=0;y<h;y++) for (let z=0;z<l;z++) for (let x=0;x<w;x++) {
     const sx=x+min[0],sy=y+min[1],sz=z+min[2], i=index(sx,sy,sz), id=ids[i];
     if (!id) continue;
-    const shape=blockShape(id,data[i],(dx,dz)=>at(sx+dx,sy,sz+dz),sy?data[index(sx,sy-1,sz)]:0), color=blockColor(id,data[i]);
+    const shape=blockShape(id,data[i],(dx,dz)=>at(sx+dx,sy,sz+dz),sy?data[index(sx,sy-1,sz)]:0), color=blockColor(id,data[i]), materials=Array.from({length:6},(_,n)=>face(id,data[i],n));
     variants[shape.kind]=(variants[shape.kind]||0)+1;
-    if (shape.kind==='cube') { cube[ci(x,y,z)]=color|0x1000000; full[ci(x,y,z)]=1; continue; }
+    if (shape.kind==='cube') { cube[ci(x,y,z)]=palette?(id===166?0:(id*16+(data[i]&15)+1)):color|0x1000000; full[ci(x,y,z)]=1; continue; }
+    if(palette&&[6,31,37,39,40,59,175].includes(id)){
+      quad([x*16,y*16,z*16],[16,0,16],[0,16,0],materials[0]);
+      quad([x*16+16,y*16,z*16],[-16,0,16],[0,16,0],materials[0]);continue;
+    }
     for (const b of shape.boxes) {
       const b2=b.map((v,a)=>v+[x,y,z][a%3]*16);
-      boxFaces(b2,color);
+      boxFaces(b2,materials);
       if (shape.solid) boxes.push(b2);
     }
   }
@@ -63,7 +69,8 @@ function convert(s) {
           dv++;
         }
         const p=[0,0,0],U=[0,0,0],V=[0,0,0];p[d]=plane*16;p[u]=i*16;p[v]=j*16;U[u]=du*16;V[v]=dv*16;
-        quad(p,c>0?U:V,c>0?V:U,Math.abs(c));
+        const key=Math.abs(c)-1,side=d===0?(c>0?3:2):d===1?(c>0?5:4):(c>0?1:0);
+        quad(p,c>0?U:V,c>0?V:U,palette?face(Math.floor(key/16),key&15,side):Math.abs(c));
         for (let b=0;b<dv;b++) mask.fill(0,n+b*dims[u],n+b*dims[u]+du);
         i+=du;
       }
@@ -81,20 +88,22 @@ function convert(s) {
     for (let b=0;b<dy;b++) for(let c=0;c<dz;c++) full.fill(0,ci(x,y+b,z+c),ci(x,y+b,z+c)+dx);
   }
   const bin=Buffer.alloc(16+quads.length*24+boxes.length*12);
-  bin.write('ASC1');bin.writeUInt32LE(quads.length,4);bin.writeUInt32LE(boxes.length,8);bin.writeUInt32LE(1,12);
+  bin.write(palette?'ASC2':'ASC1');bin.writeUInt32LE(quads.length,4);bin.writeUInt32LE(boxes.length,8);bin.writeUInt32LE(palette?2:1,12);
   let offset=16;
   for (const q of quads) {
-    for(let a=0;a<9;a++) bin.writeUInt16LE(q[a],offset+a*2);
+    for(let a=0;a<9;a++) { if(a<3)bin.writeUInt16LE(q[a],offset+a*2);else bin.writeInt16LE(q[a],offset+a*2); }
     for(let a=9;a<12;a++) bin[offset+18+a-9]=q[a];
+    if(palette)bin.writeUInt16LE(q[12],offset+21);
     offset+=24;
   }
   for (const b of boxes) { for(let a=0;a<6;a++) bin.writeUInt16LE(b[a],offset+a*2);offset+=12; }
-  return {bin,meta:{version:1,name:'어센트 · 원본 지형 시험',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants}};
+  return {bin,meta:{version:palette?2:1,name:'마크X발로',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants,...(palette?{textures:'vanilla-palette.json',atlas:palette.atlas,atlasSha256:palette.atlasSha256}: {})}};
 }
 if (require.main===module) {
   const [input,out=path.join(__dirname,'../assets/maps/ascent')]=process.argv.slice(2);
   if (!input) throw Error('Usage: node scripts/import-ascent.js <source.schematic> [output-directory]');
-  const source=fs.readFileSync(input), result=convert(readSchematic(source));
+  const source=fs.readFileSync(input),palettePath=path.join(out,'vanilla-palette.json');
+  const result=convert(readSchematic(source),{palette:fs.existsSync(palettePath)?JSON.parse(fs.readFileSync(palettePath)):null});
   result.meta.sourceFile=path.basename(input);result.meta.sourceSha256=crypto.createHash('sha256').update(source).digest('hex');
   result.meta.geometrySha256=crypto.createHash('sha256').update(result.bin).digest('hex');
   fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'geometry.bin'),result.bin);

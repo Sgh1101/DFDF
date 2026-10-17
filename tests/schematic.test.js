@@ -47,3 +47,11 @@ test('shipped map binary matches its provenance manifest and bounded record layo
   const lo=b.readUInt16LE(p+a*2),hi=b.readUInt16LE(p+(a+3)*2);assert.ok(lo<hi&&hi<=m.dimensions[a]*16);
  }
 });
+test('마크X발로 uses byte-verified vanilla textures and separate block-state materials',()=>{
+ const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),p=JSON.parse(fs.readFileSync(path.join(dir,m.textures))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
+ assert.equal(m.name,'마크X발로');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
+ for(const f of p.originalFiles)assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,'vanilla',f.name))).digest('hex'),f.sha256);
+ assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,m.atlas))).digest('hex'),m.atlasSha256);
+ assert.notEqual(p.palette['1:0'].tiles[0],p.palette['1:1'].tiles[0],'stone and granite keep their distinct source pixels');
+ const used=new Set();for(let i=0;i<m.quads;i++){const tile=b.readUInt16LE(16+i*24+21);assert.ok(tile<p.tiles.length);used.add(tile);}assert.ok(used.size>60);
+});
