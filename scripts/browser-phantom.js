@@ -1,0 +1,96 @@
+const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
+(async () => {
+  const f = await fixture(), dir = process.env.SHOT_DIR || path.resolve("test-results/phantom"); fs.mkdirSync(dir, { recursive: true });
+  try {
+    const p = await f.page("phantom", { width: 1280, height: 800 });
+    assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 942);
+    await p.locator("#go-armory").click(); await p.locator("#phantom-panel summary").click();
+    await p.locator('[data-phantom-skin="champions_atk"]').click();
+    await p.waitForFunction(() => GUN_SKINS._pv()?.obj?.getObjectByProperty("type", "Mesh"));
+    assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "default", "unowned preview never grants equipment");
+    assert.equal(await p.locator('#ar-skins [data-s="champions_atk"]').getAttribute("data-g"), "carbine");
+    const stats = await p.evaluate(() => JSON.stringify(WEAPONS.carbine));
+    const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "phantom-owner" });
+    for (const id of ["champions_atk", "champions_def"]) await f.h.api("a_user_set", { atoken: owner.atoken, id: "phantom", op: "grant", item: "carbine|" + id });
+    await p.evaluate(() => GUN_SKINS.sync());
+    await p.waitForFunction(() => GUN_SKINS.owns("carbine", "champions_atk"));
+    await p.locator('[data-phantom-skin="champions_atk"]').click();
+    assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "champions_atk");
+    await p.locator('[data-phantom-demo="kill"]').click();
+    assert.equal(await p.locator("#killfx").isVisible(), true);
+    assert.equal(await p.locator("#phantom-emblems span").count(), 5);
+    assert.equal(await p.evaluate(() => killStreak), 0, "banner preview does not affect match kill streak");
+    assert.equal(await p.locator("#killfx").evaluate((el) => getComputedStyle(el).zIndex), "80");
+    await p.screenshot({ path: path.join(dir, "attack-banner.png") });
+    await p.locator("#phantom-stop").click();
+    assert.equal(await p.locator("#killfx").isVisible(), false);
+    await p.locator('[data-phantom-demo="fin"]').click();
+    assert.equal(await p.evaluate(() => FINISHERS.active.size), 1);
+    await p.locator("#phantom-stop").click();
+    assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
+    if (process.env.PHANTOM_JAR) {
+      await p.locator("#phantom-file").setInputFiles(process.env.PHANTOM_JAR);
+      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded(), null, { timeout: 60000 });
+      await p.waitForFunction(() => { const rig = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"); let n = 0; rig?.traverse((m) => { if (m.isMesh && m.material.map?.image?.complete) n++; }); return n > 5; });
+      assert.ok(await p.evaluate(() => { let n = 0; GUN_SKINS._pv().obj.traverse((m) => { if (m.isMesh) n++; }); return n < 30; }), "source cubes are merged per bone");
+      await p.screenshot({ path: path.join(dir, "original-attack.png") });
+      await p.locator('[data-phantom-demo="kill"]').click();
+      assert.match(await p.locator("#killfx").getAttribute("style"), /blob:/);
+      await p.locator("#phantom-stop").click();
+      await p.locator('[data-phantom-skin="champions_def"]').click();
+      await p.waitForFunction(() => GUN_SKINS.of("carbine").id === "champions_def");
+      await p.screenshot({ path: path.join(dir, "original-defense.png") });
+      await p.locator('[data-phantom-demo="reload"]').click();
+      await p.waitForFunction(() => { const bone = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-bone-mag_and_lefthand"); return !!bone; });
+      await p.locator("#phantom-stop").click();
+      const combat = await p.evaluate(() => {
+        GUN_SKINS.close(); titleCam = () => {}; render = () => {};
+        room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true;
+        const me = myActor(); player.weapons.primary = me.weapons.primary = "carbine"; player.slot = me.slot = "primary";
+        updateViewmodel(true);
+        const rig = !!VM.current.getObjectByName("phantom-rig"), mag = VM.current.getObjectByName("phantom-bone-magazine");
+        player.reloading = 2; tickViewmodel(0.016); const before = mag.position.clone(), beforeRotation = mag.quaternion.clone(); let moved = 0;
+        for (let i = 1; i < 40; i++) { player.reloading = 2 * (1 - i / 40); tickViewmodel(0.016); moved = Math.max(moved, before.distanceTo(mag.position) + beforeRotation.angleTo(mag.quaternion)); }
+        player.reloading = 0;
+        const foes = world.actors.filter((a) => a.team !== me.team), victim = foes[0];
+        for (const foe of foes) foe.alive = foe === victim;
+        victim.hp = 1; victim.invuln = victim.armor = victim.shielded = 0;
+        const events = []; addEventListener("kill-confirmed", (e) => events.push(e.detail));
+        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "carbine", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
+        const event = events.at(-1), count = FINISHERS.active.size;
+        const dragon = [...FINISHERS.active][0]?.children[0]?.children.length > 3;
+        if (event) NET.onEvent(event);
+        const afterReplay = FINISHERS.active.size;
+        FINISHERS.clear();
+        SETTINGS.motion = 0; const reduced = FINISHERS.play({ mode: "std", last: true, kind: "gun", killer: 1, victim: 2, skin: "champions_def", x: 0, y: 0, z: 0 }); SETTINGS.motion = 1;
+        return { rig, moved, event, count, dragon, afterReplay, reduced };
+      });
+      console.log("original combat", combat);
+      assert.equal(combat.rig, true); assert.ok(combat.moved > 0.01, "the original magazine moves during the game's reload");
+      assert.equal(combat.event.skin, "champions_def"); assert.equal(combat.event.finisher, true);
+      assert.equal(combat.count, 1); assert.equal(combat.dragon, true); assert.equal(combat.afterReplay, 1); assert.equal(combat.reduced, false);
+      await p.reload({ waitUntil: "domcontentloaded" });
+      await p.waitForFunction(() => CHAMPIONS_PHANTOM?.loaded() && !document.documentElement.dataset.gameLoading);
+      await p.evaluate(() => GUN_SKINS.open("carbine", "gun"));
+      assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "champions_def", "equipment persists across reload");
+      await p.locator("#phantom-panel summary").click();
+      await p.evaluate(() => {
+        const drop = new T.Group(), skin = GUN_SKINS.list.find((s) => s.id === "champions_def");
+        drop.name = "phantom-test-drop"; drop.userData.spin = GUN_SKINS.buildFor("carbine", skin); GUN_SKINS.apply(drop.userData.spin, skin);
+        drop.userData.skinDone = 1; drop.add(drop.userData.spin); scene.add(drop);
+      });
+      await p.locator("#phantom-remove").click();
+      await p.waitForFunction(() => !CHAMPIONS_PHANTOM.loaded());
+      assert.equal(await p.evaluate(() => !!scene.getObjectByName("phantom-test-drop").getObjectByName("phantom-rig")), false, "dropped weapons switch back with the local pack");
+    }
+    assert.equal(await p.evaluate(() => JSON.stringify(WEAPONS.carbine)), stats, "cosmetics preserve weapon balance");
+    await p.setViewportSize({ width: 852, height: 393 });
+    await p.locator('[data-phantom-skin="champions_atk"]').click();
+    const bounds = await p.locator("#phantom-panel").boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 853 && bounds.y + bounds.height <= 394);
+    await p.screenshot({ path: path.join(dir, "mobile.png") });
+    await p.evaluate(() => GUN_SKINS.close());
+    assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
+    assert.deepEqual(f.errors, []);
+    console.log("Phantom: ownership, attack/defense equipment, banner, finisher cleanup, balance, mobile" + (process.env.PHANTOM_JAR ? ", original JAR, merged geometry, reload persistence and removal" : " (set PHANTOM_JAR to check original assets)"));
+  } finally { await f.browser.close(); }
+})().catch((e) => { console.error(e); process.exitCode = 1; });

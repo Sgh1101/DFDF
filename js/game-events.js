@@ -33,6 +33,7 @@
     if (preview && !studio) return false;
     const origin = preview ? new T.Vector3(0, 0, 0) : new T.Vector3(event.x, event.y, event.z);
     const group = new T.Group(); group.position.copy(origin);
+    const phantom = window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id) ? CHAMPIONS_PHANTOM.finisher(group, skin) : null;
     const rings = pack === "cosmic" ? 3 : 2;
     for (let i = 0; i < rings; i++) {
       const ring = new T.Mesh(new T.TorusGeometry(0.5 + i * 0.18, 0.018, 5, 36), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false }));
@@ -49,10 +50,12 @@
     if (!preview) finishedRound = true;
     active.add(group);
     const animate = (mesh, t) => {
+      if (phantom) phantom(t);
       const radius = pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t;
       mesh.children.forEach((part, i) => {
+        if (part.userData.phantom) return;
         part.material.opacity = (1 - t) * 0.8;
-        if (i < rings) {
+        if (part.userData.angle == null) {
           part.rotation.z = t * Math.PI * (i % 2 ? -2 : 2);
           part.scale.setScalar(0.6 + t * 1.3);
           if (pack === "energy") part.rotation.x = Math.PI / 2 + Math.sin(t * 9) * 0.4;

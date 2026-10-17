@@ -93,6 +93,11 @@
     // the season's own skin (excl): no pull and no shop; finishing a season at gold or above
     { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
   ];
+  // Append only: the numeric indices already sent to rooms must stay stable.
+  SKINS.push(
+    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 4, only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
+    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 4, only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
+  );
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
   // (shown by tier: the second set sits after the knives in the list)
@@ -1245,6 +1250,7 @@
   function applySkin(root, skin) {
     skin = "string" == typeof skin ? skinById(skin) : skin || SKINS[0];
     if (!root) return root;
+    if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
     if ("default" !== skin.id)
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
@@ -3922,7 +3928,10 @@
   }
   // open(gun) goes to that gun's skins; open() to the tab used last; open(null, tab) to a tab
   function openArmory(key, tab) {
-    if (AR.open) return void (tab && setTab(tab));
+    if (AR.open) {
+      if (key && WEAPONS[key]) { AR.key = key; AR.peek = null; }
+      return void ((tab || key) && setTab(tab || "gun"));
+    }
     AR.open = !0;
     key && WEAPONS[key] && (AR.key = key);
     AR.peek = null;
@@ -3938,6 +3947,26 @@
     cancelAnimationFrame(AR.raf);
     AR.raf = requestAnimationFrame(pvLoop);
   }
+  function refreshAssets() {
+    TPL.clear(); TH.cache.clear();
+    refreshVM();
+    for (const actor of (world.actors || [])) if (actor.model && actor.model.gun) {
+      actor.model.gun.userData.tp = "";
+      dressGun(actor);
+    }
+    for (const drop of scene.children.slice()) {
+      const old = drop.userData.spin, skin = old && BY[old.userData.skin];
+      if (!skin || !window.CHAMPIONS_PHANTOM || !CHAMPIONS_PHANTOM.isSkin(skin.id)) continue;
+      const fresh = buildFor("carbine", skin);
+      applySkin(fresh, skin);
+      fresh.position.copy(old.position); fresh.rotation.copy(old.rotation); fresh.scale.copy(old.scale);
+      const parent = old.parent;
+      if (parent) { parent.remove(old); parent.add(fresh); }
+      old.traverse((part) => { if (part.geometry && !part.geometry.userData.shared) part.geometry.dispose(); });
+      drop.userData.spin = fresh;
+    }
+    if (AR.open) pvShow();
+  }
   function closeArmory() {
     window.SOUNDPACK && SOUNDPACK.stop();
     if (!AR.open) return;
@@ -3950,6 +3979,8 @@
     cancelAnimationFrame(AR.raf);
   }
   $("ar-close").onclick = closeArmory;
+  // The local asset importer can invalidate models without changing ownership or picks.
+  window.refreshSkinAssets = refreshAssets;
   $("ar-all").onclick = () => {
     setAll(mySkin(AR.key).id);
     armoryPaint();

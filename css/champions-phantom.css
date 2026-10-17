@@ -1,0 +1,13 @@
+#phantom-panel{flex:0 0 auto;margin:6px 14px 10px;color:#e9e3d5;font-size:12px;max-height:36vh;overflow:auto;border:1px solid #786142;border-radius:10px;background:linear-gradient(120deg,#25171d,#111820)}
+#phantom-panel summary{cursor:pointer;padding:10px 14px;font-weight:800;letter-spacing:.04em;color:#eed29c}
+.phantom-content{padding:0 14px 12px}.phantom-content p{margin:6px 0}.phantom-content small{display:block;max-width:90ch;color:#c0b8ac;line-height:1.6;margin-top:8px}
+.phantom-buttons{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#phantom-panel button,.phantom-import{display:inline-flex;align-items:center;min-height:34px;padding:6px 12px;color:#f8ead0;background:#24252a;border:1px solid #676055;border-radius:6px;font:inherit;cursor:pointer}
+#phantom-panel button[aria-pressed=true]{border-color:#f0ca7b;background:#503c2c}#phantom-panel button:focus-visible,.phantom-import:focus-within{outline:2px solid #ffe5a3;outline-offset:2px}
+.phantom-import{position:relative;overflow:hidden}.phantom-import input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+#killfx.phantom-preview{position:fixed;top:28%;z-index:80}
+#killfx.phantom-attack #kf-badge,#killfx.phantom-defense #kf-badge{border:1px solid #e7c47e;background:var(--phantom-frame) center/contain no-repeat,linear-gradient(160deg,#241620ed,#0c1019ed);box-shadow:0 0 30px -4px var(--phantom-accent);padding:10px 34px;color:#fff0cb}
+#killfx.phantom-attack #kf-main,#killfx.phantom-defense #kf-main{color:#fff0cb;text-shadow:0 0 12px var(--phantom-accent)}
+#phantom-emblems{grid-column:1/-1;display:flex;justify-content:center;gap:9px;color:var(--phantom-accent);background-position:center;background-size:contain;background-repeat:no-repeat;min-height:24px;align-items:center;text-shadow:0 0 6px var(--phantom-accent)}
+@media(max-height:500px){#phantom-panel{max-height:33vh;margin:3px 8px 5px}#phantom-panel summary{padding:6px 10px}.phantom-content{padding:0 10px 8px}.phantom-content small{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#killfx.phantom-attack *,#killfx.phantom-defense *{animation:none!important}}

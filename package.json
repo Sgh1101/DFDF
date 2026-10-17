@@ -6,6 +6,7 @@
     "check": "node scripts/check-syntax.js",
     "dev": "node scripts/dev-server.js",
     "test:browser": "node scripts/browser-smoke.js",
+    "test:phantom": "node scripts/browser-phantom.js",
     "test:regression": "node scripts/browser-regression.js",
     "test:startup": "node scripts/browser-startup.js",
     "test:home-layout": "node scripts/browser-home-layout.js",
