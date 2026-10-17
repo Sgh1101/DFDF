@@ -25,6 +25,24 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForTimeout(1800);
     await page.screenshot({ path: dir + "/champion-armory.png" });
     await page.evaluate(() => GUN_SKINS.close());
+    // "apply to all": the skin shown goes on every gun that owns it (two granted here), others keep theirs, a not-owned one is refused
+    await f.h.api("a_user_set", { atoken: owner.atoken, id: "champ", op: "grant", item: "smg|champion" });
+    await page.evaluate(() => GUN_SKINS.sync());
+    await page.waitForFunction(() => GUN_SKINS.owns("smg", "champion"));
+    await page.evaluate(() => { GUN_SKINS.setAll("default"); GUN_SKINS.set("shotgun", "default"); GUN_SKINS.open("rifle", "gun"); });
+    await page.waitForSelector('#ar-skins .ar-sk[data-s="champion"]');
+    await page.click('#ar-skins .ar-sk[data-s="champion"]');
+    await page.click("#ar-all");
+    const all = await page.evaluate(() => ({ mine: GUN_SKINS.mine(), toast: document.getElementById("ar-toast").textContent }));
+    assert.deepEqual(Object.keys(all.mine).sort(), ["pistol", "rifle", "smg"]);
+    assert.ok(/3개/.test(all.toast), "says how many: " + all.toast);
+    // a skin only previewed (not owned) is refused with a word, and nothing changes
+    await page.evaluate(() => { const l = GUN_SKINS.list.find((s) => s.id === "lava"); document.querySelector('#ar-skins .ar-sk[data-s="lava"]').click(); });
+    await page.click("#ar-all");
+    const refused = await page.evaluate(() => ({ mine: GUN_SKINS.mine(), toast: document.getElementById("ar-toast").textContent }));
+    assert.deepEqual(Object.keys(refused.mine).sort(), ["pistol", "rifle", "smg"]);
+    assert.ok(/아직 없는/.test(refused.toast), "refusal is spoken: " + refused.toast);
+    await page.evaluate(() => GUN_SKINS.close());
     // in a match
     await page.evaluate(() => { titleCam = () => {}; GUN_SKINS.set("rifle", "champion"); room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
     await page.waitForTimeout(800);
