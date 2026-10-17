@@ -34,6 +34,7 @@
     "test:details": "node scripts/browser-details.js",
     "test:hospital-bots": "node scripts/browser-hospital-bots.js",
     "test:landing": "node scripts/browser-landing-layout.js",
+    "test:gunshots": "node scripts/browser-gunshots.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"

@@ -95,5 +95,6 @@
   "js/legacy/94-abandoned-hospital-a-three-floor-maze-you-can-climb.js",
   "js/legacy/95-first-person-hands-and-gun-finish.js",
   "js/legacy/96-character-details-fingers-brows-ears-soles.js",
-  "js/legacy/97-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js"
+  "js/legacy/97-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js",
+  "js/legacy/98-each-gun-has-its-own-shot-and-the-room-answers.js"
 ]

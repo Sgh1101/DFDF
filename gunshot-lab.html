@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>총소리 시청실</title>
+<style>
+:root{--void:#0a0d12;--panel:#141922;--line:#2a3444;--steel:#8a97ab;--ink:#e8edf4;--red:#ff3b4e;--gold:#ffc849}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--void);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;padding:24px 16px 60px}
+.wrap{max-width:980px;margin:0 auto}
+h1{font-size:22px;margin-bottom:6px}
+.sub{color:var(--steel);font-size:13px;line-height:1.7;margin-bottom:18px}
+.bar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:16px;position:sticky;top:8px;z-index:2}
+.bar label{font-size:12px;color:var(--steel);display:flex;align-items:center;gap:8px}
+select,input[type=range]{accent-color:var(--gold)}
+select{background:#0d121a;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+button{font:inherit;color:inherit;border:1px solid var(--line);background:#1b222e;border-radius:10px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--steel)}
+button.go{background:linear-gradient(180deg,#ff5566,var(--red));border-color:#ff6673;color:#fff;font-weight:700}
+h2{font-size:12px;letter-spacing:.18em;color:var(--steel);margin:18px 0 8px;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px}
+.g{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.g .t{flex:1;min-width:0}
+.g b{display:block;font-size:14px}
+.g small{display:block;color:var(--steel);font-size:11.5px;line-height:1.5;margin-top:2px}
+.g button{flex:none;min-width:48px}
+.hint{color:var(--steel);font-size:12px;margin-top:20px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>총소리 시청실</h1>
+  <p class="sub">게임이 쓰는 총소리 그대로입니다. 총마다 다른 소리로 만들었고, 거리와 방에 따라 달라집니다. 녹음이 아니라 총성의 구조(충격파·폭발·저음·노리쇠·방 울림)를 모델링한 합성입니다. 어색한 총이 있으면 이름을 알려 주세요.</p>
+  <div class="bar">
+    <label>거리 <input id="far" type="range" min="0" max="100" value="0"><span id="farv">내 총</span></label>
+    <label>방 <select id="room"><option value="open">야외</option><option value="indoor">병원 안</option></select></label>
+    <button id="burst">연사 2초</button>
+    <button id="all" class="go">전부 차례로</button>
+  </div>
+  <div id="list"></div>
+  <p class="hint">스피커가 작으면 낮은 울림이 안 들릴 수 있어서, 중저음 '쿵'을 따로 깔아 두었습니다. 이어폰이나 큰 스피커로 들으면 크기 차이가 더 분명합니다.</p>
+</div>
+<script src="./js/gunshot-synth.js"></script>
+<script>
+(function () {
+  var G = window.GUNSYNTH, ctx = null, eng = null, timer = null;
+  var GROUPS = [["권총류", ["pistol", "silenced", "revolver", "machpist", "handcan", "stinger", "pocketshot"]], ["기관단총", ["smg", "vector", "pdw", "ripper", "burstsmg", "whisper"]], ["산탄총", ["shotgun", "autoshot", "slugger", "doublebarrel"]], ["소총", ["rifle", "carbine", "battle", "burst", "scout", "bullpup"]], ["기관총", ["lmg", "hmg", "minigun"]], ["저격총·중화기", ["marksman", "sniper", "antimat", "rpg"]]];
+  function get() {
+    if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); eng = G.engine(ctx, ctx.destination); }
+    ctx.state === "suspended" && ctx.resume();
+    eng.setRoom(document.getElementById("room").value);
+    return eng;
+  }
+  var far = function () { return +document.getElementById("far").value / 100; };
+  function shoot(k) { get().play(k, far()); }
+  var list = document.getElementById("list");
+  GROUPS.forEach(function (g) {
+    var h = document.createElement("h2"); h.textContent = g[0]; list.appendChild(h);
+    var grid = document.createElement("div"); grid.className = "grid"; list.appendChild(grid);
+    g[1].forEach(function (k) {
+      var S = G.SPEC[k], d = document.createElement("div"); d.className = "g";
+      d.innerHTML = '<div class="t"><b>' + S.ko + '</b><small>' + S.note + '</small></div>';
+      var b = document.createElement("button"); b.textContent = "▶"; b.onclick = function () { shoot(k); };
+      d.appendChild(b); grid.appendChild(d);
+    });
+  });
+  var fr = document.getElementById("far");
+  fr.oninput = function () { document.getElementById("farv").textContent = fr.value == 0 ? "내 총" : Math.round(fr.value * 0.7) + "m"; };
+  // a burst at the gun's own rate, for the gun you pick next
+  var last = "rifle";
+  list.addEventListener("click", function (e) { var d = e.target.closest(".g"); if (!d) return; var name = d.querySelector("b").textContent; for (var k in G.SPEC) if (G.SPEC[k].ko === name) last = k; });
+  document.getElementById("burst").onclick = function () {
+    var S = G.SPEC[last], gap = 60000 / S.rpm * 1000 / 1000, n = Math.min(60, Math.round(2000 / gap)), i = 0;
+    clearInterval(timer); timer = setInterval(function () { shoot(last); if (++i >= n) clearInterval(timer); }, gap);
+  };
+  document.getElementById("all").onclick = function () {
+    var ks = Object.keys(G.SPEC), i = 0; clearInterval(timer);
+    timer = setInterval(function () { if (i >= ks.length) return clearInterval(timer); last = ks[i++]; shoot(last); }, 900);
+  };
+})();
+</script>
+</body>
+</html>
