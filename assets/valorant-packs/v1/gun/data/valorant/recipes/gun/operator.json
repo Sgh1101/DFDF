@@ -1,0 +1,35 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "item": {
+        "type": "forge:partial_nbt",
+        "item": "tacz:ammo",
+        "nbt": {
+          "AmmoId": "valorant:wg100"
+        }
+      },
+      "count": 47
+    }
+  ],
+  "result": {
+    "type": "custom",
+    "group": "tacz:sniper",
+    "item": {
+      "item": "tacz:modern_kinetic_gun",
+      "nbt": {
+        "GunId": "valorant:operator",
+        "GunFireMode": "SEMI",
+        "GunCurrentAmmoCount": 0,
+        "HasBulletInBarrel": false,
+        "AttachmentSCOPE": {
+          "count": true,
+          "id": "tacz:attachment",
+          "tag": {
+            "AttachmentId": "valorant:scope_operator_default"
+          }
+        }
+      }
+    }
+  }
+}

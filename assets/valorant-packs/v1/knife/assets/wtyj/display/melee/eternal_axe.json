@@ -1,0 +1,57 @@
+{
+  "model": "wtyj:melee/eternal_axe_geo",
+  "animation": "wtyj:melee/eternal_axe",
+  "state_machine": "wtyj:default_melee_state_machine",
+  "texture": "wtyj:melee/eternal_axe_uv",
+  "slot_texture": "wtyj:melee/slot/eternal_axe",
+  "sounds": {
+    "attack_left_hit": "wtyj:entity.player.flash.hit",
+    "attack_right_hit": "wtyj:entity.player.flash.hit",
+    "crit": "wtyj:entity.player.flash.hit"
+  },
+  "transforms": {
+    "thirdperson_lefthand": {
+      "translation": [
+          0,
+          14,
+          0
+      ]
+  },
+  "thirdperson_righthand": {
+      "translation": [
+          0,
+          14,
+          0
+      ]
+  },
+  "ground": {
+      "translation": [
+          0,
+          10,
+          0
+      ],
+      "rotation": [
+          45,
+          0,
+          0
+      ]
+  },
+    "fixed": {
+      "rotation": [
+        -154.95,
+        27.37,
+        -43.25
+      ],
+      "translation": [
+        4,
+        -6.25,
+        -2.5
+      ],
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "model": "wtyj:melee/desire_blade_geo",
+  "animation": "wtyj:melee/desire_blade",
+  "state_machine": "wtyj:default_melee_state_machine",
+  "texture": "wtyj:melee/desire_blade_uv",
+  "slot_texture": "wtyj:melee/slot/desire_blade",
+  "sounds": {
+    "attack_left_hit": "wtyj:entity.player.flash.hit",
+    "attack_right_hit": "wtyj:entity.player.flash.hit",
+    "crit": "wtyj:entity.player.flash.hit"
+  },
+  "transforms": {
+    "thirdperson_righthand": {
+			"rotation": [90, 0, 0],
+			"translation": [0, -1, 9]
+		},
+    "thirdperson_lefthand": {
+			"rotation": [90, 0, 0],
+			"translation": [0, -1, 9]
+		},
+    "ground": {
+      "rotation": [
+        -180,
+        0,
+        0
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        -154.95,
+        27.37,
+        -43.25
+      ],
+      "translation": [
+        4,
+        -6.25,
+        -2.5
+      ],
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ]
+    }
+  }
+}

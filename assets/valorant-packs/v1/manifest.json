@@ -1,0 +1,2719 @@
+{
+  "version": 1,
+  "sourceNames": [
+    "Valorant_gunpack_v0.1.4_beta3_fix1",
+    "Valorant Knife Pack-0.1.0"
+  ],
+  "items": [
+    {
+      "id": "classic",
+      "key": "pistol",
+      "model": "gun/assets/valorant/geo_models/gun/classic_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/classic.png",
+      "animation": "gun/assets/valorant/animations/classic.animation.json",
+      "display": "gun/assets/valorant/display/guns/classic_display.json",
+      "sounds": {
+        "shoot": "valorant:classic/classic_shoot",
+        "shoot_3p": "valorant:classic/classic_shoot_3p",
+        "reload_empty": "valorant:classic/classic_reload",
+        "reload_tactical": "valorant:classic/classic_reload",
+        "draw": "valorant:classic/classic_draw",
+        "put_away": "valorant:classic/classic_put_away",
+        "inspect": "valorant:classic/classic_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit",
+        "shoot_salvo": ""
+      },
+      "normal": null,
+      "missingOptional": [
+        "gun/assets/valorant/textures/gun/uv/classic_n.png"
+      ]
+    },
+    {
+      "id": "ghost",
+      "key": "silenced",
+      "model": "gun/assets/valorant/geo_models/gun/ghost_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/ghost.png",
+      "animation": "gun/assets/valorant/animations/ghost.animation.json",
+      "display": "gun/assets/valorant/display/guns/ghost_display.json",
+      "sounds": {
+        "shoot": "valorant:ghost/ghost_shoot",
+        "shoot_3p": "valorant:ghost/ghost_shoot_3p",
+        "reload_empty": "valorant:ghost/ghost_reload",
+        "reload_tactical": "valorant:ghost/ghost_reload",
+        "draw": "valorant:ghost/ghost_draw",
+        "put_away": "valorant:ghost/ghost_put_away",
+        "inspect": "valorant:ghost/ghost_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": "gun/assets/valorant/textures/gun/uv/ghost_n.png",
+      "missingOptional": []
+    },
+    {
+      "id": "sheriff",
+      "key": "revolver",
+      "model": "gun/assets/valorant/geo_models/gun/sheriff_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/sheriff.png",
+      "animation": "gun/assets/valorant/animations/sheriff.animation.json",
+      "display": "gun/assets/valorant/display/guns/sheriff_display.json",
+      "sounds": {
+        "shoot": "valorant:sheriff/sheriff_shoot",
+        "shoot_3p": "valorant:sheriff/sheriff_shoot_3p",
+        "reload_empty": "valorant:sheriff/sheriff_reload",
+        "reload_tactical": "valorant:sheriff/sheriff_reload",
+        "draw": "valorant:sheriff/sheriff_draw",
+        "put_away": "valorant:sheriff/sheriff_put_away",
+        "inspect": "valorant:sheriff/sheriff_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": "gun/assets/valorant/textures/gun/uv/sheriff_n.png",
+      "missingOptional": []
+    },
+    {
+      "id": "vandal",
+      "key": "rifle",
+      "model": "gun/assets/valorant/geo_models/gun/vandal_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/vandal.png",
+      "animation": "gun/assets/valorant/animations/vandal.animation.json",
+      "display": "gun/assets/valorant/display/guns/vandal_display.json",
+      "sounds": {
+        "shoot": "valorant:vandal/vandal_shoot",
+        "shoot_3p": "valorant:vandal/vandal_shoot_3p",
+        "reload_empty": "valorant:vandal/vandal_reload",
+        "reload_tactical": "valorant:vandal/vandal_reload",
+        "draw": "valorant:vandal/vandal_draw",
+        "put_away": "valorant:vandal/vandal_put_away",
+        "inspect": "valorant:vandal/vandal_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": "gun/assets/valorant/textures/gun/uv/vandal_n.png",
+      "missingOptional": []
+    },
+    {
+      "id": "phantom",
+      "key": "carbine",
+      "model": "gun/assets/valorant/geo_models/gun/phantom_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/phantom.png",
+      "animation": "gun/assets/valorant/animations/phantom.animation.json",
+      "display": "gun/assets/valorant/display/guns/phantom_display.json",
+      "sounds": {
+        "shoot": "valorant:phantom/phantom_shoot",
+        "shoot_3p": "valorant:phantom/phantom_shoot_3p",
+        "reload_empty": "valorant:phantom/phantom_reload",
+        "reload_tactical": "valorant:phantom/phantom_reload",
+        "draw": "valorant:phantom/phantom_draw",
+        "put_away": "valorant:phantom/phantom_put_away",
+        "inspect": "valorant:phantom/phantom_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "judge",
+      "key": "autoshot",
+      "model": "gun/assets/valorant/geo_models/gun/judge_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/judge.png",
+      "animation": "gun/assets/valorant/animations/judge.animation.json",
+      "display": "gun/assets/valorant/display/guns/judge_display.json",
+      "sounds": {
+        "shoot": "valorant:judge/judge_shoot",
+        "shoot_3p": "valorant:judge/judge_shoot_3p",
+        "inspect": "valorant:judge/judge_inspect",
+        "inspect_empty": "valorant:judge/judge_inspect",
+        "reload_empty": "valorant:judge/judge_reload",
+        "reload_tactical": "valorant:judge/judge_reload",
+        "draw": "valorant:judge/judge_draw",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "odin",
+      "key": "hmg",
+      "model": "gun/assets/valorant/geo_models/gun/odin_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/odin.png",
+      "animation": "gun/assets/valorant/animations/odin.animation.json",
+      "display": "gun/assets/valorant/display/guns/odin_display.json",
+      "sounds": {
+        "shoot_3p": "valorant:odin/odin_shoot_3p",
+        "reload_empty": "valorant:odin/odin_reload",
+        "reload_tactical": "valorant:odin/odin_reload",
+        "draw": "valorant:odin/odin_draw",
+        "put_away": "valorant:odin/odin_put_away",
+        "inspect": "valorant:odin/odin_inspect",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit",
+        "shoot": "valorant:odin/odin_shoot"
+      },
+      "normal": "gun/assets/valorant/textures/gun/uv/odin_n.png",
+      "missingOptional": []
+    },
+    {
+      "id": "outlaw",
+      "key": "marksman",
+      "model": "gun/assets/valorant/geo_models/gun/outlaw_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/outlaw.png",
+      "animation": "gun/assets/valorant/animations/outlow.animation.json",
+      "display": "gun/assets/valorant/display/guns/outlaw_display.json",
+      "sounds": {
+        "shoot": "valorant:outlaw/outlaw_shoot",
+        "shoot_3p": "valorant:outlaw/outlaw_shoot_3p",
+        "reload_tactical": "valorant:outlaw/outlaw_reload_tactical",
+        "reload_empty": "valorant:outlaw/outlaw_reload_empty",
+        "inspect": "valorant:outlaw/outlaw_inspect",
+        "inspect_empty": "valorant:outlaw/outlaw_inspect",
+        "draw": "valorant:outlaw/outlaw_draw",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "operator",
+      "key": "sniper",
+      "model": "gun/assets/valorant/geo_models/gun/operator_geo.json",
+      "texture": "gun/assets/valorant/textures/gun/uv/operator.png",
+      "animation": "gun/assets/valorant/animations/operator.animation.json",
+      "display": "gun/assets/valorant/display/guns/operator_display.json",
+      "sounds": {
+        "shoot": "valorant:operator/operator_shoot",
+        "shoot_3p": "valorant:operator/operator_shoot_3p",
+        "reload_empty": "valorant:operator/operator_reload",
+        "reload_tactical": "valorant:operator/operator_reload",
+        "inspect": "valorant:operator/operator_inspect",
+        "inspect_empty": "valorant:operator/operator_inspect",
+        "draw": "valorant:operator/operator_draw",
+        "bolt": "valorant:operator/operator_bolt",
+        "head_hit": "valorant:head_hit",
+        "flesh_hit": "valorant:hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "desire_blade",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/desire_blade_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/desire_blade_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/desire_blade.animation.json",
+      "display": "knife/assets/wtyj/display/melee/desire_blade.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "eternal_axe",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/eternal_axe_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/eternal_axe_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/eternal_axe.animation.json",
+      "display": "knife/assets/wtyj/display/melee/eternal_axe.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "eternal_karambit",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/eternal_karambit_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/eternal_karambit_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/eternal_karambit.animation.json",
+      "display": "knife/assets/wtyj/display/melee/eternal_karambit.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "future_butterfly",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/future_butterfly_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/future_butterfly_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/future_butterfly.animation.json",
+      "display": "knife/assets/wtyj/display/melee/future_butterfly.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "future_dagger",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/future_dagger_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/future_dagger_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/future_dagger.animation.json",
+      "display": "knife/assets/wtyj/display/melee/future_dagger.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    },
+    {
+      "id": "thunder_hammer",
+      "key": "knife",
+      "model": "knife/assets/wtyj/geo_models/melee/thunder_hammer_geo.json",
+      "texture": "knife/assets/wtyj/textures/melee/thunder_hammer_uv.png",
+      "animation": "knife/assets/wtyj/animations/melee/thunder_hammer.animation.json",
+      "display": "knife/assets/wtyj/display/melee/thunder_hammer.json",
+      "sounds": {
+        "attack_left_hit": "wtyj:entity.player.flash.hit",
+        "attack_right_hit": "wtyj:entity.player.flash.hit",
+        "crit": "wtyj:entity.player.flash.hit"
+      },
+      "normal": null,
+      "missingOptional": []
+    }
+  ],
+  "files": [
+    {
+      "name": "gun/assets/crystals/animations/golden.animation.json",
+      "size": 27478,
+      "sha256": "7d3623bff81440b161d0bc8cd21513361bc892f3b427475e79437134df29e572"
+    },
+    {
+      "name": "gun/assets/crystals/display/ammo/crystal_acp_display.json",
+      "size": 525,
+      "sha256": "39b3d4bf1c8decf69ad43a1054bfb6a02572523b35d216c49223319ad4d3eac4"
+    },
+    {
+      "name": "gun/assets/crystals/display/ammo/crystal_display.json",
+      "size": 505,
+      "sha256": "c9222adb7241e05745d5db1d9189bc5c5b58a7acd3f4a06ddf6e979a0f24f757"
+    },
+    {
+      "name": "gun/assets/crystals/display/ammo/unstable_crystal_display.json",
+      "size": 550,
+      "sha256": "49a76f61cadc7a200280eaad1dd42054ba1e1984d98a5615f2999105b531ff8e"
+    },
+    {
+      "name": "gun/assets/crystals/display/attachments/crystal_mag_display.json",
+      "size": 297,
+      "sha256": "eb9c755112d11212f2a017da6a225c806289f49c16c9311110903ff0b4d4ffd4"
+    },
+    {
+      "name": "gun/assets/crystals/display/attachments/muzzle_crystal_muffler_display.json",
+      "size": 352,
+      "sha256": "2c3e939731fa53fa1f7c0b430e9de8a5cc00c924ccf3f8dd053f4a8c69e78f78"
+    },
+    {
+      "name": "gun/assets/crystals/display/blocks/crystal_machine.json",
+      "size": 1594,
+      "sha256": "696073f90f35d52640f89885dc47debc356c15a0eafac3d6e18df3a87cea48d5"
+    },
+    {
+      "name": "gun/assets/crystals/display/guns/golden_display.json",
+      "size": 1109,
+      "sha256": "672decdfbef1b05cb2107e9e4d0cb5fe22470950716e35ddb01c29fd1091e74d"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/ammo/crystal_acp.json",
+      "size": 47853,
+      "sha256": "b77d2fce07b5df3391aea1eace9d0e8c0a54eb865f984d8652f438877c2a6c3b"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/ammo/crystal.json",
+      "size": 13628,
+      "sha256": "bde2dd8ab2a01a08143e2174b473684573f9193a8c3f30979d675ffd4ace0b9b"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/ammo/unstable_crystal.json",
+      "size": 19554,
+      "sha256": "ace77b8a26408c6d151ea20f15b09b87b48c010484643bf91d1ff187043054b9"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/attachment/muzzle_crystal_muffler_geo.json",
+      "size": 18510,
+      "sha256": "c9109ae891ca531e7504e40e58cf7503c7807b24fd42c930402f4bc863345b54"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/block/crystal_machine.json",
+      "size": 48714,
+      "sha256": "fab071d1ecfb230d40bfbd4a6f403ba70c97898b3d6b61b36eff021e151d7201"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/gun/golden_geo.json",
+      "size": 165593,
+      "sha256": "bd52a77498ba5123c6eb0eff540716edec9e1a3ed88e70edd243f17c160dc3cf"
+    },
+    {
+      "name": "gun/assets/crystals/geo_models/shell/crystal_acp_shell.json",
+      "size": 2497,
+      "sha256": "1ad0c06ac47f1a7e4708911340c4d26197ce429d10928876fd02a020bbb4042d"
+    },
+    {
+      "name": "gun/assets/crystals/gunpack_info.json",
+      "size": 208,
+      "sha256": "55af745ae98b229ab003e55eceaab3421f708d290be313e87658e3573d600867"
+    },
+    {
+      "name": "gun/assets/crystals/lang/en_us.json",
+      "size": 1490,
+      "sha256": "fd171b5e9cde2d2dcdf851b8dd98dfd7098d60ace2cfe66f40461d7ba8ad9b7c"
+    },
+    {
+      "name": "gun/assets/crystals/lang/zh_cn.json",
+      "size": 1363,
+      "sha256": "b3a128bd0cc8612f3dd1e51507d99bec9778c220d3855fb7670d0e3ed48e9882"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/attachment/crystal_mag_install.ogg",
+      "size": 20756,
+      "sha256": "f581c7f8206f13d1adcc4af5e1752e4f411c0076e02761c046abac3e25af02fd"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/attachment/crystal_mag_uninstall.ogg",
+      "size": 11770,
+      "sha256": "22a608f4d33a715fe6b9b322daf5210edfba5ffe46ec734e500ae7dcf14f188a"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/attachment/muzzle_crystal_muffler_install.ogg",
+      "size": 9874,
+      "sha256": "7eca4473ecb4d06dad0ad769c1def36c7b05f4580c342f7c8ade5018017a1e66"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/attachment/muzzle_crystal_muffler_uninstall.ogg",
+      "size": 9874,
+      "sha256": "7eca4473ecb4d06dad0ad769c1def36c7b05f4580c342f7c8ade5018017a1e66"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/draw.ogg",
+      "size": 51880,
+      "sha256": "f1040798f1c01dea802e40683be9705088179377423ecd7d24cad3a445ba8dc6"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/inspect.ogg",
+      "size": 138689,
+      "sha256": "c7033c744fdfce67b48366db0aa48614f538e31d5743ae5e09c446ad486df897"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/reload_empty.ogg",
+      "size": 95040,
+      "sha256": "8d71646f5e6674abf694698f4573a36404f0241aa82981671b33fd37ea15da51"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/reload_tactical.ogg",
+      "size": 95040,
+      "sha256": "9fee73c93a4dbfa0dd780b4deb74f41c8bac6de58a99b4ce122916ea9300ee58"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/shoot_3p.ogg",
+      "size": 66651,
+      "sha256": "679ed55712573c2dba3874c11005435e80a7a61d790f63c705f37dc4e0fe5273"
+    },
+    {
+      "name": "gun/assets/crystals/tacz_sounds/golden/shoot.ogg",
+      "size": 66651,
+      "sha256": "fd12d0b0b579454968b389e91ed1949e544399b88a97b8b2fbd47800ac06749f"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/slot/crystal_acp.png",
+      "size": 738,
+      "sha256": "0505e9f66d265283d1efdb051539c6497070a66bb3ef2310e12a704343e11784"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/slot/crystal.png",
+      "size": 15551,
+      "sha256": "088089f73b6322e0ddcf42886df15b41a5ffa2ce4fc1f84358a671b493dde0a1"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/slot/unstable_crystal.png",
+      "size": 18507,
+      "sha256": "241f34e3a410c8246a6b751456bf16c298af917aaa0a810a1f03d313e7d45fa2"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/crystal_acp_n.png",
+      "size": 1808,
+      "sha256": "b22105f5887a0c96a44c27d84a0d5ddc993d0409b0eb85b9023536e937d91d14"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/crystal_acp_s.png",
+      "size": 504,
+      "sha256": "b6f37712ee805c32711b5fe694334593fb0cd981fc6964be247a9b1f5c100d2a"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/crystal_acp.png",
+      "size": 1738,
+      "sha256": "257486888bcf0347bb0717d71ee6ed0ef11ca45caac86032df03c710cad42f07"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/crystal.png",
+      "size": 1686,
+      "sha256": "8dec03a5bf50d742b21ac1b92823efb1ec2b421910856c975e35720e36bc4cd4"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/unstable_crystal_n.png",
+      "size": 2173,
+      "sha256": "195a30cd24156ab2f0fcb6c50341f85cd0cd9b4131531246e8dd0f20a0a7f41f"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/unstable_crystal_s.png",
+      "size": 849,
+      "sha256": "6e69a2a6de6b21f57997d131520fe838a625b12ebcaa79d0d22b4ead222e2080"
+    },
+    {
+      "name": "gun/assets/crystals/textures/ammo/uv/unstable_crystal.png",
+      "size": 1750,
+      "sha256": "ed8f5ca02135b6d3c90af781ad81876a060f2ab3d3baf04768b8f31d808bb60e"
+    },
+    {
+      "name": "gun/assets/crystals/textures/attachment/slot/crystal_mag_slot.png",
+      "size": 995,
+      "sha256": "02db0783fa615ac6121c5c3cfbabbb713ff941b3a6079e7878f5a2f245aa9e11"
+    },
+    {
+      "name": "gun/assets/crystals/textures/attachment/slot/muzzle_crystal_muffler_slot.png",
+      "size": 16500,
+      "sha256": "9dbedd10390d66cd733c3a4cb97782887e237b838cbcce6889f951d7f8719759"
+    },
+    {
+      "name": "gun/assets/crystals/textures/attachment/uv/muzzle_crystal_muffler_n.png",
+      "size": 1735,
+      "sha256": "44ed62ee4f66547ca7b679c326d077c422f8e1c8cde02ae3753afbcb397d2a8d"
+    },
+    {
+      "name": "gun/assets/crystals/textures/attachment/uv/muzzle_crystal_muffler_s.png",
+      "size": 1736,
+      "sha256": "7047da78a5665c63bf9f30a5acbc24dce7142b88b1a836b00b29a538b16d613e"
+    },
+    {
+      "name": "gun/assets/crystals/textures/attachment/uv/muzzle_crystal_muffler.png",
+      "size": 962,
+      "sha256": "05dec41f1095ae30cb7fd8256896b1b66dac7cdec4b546c84ec44432ffa1e5ee"
+    },
+    {
+      "name": "gun/assets/crystals/textures/block/uv/crystal_machine_n.png",
+      "size": 5184,
+      "sha256": "160563689b8f5889ac24904d1a090391b7b52b80176b70a7e00ab2ba3cd4f33a"
+    },
+    {
+      "name": "gun/assets/crystals/textures/block/uv/crystal_machine_s.png",
+      "size": 2570,
+      "sha256": "14840cad5ba7163bc07df7462223170c0edff54e770bc71341628d06c904d253"
+    },
+    {
+      "name": "gun/assets/crystals/textures/block/uv/crystal_machine.png",
+      "size": 29644,
+      "sha256": "baa9f2191a30ca6cf564fdbd71d9d0a50e7ac1a1bb6b90587d6573470b42f8a7"
+    },
+    {
+      "name": "gun/assets/crystals/textures/gun/hud/golden.png",
+      "size": 8504,
+      "sha256": "b0a935907a549f25d94a0275ad45533bfc9c54cde7b92e99ef3df608a7912813"
+    },
+    {
+      "name": "gun/assets/crystals/textures/gun/slot/golden.png",
+      "size": 48602,
+      "sha256": "143f4ce17216816eef623ae5cf598875ee8c0234439c95544abd28dd586f5554"
+    },
+    {
+      "name": "gun/assets/crystals/textures/gun/uv/golden_n.png",
+      "size": 5126,
+      "sha256": "1fa48ff72032393c5434de02eeb86768856828f37e871dd656d57670cd895140"
+    },
+    {
+      "name": "gun/assets/crystals/textures/gun/uv/golden_s.png",
+      "size": 5126,
+      "sha256": "7c32e689b071be534f41a57e523d6dc96b71c9baf9d14939e83078514db655a1"
+    },
+    {
+      "name": "gun/assets/crystals/textures/gun/uv/golden.png",
+      "size": 9023,
+      "sha256": "e77a77b4407c365a24169e839f8fb40dbc3bab2f60a762ccd0975666495a4796"
+    },
+    {
+      "name": "gun/assets/crystals/textures/shell/crystal_acp_shell_n.png",
+      "size": 1488,
+      "sha256": "d5fd101721a671445bde19311f85145f9282fbf7d59e0903835ed90870ec0a98"
+    },
+    {
+      "name": "gun/assets/crystals/textures/shell/crystal_acp_shell_s.png",
+      "size": 1489,
+      "sha256": "fda2e8a371b20d4b0ec6a7e45b38737f959ae62c9a738ce56059ff345458bfb9"
+    },
+    {
+      "name": "gun/assets/crystals/textures/shell/crystal_acp_shell.png",
+      "size": 278,
+      "sha256": "18414688d745e0af026835d79a550d92f0d71c0e7deb429b02bf92555e0dbf7d"
+    },
+    {
+      "name": "gun/assets/valorant/animations/classic.animation.json",
+      "size": 21849,
+      "sha256": "221f9292c0c050c3c834683a9d42ceba03ad7f788fbfeb12c21baf33e87ec23b"
+    },
+    {
+      "name": "gun/assets/valorant/animations/ghost.animation.json",
+      "size": 28310,
+      "sha256": "dfa1dcb1ab6c067dee4d54a41f4ca9795b762c27ecd75be968d0304aaeece066"
+    },
+    {
+      "name": "gun/assets/valorant/animations/judge.animation.json",
+      "size": 33187,
+      "sha256": "cdfd735531a81ed988ed729f3736537f00978d8f6c3f464f29e10a189a36bdda"
+    },
+    {
+      "name": "gun/assets/valorant/animations/odin.animation.json",
+      "size": 68195,
+      "sha256": "fb0962bc924634c0c2b1988f30c0a77a8679db5c039aac6266a1a01641ba3d36"
+    },
+    {
+      "name": "gun/assets/valorant/animations/operator.animation.json",
+      "size": 49840,
+      "sha256": "58699e7e7e2957e852acb7261436a6a95285f480a4a448b9497848ded69f207e"
+    },
+    {
+      "name": "gun/assets/valorant/animations/outlow.animation.json",
+      "size": 33358,
+      "sha256": "24e3f8e492145e3adedd7309e6903a14e694b72efd253af58707fbc092198e89"
+    },
+    {
+      "name": "gun/assets/valorant/animations/phantom.animation.json",
+      "size": 39294,
+      "sha256": "b741bbaf80c70023d7ff766e2462ecc604af7b29dc48704c89e6994838c0ada3"
+    },
+    {
+      "name": "gun/assets/valorant/animations/sheriff.animation.json",
+      "size": 40971,
+      "sha256": "9508d6d02619da8f7f2da9f3626d9e7db6a40bccc94ecdab2be1b41250155182"
+    },
+    {
+      "name": "gun/assets/valorant/animations/thunder.animation.json",
+      "size": 24341,
+      "sha256": "11b2c6f0fbdcbdbc9c05c79c39ee7ab3369bd5389b8777d1549bc0998b24a4d3"
+    },
+    {
+      "name": "gun/assets/valorant/animations/vandal.animation.json",
+      "size": 50040,
+      "sha256": "a05c40d82d5c2b4aa3a352828fa9d2248d79393ea4c18a156eec33714f097235"
+    },
+    {
+      "name": "gun/assets/valorant/display/ammo/wg100_display.json",
+      "size": 411,
+      "sha256": "0a35ef9800ea50e8877545c569161e59c94877cd1d20c24a1e8e597fd2f81726"
+    },
+    {
+      "name": "gun/assets/valorant/display/ammo/wg50_display.json",
+      "size": 408,
+      "sha256": "5dd91cc5e53c6f92a968fc16fa4b2a44beb51516914b07cb22cd83dc7ac59382"
+    },
+    {
+      "name": "gun/assets/valorant/display/attachments/scope_operator_default_display.json",
+      "size": 276,
+      "sha256": "7f73bb708fd3b08aab6249b1ddb1560bd324fbe668aef6290feedb4c83b352da"
+    },
+    {
+      "name": "gun/assets/valorant/display/attachments/scope_outlaw_default_display.json",
+      "size": 260,
+      "sha256": "7625c2012dfa09062fc724a764c2853f81b491c83f4656be1a419aa5ccffe974"
+    },
+    {
+      "name": "gun/assets/valorant/display/blocks/valorant_table_display.json",
+      "size": 1595,
+      "sha256": "32e45b1d7bfecb4801b1e189a20057fe51e24fdb305ab0fd4fd5645963c72aec"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/classic_display.json",
+      "size": 2807,
+      "sha256": "7fb660b8c4580b9fff21d30c1629955fc6933342ceaee4f0bca95aa012fee5f7"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/ghost_display.json",
+      "size": 2620,
+      "sha256": "fa3e70a008381e4c3e3b2dc68b285ef19c84b1e7fb583d53f48315552b6afd7e"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/judge_display.json",
+      "size": 1171,
+      "sha256": "e140841ae5fd0b1a182a139ab2e430d9ff69745638063f17eacb725b3470904c"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/odin_display.json",
+      "size": 2644,
+      "sha256": "caf09f4a750f8ede80cdc2b1ef6867321f5b0aa49dc9d95eb1a97c5d3a198ab7"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/operator_display.json",
+      "size": 1323,
+      "sha256": "d62b66eeac30f946f4709dacb33bb9cfcb5e02b9d6f5f46a4bfb65a7cae9315b"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/outlaw_display.json",
+      "size": 1108,
+      "sha256": "cf0cb0ceb2a0fb0880e3ec152f48a9f47f3ecaf0092f799fdbff29aed49b5a39"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/phantom_display.json",
+      "size": 2563,
+      "sha256": "8bd16537ac6740bfbae7ff11e41077086b2b5dc6c85b28bd3cee1ecdb9cf7fff"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/sheriff_display.json",
+      "size": 2375,
+      "sha256": "86e5c8b12147d0093c1d5e7c81d612dbe40587010d2af3d0f253c6fa96016594"
+    },
+    {
+      "name": "gun/assets/valorant/display/guns/vandal_display.json",
+      "size": 2645,
+      "sha256": "1d090d0926bf153a6341a5d3edaf5e17759e6641316f67d909fb4619f4c2c2e5"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/ammo/wg100_geo.json",
+      "size": 3733,
+      "sha256": "ad77de99fc12fa071dadb0d66a2cb1fb05f80d69d532d210d53222caa486bc58"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/ammo/wg50_geo.json",
+      "size": 3798,
+      "sha256": "28b0be406dfb9a177228a3a34e081eda86d54ad47d31c6402b731c9519e263da"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/attachment/scope_operator_default_geo.json",
+      "size": 115076,
+      "sha256": "736260f6fe1b6183a0881bfe68c01035a54db26cf0a032723a398d97e4697b43"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/attachment/scope_outlaw_default_geo.json",
+      "size": 52942,
+      "sha256": "fb65059823e944bededb3c54eefe39d0220deedcf7009774c57205912e0a110e"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/block/valorant_table_geo.json",
+      "size": 170965,
+      "sha256": "704b9aa7a5a0be32bb5a8275177e01f62f357daa3979e3096326563a056f98e2"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/classic_geo.json",
+      "size": 116322,
+      "sha256": "917545f3c3a6795afbff8fb9e177fc79c94d5bb46f6fe6991cfaa91157b0cf69"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/ghost_geo.json",
+      "size": 177827,
+      "sha256": "a09c87d8cb6ebb3d31a7aff32200cf0664a40879b594ae497f77a443ba614ed6"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/judge_geo.json",
+      "size": 126849,
+      "sha256": "80319bc001e6058ce2e9e81a63f0ffae4c251824518181dcb6644697d82a81d7"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/lod/odin.json",
+      "size": 89439,
+      "sha256": "37d8ae6bd4010b9539a52abba31c7893ba58c9e3bca20c47912f57862afd3fca"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/lod/phantom.json",
+      "size": 29932,
+      "sha256": "c9b25f7f054af956a3e6204a5e6d58ef47d21c2b1dd4b710497291d605ec444c"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/lod/sheriff.json",
+      "size": 36345,
+      "sha256": "8b88b5bea890252d12c2bdcda5f462d0ea738920fbfbb9b030cdfc0ca4a8ea80"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/lod/vandal.json",
+      "size": 33559,
+      "sha256": "bf917ba23d307f72fd8dbf4b24f9088a47cf4e6394e6e359b9243e30c8415fb1"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/odin_geo.json",
+      "size": 707942,
+      "sha256": "e380281bfdaca6dc9e19db6de3ab3ce81711bcf4e476acefce3f9ded6040ed89"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/operator_geo.json",
+      "size": 330968,
+      "sha256": "397b2c94a2009ee3722aee97856350dc1b1539d52d16eaa27ec686506dd262a6"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/outlaw_geo.json",
+      "size": 212804,
+      "sha256": "aa4fdda0a21c806d171ea4af8634199f3ca6ac3196db9f5169fd1ffb276efbd4"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/phantom_geo.json",
+      "size": 210661,
+      "sha256": "db738fa4365a9d800e5c9237361724f1c88bed4eaa47b51d8f9dbe9e06a714d7"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/sheriff_geo.json",
+      "size": 657741,
+      "sha256": "7c56a21ce2377e9052ea510121eb880cd5461607aa74bfb9faffc2cb084f6586"
+    },
+    {
+      "name": "gun/assets/valorant/geo_models/gun/vandal_geo.json",
+      "size": 237733,
+      "sha256": "f29256effba6ff94b1802d313b1a6bc718b0d2462631e8a40ef13b2060f7e0da"
+    },
+    {
+      "name": "gun/assets/valorant/gunpack_info.json",
+      "size": 210,
+      "sha256": "9f40943bb4a55edd70c18116442a0a79ccac6e95840519d303fd351232743fbf"
+    },
+    {
+      "name": "gun/assets/valorant/lang/en_us.json",
+      "size": 1913,
+      "sha256": "26e516512a0e18dda0c96b7a7174d0a1258a0d24af1641c8cb433af3cc0ad58f"
+    },
+    {
+      "name": "gun/assets/valorant/lang/zh_cn.json",
+      "size": 1842,
+      "sha256": "e6a9ec3e707d20a61be8d3560be7b5085ae3b063d279be1d57e692eaf085cc74"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/attachment/crystal_mag_install.ogg",
+      "size": 20756,
+      "sha256": "f581c7f8206f13d1adcc4af5e1752e4f411c0076e02761c046abac3e25af02fd"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/attachment/crystal_mag_uninstall.ogg",
+      "size": 11770,
+      "sha256": "22a608f4d33a715fe6b9b322daf5210edfba5ffe46ec734e500ae7dcf14f188a"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/attachment/muzzle_crystal_muffler_install.ogg",
+      "size": 9874,
+      "sha256": "7eca4473ecb4d06dad0ad769c1def36c7b05f4580c342f7c8ade5018017a1e66"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/attachment/muzzle_crystal_muffler_uninstall.ogg",
+      "size": 9874,
+      "sha256": "7eca4473ecb4d06dad0ad769c1def36c7b05f4580c342f7c8ade5018017a1e66"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_draw.ogg",
+      "size": 58268,
+      "sha256": "7afdcfb88224d3992d6a9bbde82f715578307051a8933133383016826f63585c"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_inspect.ogg",
+      "size": 164658,
+      "sha256": "676f2ac51a8783e02d124c94668f78b4f44c29176135b2854db8a754d37096f5"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_reload.ogg",
+      "size": 112435,
+      "sha256": "3c91f5ba63b5ad6c3ef64fd07eaf63282cfcd3baaecfcaead85fd2227ff1a990"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_shoot_3p.ogg",
+      "size": 68562,
+      "sha256": "75a7ebca89e30b94772300df5ec823dd3ccb1de0ba446b331215b595b1ae4509"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_shoot_salvo.ogg",
+      "size": 74450,
+      "sha256": "818772c3ca67be92e4798aa745aed4a2a3ac152e77f40bcd9c1056fbc1df45e0"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/classic/classic_shoot.ogg",
+      "size": 68562,
+      "sha256": "75a7ebca89e30b94772300df5ec823dd3ccb1de0ba446b331215b595b1ae4509"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/ghost/ghost_draw.ogg",
+      "size": 53056,
+      "sha256": "76146cc5a899625979e247123660944113791181525bf88d30f5a50aefb371fa"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/ghost/ghost_inspect.ogg",
+      "size": 150873,
+      "sha256": "ff3d3e466afb6beeedcee584092dcc5cf8236b1d876c0a8b51d1698cc5046009"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/ghost/ghost_reload.ogg",
+      "size": 97393,
+      "sha256": "c9bafa4819fa2b634d8656cd9da315ea265cf4b34646ed5e394bd77dc35e10e8"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/ghost/ghost_shoot_3p.ogg",
+      "size": 66651,
+      "sha256": "555c0d7e2309435105f1fd50a3d147fd7d08f040411b10457d8c7e0774efa0d0"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/ghost/ghost_shoot.ogg",
+      "size": 70158,
+      "sha256": "ceab17e7a257808ada95f1720367c36218b99d78afefc5c064db23f4ad09457f"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/head_hit.ogg",
+      "size": 11889,
+      "sha256": "3367d9e5d18e1afa2d9f31997c60ea286568f08a71b2382b6e2f294a1dd107f7"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/hit.ogg",
+      "size": 28230,
+      "sha256": "bc9f93d2aeaccaff368b773af4e0d15cee06cdb4ff0f7879c50b1b4e314abac3"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/judge/judge_draw.ogg",
+      "size": 61022,
+      "sha256": "0a1325afff59ce1741b2eb37b6bec4f946b221679dd2bfa81b1aa6e5a668070a"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/judge/judge_inspect.ogg",
+      "size": 221072,
+      "sha256": "0317c5a08fc88ea7acd1b038a30ca61e9a5c64e44666f15027a964a6ac716dcf"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/judge/judge_reload.ogg",
+      "size": 144711,
+      "sha256": "886c964a93a49ec6533fe5fca0f71a61acc7b39821ae32bd3f99b05b299eb129"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/judge/judge_shoot_3p.ogg",
+      "size": 89412,
+      "sha256": "c4e9ad88e3f87bbeac15b17f5a348c5517b06289ed8f92583694724c03af7855"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/judge/judge_shoot.ogg",
+      "size": 89412,
+      "sha256": "c4e9ad88e3f87bbeac15b17f5a348c5517b06289ed8f92583694724c03af7855"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/odin/odin_draw.ogg",
+      "size": 145520,
+      "sha256": "9c3d9ebc9de14803c551974a4218dfe11eeda8a575a1e74f9220a5953f5f0c12"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/odin/odin_inspect.ogg",
+      "size": 361789,
+      "sha256": "1074135015bc642c37fe00164a12d5d6d88e38366292cab1573f9b6ca06ee9fa"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/odin/odin_reload.ogg",
+      "size": 298710,
+      "sha256": "547862e65b90a666fa571fcdab7aa1659005490c06f645446f96860370e1cd8f"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/odin/odin_shoot_3p.ogg",
+      "size": 142416,
+      "sha256": "af495354e5568af6aa71b8a5cdef3ab9393c807e5d80855de6892bcf5455063d"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/odin/odin_shoot.ogg",
+      "size": 173151,
+      "sha256": "dfd4be930b6f879d73b8ee5d9ce6feadfd2961ca3afaded262fb7d126f9fdc9e"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_bolt.ogg",
+      "size": 52721,
+      "sha256": "d25b717f2cdc45717599e725df96f597341de7e08f886973e0cdb2518dc7097b"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_draw.ogg",
+      "size": 129677,
+      "sha256": "efdd815533781dd8f8a62c0056187f63a6ea56cab989760518ef5effdd9705d1"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_inspect.ogg",
+      "size": 185234,
+      "sha256": "cf733412b4783637d4a4eba6bc1131b46710738c6de46e433041b00cca0899f9"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_reload.ogg",
+      "size": 223214,
+      "sha256": "0802a13da6eb2bb33b0ed6c1086c2531ff7b4dd1436a6774504129075681481d"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_shoot_3p.ogg",
+      "size": 77137,
+      "sha256": "d96f598af2788e8f83ac705001c11e0ee451ce1daa77c0ad6fb0517efdbdb43b"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/operator/operator_shoot.ogg",
+      "size": 85328,
+      "sha256": "9d53e900c9c694a476734402340ebcf06c6b4eb5dabbb7e6f41177032a22ab3b"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_draw.ogg",
+      "size": 71813,
+      "sha256": "607c6c3602e42d23ca917aed18d75073f849306e9e1e3ec4c6e7193966740059"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_inspect.ogg",
+      "size": 156555,
+      "sha256": "75d8fcd4d805cf28eeb8844ee668aaf1b03738ccb312f1b123f6097672064383"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_reload_empty.ogg",
+      "size": 196088,
+      "sha256": "b7edbaff901369f1b96c6a968409700555c0efa7bf5fa4c26c02f00f905adc9e"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_reload_tactical.ogg",
+      "size": 120668,
+      "sha256": "c59e2b784987428b86f04679cba78ebdc23d18741436bb248353f10abc43ca50"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_shoot_3p.ogg",
+      "size": 85405,
+      "sha256": "7c454db79bb6c72cba4eb229d609ac2561b9c561ebb7282c1ecdb9868cda84de"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/outlaw/outlaw_shoot.ogg",
+      "size": 85405,
+      "sha256": "7c454db79bb6c72cba4eb229d609ac2561b9c561ebb7282c1ecdb9868cda84de"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/phantom/phantom_draw.ogg",
+      "size": 67388,
+      "sha256": "e495efa46fb449a502c99c5809a6696ba2cea70ed75cc5b3e35ccf12be8b7850"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/phantom/phantom_inspect.ogg",
+      "size": 118790,
+      "sha256": "83ba2ab667d8c2a7965fd19e2ec8f022919d8f530655cc5b41f714d763238265"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/phantom/phantom_reload.ogg",
+      "size": 134326,
+      "sha256": "51dc1c9f233451b1a62c0418d6bbad0bc6e4204dd7a99ee209ecefb1177c2fa4"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/phantom/phantom_shoot_3p.ogg",
+      "size": 54987,
+      "sha256": "c0cd7f74a80d78460b492879fcb162e8c4beba3ac6da869ebd117affbc1ca613"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/phantom/phantom_shoot.ogg",
+      "size": 56368,
+      "sha256": "eff95bfb12222f8183c1bfbcc95ec6379a106f9ffbdcf4d735358dfab68da8fd"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/sheriff/sheriff_draw.ogg",
+      "size": 58411,
+      "sha256": "9ddbc34cf3167b82e50ce3410c1c532d076e7af3539c41aa399d657a4d282b54"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/sheriff/sheriff_inspect.ogg",
+      "size": 132817,
+      "sha256": "9e87c98ad08771f392e2bfc3a69896a4bbb20d79f66a3e341a7461f98bcfd9f2"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/sheriff/sheriff_reload.ogg",
+      "size": 127998,
+      "sha256": "adc33e99c444dfe8659272aadd948fdf27efbd715fa10c8faa47ec0cd9c9657e"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/sheriff/sheriff_shoot_3p.ogg",
+      "size": 69694,
+      "sha256": "91c82b6e33331157c46d0e936b65f1cc62fa856018493c8ae5563f9213fe22c9"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/sheriff/sheriff_shoot.ogg",
+      "size": 86428,
+      "sha256": "d24f978e0c83a49a6c4b5f800b847f661dece4776118981fae69a636d566112b"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/vandal/vandal_draw.ogg",
+      "size": 73400,
+      "sha256": "7f0caeb56f927a6af4d22daacc0e0d4a3b46d67768fa0c056d86e53148ea660b"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/vandal/vandal_inspect.ogg",
+      "size": 161918,
+      "sha256": "b314467b86f512749cf0393564d0b544ef4c0f69977eb85c1fcd96ba8a6496cf"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/vandal/vandal_reload.ogg",
+      "size": 163480,
+      "sha256": "e05a8b1b9cbb58354ae476073d65cb7aaa9e1fd5e5ba7034e9d1d89a0af69ba7"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/vandal/vandal_shoot_3p.ogg",
+      "size": 79989,
+      "sha256": "c241cc4c9ab43b1439036c98207d6a77a16d374efcdf12d08fa258e5ac53bd92"
+    },
+    {
+      "name": "gun/assets/valorant/tacz_sounds/vandal/vandal_shoot.ogg",
+      "size": 95775,
+      "sha256": "2862b6c89f56255f7efa6f31399cad317897019fdc567c59acdc683abf5604ed"
+    },
+    {
+      "name": "gun/assets/valorant/textures/ammo/slot/wg100.png",
+      "size": 23709,
+      "sha256": "8be85aa9f1c40de6301483eec20e2bba8a9fbaf01a3fa9c1d7d3579b534ddd47"
+    },
+    {
+      "name": "gun/assets/valorant/textures/ammo/slot/wg50.png",
+      "size": 21951,
+      "sha256": "2c26d274d98cbf7d13003021f0a47b5b662c6a26111ea7679596cdaa2239d7b3"
+    },
+    {
+      "name": "gun/assets/valorant/textures/ammo/uv/wg100.png",
+      "size": 316,
+      "sha256": "423ec36df860740b9e37497a0698fd8a153c1f9285d1340d52653a6b10cc82e8"
+    },
+    {
+      "name": "gun/assets/valorant/textures/ammo/uv/wg50.png",
+      "size": 331,
+      "sha256": "0454704709243cfcb1378d87813d1e3278fff628119dbc17f75c78cfa574cf51"
+    },
+    {
+      "name": "gun/assets/valorant/textures/attachment/slot/scope_operator_default.png",
+      "size": 19880,
+      "sha256": "0b64d19430251359468c088f89ef800d405bd5d7cb783f7f9d5b0662c4094f9f"
+    },
+    {
+      "name": "gun/assets/valorant/textures/attachment/slot/scope_outlaw_default.png",
+      "size": 7237,
+      "sha256": "ca80cb87f31da0a42b356e8515ef733906799a41f820b741704c76ee380ae5bf"
+    },
+    {
+      "name": "gun/assets/valorant/textures/attachment/uv/scope_operator_default.png",
+      "size": 5107,
+      "sha256": "f72abfb08fe1e0920a70609f629071e303fdcbbbf372ab828e51d46e617025e4"
+    },
+    {
+      "name": "gun/assets/valorant/textures/attachment/uv/scope_outlaw_default.png",
+      "size": 3559,
+      "sha256": "faf5c6408632383344f96077ede31f43a816a26c84eaefee7f33aff7fc703957"
+    },
+    {
+      "name": "gun/assets/valorant/textures/block/uv/valorant_table_n.png",
+      "size": 7760,
+      "sha256": "d5230388cf121705e4108814323f3cb0ebddd8c804d26030cdae9f63df8806f1"
+    },
+    {
+      "name": "gun/assets/valorant/textures/block/uv/valorant_table_s.png",
+      "size": 2851,
+      "sha256": "eed67a187a27fc233763bfe36e340330b8e82a628891e7390b305abdf2c2ef71"
+    },
+    {
+      "name": "gun/assets/valorant/textures/block/uv/valorant_table.png",
+      "size": 162333,
+      "sha256": "ff9e77e7c9cbaa3886f76b31ebefbedbecad4d6440b48f119ebab3a7c10a5dff"
+    },
+    {
+      "name": "gun/assets/valorant/textures/flash/common_muzzle_muffle.png",
+      "size": 86422,
+      "sha256": "0a21520814d34849ad515182826556edf0966dbdda64b3fefb5570f093d7034d"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/classic_hud.png",
+      "size": 16329,
+      "sha256": "d51240403b474c2b45a2ef8e86dc316167f1333f1d22f517ca12e162adc4aad6"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/ghost_hud.png",
+      "size": 7324,
+      "sha256": "9bb2e02361ef8c956bee68f1d9cb8546312c0532e17ec47e64052b203017927c"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/judge_empty_hud.png",
+      "size": 11931,
+      "sha256": "9f846d172937c80699f60404507426fe3b5d6561aa023101620ffd120105aae0"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/judge_hud.png",
+      "size": 11428,
+      "sha256": "45761f00ab76067210b5bef9377369c3fbf0b358485590c2b0677f54d7869b5d"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/odin_empty_hud.png",
+      "size": 12794,
+      "sha256": "0461ec6829d47dde59c44e0b05b732d992e584181621e7c3fc75ff1fbd722b0f"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/odin_hud.png",
+      "size": 15260,
+      "sha256": "9f6a2b29efae40c1101c678fc7f2458989e78068301fc129dc236bc7cfb2055e"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/operator_hud.png",
+      "size": 18203,
+      "sha256": "8d75466f59da4b7b2ab4c3a170d7e0e0ae7687cf8451b98c904bfdb312ee0485"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/outlaw_hud.png",
+      "size": 18312,
+      "sha256": "8c5ae7e31ba775dae8919005d9bc84216403f98465913954f71d23f16b3c7663"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/phantom_hud.png",
+      "size": 9818,
+      "sha256": "838cb6ede9945605084cf4606e7dd746c8e7d6fea20c06bc9ff9926e822cb843"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/sheriff_hud.png",
+      "size": 9355,
+      "sha256": "a4acf71ec4c307fba0e2e82cc55a4568524a442461a631a6393f021952c9de81"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/hud/vandal_hud.png",
+      "size": 11208,
+      "sha256": "7b9afdcecf2097cfa804ccc2fa8ad8dd09e4a79f1706b7dd29889d4f96905325"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/lod/odin.png",
+      "size": 9282,
+      "sha256": "1c0c2e74c2204d76c61ca17201f91097ffd1503e315e51b38a13ccb11424de42"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/lod/phantom.png",
+      "size": 5673,
+      "sha256": "3d4e57ace2792fea5213f97badfe28c7b34a5d76724ffdbc8ddc4231ac901535"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/lod/sheriff.png",
+      "size": 5060,
+      "sha256": "4f93fa7c73ea28a302687dab188d438fcc9c6bf9cafffaeb961f911f14c048ad"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/lod/vandal.png",
+      "size": 4116,
+      "sha256": "409e2a667cede762c4f24df4c869de80e62348f60dfb780011a06fbe6d7aa3f5"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/classic_slot.png",
+      "size": 53346,
+      "sha256": "c6a198feb4929eeed4fe441c84de630d88b31ddabd369d4c6a1d1b52f6c562c4"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/ghost_slot.png",
+      "size": 52856,
+      "sha256": "b6df3180b228a8ec08054299d7cfba9f0f1226e5db9feae1a116f0d15919a53a"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/judge_slot.png",
+      "size": 113002,
+      "sha256": "abd7e27026fdce426dbc46f9175ac7005264bea90ce7ea9d0574e224c5f2bc63"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/odin_slot.png",
+      "size": 116107,
+      "sha256": "ec727ae60f7f4403c177774b31b19fd614fc1d3ff5abca8d7ec386cb5541d513"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/operator_slot.png",
+      "size": 194914,
+      "sha256": "2616d10edad3be3ce3d46320b42c4b19562a2253acf88b3c2de94adfa933b1c7"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/outlaw_slot.png",
+      "size": 145760,
+      "sha256": "60904f829d2fa697ee8c103f71f49908452b993fa1f28a53a20cec32af3c0b31"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/phantom_slot.png",
+      "size": 115739,
+      "sha256": "9fbd47c2a3971bc59223f0360fad463263d2e87347e9130f5e5f78a2144a5ad4"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/sheriff_slot.png",
+      "size": 75100,
+      "sha256": "88a274595075a7301ebb384fb77db3ae4955fb70ca7929f3fc603d63c7eb86a3"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/slot/vandal_slot.png",
+      "size": 95749,
+      "sha256": "44cdb8579f98ab7dd9bc326ea2ceaea161fb9a0c2cc6e931138cedffe73f3ab8"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/classic.png",
+      "size": 112842,
+      "sha256": "6efb70f69b41dc215bc56a2844b85c802ae1a667db312bede777e17ff2976dcb"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/ghost_n.png",
+      "size": 3682,
+      "sha256": "52bc32d12f879cacbc87748a1e2e82ce33f339b1ca05a481ece79465b428db12"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/ghost_s.png",
+      "size": 3689,
+      "sha256": "e1f4547caa9828ae76ebbfb6761c346612560108d04091bd40863687dbdbae9d"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/ghost.png",
+      "size": 8087,
+      "sha256": "863d9be71d8e44e3c92fcec520e8c88bc3ac6886a76c830f32957d46505edd9d"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/judge.png",
+      "size": 9435,
+      "sha256": "c90b9f9020609432c4dd551cc8c7a7b32804055244f6380ad228b99dbaa52892"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/odin_n.png",
+      "size": 14203,
+      "sha256": "49b653dc0ff5641da3fd0233dad82a02c153b245a4bbd3d8849730bb1567ff82"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/odin_s.png",
+      "size": 12576,
+      "sha256": "877bc692035994ca2ffe0827f948125c03cfe2593b62b33554a3239fa497b276"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/odin.png",
+      "size": 28006,
+      "sha256": "0e2584fe410d48bc66a003fa5c219ae9610308e4e2c53ec19e2c0e9b5266160b"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/operator.png",
+      "size": 17321,
+      "sha256": "2da43a9f8eae808513899106da92d4249d8ea31c36df58500f171aa9058cc38b"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/outlaw.png",
+      "size": 17193,
+      "sha256": "0efc12dcad6088caa0f823260ad835d7ed717da2b83a60d14737d87fc5848a29"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/phantom.png",
+      "size": 10852,
+      "sha256": "57e85bda8c22eff840e3590dafbbb752680f7ffc54b0b4d3eba44b3d7019c279"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/sheriff_n.png",
+      "size": 13716,
+      "sha256": "b9f833245ff914427cfab0b5c78c376caef0114eaf2eae146fa2e71dcde69404"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/sheriff_s.png",
+      "size": 14889,
+      "sha256": "a9d66db31edf65d5848560149f94ac37a656687241d5613ec635b98543bdf5a9"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/sheriff.png",
+      "size": 20775,
+      "sha256": "8eac910731eb59ff5f8ad156dae43d91566759472a2fa8bdd748eef5fd5268ea"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/vandal_n.png",
+      "size": 9148,
+      "sha256": "90a9ad63c665212ba254b2a91cc0df87dbab4fdddc3a72c7b2e0908a3ebd6110"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/vandal_s.png",
+      "size": 8270,
+      "sha256": "5a3c475d903e5f0c3b050e72a8c76a396ecf15b5b6a42aa8a2600483f66c00c1"
+    },
+    {
+      "name": "gun/assets/valorant/textures/gun/uv/vandal.png",
+      "size": 12838,
+      "sha256": "e4199ba8b917590b0c4e0db009e9899b09b356e5ee666033f7c950307885c838"
+    },
+    {
+      "name": "gun/assets/valorant/textures/shell/crystal_acp_shell_n.png",
+      "size": 1488,
+      "sha256": "d5fd101721a671445bde19311f85145f9282fbf7d59e0903835ed90870ec0a98"
+    },
+    {
+      "name": "gun/assets/valorant/textures/shell/crystal_acp_shell_s.png",
+      "size": 1489,
+      "sha256": "fda2e8a371b20d4b0ec6a7e45b38737f959ae62c9a738ce56059ff345458bfb9"
+    },
+    {
+      "name": "gun/assets/valorant/textures/shell/crystal_acp_shell.png",
+      "size": 278,
+      "sha256": "18414688d745e0af026835d79a550d92f0d71c0e7deb429b02bf92555e0dbf7d"
+    },
+    {
+      "name": "gun/data/crystals/data/attachments/crystal_mag_data.json",
+      "size": 177,
+      "sha256": "b73a478b395980cab2bc11ab61d7750c6aa24e9f7145dcd2ae325a01dff96901"
+    },
+    {
+      "name": "gun/data/crystals/data/attachments/muzzle_crystal_muffler_data.json",
+      "size": 221,
+      "sha256": "a64fe6202793f1fa689d89783a79fb99c12d36d95660eb40aac21e4d1d170db5"
+    },
+    {
+      "name": "gun/data/crystals/data/blocks/crystal_machine.json",
+      "size": 920,
+      "sha256": "773b97e4d4b5ab12f8153a4cc7e469941729ab1cb42ea12670bfce79a016ed25"
+    },
+    {
+      "name": "gun/data/crystals/data/guns/golden_data.json",
+      "size": 2207,
+      "sha256": "3c36857ca098c6b84ead1d7375e20319392bf704543468a91ec532ba4258989f"
+    },
+    {
+      "name": "gun/data/crystals/index/ammo/crystal_acp.json",
+      "size": 154,
+      "sha256": "ccc6424d5216f2bae0e665635bfd0da85acf47f72a55ffdbca27636dd593ed03"
+    },
+    {
+      "name": "gun/data/crystals/index/ammo/crystal.json",
+      "size": 104,
+      "sha256": "c0232a3839668d227ba43666b6ea5dcc432aee4cee5db9d83111e5368b49e7bc"
+    },
+    {
+      "name": "gun/data/crystals/index/ammo/unstable_crystal.json",
+      "size": 122,
+      "sha256": "0024dd62385b92c9b99f3e05e77b23a62abddcb5766a324a65832dd708169c08"
+    },
+    {
+      "name": "gun/data/crystals/index/attachments/crystal_mag.json",
+      "size": 176,
+      "sha256": "a4f5c861b1d941f463203f502936fe5d35c1700caa12fae4e65058a43ce835c4"
+    },
+    {
+      "name": "gun/data/crystals/index/attachments/muzzle_crystal_muffler.json",
+      "size": 203,
+      "sha256": "32a88e2712d88c3b8763070ba884ad52cd88f3ac6308564409429ac6c110ec01"
+    },
+    {
+      "name": "gun/data/crystals/index/blocks/crystal_machine.json",
+      "size": 224,
+      "sha256": "0cf21503b4d3674257e25749aa9890aaad8626af320ec2c1dcf2b9b4ac851a2b"
+    },
+    {
+      "name": "gun/data/crystals/index/guns/golden.json",
+      "size": 222,
+      "sha256": "46c774202441b3f84f1d4ecea0239c6b9c0dc89d7151f7c7bc247f562ef95da9"
+    },
+    {
+      "name": "gun/data/crystals/recipe_filters/crystal_all.json",
+      "size": 104,
+      "sha256": "eb38e00e00bc4d770bcfc3ff565724b3490e216e7277bf54b4af2a12f01e6473"
+    },
+    {
+      "name": "gun/data/crystals/recipes/ammo/crystal_acp.json",
+      "size": 812,
+      "sha256": "391fc7b976dbea0925fc42e6da184212b70348ba3a12ab3d80fd016ee8e06717"
+    },
+    {
+      "name": "gun/data/crystals/recipes/ammo/crystal.json",
+      "size": 600,
+      "sha256": "57598d5617f05b814a079ab164eac3c888377af132c1fb467c52de61108a0894"
+    },
+    {
+      "name": "gun/data/crystals/recipes/ammo/unstable_crystal_2.json",
+      "size": 848,
+      "sha256": "2df93fbe16b4aa06b49077b4c153bc615d9a7ccd7a781ab778faf8106097302a"
+    },
+    {
+      "name": "gun/data/crystals/recipes/ammo/unstable_crystal_3.json",
+      "size": 947,
+      "sha256": "c93cc31e6cc350fcb61cae4db29a5931a6b69393e7059e7c3fba137209f31451"
+    },
+    {
+      "name": "gun/data/crystals/recipes/ammo/unstable_crystal.json",
+      "size": 701,
+      "sha256": "d4a7f00f5659fa63e0431be17d194be5180af7a63300bbb14c19047d7c7df96f"
+    },
+    {
+      "name": "gun/data/crystals/recipes/attachments/crystal_mag.json",
+      "size": 711,
+      "sha256": "8946e6cf5303b089d8dcb356588c354f134ceb5705fc7c016cb0848fd3214aa5"
+    },
+    {
+      "name": "gun/data/crystals/recipes/attachments/muzzle_crystal_muffler.json",
+      "size": 711,
+      "sha256": "3a55c0b94feda860df87fde9a502f1931f1400c3f692e1b135e5f12917a8da6b"
+    },
+    {
+      "name": "gun/data/crystals/recipes/block/crystal_machine.json",
+      "size": 573,
+      "sha256": "2033e1a4252716df0e897470e717933747e0916d8b6b2009eae628b830c38f39"
+    },
+    {
+      "name": "gun/data/crystals/recipes/gun/golden.json",
+      "size": 598,
+      "sha256": "cbd5c0684046195bcecda78b831a588ea7e7182a30e3b9df28a182e2b7c8316d"
+    },
+    {
+      "name": "gun/data/crystals/tacz_tags/attachments/allow_attachments/golden.json",
+      "size": 26,
+      "sha256": "a8258fe0781f784a6680589bac5df75f553b721b53056cf9476735a280df5a8c"
+    },
+    {
+      "name": "gun/data/crystals/tacz_tags/attachments/crystal.json",
+      "size": 66,
+      "sha256": "3c79f010d71763c6a44a5bb12c438b19d09aafe41b8823b180c927296d9fdbd4"
+    },
+    {
+      "name": "gun/data/tacz/recipe_filters/default.json",
+      "size": 104,
+      "sha256": "1d82fda5eea4a9c79a50a522b51630794aecdcf278fe58c9bae169ecf7a6057a"
+    },
+    {
+      "name": "gun/data/valorant/data/attachments/scope_operator_default_data.json",
+      "size": 18,
+      "sha256": "e8dd66233cc0631706247d532f4a68ca398cba1fbb2f482d4216e0a4b1401ce7"
+    },
+    {
+      "name": "gun/data/valorant/data/attachments/scope_outlaw_default_data.json",
+      "size": 19,
+      "sha256": "32b3b5a1e4edbdaedf01fed1ff776f61058eae1faf62f121a073433f2a514630"
+    },
+    {
+      "name": "gun/data/valorant/data/blocks/valorant_table_data.json",
+      "size": 1326,
+      "sha256": "4d3c3e27257b3eac87cad5323be25ef27f485a962d1758ac4e8164d72e7c15ac"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/classic_data.json",
+      "size": 2590,
+      "sha256": "4a580e0f1562ead11140b08f51e96aa28848ba4719c4df86e022c52d12c6d1bb"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/ghost_data.json",
+      "size": 2241,
+      "sha256": "f6a462f67a9c7ebf80524b6738bc037d6638b8756e8fa5740defd467c4e943fc"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/judge_data.json",
+      "size": 2276,
+      "sha256": "dabdb4aacb1788a9864d6b623f3d62ca27314732e8edd0074f90a918c9a5884c"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/odin_data.json",
+      "size": 2358,
+      "sha256": "f0c5d6610b9552e1fc26ad25ef92778310940a72f4e4cb50cfb559302a02bd09"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/operator_data.json",
+      "size": 2274,
+      "sha256": "faab685a27261d6ea67ed9b53e3b5592f084d7f05fe954cdb48ab84f39a1145f"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/outlaw_data.json",
+      "size": 2238,
+      "sha256": "0a2ffe13d71eda2caeb44009d27f65cd5eead8f651b55d580f7a01bb3b732813"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/phantom_data.json",
+      "size": 2347,
+      "sha256": "de4d226efc57fc65beba339a5bcbb38ff641dc3f09b034cde83ec23438ac5bdc"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/sheriff_data.json",
+      "size": 2270,
+      "sha256": "25f9489b7be56fb71eed84d2212b0906fa98bc26be441b9d0b15d479e1e9d081"
+    },
+    {
+      "name": "gun/data/valorant/data/guns/vandal_data.json",
+      "size": 2286,
+      "sha256": "164da2bf43c59921deead579900bfd0183355a1500f70bb4d479d162d6fa848a"
+    },
+    {
+      "name": "gun/data/valorant/index/ammo/wg100.json",
+      "size": 100,
+      "sha256": "99fab3c5d01768fa6bd3abc4f57902688811b6babde2805eb0b0424963d7cc31"
+    },
+    {
+      "name": "gun/data/valorant/index/ammo/wg50.json",
+      "size": 98,
+      "sha256": "7b308b0932f32d7426aa62fa1efa88ad4abc46b7eae7c035999b3b0a5ce63121"
+    },
+    {
+      "name": "gun/data/valorant/index/attachments/scope_operator_default.json",
+      "size": 207,
+      "sha256": "17d352a3f9cfa674701ec64fff6494ff67ff3a10102eacd9627a35a4bda1fdb9"
+    },
+    {
+      "name": "gun/data/valorant/index/attachments/scope_outlaw_default.json",
+      "size": 183,
+      "sha256": "d1ee0f5f077be68f76221c1500f31b329abf69b27888f1ceb7e29e8d213e0a09"
+    },
+    {
+      "name": "gun/data/valorant/index/blocks/valorant_table.json",
+      "size": 215,
+      "sha256": "8b0e17033a3eb6afa1040aa310af6d3a8c3f3abd9735f9435d636e4f85397983"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/classic.json",
+      "size": 645,
+      "sha256": "e3051d2ac867edce2aaa6689bec55c3df4012dce3a00ae8b9e4a66a458057dee"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/ghost.json",
+      "size": 637,
+      "sha256": "a63bec9e1f8f4d53cfcf3f6c7ae21c9d064b01ac87cd69ecac081bc7de54d19c"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/judge.json",
+      "size": 219,
+      "sha256": "5747d18d3b9b2250609d0f8ea2474893a2d5f4efeacdae9977c345d56fe46147"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/odin.json",
+      "size": 629,
+      "sha256": "b8c94c2bcce9cbd875c4a28d37eca7479aa4f67a736d9927f9443f1a3217f906"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/operator.json",
+      "size": 230,
+      "sha256": "e474cc7ab40a2c63c07c03646c5d3d79fd727413834aa9e6a21154875d5edf7c"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/outlaw.json",
+      "size": 222,
+      "sha256": "5e4b7cd64321246aa417c89186ee219f20f279c5f8e4116b0dc41add47d24150"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/phantom.json",
+      "size": 644,
+      "sha256": "d27dbf10f1ffd523b62cf4d50f98a6b82cc3d288beb2a554c2385edd62727bec"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/sheriff.json",
+      "size": 645,
+      "sha256": "96163533535f3b9d0f243cba5bd9beb25500c56ee2287819b407fd216107c87d"
+    },
+    {
+      "name": "gun/data/valorant/index/guns/vandal.json",
+      "size": 795,
+      "sha256": "7c987f6878ac7ca8718b653bc6119ddbb7828b322cd744f3bba17ada9dbdd043"
+    },
+    {
+      "name": "gun/data/valorant/recipe_filters/crystal_all.json",
+      "size": 104,
+      "sha256": "eb7356209c55b50faeb7b4085a4ed81086d9ef20a995e7ebd31fab5d41f1064f"
+    },
+    {
+      "name": "gun/data/valorant/recipe_filters/valorant_all.json",
+      "size": 104,
+      "sha256": "7af9d0b698111596752745488a0b719b0c93dc6c54212f9dbf38d44ce28cd679"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/100_50.json",
+      "size": 478,
+      "sha256": "3bd91350b62ac4fafea53b67a7640cfbc3df1a65891aa50be28d7b89f32318a7"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/50_100.json",
+      "size": 478,
+      "sha256": "6a35b7fad50e818373b4b13ee177ca28b19acffad47ccc04036df0b9da035869"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/wg100.json",
+      "size": 371,
+      "sha256": "4b6fce1e6f8f4be837c1177dc68ae53f4662ee9f1d9bb6fef51da758c148211e"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/wg300.json",
+      "size": 372,
+      "sha256": "e85be6b0d87ac6ee9d1632cbf2399f8698acb87db83e7c48a8c78e8373450051"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/wg50.json",
+      "size": 370,
+      "sha256": "d43ab1f68db4aaeb33481a40bb9202b934e4093c33094b2953e9022ff9df055c"
+    },
+    {
+      "name": "gun/data/valorant/recipes/ammo/wg500.json",
+      "size": 372,
+      "sha256": "b08e721fb64e0ed2326f58869b271a321fa3457dee3273c1f4eac452a62b0c50"
+    },
+    {
+      "name": "gun/data/valorant/recipes/block/valorant_table.json",
+      "size": 638,
+      "sha256": "27ff416823ace83f77e4f9716ca76d35677591f66783082e0ab4a5fbf7de8698"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/classic.json",
+      "size": 140,
+      "sha256": "eac30bfb0181da98c9f55bb7774d5a5d18afb60a2de0b9bbbd4cf76074393951"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/ghost.json",
+      "size": 329,
+      "sha256": "5aa76e25870988590ff35a24169a44d79731429bb824cd01b65c50a12a928a4d"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/judge.json",
+      "size": 318,
+      "sha256": "a9ef45f3d5be287bc511ae44ef843f7953b92eeee02a093d247180e6362983ad"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/odin.json",
+      "size": 329,
+      "sha256": "a913af6d7b4284f0558a9a0b92c4e2d4ea5d07907af6fc984e84f980aadd33b2"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/operator.json",
+      "size": 736,
+      "sha256": "b89c7ae2bc5c7e68013e53cdb3e853280e0da1087b363574bbc23fac6a6ae40e"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/outlaw.json",
+      "size": 319,
+      "sha256": "3f0d6d56c194bf52a2afaae78a22b51b69b1d919e33d4f1d7ed1295b8f41a308"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/phantom.json",
+      "size": 332,
+      "sha256": "242078ae71803f1a6418c0de3d12e6e5bcd0a10394d8edfd156590529a0f55fa"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/sheriff.json",
+      "size": 331,
+      "sha256": "ca63b824958c6515d076a5162775db86860c8e640c29821affdf729cfbf87809"
+    },
+    {
+      "name": "gun/data/valorant/recipes/gun/vandal.json",
+      "size": 331,
+      "sha256": "d62785dd8247b2bb51ba466945f9a7fb38143fd67eadaa4ef4f37502ad4d4615"
+    },
+    {
+      "name": "gun/data/valorant/recipes/valorant_table.json",
+      "size": 88,
+      "sha256": "53ee4e176a01972ce32268b85b4173a7fb0f4302c3cf65a7b430558792c17660"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/ghost.json",
+      "size": 3,
+      "sha256": "94aeb2d1f95b0496a43379e486d9aaa8fb6e26b3780f69fda4cfe4d0c3c34747"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/judge.json",
+      "size": 3,
+      "sha256": "94aeb2d1f95b0496a43379e486d9aaa8fb6e26b3780f69fda4cfe4d0c3c34747"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/odin.json",
+      "size": 3,
+      "sha256": "94aeb2d1f95b0496a43379e486d9aaa8fb6e26b3780f69fda4cfe4d0c3c34747"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/operator.json",
+      "size": 4,
+      "sha256": "3fbbd4c6d76130399b0c79cdf41758669224a91e05b7b216953f0c9728750865"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/outlaw.json",
+      "size": 4,
+      "sha256": "3fbbd4c6d76130399b0c79cdf41758669224a91e05b7b216953f0c9728750865"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/phantom.json",
+      "size": 17,
+      "sha256": "e677cafbbf3f82b044b5e08a34374e9dd7595da0153c820bc0712021b0b6b97c"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/sheriff.json",
+      "size": 3,
+      "sha256": "94aeb2d1f95b0496a43379e486d9aaa8fb6e26b3780f69fda4cfe4d0c3c34747"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/allow_attachments/vandal.json",
+      "size": 3,
+      "sha256": "94aeb2d1f95b0496a43379e486d9aaa8fb6e26b3780f69fda4cfe4d0c3c34747"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/operator_scope.json",
+      "size": 40,
+      "sha256": "04b96bf15182fc3f2d9a4da0448c62547ab7389c5de53c688e9b95b33c74461e"
+    },
+    {
+      "name": "gun/data/valorant/tacz_tags/attachments/outlaw_scope.json",
+      "size": 38,
+      "sha256": "0553fa207ede8fa6c90524e9995a1d5aa74b00bca208e39fffafef6446f5ecf6"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/desire_blade.animation.json",
+      "size": 59016,
+      "sha256": "2f0808cab92ee2c549da625f7df51c350f7936cdef76193adb0005bf10a07f9e"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/eternal_axe.animation.json",
+      "size": 46221,
+      "sha256": "2ab5d01d66f87107b8fb0a3f720fbd58f39eff0ccfafb9294ed5ddf76b8cfad2"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/eternal_karambit.animation.json",
+      "size": 35497,
+      "sha256": "bb7abd713f56de68cd15e6d74f63ed853745dd84bd8cfad3966e4a22005744e7"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/future_butterfly.animation.json",
+      "size": 124880,
+      "sha256": "d415254c87f8310ca4bcc23fea57ecd17e3bc12f3ea010a24862fc320e58bd79"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/future_dagger.animation.json",
+      "size": 48923,
+      "sha256": "9d6c3aaf46f51369308ce2da09640243e4a7475bb7ce684a62b8f0496edcfc4d"
+    },
+    {
+      "name": "knife/assets/wtyj/animations/melee/thunder_hammer.animation.json",
+      "size": 27840,
+      "sha256": "7af9d5df9a13bb77f81b669a9b64b7726b87d6fa54f68bfd5e550785a80d898b"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/desire_blade.json",
+      "size": 975,
+      "sha256": "8b441111d42d4d4ef3ed420b9c4071c9f10098160c1a372147b5bd1a2e67e1cc"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/eternal_axe.json",
+      "size": 1079,
+      "sha256": "ed775aecbdadabd111dac753b0841a9480a02c0a5bf467f423472a01e173741f"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/eternal_karambit.json",
+      "size": 1081,
+      "sha256": "e181d3296088ca4c54851daaabb88413c8fd7208702c2b75f6711198eb3bd4d6"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/future_butterfly.json",
+      "size": 1171,
+      "sha256": "2f9a2789c44c46cb7b91690a77224a1b6776134576e0400292702fda6a3ef3fe"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/future_dagger.json",
+      "size": 1230,
+      "sha256": "d7fc518ff98158b4c97cfb0b42fa2461aa4736629f0df0841d08c4e1b0349c85"
+    },
+    {
+      "name": "knife/assets/wtyj/display/melee/thunder_hammer.json",
+      "size": 1088,
+      "sha256": "89369e75acabc9070e7db155d0c65becbb161cb2867ab6da0a4eba830a945458"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/desire_blade_geo.json",
+      "size": 111170,
+      "sha256": "18b5882e5cd65178222ef3c8170b14ab9c16caed67188691da14d2c001d8b924"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/eternal_axe_geo.json",
+      "size": 98371,
+      "sha256": "bd3e61a6af952ef617284e02610223bd89b92133853ca8756f3cc17ac9030a43"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/eternal_karambit_geo.json",
+      "size": 52455,
+      "sha256": "ccdf2354f046060dea8850191bd38f996613d23b1d9349655a00d80a90966cee"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/future_butterfly_geo.json",
+      "size": 98600,
+      "sha256": "e1b4a336d013b8094e776e3094ea1c46d02ae6279320dc25f16cee05c3079d80"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/future_dagger_geo.json",
+      "size": 107514,
+      "sha256": "c48e5dd04dd14a579813db225d65d7d88cbbf21785fa01fab9b92c5d1a32be99"
+    },
+    {
+      "name": "knife/assets/wtyj/geo_models/melee/thunder_hammer_geo.json",
+      "size": 108711,
+      "sha256": "427c1e31851a76f4c0165a5267e9b1f77bdb545ccaa7f5815656abf44d5c3464"
+    },
+    {
+      "name": "knife/assets/wtyj/gunpack_info.json",
+      "size": 180,
+      "sha256": "7506a1153e3d2ac7734a199a49ed9232c3a7ca647bd4b10d4bb89f9cc0bbbe9d"
+    },
+    {
+      "name": "knife/assets/wtyj/lang/en_us.json",
+      "size": 853,
+      "sha256": "d8a8956a4130391ac89841a5dd75e9cf5468216fed3555ff733b1024c1d7daac"
+    },
+    {
+      "name": "knife/assets/wtyj/lang/zh_cn.json",
+      "size": 824,
+      "sha256": "5162df165e79aa33c7c0580efe01f65f1b488951fb1f48012c1ae0cea81fc226"
+    },
+    {
+      "name": "knife/assets/wtyj/sounds.json",
+      "size": 142,
+      "sha256": "7a475b3e4eff3cdc434d1ce5f73ff62c102a20b81b29f306a237cee1078e4b43"
+    },
+    {
+      "name": "knife/assets/wtyj/sounds/hit.ogg",
+      "size": 9221,
+      "sha256": "215f788731336bf0451bdd1210206760a227db8911edcaa403a8917e494b48fc"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_draw_in_1.ogg",
+      "size": 6716,
+      "sha256": "e1d928b1db3eb89bb06fb15c0eb4deef8c7b78ad08bb3115b4a66c182f5e998a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_draw_in.ogg",
+      "size": 8797,
+      "sha256": "62751a37bab800e3708981d557cb4f41724a051f430157bd2b7d8db7cd348b02"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_draw_out.ogg",
+      "size": 7777,
+      "sha256": "226f33e592fde2f4643e21b5b6bd9b378b4767dbd001359f6c6ab63cee16f972"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_draw1.ogg",
+      "size": 9661,
+      "sha256": "1e17c4f158fe637b0ec107d17080bfb6098730a64cf11f3f3522d8262f5b66a8"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_draw2.ogg",
+      "size": 17849,
+      "sha256": "0f8ff3fb1e618ac587160da9d4e557a3f6001226e5f22c535c8cb6bef9f1f096"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_hit.ogg",
+      "size": 7772,
+      "sha256": "0648d8f2042a39ef1c8a2c6864293f4422ed6944429ed596a65e44406ff35a39"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect_grab.ogg",
+      "size": 7214,
+      "sha256": "d3aa82907d74546d5cdcbbd42807038da5fc5a5c8ba8d38e4524bf9326fd4aff"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect_start.ogg",
+      "size": 7413,
+      "sha256": "c2de6535b229629adbe29e63c7c3c8e5ba79c96856f6225209126ace97350a20"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect1.ogg",
+      "size": 30020,
+      "sha256": "5cebb0a6cbc92de6f1808dc0711113ac5f9efffcf35a75e63660ed411bcd3d6e"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect2.ogg",
+      "size": 28487,
+      "sha256": "f7a429cde39c14aecf9af9b26c7d539cd82f4c905f09419ca85fefa66f24e440"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect3.ogg",
+      "size": 18151,
+      "sha256": "e143aa989a9390222cf722ebcad7b8254af4719c7194d992a5ecbf0bde96c81a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect4.ogg",
+      "size": 12535,
+      "sha256": "50c4bf3734a5d14a19617cd54f993fafa00d81d99f197a34403ed8b0d21437e8"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect5.ogg",
+      "size": 15368,
+      "sha256": "00fd027c9f756352e047e742440349aa46e3de6a76ec6c4f26295830f0ce27b4"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_inspect6.ogg",
+      "size": 14813,
+      "sha256": "97bb611a1efb4c60b2facf89765b9148e3b018689b208a580fbd86b7bf6cb90d"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_1.ogg",
+      "size": 14338,
+      "sha256": "d15a4d131c34d844461de0f5a1011bda8ffa4a6a4f6351e1e51b147b7b4e81a7"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_11.ogg",
+      "size": 14187,
+      "sha256": "f4ea3eb3f6dff408996963e83228cc20b1136c850bcdf38db9f7753571aa6bd0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_2.ogg",
+      "size": 14208,
+      "sha256": "611900b1a28a5989795b1015f21bd02ebce7811ee52934bb6a146b9689f3cb1f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_22.ogg",
+      "size": 14474,
+      "sha256": "998f9a026cabacbd6da30a0511e72e65ea9a84e62e177469f9c6ab31fcbde778"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_3.ogg",
+      "size": 14944,
+      "sha256": "ff43a7a9ce441ecafd92d2a818e5eb20bf392a44ee07ab62b59d5ee3c5663a7a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_melee_33.ogg",
+      "size": 14270,
+      "sha256": "d36e6c64492fc59b6918be934b52e91a9a0c1d5d86ab1affe94739b90a24b10d"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_return1.ogg",
+      "size": 35521,
+      "sha256": "7a7ea41fd4b4ecc0cc2f38dbf9147b125d6c9c56357169d955e27ae415e2f008"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_return2.ogg",
+      "size": 25670,
+      "sha256": "c9413c955fd52ffe40764e142b103d84c748619de4d640e39989c2eb24701748"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/cyber_ism/hologram_return3.ogg",
+      "size": 36172,
+      "sha256": "7094af7bbac71e2fbffafa8f131d0435eba1c201248bda9fc33e087a5765799d"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_draw_1.ogg",
+      "size": 8448,
+      "sha256": "f6e131bcd64d207d5e238b5691ac1404340ea189a1cd93822be916b1fc698bbb"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_draw.ogg",
+      "size": 9520,
+      "sha256": "69fb7c12cf24892ab98f121aeccffaae7a4b846579cd72d3304dcdf325ca4f01"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_inspect_1.ogg",
+      "size": 11370,
+      "sha256": "5ab1af511394544c65d72d1a6d32d206e0ec1a1473986ecbaff8b4257e80c376"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_inspect_2.ogg",
+      "size": 27543,
+      "sha256": "a305d8ec19c2eb59c92fd45f29bb73f272d5f83fb418eb176f45ecd2d23b1987"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_inspect_3.ogg",
+      "size": 27543,
+      "sha256": "5e2b7a5f00c3687caf265030618324a8e668bf0638731f6e9b23d181242c852f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_melee_1.ogg",
+      "size": 8208,
+      "sha256": "6507e32f92111062cb3426348e26c476ab4419631a3c1f5449b0886b8830151b"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_melee_2.ogg",
+      "size": 6205,
+      "sha256": "d2ab359c8709d79573f0abfaf32e820f6bc98bbe5c28eeb48919529ad85dd62c"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_melee_3.ogg",
+      "size": 9196,
+      "sha256": "ddc26409107c4eb44a5baba6aba7b21dc63b6b928e1d80b1e4bec5910bcb8924"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_rotate_1.ogg",
+      "size": 9368,
+      "sha256": "5fb4e4726e87e200db0026e7d1853146b2cb76b14a74b3f518de07f465b5f02a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_rotate_2.ogg",
+      "size": 10346,
+      "sha256": "7466e3b224269c9f196b0f68ff132fa3bab35449f171de05fe522185cd4fe857"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/demon_blade_rotate_3.ogg",
+      "size": 11131,
+      "sha256": "f5d5663f9dcfd6fc1d06ec4ff803f14fe5d69f191093cca4ef290f194b5d658b"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_draw_grab.ogg",
+      "size": 9128,
+      "sha256": "bef53ff451a3d46ba64f9286c486994b56f07f84588a9b10d4c3e5fdd6f40ca2"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_draw_music.ogg",
+      "size": 28127,
+      "sha256": "945e95c00e4cf65138cf01335c391d4a16558c2a038e053a31e6d636cb16f48f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_draw.ogg",
+      "size": 10236,
+      "sha256": "002b5eaa8e3bcd2fc038e324fa515354af2621a22f63d2ef04ff9b4d03dcf9fb"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_inspect_grab.ogg",
+      "size": 9320,
+      "sha256": "32f299f6339cf28e38e507a73b6297b51856305f76059664ab260938f5e968d0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_inspect_music.ogg",
+      "size": 76389,
+      "sha256": "282a7f20e81c3b33dc059471071b8674e23fa445e9d9c63366fff81dc19a50cf"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_inspect1.ogg",
+      "size": 12847,
+      "sha256": "72e3eba97fd282c0f25f31ccdbeadf3ea0bcda2990de5f545622a302f9315eef"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_inspect2.ogg",
+      "size": 38414,
+      "sha256": "ef3d1d047b493db56d5ec3ef714b6b3ef3b9dc7e173dc3469a54e14841e02f66"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_inspect3.ogg",
+      "size": 38414,
+      "sha256": "cf1d1cc38446f429071bcde61cb6fc44089a6aeb2b4cfa801b46c1f4e9e4d2a0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_1_return.ogg",
+      "size": 9916,
+      "sha256": "6ce5c18c282225891cec9decf3dd98cd3ded9eab800a705c88f4cdeca0be4da0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_1.ogg",
+      "size": 8626,
+      "sha256": "32682627a0548841294efbb6e06b756c05884cc62aa6efbb2f3b9edb5affaf91"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_11.ogg",
+      "size": 21152,
+      "sha256": "581933875b1fda24a4ba77c466dd63ad0c37f14416fd67d0aae354c32444f090"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_2_return.ogg",
+      "size": 11050,
+      "sha256": "47ac5156ed2b2ec317e9732277d9855dbb68435733efca079bf55097ebbaff6c"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_2.ogg",
+      "size": 6460,
+      "sha256": "05bab81c0880d987b353c07ebd993fbb95552efb07f74e8c9fd5f3284e7c8209"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_22.ogg",
+      "size": 23004,
+      "sha256": "3ffeb5c4fe5689309c250efffb4cab37bec4a6e73259f8c8c7d19d0d63a2affa"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_3_return.ogg",
+      "size": 12807,
+      "sha256": "63447670f46d7c0f90cb21beedf93d4c99d951645943501838a0ffa90952a87e"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_3.ogg",
+      "size": 10077,
+      "sha256": "1a8ae529275a8e58c9022ae81598a4bc636410d12e7584e6c76c44c7279f0052"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/demon_blade/yokai_melee_33.ogg",
+      "size": 19841,
+      "sha256": "c3a5973b18f1b6662e31a31c26541dca48042cd9a637741d966aed2c7062002f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_axe/eternal_axe_draw.ogg",
+      "size": 11561,
+      "sha256": "99239a1e9cf5c08c65c75865d874d481c4bff1dc2a7f3261fc884964687ebc8c"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_axe/eternal_axe_melee_1.ogg",
+      "size": 7086,
+      "sha256": "6887d5ea99f124c354d334a9f3a79ccfb3799096b575d015e9c86a76cf47f82f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_axe/eternal_axe_melee_2.ogg",
+      "size": 6182,
+      "sha256": "94ac01bb4055f18c19b3f96f3b9c364b6b1b84f4a7fbbc1c391b843d4ccdb145"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_axe/eternal_axe_melee_3.ogg",
+      "size": 8851,
+      "sha256": "6d9c093cb8494d0f0e70f03570faf8cca33285cbc007be3b18c71ba085a7bace"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_draw.ogg",
+      "size": 9594,
+      "sha256": "d82b0fa2377e1c5ed7370380d0c208666eb1bc63c9b06aa92eafe2697813a640"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_inspect_1.ogg",
+      "size": 9214,
+      "sha256": "896d4a3b65893113284c613d7a09f9a98b89a0dedb1299fcf6803bb909731bfc"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_inspect_2.ogg",
+      "size": 6983,
+      "sha256": "4e64d2955675fc9d40dd1fccd88ccbce0aecbcd24ee7c293cd74cbaa02692274"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_inspect_3.ogg",
+      "size": 9785,
+      "sha256": "2eeab0e4a33a8ed13fe5b721d6a79b6cf75db2942c6098f88242d1126bb3bab7"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_melee_1.ogg",
+      "size": 7634,
+      "sha256": "3d5d5ab224bbb016beb7e712733ae867750389675f1bf0a2fc5b53e9ac0723cc"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_melee_2.ogg",
+      "size": 6256,
+      "sha256": "395f922bc5b55e2cef4b48531baf78676691de4631f2f1551f044c254f2a7a77"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_melee_3.ogg",
+      "size": 7634,
+      "sha256": "954dbd46b42c23e8a62387e21ae4aa1946eb05b5b732ee78f6d963229a2ca87c"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_karambit/eternal_karambit_rotate_1.ogg",
+      "size": 7108,
+      "sha256": "88a3bd9d899dde52768b84769ee0e317573d97416aae8d09768e0c05d3b09806"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_draw_1.ogg",
+      "size": 14278,
+      "sha256": "5d199dabad1082cdb01da150d43e912ae7e7f2dd53848eca8a7a4d721ebb3176"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_draw.ogg",
+      "size": 9287,
+      "sha256": "6b65a54a5f8bde3dbb26b4885aa6193737ee82118c44a131a6f94b03aa92a22d"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_inspect_1.ogg",
+      "size": 7785,
+      "sha256": "1a1663378cc7c632b6aedb9db9134e830896b4d8d1bb1be4e5eb2ace96949077"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_inspect_2.ogg",
+      "size": 8182,
+      "sha256": "a529216b5eab51990df35cfd8ecfd3648ef2c403221735bb4eb5e135bdf7e18a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_inspect_3.ogg",
+      "size": 8143,
+      "sha256": "dcfc5554d153c98e6ccb4643c1f0ddf0ac9765426f9b502d458a82a397e0d0bd"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_melee_1.ogg",
+      "size": 6820,
+      "sha256": "de2bf06b6904cef329fe93f446d15a6e05000a225743249594e79bd59b5669f0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_melee_2.ogg",
+      "size": 6662,
+      "sha256": "8e3c34429b71f037102784380bf352f360fb4a9c1dd41974f6a5f6fc3005d7a6"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_melee_3.ogg",
+      "size": 6889,
+      "sha256": "7ef9938e3a7439d2adfde34ce504ae128fede1c288d8eceb6dfe0907cd210e8f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_rotate_1.ogg",
+      "size": 9161,
+      "sha256": "f9437e9f8668536d272f96a233b378182ba45373c9f63b77a5b7a9058dc56828"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_rotate_2.ogg",
+      "size": 8584,
+      "sha256": "f9e6ed1ef87a90704f2c13cbe6ad24a1bc478a04435b736049d8b82a0f34db94"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/eternal_twilight/eternal_twilight_rotate_3.ogg",
+      "size": 13968,
+      "sha256": "cffadc66f8f74a897eb2b08f821d93372f86d29775c4aedda57b57b3ab2b7130"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_draw.ogg",
+      "size": 11634,
+      "sha256": "ec3d7414482e7cc0e518f7bff26082e8218e992f03e0fdba3b40f04f657a1849"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_inspect.ogg",
+      "size": 54506,
+      "sha256": "f747a0959437d599439041d61cddf8966ef8c99f2b56148d5bf1687b40a9b701"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_melee_1.ogg",
+      "size": 7138,
+      "sha256": "b9a2342a108cb7bd4c222794b2d5025d258f9e49eeeb7d4ef5718af040b2d814"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_melee_2.ogg",
+      "size": 7138,
+      "sha256": "89718f7b38bca04ee6eb2a1b8fc2f81fbfee74fc462045bec5efa67b98b7fe9b"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_melee_3.ogg",
+      "size": 7085,
+      "sha256": "e35a35b659e33954609cabe43962755bd42358a72327b9623bbfcfbad3326a40"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_rotate_1.ogg",
+      "size": 16672,
+      "sha256": "ff5fb0d353bb5b28fe094fc9e55faa1bba3cf0bf04ac7dbe7c6480991e4c84ab"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_rotate_2.ogg",
+      "size": 14671,
+      "sha256": "b680936fed8dd21da33b420ed9ff19f529944821732b243685f065ffae0e969f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_butterfly/future_butterfly_rotate_3.ogg",
+      "size": 16107,
+      "sha256": "69dbbc337726d05633ed6306ca8250deda2d2313e63f319400cae1c536c65c07"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_draw_1.ogg",
+      "size": 9072,
+      "sha256": "280673771ca8adc374cc85029d388a358c1433862ca677d677040929cb288533"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_draw.ogg",
+      "size": 8307,
+      "sha256": "41de65cb8672fd09f05298c72ef153a05fb5ee49eae4b511be15873a53a98bee"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_inspect_1.ogg",
+      "size": 11829,
+      "sha256": "d82c7a993fb60aed51b594d97fd766a41254f0c194120f41ec4df4f67dfa1540"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_inspect_2.ogg",
+      "size": 8388,
+      "sha256": "2ee9d315a52bfe0089cec6821394ffc1f98664f56829ea500076f6f103bc9484"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_inspect_3.ogg",
+      "size": 12353,
+      "sha256": "e7fc2beff8a02b108912c37394eacb85c511d2a459e943c22a6961e1df051862"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_melee_1.ogg",
+      "size": 7634,
+      "sha256": "f60e2b7fcb949593878f0c2c7c26ec0f3cdafb37be899f202c4e812150442db6"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_dagger/future_dagger_melee_2.ogg",
+      "size": 7650,
+      "sha256": "fabb61b727e0e2486a05db4737808f013951869163d8b7d502d9fdbb688d2e52"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_draw_1.ogg",
+      "size": 11317,
+      "sha256": "a66e0c1c5b650a55c6747357373a9686c5e2fb9669786c7e6a806d53c45731e2"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_draw.ogg",
+      "size": 10044,
+      "sha256": "5443e5e521740877716f31063161a094cf906b20858ff98767ef856feea8f52a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_inspect_1.ogg",
+      "size": 25472,
+      "sha256": "5820f6937b4267dc382d1b8e6d5f4f7c19f77c9272ab2bfa304d94de225dad0d"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_inspect_2.ogg",
+      "size": 6379,
+      "sha256": "1d5e558a369f6775b0625b000613af6a672fc2f8158d6f2d7d18374ad1e00b52"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_inspect_3.ogg",
+      "size": 6474,
+      "sha256": "c5a0519a651b8cf5813e6ae4e9a2b3a5d015902f6b70e5d95c489475f5c82cb7"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_melee_1.ogg",
+      "size": 6812,
+      "sha256": "23cb5eada0e1560fccd1dbda69a77abe999f3e6db55385c220eaacdc0f50538e"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_melee_2.ogg",
+      "size": 7045,
+      "sha256": "773171758dadb808f3bb2bf7b3e4523f1f75571c6e2966a7baf874fe582c6a74"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_melee_3.ogg",
+      "size": 7158,
+      "sha256": "f7e64052c7c4325c88c1240d00eae1af6850655f2aad5771e4702422c0e96669"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_rotate_1.ogg",
+      "size": 10761,
+      "sha256": "0f96b017998e4c353d96bf42225336eb3ad0a51415292e0e76eecb81e8cb7525"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_rotate_2.ogg",
+      "size": 10391,
+      "sha256": "67deb9e4cb057ed565b4ac3c5424da2a6b3db56eb1669758c2aa80b812007efc"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_karambit/future_karambit_rotate_3.ogg",
+      "size": 10567,
+      "sha256": "396792b5d35a6fe37bb5438c50de56a2df39749aa0fa6d0e4c3b19b37473ed11"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_draw_1.ogg",
+      "size": 13159,
+      "sha256": "34a1415febfac71802d89d4b57c8348a5843b106ca3873a1eda90f6d2e7c33c6"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_draw.ogg",
+      "size": 15339,
+      "sha256": "454f26d2d6e24784384640da2ed00f7d55d69fd3931db929947435df6cfeefb4"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_inspect_1.ogg",
+      "size": 10101,
+      "sha256": "138ba5837823bdc2d40523da35066790d2a205221fa2d7409a55937f6b92f7d8"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_inspect_2.ogg",
+      "size": 14954,
+      "sha256": "3df1180dc81150a7f632410afc63416dd3a38c85fa96d6fb33501a04e3848713"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_inspect_3.ogg",
+      "size": 24926,
+      "sha256": "bf6ba159dbcf522e3aef3f4fb6f9d1afecd3fb71ff9d05de0e69365f6e2bc1d3"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_melee_1_1.ogg",
+      "size": 9242,
+      "sha256": "6c93bbec2c15fc76af2c2db1198e5c163c64aa69318f5b3e7e2f967c77f4d43f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_melee_1.ogg",
+      "size": 8176,
+      "sha256": "43b15505d83a633c02613f9914d88ef882eba0101e724abb5bf90b4375d68be0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_melee_2.ogg",
+      "size": 8406,
+      "sha256": "1ae8c175f8e232f9ae63598a51027374141611b1e7c036b6343eb4cc5359a744"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_melee_3.ogg",
+      "size": 7924,
+      "sha256": "7fa471b078788a1fc3e39c775551ebe7ef1ffdf6282d65a4a69dffe370ba71bd"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_rotate_1.ogg",
+      "size": 15905,
+      "sha256": "d8c5e9d13b38a6ea011414843fa5810ecd581a897e214336e03d570e66c936be"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/future_sword/future_sword_rotate_2.ogg",
+      "size": 15882,
+      "sha256": "b9b7cf7849edd72cedb5fccd98ae234517f631ec8c2da51cb9042395eb868a94"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_draw_1.ogg",
+      "size": 7140,
+      "sha256": "7877c18edc5ad9b46e85b050204cef6168623d3ad86b7aded6307c2fe4fb83a7"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_draw.ogg",
+      "size": 23493,
+      "sha256": "5e96fdab6423ca90ff20ddccb9a7980197bf586697847eb841451da4fb87c0e4"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_inspect_1.ogg",
+      "size": 11300,
+      "sha256": "3f159ae6a58747c5322d3be6f406f3e317942d4f4070b17020189a835785df13"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_inspect_2.ogg",
+      "size": 23575,
+      "sha256": "fafbe24f5fb7683cfa83b7e0a3db53be77117e1868fe6e7322e232601f2f29a8"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_inspect_3.ogg",
+      "size": 15071,
+      "sha256": "2d3f2995f4dffe592bd2040c12d5bcdb5a2f599d592d17a4f653d3e7d8d46508"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_melee_1.ogg",
+      "size": 10834,
+      "sha256": "8b5d672dd1319d9b08406e621a7a09a4f67b0eefc16d59c6b5c377a900bbfe4a"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_melee_2.ogg",
+      "size": 10944,
+      "sha256": "dec93c5bc15f6dacb4428137aee31692223d75174006705b7bcb98f0b8cd9f1c"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_melee_3.ogg",
+      "size": 11189,
+      "sha256": "ba1a826cb766b92f0edaf2bdbb6bf92d77df745df2c4209cf282b8358b715c11"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_rotate_1.ogg",
+      "size": 10855,
+      "sha256": "df1b875fb25affa0fc9e514f1cc4ebeed9e578c12e5131020068b205e190c4be"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_rotate_2.ogg",
+      "size": 27965,
+      "sha256": "71cb9ad2c7daa37a98cf24968afb6c3d3d2dbb511bf98c128a422631089d9279"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_rotate_3.ogg",
+      "size": 10965,
+      "sha256": "db24edff516f6de8d59eed05ec7cb542095f8a5fcb9e7e22bc66bc0eb41e4ca2"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/lightning_longsword/lightning_longsword_rotate_4.ogg",
+      "size": 15380,
+      "sha256": "86da8897cb8781b905da197b7aafba32e020eb1fe8a36c2ea3c0f03c71a62726"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_draw_1.ogg",
+      "size": 5769,
+      "sha256": "e5ba8d4ca08cfbda449f30c629512c4466cbd4455da02fd997f6b0e32c02c12f"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_draw.ogg",
+      "size": 7616,
+      "sha256": "9a56622a0d3f04df61a5491adc585f91be65a6c7d7fa21bf6f72daa4a32b56a2"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_inspect_1.ogg",
+      "size": 8812,
+      "sha256": "fdad2c652e2b694161c91c0578cdae161576b4fd08d93ab83664ca2dd5eaa6b1"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_inspect_2.ogg",
+      "size": 8761,
+      "sha256": "3633f29398fe7bc128608ee8beb4fbd7606e51564a2f4e4e097dfe5cc2d70696"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_melee_1.ogg",
+      "size": 7406,
+      "sha256": "365a062f6e9953c85fd376f93ffea0d8fd835faa6f83f3c515c9c0bb933937ee"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_melee_2.ogg",
+      "size": 7280,
+      "sha256": "2af18fbdc16d8596ffd321f0513d56e6da378f76c6655230eef33aaa07d2c106"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/radiant_blade/radiant_blade_melee_3.ogg",
+      "size": 7280,
+      "sha256": "b5dd5b02bd70efed24391cee612afc7c200a83863e22e51d18c7109cce4cac48"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_draw_1.ogg",
+      "size": 9189,
+      "sha256": "4fcea57e228fd7481a2e0bd5274d3c0d4485b950795e8d3d29c1cc3313fc60f1"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_draw.ogg",
+      "size": 6962,
+      "sha256": "cb61121190b62c2a76ace7b34ca09d008b8b9ddcafff1e13d4b261979354805b"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_inspect_1.ogg",
+      "size": 8412,
+      "sha256": "b09228249a77adcd626665a12b69e0ed743387503923027de47414adf41a0bea"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_inspect_2.ogg",
+      "size": 6964,
+      "sha256": "ed488ee1366e8f842ddf40e20524ca05f00533c1bf696e3acf65026442a07e52"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_inspect_3.ogg",
+      "size": 6845,
+      "sha256": "1e0ee9281976a839809549e9c54bb09d25a33ed10e77c23992c70e5f30ba2f43"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_1_1.ogg",
+      "size": 9856,
+      "sha256": "1e7f179a5add94a25d93d8f32e89cf603de2b8ae48097a7d2da31fa081696eca"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_1.ogg",
+      "size": 9849,
+      "sha256": "76b31ea2321eb9e6ab9c434a96c832b1bb3fd86a576aefd3e9796f19dae90a56"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_2_1.ogg",
+      "size": 9557,
+      "sha256": "d8f1e0bba95e480b701107dbf7d271cff6bd8ada36aa03441bf49e0399a63afd"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_2.ogg",
+      "size": 9851,
+      "sha256": "ccaee27f3182640d50636871b674ee6e338677d166071f7431c4f53d31843303"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_3_1.ogg",
+      "size": 9808,
+      "sha256": "d18623e4a7d1623ff202d9aec12318965d27173910d638c61c311805565a53b7"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/rime_iron/rime_iron_melee_3.ogg",
+      "size": 10102,
+      "sha256": "52362edfe409a19525de55a95f085e0dde628da7c1ecc5f87c2b4086c66fbf86"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_draw_1.ogg",
+      "size": 5717,
+      "sha256": "ad8b93df24990cf58d8ea194d2b3bce160c3280a4ca2cb5693b9cfceba2643b9"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_draw.ogg",
+      "size": 7396,
+      "sha256": "fde6eefadf6dc65bcc46f420faf4fbe3499c3e73a976861661741255c2e170d8"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_inspect_1.ogg",
+      "size": 5608,
+      "sha256": "ecd988310e6546f7f4f764ef72a0e067d13bf1f707cf6e67b3544c3b999dfec3"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_inspect_2.ogg",
+      "size": 5060,
+      "sha256": "fa6f3a8cdbe1b0bce58f40e72e3094f68fd0a3d84ecd57f2765ce40d6113aa00"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_melee_1.ogg",
+      "size": 8176,
+      "sha256": "43b15505d83a633c02613f9914d88ef882eba0101e724abb5bf90b4375d68be0"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_melee_2.ogg",
+      "size": 8406,
+      "sha256": "1ae8c175f8e232f9ae63598a51027374141611b1e7c036b6343eb4cc5359a744"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_melee_3.ogg",
+      "size": 7924,
+      "sha256": "7fa471b078788a1fc3e39c775551ebe7ef1ffdf6282d65a4a69dffe370ba71bd"
+    },
+    {
+      "name": "knife/assets/wtyj/tacz_sounds/melee/survival_dagger/survival_dagger_rotate_1.ogg",
+      "size": 5672,
+      "sha256": "3a6639429d90e2ed1edd1408a2a8157553d82650732931fe72739fd8f4860416"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/desire_blade_uv.png",
+      "size": 10349,
+      "sha256": "b5d68bfb9b1cccbb1bbbb8a8f912dea972f700941a163913730ecd328e2ec077"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/eternal_axe_uv.png",
+      "size": 301867,
+      "sha256": "d30edd5d9db8094c155056d50426209e03d805ab05e349e227891a056bb1ae74"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/eternal_karambit_uv.png",
+      "size": 21258,
+      "sha256": "b12b62f007c1686f94da5fee5cf97b9086907dc6e81e66a0ef374c2fb95395af"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/future_butterfly_uv.png",
+      "size": 38391,
+      "sha256": "414eec0e3075d556ba9e2bdbf48768fd42ced82670606fda00b18b322dadf639"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/future_dagger_uv.png",
+      "size": 22203,
+      "sha256": "d7761e7a5c993bdc24daba6a6995a6d6f4dca13a188a0fdfdd0e0933bbea5fec"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/desire_blade.png",
+      "size": 5981,
+      "sha256": "5fbfbc5d9de56c9d33e691732d74f55d37c72e29b264cfcbf3b6deb2a6bd6d1b"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/eternal_axe.png",
+      "size": 4293,
+      "sha256": "6e1b8069aebe3e7c1f08f2c46f6fd6d4e0e64050e69f9bde044c31c39b547085"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/eternal_karambit.png",
+      "size": 18409,
+      "sha256": "5c0ffa06bb7d8dd952e556c49d55aca9c7c8df564e7812bdf771529ab879d235"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/future_butterfly.png",
+      "size": 29344,
+      "sha256": "600ceb7b768dbe67524f07ce7281eb2e6747862d2e1fae22c385f5fc4316d126"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/future_dagger.png",
+      "size": 33251,
+      "sha256": "d9c80e88956a2d3844720d3461f8c2a1d13e55830fbd1627354e5752f10560c7"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/slot/thunder_hammer.png",
+      "size": 35370,
+      "sha256": "04826118dca7616cd6ae1d05dc6fccd553fe29b9eedaefbfd9c64ba7cc569569"
+    },
+    {
+      "name": "knife/assets/wtyj/textures/melee/thunder_hammer_uv.png",
+      "size": 26359,
+      "sha256": "de71e942857ee70fe125cbb92ae5b4ac05587a85d9f7637361402ece1e78341b"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/desire_blade.json",
+      "size": 933,
+      "sha256": "3fb2804a0fe9fa2384f5cf75cb03518a89482c8e296496dfe5e125226a1eeec3"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/eternal_axe.json",
+      "size": 935,
+      "sha256": "dfc55870a541fa5bb14da897a359d9827bb9cc5e782da485c1fce08c39b90740"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/eternal_karambit.json",
+      "size": 939,
+      "sha256": "7a0a9e9385be8556d84e398a35e377e98661a1c9b08bd8e3df120770927becfc"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/future_butterfly.json",
+      "size": 938,
+      "sha256": "3c7f1cd38bf2b38502c91c348014521c92da7dce20749e04b910a280c5f1e0d1"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/future_dagger.json",
+      "size": 934,
+      "sha256": "a78c4c601f9b5e55cecb6c00c9919886f6f512f6a5444b5c6fb30c6f2b3dbe5b"
+    },
+    {
+      "name": "knife/data/wtyj/index/melee/thunder_hammer.json",
+      "size": 936,
+      "sha256": "f927ff4e8e5cf39afaf63e41ef1dbedd6d6371b9203aa4d4c04a23d790ffc642"
+    },
+    {
+      "name": "knife/data/wtyj/recipe_filters/default.json",
+      "size": 44,
+      "sha256": "48a4b0e7ddda2c1b81c3e632beed9afea27607926feacea07146585fc233c7ea"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/desire_blade.json",
+      "size": 567,
+      "sha256": "fd3c4b4e4ca740bb3cf2c4a6db9a463a93ecf0803181d40963d307930e90c463"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/eternal_axe.json",
+      "size": 571,
+      "sha256": "3b32f976d106c36ca7932954e950bab81a600f834f02f2aa6c7a28679738f745"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/eternal_karambit.json",
+      "size": 576,
+      "sha256": "9e422d1192dfe2356d829f05c2f40cc97abf731198b6f752ae778e5e6eaa6985"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/future_butterfly.json",
+      "size": 570,
+      "sha256": "b10560d116f00cf27515ae85d29673a552cf2f51542c1283150e27e6b354ae8c"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/future_dagger.json",
+      "size": 567,
+      "sha256": "c5c4081c502cc76f8e88e37adc9719e6ac6e211fbfbfe8c6de3ebdfaafd4f2b6"
+    },
+    {
+      "name": "knife/data/wtyj/recipes/thunder_hammer.json",
+      "size": 566,
+      "sha256": "b8bd8174da9131703a026e11a68bf29361b227c7351c3da242ef7d0511a3105e"
+    }
+  ]
+}

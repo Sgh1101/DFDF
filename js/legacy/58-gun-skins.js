@@ -98,6 +98,7 @@
     { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
     { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
+  if (window.VALORANT_DATA) SKINS.push(...VALORANT_DATA.knives.map(s => ({...s})));
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
   // (shown by tier: the second set sits after the knives in the list)
@@ -1549,6 +1550,7 @@
       k.traverse((o) => o.geometry && o.geometry.dispose());
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
+    if (window.VALORANT_PACK && skin.pack) return VALORANT_PACK.dress(root, skin);
     if ("default" !== skin.id)
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
@@ -1702,7 +1704,15 @@
   function refreshVM() {
     try {
       // every gun built so far goes (the grenade in hand has no key and stays)
-      for (const c of VM.root.children.slice()) c.userData && c.userData.key && VM.root.remove(c);
+      for (const c of VM.root.children.slice()) if (c.userData && c.userData.key) {
+        VM.root.remove(c);
+        let imported = false;
+        c.traverse(n => { if (n.userData.valorantRig) imported = true; });
+        if (imported) {
+          const disposed = new Set();
+          c.traverse(n => { if (n.geometry && !n.geometry.userData.shared && !disposed.has(n.geometry)) { disposed.add(n.geometry); n.geometry.dispose(); } });
+        }
+      }
       VM.cache = {};
       VM.current = null;
       "undefined" != typeof player && player && player.alive && updateViewmodel(!0);
@@ -3065,6 +3075,7 @@
     const tg = pvTarget();
     if (!tg || !WEAPONS[tg.g]) return void pvRender();
     const shown = skinById(tg.s);
+    if (shown.pack && window.VALORANT_PACK?.status !== 'ready') return void pvRender();
     if (window.CHAMPIONS_PHANTOM?.isSkin(shown.id) && !CHAMPIONS_PHANTOM.loaded()) return void pvRender();
     let g = null;
     try {

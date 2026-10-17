@@ -1,0 +1,134 @@
+{
+  "state_machine": "valorant:aim_rpm_state_machine",
+  "state_machine_param": {
+    "rpm_rate":0.9
+  },
+  "model": "valorant:gun/vandal_geo",
+  "texture": "valorant:gun/uv/vandal",
+  "uv": [
+    "valorant:gun/uv/vandal",
+    "valorant:gun/uv/vandal_n",
+    "valorant:gun/uv/vandal_s"
+  ],
+  "iron_zoom": 1.25,
+  "zoom_model_fov": 45,
+  "ammo_count_style": "normal",
+  "damage_style": "per_projectile",
+  "show_crosshair": false,
+  "transform": {
+    "scale": {
+      "thirdperson": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "ground": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "fixed": [
+        1.2,
+        1.2,
+        1.2
+      ]
+    }
+  },
+  "sounds": {
+    "shoot": "valorant:vandal/vandal_shoot",
+    "shoot_3p": "valorant:vandal/vandal_shoot_3p",
+    "reload_empty": "valorant:vandal/vandal_reload",
+    "reload_tactical": "valorant:vandal/vandal_reload",
+    "draw": "valorant:vandal/vandal_draw",
+    "put_away": "valorant:vandal/vandal_put_away",
+    "inspect": "valorant:vandal/vandal_inspect",
+    "head_hit": "valorant:head_hit",
+    "flesh_hit": "valorant:hit"
+  },
+  "animation": "valorant:vandal",
+  "use_default_animation": "rifle",
+  "third_person_animation": "default",
+  "player_animator_3rd": "tacz:rifle_default.player_animation",
+  "hud": "valorant:gun/hud/vandal_hud",
+  "slot": "valorant:gun/slot/vandal_slot",
+  "lod": {
+    "model": "valorant:gun/lod/vandal",
+    "texture": "valorant:gun/lod/vandal"
+  },
+  "muzzle_flash": {
+    "texture": "tacz:flash/common_muzzle_flash",
+    "scale": 0.75
+  },
+  "ammo": {
+    "tracer_color": "#FF8888"
+  },
+  "shell": {
+    "initial_velocity": [
+      5,
+      2,
+      1
+    ],
+    "random_velocity": [
+      1,
+      1,
+      0.25
+    ],
+    "acceleration": [
+      0,
+      -10,
+      0
+    ],
+    "angular_velocity": [
+      360,
+      -1200,
+      90
+    ],
+    "living_time": 1
+  },
+  "text_show": {
+    "ammo_count_text_show_pos": {
+      "scale": 1,
+      "align": "center",
+      "shadow": false,
+      "color": "#FFFFFF",
+      "light": 15,
+      "text": "text_show.tacz.ak47.ammo_count"
+    }
+  },
+  "hotbar_show": {
+    "0": {
+      "pos": [
+        -1,
+        20,
+        3
+      ],
+      "rotate": [
+        -180,
+        0,
+        120
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "controllable": {
+    "semi": {
+      "low_frequency": 0.25,
+      "high_frequency": 0.5,
+      "time": 100
+    },
+    "auto": {
+      "low_frequency": 0.15,
+      "high_frequency": 0.25,
+      "time": 80
+    },
+    "burst": {
+      "low_frequency": 0.25,
+      "high_frequency": 0.5,
+      "time": 100
+    }
+  }
+}

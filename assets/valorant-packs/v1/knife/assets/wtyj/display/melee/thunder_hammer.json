@@ -1,0 +1,57 @@
+{
+  "model": "wtyj:melee/thunder_hammer_geo",
+  "animation": "wtyj:melee/thunder_hammer",
+  "state_machine": "wtyj:default_melee_state_machine",
+  "texture": "wtyj:melee/thunder_hammer_uv",
+  "slot_texture": "wtyj:melee/slot/thunder_hammer",
+  "sounds": {
+    "attack_left_hit": "wtyj:entity.player.flash.hit",
+    "attack_right_hit": "wtyj:entity.player.flash.hit",
+    "crit": "wtyj:entity.player.flash.hit"
+  },
+  "transforms": {
+    "ground": {
+      "translation": [
+          0,
+          4,
+          0
+      ],
+      "rotation": [
+          45,
+          0,
+          0
+      ]
+  },
+  "thirdperson_righthand": {
+      "translation": [
+          0,
+          6,
+          1
+      ]
+  },
+  "thirdperson_lefthand": {
+      "translation": [
+          0,
+          6,
+          1
+      ]
+  },
+    "fixed": {
+      "rotation": [
+        -154.95,
+        27.37,
+        -43.25
+      ],
+      "translation": [
+        4,
+        -6.25,
+        -2.5
+      ],
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ]
+    }
+  }
+}

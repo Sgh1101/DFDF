@@ -1,0 +1,67 @@
+{
+  "model": "wtyj:melee/future_dagger_geo",
+  "animation": "wtyj:melee/future_dagger",
+  "state_machine": "wtyj:default_melee_state_machine",
+  "texture": "wtyj:melee/future_dagger_uv",
+  "slot_texture": "wtyj:melee/slot/future_dagger",
+  "sounds": {
+    "attack_left_hit": "wtyj:entity.player.flash.hit",
+    "attack_right_hit": "wtyj:entity.player.flash.hit",
+    "crit": "wtyj:entity.player.flash.hit"
+  },
+  "transforms": {
+    "ground": {
+      "translation": [
+          0,
+          2,
+          0
+      ],
+      "rotation": [
+          45,
+          0,
+          0
+      ]
+  },
+  "thirdperson_righthand": {
+      "translation": [
+          0,
+          0,
+          0
+      ],
+      "rotation": [
+          90,
+          0,
+          0
+      ]
+  },
+  "thirdperson_lefthand": {
+      "translation": [
+          0,
+          0,
+          0
+      ],
+      "rotation": [
+          90,
+          0,
+          0
+      ]
+  },
+    "fixed": {
+      "rotation": [
+        -154.95,
+        27.37,
+        -43.25
+      ],
+      "translation": [
+        4,
+        -6.25,
+        -2.5
+      ],
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ]
+    }
+  }
+}

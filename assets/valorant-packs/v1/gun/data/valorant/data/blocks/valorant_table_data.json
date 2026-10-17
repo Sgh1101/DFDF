@@ -1,0 +1,65 @@
+{
+  "filter": "valorant:valorant_all",
+  "tabs": [
+    {
+      "id": "valorant:currency",
+      "name": "valorant.type.currency.name",
+      "icon": {
+        "item": "tacz:ammo",
+        "nbt": {
+          "AmmoId": "valorant:wg100"
+        }
+      }
+    },
+    {
+      "id": "tacz:pistol",
+      "name": "valorant.type.pistol.name",
+      "icon": {
+        "item": "tacz:modern_kinetic_gun",
+        "nbt": {
+          "GunId": "valorant:sheriff"
+        }
+      }
+    },
+    {
+      "id": "tacz:rifle",
+      "name": "valorant.type.rifle.name",
+      "icon": {
+        "item": "tacz:modern_kinetic_gun",
+        "nbt": {
+          "GunId": "valorant:vandal"
+        }
+      }
+    },
+    {
+      "id": "tacz:mg",
+      "name": "valorant.type.mg.name",
+      "icon": {
+        "item": "tacz:modern_kinetic_gun",
+        "nbt": {
+          "GunId": "valorant:odin"
+        }
+      }
+    },
+    {
+      "id": "tacz:sniper",
+      "name": "valorant.type.sniper.name",
+      "icon": {
+        "item": "tacz:modern_kinetic_gun",
+        "nbt": {
+          "GunId": "valorant:operator"
+        }
+      }
+    },
+    {
+      "id": "tacz:shotgun",
+      "name": "valorant.type.shotgun.name",
+      "icon": {
+        "item": "tacz:modern_kinetic_gun",
+        "nbt": {
+          "GunId": "valorant:judge"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "recoil": {
+    "pitch": {
+      "addend": 0.2
+    },
+    "yaw": {
+      "addend": 0.15
+    }
+  },
+  "damage": {
+    "addend": 10
+  },
+  "armor_ignore": {
+    "addend": 0.1
+  },
+  "head_shot": {
+    "addend": 1
+  }
+}
