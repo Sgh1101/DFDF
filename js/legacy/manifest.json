@@ -62,6 +62,7 @@
   "js/legacy/61-kills-that-sound-and-look-like-the-skin-in-your-hands-and.js",
   "js/legacy/62-kill-banners.js",
   "js/legacy/63-heavier-gunshots-the-game-s-shots-are-a-thin-crack-a-squar.js",
+  "js/legacy/63b-each-gun-has-its-own-shot-and-the-room-answers.js",
   "js/legacy/64-the-result-screen-filled-in-every-player-of-the-match-rank.js",
   "js/legacy/65-three-weapon-slots-all-carried-at-once-the-primary-the-pis.js",
   "js/legacy/66-touch-layout.js",
@@ -95,6 +96,5 @@
   "js/legacy/94-abandoned-hospital-a-three-floor-maze-you-can-climb.js",
   "js/legacy/95-first-person-hands-and-gun-finish.js",
   "js/legacy/96-character-details-fingers-brows-ears-soles.js",
-  "js/legacy/97-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js",
-  "js/legacy/98-each-gun-has-its-own-shot-and-the-room-answers.js"
+  "js/legacy/97-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js"
 ]

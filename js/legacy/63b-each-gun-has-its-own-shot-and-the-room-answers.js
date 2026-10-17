@@ -2,7 +2,9 @@
   // Gunshots: each gun has a shot of its own (js/gunshot-synth.js renders them), and the room answers. The game
   // had a tone and a puff of noise per gun class, and eleven guns had no sound of their own at all. This replaces
   // the shot for every gun the model knows (all but the knife, which keeps its swish) and leaves the rest of the
-  // sound alone. The hospital is a long room; every other map is open air. Sound only; no change to a fight.
+  // sound alone. It loads between the heavier-shot module and the skin sound packs, so a skin's own layer still
+  // sits on top of the shot and the pack preview plays this shot. The hospital is a long room, every other map
+  // is open air. Sound only; no change to a fight.
   if ("undefined" == typeof SFX || "function" != typeof SFX.gun || "function" != typeof SFX.shot || !window.GUNSYNTH || "undefined" == typeof GAME_AUDIO) return;
   let eng = null;
   const get = () => {

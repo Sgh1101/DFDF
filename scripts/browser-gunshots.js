@@ -67,6 +67,22 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const off = await page.evaluate(() => { const was = SETTINGS.sfx; SETTINGS.sfx = false; let c = 0; const o = AudioBufferSourceNode.prototype.start; AudioBufferSourceNode.prototype.start = function () { c++; return o.apply(this, arguments); }; SFX.gun("rifle", 0); SFX.gun("sniper", 0); AudioBufferSourceNode.prototype.start = o; SETTINGS.sfx = was; return c; });
     assert.equal(off, 0, "with the sound off no shot starts");
 
+    // a skin's sound pack still lies on top of the shot, and its preview plays the new shot
+    const pack = await page.evaluate(async () => {
+      const id = Object.keys(SOUNDPACK.skins).find((s) => SOUNDPACK.packs[SOUNDPACK.skins[s]]);
+      const count = (fn) => { let b = 0, o = 0; const ob = AudioBufferSourceNode.prototype.start, oo = OscillatorNode.prototype.start; AudioBufferSourceNode.prototype.start = function () { b++; return ob.apply(this, arguments); }; OscillatorNode.prototype.start = function () { o++; return oo.apply(this, arguments); }; return Promise.resolve(fn()).then(() => new Promise((r) => setTimeout(r, 450))).then(() => { AudioBufferSourceNode.prototype.start = ob; OscillatorNode.prototype.start = oo; return { buffers: b, oscillators: o }; }); };
+      await new Promise((r) => setTimeout(r, 600));
+      const layered = await count(() => { window.SKIN_SHOT = { actor: "t1", skin: id }; window.SKIN_SHOOTER = { id: "t1" }; SFX.gun("rifle", 0); });
+      window.SKIN_SHOT = null; window.SKIN_SHOOTER = null;
+      await new Promise((r) => setTimeout(r, 400));
+      const preview = await count(() => SOUNDPACK.preview("default", "shot", "sniper"));
+      return { id, layered, preview };
+    });
+    console.log("skin pack", JSON.stringify(pack));
+    assert.ok(pack.id, "a skin with a sound pack exists");
+    assert.ok(pack.layered.buffers >= 1 && pack.layered.oscillators >= 1, "the skin's pack layer plays on top of the new shot: " + JSON.stringify(pack.layered));
+    assert.ok(pack.preview.buffers >= 3, "the preview's three shots are the new shot: " + JSON.stringify(pack.preview));
+
     // the knife keeps its own sound
     const knife = await page.evaluate(() => GUNSYNTH.has("knife"));
     assert.equal(knife, false);
