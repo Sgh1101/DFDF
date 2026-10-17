@@ -13,4 +13,25 @@
     [practice.querySelector("summary"), "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12 M12 10v4 M10 12h4"],
     [$("go-set"), "M9 3h6l1 4 4 2v6l-4 2-1 4H9l-1-4-4-2V9l4-2z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"],
   ]) element.insertAdjacentHTML("afterbegin", icon(path));
+  // feedback: bug reports, agent ideas, player reports, suggestions (the form is js/feedback.js)
+  if (window.FEEDBACK) {
+    const fb = document.createElement("button");
+    fb.className = "tt-item tt-mini";
+    fb.id = "go-feedback";
+    fb.type = "button";
+    fb.innerHTML = `<b>${L("문의", "Feedback")}</b>`;
+    fb.insertAdjacentHTML("afterbegin", icon("M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"));
+    fb.onclick = () => FEEDBACK.open();
+    $("go-set").after(fb);
+    const pz = document.querySelector("#pause .pz-btns");
+    if (pz && !$("pz-feedback")) {
+      const b = document.createElement("button");
+      b.className = "btn";
+      b.id = "pz-feedback";
+      b.type = "button";
+      b.textContent = L("문의", "Feedback");
+      b.onclick = () => FEEDBACK.open();
+      pz.insertBefore(b, pz.firstChild);
+    }
+  }
 })();

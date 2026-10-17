@@ -39,6 +39,7 @@ td .acts button{padding:3px 8px;font-size:12px}
 .tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;border:1px solid var(--line);color:var(--steel)}
 .tag.red{color:#ff9aa5;border-color:#5c2630}.tag.gold{color:var(--gold);border-color:#5c4b1f}.tag.green{color:var(--green);border-color:#1f5c36}.tag.blue{color:var(--blue);border-color:#1d4a63}
 button.gold{border-color:#5c4b1f;color:var(--gold)}
+button.red{border-color:#5c2630;color:#ff9aa5}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(5,7,10,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .sheet{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
 .modal h3{font-size:17px}
@@ -125,6 +126,22 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
 .qc .rg{display:flex;align-items:center;gap:8px}.qc .rg input[type=range]{flex:1;accent-color:var(--gold)}.qc .rg input[type=number]{width:72px;text-align:right}
 .qc .wide{grid-column:1/-1}
 @media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}table.sk th,table.sk td{display:table-cell!important}}
+
+/* the feedback box */
+#fbBadge:not(:empty){display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:#ff3b4e;color:#fff;font-size:11px;font-weight:700;line-height:18px}
+.fbc{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
+.fbc.new{border-color:#5c4b1f;box-shadow:0 0 0 1px rgba(255,200,73,.15)}
+.fbc>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 14px}
+.fbc>summary::-webkit-details-marker{display:none}
+.fbc>summary b{font-size:14px}.fbc>summary .sp{flex:1}
+.fbc .in{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.fbc .txt{white-space:pre-wrap;word-break:break-word;line-height:1.6;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.fbc .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:12.5px}.fbc .kv span:nth-child(odd){color:var(--dim)}
+.fbc .abl{display:grid;grid-template-columns:36px 150px 1fr;gap:6px 10px;align-items:start;font-size:12.5px}
+.fbc .abl i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid #5c2630;color:#ff9aa5;font-style:normal;font-weight:700}
+.fbc textarea{width:100%;min-height:58px}.fbc .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fbc .acts .sp{flex:1}
+.fbx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 </style>
 <script src="./js/client-request.js"></script>
 </head>
@@ -144,6 +161,7 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
       <button data-v="users">가입자</button>
       <button data-v="rooms">서버·방</button>
       <button data-v="bans">차단</button>
+      <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
       <button data-v="config">게임 설정</button>
     </nav>
@@ -180,7 +198,7 @@ function logout() { clearInterval(timer); AT = ""; sessionStorage.removeItem("ad
 $("#go").onclick = login; $("#pw").onkeydown = (e) => { if (e.key === "Enter") login(); }; $("#out").onclick = logout;
 let view = "dash", timer = null;
 $("#nav").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; view = b.dataset.v; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x === b)); show(); };
-function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); }
+function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); fbBadge(); setInterval(fbBadge, 60000); }
 function show() { clearInterval(timer); VIEWS[view]().catch((e) => ($("#main").innerHTML = `<p class="err">${esc(e.message)}</p>`)); }
 const days = (msg) => { const v = prompt(msg + "\n며칠? (0 = 영구)", "0"); return v === null ? null : Math.max(0, +v || 0); };
 // ── cheats opened for one account, item by item ──
@@ -580,6 +598,60 @@ VIEWS.bans = async () => {
     else await call("a_ban_set", { kind: b.dataset.k, key: b.dataset.v, remove: !0 });
     toast("풀었습니다"); VIEWS.bans();
   };
+};
+
+// ── the feedback box: what players sent (bugs, agent ideas, reports, suggestions, questions) ──
+const FB_ST = { new: ["새 문의", "gold"], read: ["확인함", "blue"], doing: ["처리 중", "blue"], done: ["완료", "green"], no: ["보류", "red"] };
+const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "개선 제안"], ask: ["❓", "문의"], other: ["💬", "기타"] };
+const FB_REASON = { cheat: "치트·핵", abuse: "욕설·비매너", grief: "팀킬·방해", afk: "자리 비움", name: "부적절한 이름", other: "기타" };
+async function fbBadge() { try { const j = await call("a_feedback", { limit: 1 }); const e = $("#fbBadge"); e && (e.textContent = j.counts.new ? String(j.counts.new) : ""); return j.counts; } catch (e) {} }
+function fbCard(r) {
+  const k = FB_KIND[r.type] || ["💬", r.type], st = FB_ST[r.status] || FB_ST.new;
+  const who = `${esc(r.by.id)}${r.by.guest ? " <span class='tag'>게스트</span>" : ` <span class="muted">Lv.${r.by.level}</span>`}`;
+  let extra = "";
+  if (r.type === "agent" && r.agent) extra = `<div class="kv"><span>요원 이름</span><span><b>${esc(r.agent.name)}</b> ${r.agent.role ? `<span class="tag blue">${esc(r.agent.role)}</span>` : ""}</span></div><div class="abl">${r.agent.abilities.map((a) => `<i>${esc(a.key)}</i><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>`).join("")}</div>`;
+  if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${esc(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
+  if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
+  const c = r.ctx || {};
+  const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
+  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span><b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
+    <div class="in">${extra}<div class="txt">${esc(r.text)}</div>
+    <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
+    <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
+    <label class="muted">운영자 메모 (보낸 사람에겐 안 보임)<textarea data-note maxlength="500">${esc(r.note)}</textarea></label>
+    <label class="muted">답장 (보낸 사람의 '내 문의'에 보입니다)<textarea data-reply maxlength="500" placeholder="예: 확인했습니다. 다음 업데이트에 고칩니다">${esc(r.reply)}</textarea></label>
+    <div class="acts"><button data-save class="gold">메모·답장 저장</button><span class="muted">${r.replyT ? "답장 " + when(r.replyT) : ""}</span></div></div></details>`;
+}
+VIEWS.feedback = async () => {
+  $("#main").innerHTML = `<div class="bar"><select id="ft"><option value="">모든 종류</option>${Object.entries(FB_KIND).map(([k, v]) => `<option value="${k}">${v[0]} ${v[1]}</option>`).join("")}</select><select id="fs"><option value="">모든 상태</option>${Object.entries(FB_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="fq" placeholder="검색 (제목·내용·보낸 사람)"><button id="fr">새로고침</button></div><div id="fsum" class="fbx"></div><div id="fl"><p class="muted">불러오는 중…</p></div>`;
+  const load = async () => {
+    const j = await call("a_feedback", { type: $("#ft").value, status: $("#fs").value, q: $("#fq").value, limit: 300 });
+    $("#fbBadge").textContent = j.counts.new ? String(j.counts.new) : "";
+    $("#fsum").innerHTML = `<span class="tag gold">새 문의 ${j.counts.new}</span><span class="tag">전체 ${j.counts.total}</span>${Object.entries(j.counts.byType).map(([k, n]) => `<span class="tag">${(FB_KIND[k] || [""])[0]} ${(FB_KIND[k] || [0, k])[1]} ${n}</span>`).join("")}`;
+    $("#fl").innerHTML = j.items.length ? j.items.map(fbCard).join("") : `<p class="muted">조건에 맞는 문의가 없습니다.</p>`;
+    window.__fb = Object.fromEntries(j.items.map((x) => [x.id, x]));
+  };
+  $("#fr").onclick = load; $("#ft").onchange = load; $("#fs").onchange = load; $("#fq").onkeydown = (e) => { if (e.key === "Enter") load(); };
+  const mark = async (card, status) => {
+    const id = card.dataset.id;
+    const j = await call("a_feedback_set", { id, status });
+    const st = FB_ST[j.item.status] || FB_ST.new;
+    const tag = card.querySelector("[data-st]"); tag.className = "tag " + st[1]; tag.textContent = st[0];
+    card.classList.toggle("new", j.item.status === "new");
+    card.querySelectorAll("[data-s]").forEach((b) => b.classList.toggle("gold", b.dataset.s === j.item.status));
+    window.__fb && (window.__fb[id] = j.item);
+    fbBadge();
+  };
+  $("#fl").addEventListener("toggle", (e) => { const d = e.target; if (d.open && d.classList.contains("new")) mark(d, "read").catch(() => {}); }, true);
+  $("#fl").onclick = async (e) => {
+    const card = e.target.closest(".fbc"); if (!card) return;
+    const b = e.target.closest("button"); if (!b) return;
+    const id = card.dataset.id;
+    if (b.dataset.s) { await mark(card, b.dataset.s); toast("상태를 바꿨습니다"); }
+    else if (b.hasAttribute("data-save")) { await call("a_feedback_set", { id, note: card.querySelector("[data-note]").value, reply: card.querySelector("[data-reply]").value }); toast("저장했습니다"); }
+    else if (b.hasAttribute("data-del")) { if (confirm("이 문의를 지울까요?")) { await call("a_feedback_del", { id }); card.remove(); toast("지웠습니다"); fbBadge(); } }
+  };
+  await load();
 };
 VIEWS.logs = async () => {
   $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option><option value="gacha">뽑기</option><option value="shop">상점</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;

@@ -468,3 +468,72 @@ test("profile cosmetics: bought with gold, owned once, equipped only in their ow
   h.db.set("user:player", JSON.stringify(u));
   assert.deepEqual((await h.api("me", { token: p.token })).user.cos, { own: ["marksman"], eq: { title: "", card: "", banner: "" } });
 });
+
+test("the feedback box: each kind is checked, rate limited and kept; the owner reads, marks and answers; the sender sees the answer", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner"), other = await login(h, "second");
+  const send = (b, who = p) => h.api("feedback_submit", Object.assign({ token: who.token }, b));
+  // signed in only
+  assert.equal((await h.api("feedback_submit", { type: "bug", text: "에러가 납니다 정말로" })).status, 401);
+  // a kind, and words
+  assert.equal((await send({ type: "nope", text: "내용이 충분히 깁니다" })).status, 400);
+  assert.equal((await send({ type: "bug", text: "짧" })).status, 400);
+  // a bug, with where it happened
+  const bug = await send({ type: "bug", title: "상점이 안 열려요", text: "구매 단계에서 B를 눌러도 상점이 열리지 않습니다", bug: { where: "게임 중", steps: "1. 시작 2. B" }, ctx: { ua: "UA".repeat(200), view: "844x390", page: "play", mode: "std", map: "field" } });
+  assert.equal(bug.status, 200);
+  // an agent idea: a name and at least one ability
+  assert.equal((await send({ type: "agent", text: "새 요원을 제안합니다 능력은 아래와 같아요", agent: { name: "", abilities: [{ name: "a", desc: "b" }] } })).status, 400, "a name");
+  assert.equal((await send({ type: "agent", text: "새 요원을 제안합니다 능력은 아래와 같아요", agent: { name: "시계공", abilities: [] } })).status, 400, "an ability");
+  const ag = await send({ type: "agent", text: "시간을 다루는 요원입니다", agent: { name: "시계공", role: "전략가", abilities: [{ name: "되감기", desc: "3초 전 위치로 돌아간다" }, { name: "정지", desc: "" }, { name: "", desc: "" }, { name: "가속", desc: "팀 이동 속도 증가" }, { name: "다섯째", desc: "버려짐" }] } });
+  assert.equal(ag.status, 200);
+  // a player report needs a name
+  assert.equal((await send({ type: "report", text: "벽을 뚫고 쏘는 것 같습니다 의심됩니다", report: { target: "" } })).status, 400);
+  assert.equal((await send({ type: "report", text: "벽을 뚫고 쏘는 것 같습니다 의심됩니다", report: { target: "의심자", reason: "cheat", room: "abc123" } }, other)).status, 200);
+  // the same words twice are one
+  assert.equal((await send({ type: "bug", title: "상점이 안 열려요", text: "구매 단계에서 B를 눌러도 상점이 열리지 않습니다" })).status, 409);
+  // a brake: five an hour
+  for (let i = 0; i < 2; i++) assert.equal((await send({ type: "idea", text: "개선 제안 번호 " + i + " 입니다 길게" })).status, 200);
+  assert.equal((await send({ type: "ask", text: "문의 내용입니다 길게 적었어요" })).status, 429, "the sixth in an hour");
+  h.advance(3600001);
+  assert.equal((await send({ type: "ask", text: "문의 내용입니다 길게 적었어요" })).status, 200, "an hour later");
+
+  // the owner's box: everything, newest first, with counts
+  assert.equal((await h.api("a_feedback", { atoken: p.token })).status, 401, "not for players");
+  const o2 = await login(h, "owner");
+  const all = await h.api("a_feedback", { atoken: o2.atoken });
+  assert.equal(all.status, 200);
+  assert.equal(all.items.length, 6);
+  assert.equal(all.counts.total, 6); assert.equal(all.counts.new, 6);
+  assert.deepEqual(all.counts.byType, { bug: 1, agent: 1, report: 1, idea: 2, ask: 1 });
+  assert.equal(all.items[0].type, "ask", "newest first");
+  const b0 = all.items.find((x) => x.type === "bug");
+  assert.equal(b0.by.id, "player"); assert.equal(b0.by.guest, false); assert.equal(b0.by.level, 1);
+  assert.equal(b0.ctx.ua.length, 160, "the browser text is cut"); assert.equal(b0.bug.where, "게임 중");
+  const a0 = all.items.find((x) => x.type === "agent");
+  assert.deepEqual(a0.agent.abilities.map((x) => x.key + x.name), ["Q되감기", "E정지", "X가속"], "empty rows go, four at most, keys by position");
+  assert.equal(a0.title, "요원 제안: 시계공", "an agent idea without a title is named by the agent");
+  const r0 = all.items.find((x) => x.type === "report");
+  assert.equal(r0.title, "신고: 의심자");
+  assert.deepEqual(r0.report, { target: "의심자", reason: "cheat", room: "ABC123" });
+  // filters
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, type: "idea" })).items.length, 2);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, q: "시계공" })).items.length, 1);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, status: "done" })).items.length, 0);
+  // mark, note and answer
+  assert.equal((await h.api("a_feedback_set", { atoken: o2.atoken, id: b0.id, status: "weird" })).status, 400);
+  assert.equal((await h.api("a_feedback_set", { atoken: o2.atoken, id: "nothing", status: "done" })).status, 404);
+  const set = await h.api("a_feedback_set", { atoken: o2.atoken, id: b0.id, status: "doing", note: "재현됨", reply: "확인했습니다. 곧 고칩니다" });
+  assert.equal(set.status, 200); assert.equal(set.item.status, "doing"); assert.ok(set.item.replyT > 0);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken })).counts.new, 5);
+  // the sender sees where it stands and the answer; not the note, not others' words
+  const mine = await h.api("feedback_mine", { token: p.token });
+  assert.equal(mine.status, 200);
+  const mb = mine.items.find((x) => x.id === b0.id);
+  assert.equal(mb.status, "doing"); assert.equal(mb.reply, "확인했습니다. 곧 고칩니다"); assert.equal(mb.note, undefined);
+  assert.ok(mine.items.every((x) => x.id !== r0.id), "someone else's report is not mine");
+  assert.equal((await h.api("feedback_mine", {})).status, 401);
+  // a delete
+  const del = await h.api("a_feedback_del", { atoken: o2.atoken, ids: [b0.id, a0.id] });
+  assert.equal(del.status, 200); assert.equal(del.deleted, 2);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken })).items.length, 4);
+  assert.ok(h.db.get("logs").some((l) => /feedback/.test(l) && /상점이 안 열려요/.test(l)), "logged");
+});

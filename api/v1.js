@@ -660,6 +660,76 @@ A.prefs = async (q, b) => {
   }
   return { prefs: u.prefs || null };
 };
+
+// ── feedback: bug reports, agent ideas, player reports, suggestions, questions ──
+// Anyone signed in (an account or a guest) can send one; the owner reads them in the admin page and
+// can mark where each one stands and write a short reply that the sender sees. Each lives in its own
+// key for 90 days, newest first in the `fb` list (kept to the latest 3000).
+const FB_TYPES = { bug: "버그 신고", agent: "요원 제안", report: "사용자 신고", idea: "개선 제안", ask: "문의", other: "기타" };
+const FB_STATUS = ["new", "read", "doing", "done", "no"];
+const FB_ROLES = ["타격대", "감시자", "척후대", "전략가"];
+const FB_REASONS = ["cheat", "abuse", "grief", "afk", "name", "other"];
+const FB_KEYS = ["Q", "E", "C", "X"];
+const fbStr = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, n);
+function cleanFeedback(b) {
+  const type = FB_TYPES[b.type] ? b.type : "";
+  if (!type) throw fail(400, "종류를 골라 주세요");
+  const text = fbStr(b.text, 2000);
+  if (text.length < 5) throw fail(400, "내용을 5자 이상 적어 주세요");
+  const f = { type, title: fbStr(b.title, 60), text, contact: fbStr(b.contact, 80) };
+  if ("agent" === type) {
+    const a = isObj(b.agent) ? b.agent : {};
+    const abilities = (Array.isArray(a.abilities) ? a.abilities : []).slice(0, 4).map((x, i) => ({ key: FB_KEYS[i], name: fbStr(isObj(x) ? x.name : "", 24), desc: fbStr(isObj(x) ? x.desc : "", 300) })).filter((x) => x.name || x.desc);
+    f.agent = { name: fbStr(a.name, 20), role: FB_ROLES.includes(a.role) ? a.role : "", abilities };
+    if (!f.agent.name) throw fail(400, "요원 이름을 적어 주세요");
+    if (!abilities.length) throw fail(400, "능력을 하나 이상 설명해 주세요");
+  }
+  if ("report" === type) {
+    const r = isObj(b.report) ? b.report : {};
+    f.report = { target: fbStr(r.target, 30), reason: FB_REASONS.includes(r.reason) ? r.reason : "other", room: fbStr(r.room, 8).toUpperCase() };
+    if (!f.report.target) throw fail(400, "신고할 사용자의 이름을 적어 주세요");
+  }
+  if ("bug" === type) {
+    const g = isObj(b.bug) ? b.bug : {};
+    f.bug = { where: fbStr(g.where, 30), steps: fbStr(g.steps, 600) };
+  }
+  // no title: the agent's name, the reported name, or the first words
+  f.title ||= "agent" === type ? "요원 제안: " + f.agent.name : "report" === type ? "신고: " + f.report.target : text.replace(/\s+/g, " ").slice(0, 40);
+  const c = isObj(b.ctx) ? b.ctx : {};
+  f.ctx = { ua: fbStr(c.ua, 160), view: fbStr(c.view, 20), page: fbStr(c.page, 20), mode: fbStr(c.mode, 20), map: fbStr(c.map, 24), lang: fbStr(c.lang, 4) };
+  return f;
+}
+A.feedback_submit = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const f = cleanFeedback(b),
+    me = u.guest ? "g:" + u.dev : "u:" + u.id.toLowerCase();
+  if ((await limited("fb:" + me + ":h", 5, 3600)) || (await limited("fb:" + me + ":d", 15, 86400))) throw fail(429, "문의를 너무 자주 보내고 있습니다. 잠시 후 다시 시도해 주세요");
+  // the same words twice in ten minutes are one
+  if (await limited("fbdup:" + crypto.createHash("md5").update(me + "|" + f.type + "|" + f.text).digest("hex"), 1, 600)) throw fail(409, "같은 내용을 방금 보내셨습니다");
+  const c = await loadConfig(),
+    id = now().toString(36) + crypto.randomBytes(3).toString("hex");
+  const rec = Object.assign({ id, t: now(), by: { id: u.id, guest: !!u.guest, level: levelOf(u.xp || 0, c.xp.perLevel).level }, status: "new", note: "", reply: "", replyT: 0 }, f);
+  await pipe([
+    ["SET", "fb:" + id, JSON.stringify(rec), "EX", String(90 * 86400)],
+    ["LPUSH", "fb", id],
+    ["LTRIM", "fb", "0", "2999"],
+    ["LPUSH", "fbu:" + me, id],
+    ["LTRIM", "fbu:" + me, "0", "19"],
+    ["EXPIRE", "fbu:" + me, String(90 * 86400)],
+  ]);
+  await log("feedback", `${FB_TYPES[f.type]} · ${u.id}: ${f.title}`, { id, user: u.id });
+  return { id };
+};
+// what I sent, with where each stands and the reply
+A.feedback_mine = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const me = u.guest ? "g:" + u.dev : "u:" + u.id.toLowerCase(),
+    ids = await redis(["LRANGE", "fbu:" + me, "0", "19"]);
+  const rows = ids.length ? await pipe(ids.map((i) => ["GET", "fb:" + i])) : [];
+  return { items: rows.filter(Boolean).map((r) => { const x = JSON.parse(r); return { id: x.id, t: x.t, type: x.type, title: x.title, status: x.status, reply: x.reply || "", replyT: x.replyT || 0 }; }) };
+};
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
 A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
 
@@ -1451,6 +1521,46 @@ ADMIN.logs_clear = async () => {
   await log("admin", "로그 비움");
   return { ok: !0 };
 };
+
+// the feedback box
+ADMIN.feedback = async (q, b) => {
+  const ids = await redis(["LRANGE", "fb", "0", "2999"]);
+  const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "fb:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
+  const t = String(b.type || ""),
+    st = String(b.status || ""),
+    s = String(b.q || "").toLowerCase();
+  const counts = { total: rows.length, new: 0, byType: {} };
+  for (const r of rows) {
+    "new" === r.status && counts.new++;
+    counts.byType[r.type] = (counts.byType[r.type] || 0) + 1;
+  }
+  const items = rows.filter((r) => (!t || r.type === t) && (!st || r.status === st) && (!s || JSON.stringify(r).toLowerCase().includes(s))).slice(0, Math.max(1, Math.min(500, (b.limit | 0) || 200)));
+  return { items, counts, types: FB_TYPES };
+};
+ADMIN.feedback_set = async (q, b) => {
+  const id = String(b.id || "").replace(/[^a-z0-9]/g, "").slice(0, 24);
+  const raw = id && (await redis(["GET", "fb:" + id]));
+  if (!raw) throw fail(404, "없는 문의입니다");
+  const r = JSON.parse(raw);
+  if (null != b.status) {
+    if (!FB_STATUS.includes(b.status)) throw fail(400, "상태를 확인해 주세요");
+    r.status = b.status;
+  }
+  null != b.note && (r.note = fbStr(b.note, 500));
+  if (null != b.reply) {
+    const rep = fbStr(b.reply, 500);
+    rep !== r.reply && ((r.reply = rep), (r.replyT = rep ? now() : 0));
+  }
+  await redis(["SET", "fb:" + id, JSON.stringify(r), "EX", String(90 * 86400)]);
+  return { item: r };
+};
+ADMIN.feedback_del = async (q, b) => {
+  const ids = (Array.isArray(b.ids) ? b.ids : [b.id]).map((x) => String(x || "").replace(/[^a-z0-9]/g, "").slice(0, 24)).filter(Boolean).slice(0, 200);
+  if (!ids.length) throw fail(400, "지울 문의를 골라 주세요");
+  await pipe(ids.flatMap((i) => [["DEL", "fb:" + i], ["LREM", "fb", "0", i]]));
+  await log("admin", `문의 ${ids.length}건 삭제`);
+  return { deleted: ids.length };
+};
 ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_CONFIG });
 ADMIN.config_set = async (q, b) => {
   if (!isObj(b.config)) throw fail(400, "설정이 없습니다");
@@ -1526,3 +1636,4 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };
 module.exports.COS = COS;
+module.exports.FB_TYPES = FB_TYPES;
