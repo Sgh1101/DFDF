@@ -155,8 +155,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         setQuality(q);
         const mats = new Set(HOSPITAL.meshes.map((m) => m.material)), has = (k) => [...mats].some((m) => m[k] && m[k].image);
         const wall = [...mats].find((m) => m.map && m.map.image && m.map.image.width >= 256 && m.normalMap !== void 0 && m.vertexColors);
-        const sizes = [...mats].filter((m) => m.map && m.map.image).map((m) => m.map.image.width);
-        out[q + (out[q] ? "2" : "")] = { lights: HOSPITAL.lights.length, mapMax: Math.max(...sizes), normal: has("normalMap"), rough: has("roughnessMap"), aniso: Math.max(...[...mats].filter((m) => m.map).map((m) => m.map.anisotropy)), key: HOSPITAL.key, bankMs: HOSPITAL.bankMs };
+        const sizes = [...mats].filter((m) => m.vertexColors && m.map && m.map.image).map((m) => m.map.image.width);
+        out[q + (out[q] ? "2" : "")] = { lights: HOSPITAL.lights.length, mapMax: Math.max(...sizes), normal: has("normalMap"), rough: has("roughnessMap"), aniso: Math.max(...[...mats].filter((m) => m.vertexColors && m.map).map((m) => m.map.anisotropy)), key: HOSPITAL.key, bankMs: HOSPITAL.bankMs };
       }
       setQuality(was);
       return out;

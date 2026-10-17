@@ -1376,6 +1376,105 @@
     m.userData.noMerge = !0;
     return m;
   }
+  // ── the front: floor lines and a cornice round the building, a canopy over each entrance, the sign ──
+  // The outside was one long blank wall. These are thin boxes and one flat sign: a few hundred triangles,
+  // no collider (all of it is above head height or flush with the wall).
+  let SIGN = null;
+  function signBoard() {
+    if (SIGN) return SIGN;
+    const c = document.createElement("canvas");
+    c.width = 1024;
+    c.height = 256;
+    const g = c.getContext("2d");
+    g.fillStyle = "#1b2126";
+    g.fillRect(0, 0, 1024, 256);
+    g.strokeStyle = "#4b555c";
+    g.lineWidth = 8;
+    g.strokeRect(8, 8, 1008, 240);
+    // the cross, its red gone to rust
+    g.fillStyle = "#c9ccc6";
+    g.fillRect(36, 36, 184, 184);
+    g.fillStyle = "#8f3a33";
+    g.fillRect(96, 52, 64, 152);
+    g.fillRect(52, 96, 152, 64);
+    // the name: a few letters still lit, the rest dead glass; both lines are fitted to the room left of the cross
+    const name = "ELMWOOD",
+      lit = [1, 1, 0, 1, 1, 0, 1],
+      room = 730;
+    g.textBaseline = "middle";
+    g.textAlign = "left";
+    let px = 150;
+    g.font = `900 ${px}px "Orbitron", "Noto Sans KR", sans-serif`;
+    const nameW = () => [...name].reduce((w, ch) => w + g.measureText(ch).width + 6, 0);
+    px = Math.floor(px * Math.min(1, room / nameW()));
+    g.font = `900 ${px}px "Orbitron", "Noto Sans KR", sans-serif`;
+    let x = 258;
+    for (let i = 0; i < name.length; i++) {
+      g.fillStyle = lit[i] ? "#d7e8ff" : "#3a4248";
+      g.fillText(name[i], x, 92);
+      x += g.measureText(name[i]).width + 6;
+    }
+    const sub = "GENERAL HOSPITAL  ·  응급 24시";
+    let sp = 62;
+    g.font = `800 ${sp}px "Noto Sans KR", sans-serif`;
+    sp = Math.floor(sp * Math.min(1, room / g.measureText(sub).width));
+    g.font = `800 ${sp}px "Noto Sans KR", sans-serif`;
+    g.fillStyle = "#9fb0bd";
+    g.fillText(sub, 258, 200);
+    const t = new T.CanvasTexture(c);
+    t.colorSpace = T.SRGBColorSpace;
+    t.anisotropy = 8;
+    SIGN = { t, mat: new T.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.34, roughness: 0.8, metalness: 0.05 }) };
+    return SIGN;
+  }
+  function buildFacade() {
+    const W = C * CELL,
+      stone = colOf("#8f918c", 1),
+      pale = colOf("#a9aba5", 1),
+      dark = colOf("#3d4247", 1);
+    const x0 = OX,
+      x1 = OX + W,
+      zN = ez(0),
+      zS = ez(P.buildingRows);
+    // a band at each floor line (a shallow ledge) and a deeper cornice under the roof
+    // (the walls are 0.4 thick and centred on the line, so a ledge starts 0.2 out)
+    for (const [y, h, d0, col] of [[FH, 0.3, 0.2, pale], [2 * FH, 0.55, 0.42, stone]]) {
+      const d = d0 + 0.2;
+      boxTo(G.conc, x0 - d, x1 + d, y - h / 2, y + h / 2, zS, zS + d, col);
+      boxTo(G.conc, x0 - d, x1 + d, y - h / 2, y + h / 2, zN - d, zN, col);
+      boxTo(G.conc, x0 - d, x0, y - h / 2, y + h / 2, zN, zS, col);
+      boxTo(G.conc, x1, x1 + d, y - h / 2, y + h / 2, zN, zS, col);
+    }
+    // a dark band under the cornice: the shadow it throws
+    boxTo(G.conc, x0, x1, 2 * FH - 0.95, 2 * FH - 0.6, zS + 0.21, zS + 0.21, dark, { faces: "pz" });
+    // the canopies: the same gaps the barriers close
+    const gaps = [];
+    let s = -1;
+    for (let c = 0; c <= C; c++) {
+      const open = c < C && 0 === eH(0, P.buildingRows, c);
+      open && s < 0 && (s = c);
+      if (!open && s >= 0) (gaps.push([s, c]), (s = -1));
+    }
+    const tints = ["#a8433c", "#2f7f86", "#59636d"];
+    gaps.forEach(([a, b], i) => {
+      const xa = ex(a) - 1.4,
+        xb = ex(b) + 1.4;
+      boxTo(G.conc, xa, xb, 3.42, 3.62, zS, zS + 3.4, stone);
+      // the fascia in the entrance's colour, and two struts back to the wall
+      boxTo(PG.matte, xa, xb, 3.62, 4.05, zS + 3.3, zS + 3.4, colOf(tints[i % tints.length], 1));
+      for (const x of [xa + 0.6, xb - 0.6]) boxTo(PG.metal, x - 0.06, x + 0.06, 3.0, 3.42, zS + 0.05, zS + 2.6, dark, { faces: "nx px py" });
+    });
+    // the sign over the middle entrance, just proud of the wall
+    const mid = gaps[Math.floor(gaps.length / 2)] || [C / 2 - 2, C / 2 + 2],
+      sb = signBoard(),
+      m = new T.Mesh(new T.PlaneGeometry(13.2, 3.3), sb.mat);
+    m.position.set((ex(mid[0]) + ex(mid[1])) / 2, 6.15, zS + 0.24);
+    m.userData.noMerge = !0;
+    m.userData.lv = 1;
+    FRONT.push(m);
+  }
+  const FRONT = [];
+
   function buildDecals() {
     const g = new Geo();
     let k = 0;
@@ -1462,6 +1561,8 @@
     buildStairs();
     buildProps();
     buildLights();
+    FRONT.length = 0;
+    buildFacade();
     // meshes: one per chunk
     const add = (g, mat, key) => {
       const ms = g.mesh(mat);
@@ -1488,6 +1589,7 @@
       m.userData.lv = Math.max(0, Math.min(2, Math.floor(y / FH)));
       S.chunks.push(m);
     }
+    for (const m of FRONT) (KEEP(m), S.chunks.push(m));
     for (const m of buildDecals()) (KEEP(m), S.chunks.push(m));
     for (const m of buildBeams()) (KEEP(m), S.chunks.push(m));
     // colliders
