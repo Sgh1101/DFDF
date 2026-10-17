@@ -74,3 +74,16 @@
 #champion-shop .champion-offers button+button::before{background:#f1e6cf;box-shadow:0 0 9px #f1e6cf}
 #champion-shop .champion-offers button strong{flex:1;font-weight:800}
 #champion-shop .champion-offers button.owned{border-color:rgba(255,200,73,.45)}#champion-shop .champion-offers button.owned span{color:#f3d58a}
+
+/* fit the whole tab in a 720p window: sound and motion share one row, the shop card is tighter, the long notes are small */
+#phantom-panel .pp-rows{display:flex;flex-wrap:wrap;gap:8px}
+#phantom-panel .pp-row{gap:0}#phantom-panel .pp-row em{display:none}#phantom-panel .pp-btns{flex-wrap:nowrap;gap:2px;padding:3px}#phantom-panel .pp-btn{gap:6px;padding:5px 9px}
+#phantom-panel{padding:12px 14px 10px 18px;margin-top:10px}
+#phantom-panel .pp-desc{margin-top:6px}#phantom-panel .pp-tags{margin-top:8px}#phantom-panel .pp-rows{margin-top:10px}
+#phantom-panel .pp-btn{min-height:32px;padding:5px 11px}
+#phantom-status{margin-top:8px}#phantom-panel .pp-source{margin-top:8px}#phantom-panel small{margin-top:6px}
+#champion-shop{padding:10px 14px 8px 18px;margin-bottom:10px}#champion-shop>p:not(#champion-shop-status){margin:4px 0 8px}
+#champion-shop .champion-offers button{min-height:40px;padding:7px 12px}
+#champion-shop-status{margin:6px 0 0}
+#champions-content .ch-head+.champions-intro{margin:6px 0 10px}
+@media(max-height:740px){#champions-content .champions-intro,#phantom-panel .pp-desc{display:none}#champions-content .ch-head+.champions-intro{margin:0}}
