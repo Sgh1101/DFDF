@@ -32,6 +32,7 @@
     "test:newmaps": "node scripts/browser-newmaps.js",
     "test:hospital": "node scripts/browser-hospital.js",
     "test:details": "node scripts/browser-details.js",
+    "test:hospital-bots": "node scripts/browser-hospital-bots.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
     "audit:ui-home": "node scripts/browser-ui-audit-home.js"
