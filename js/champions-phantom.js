@@ -185,7 +185,7 @@
     const dots = document.createElement("div"); dots.id = "phantom-emblems"; dots.setAttribute("aria-label", L(`${kills} 처치`, `${kills} kills`));
     for (let i = 0; i < 5; i++) { const dot = document.createElement("span"); dot.textContent = i < kills ? "◆" : "◇"; dots.appendChild(dot); }
     $("kf-badge").appendChild(dots);
-    const tag = $("kf-tag"); if (tag) tag.textContent = L("챔피언스 팬텀", "CHAMPIONS PHANTOM") + (final ? " · FINISHER" : "");
+    const tag = $("kf-tag"); if (tag) tag.textContent = L("챔피언스 팬텀 · 초월", "CHAMPIONS PHANTOM · TRANSCENDENT") + (final ? " · FINISHER" : "");
     if (assets) {
       const emblem = url("textures/gui/banner/" + (final ? "emblem_fin_" + side : "emblem_new_" + side) + ".png");
       if (emblem) dots.style.backgroundImage = `url("${emblem}")`;
@@ -272,14 +272,18 @@
     }
     for (const b of document.querySelectorAll("[data-phantom-skin]")) b.setAttribute("aria-pressed", String(b.dataset.phantomSkin === id));
   }
+  const guide = document.createElement("details"); guide.id = "skin-tier-guide";
+  guide.innerHTML = `<summary>${L("스킨 등급표", "Skin tier guide")} <span>${L("최고 등급: 초월", "Highest tier: Transcendent")}</span></summary>
+    <div class="skin-tier-scroll"><table><caption>${L("일반 → 희귀 → 영웅 → 전설 → 초월", "Common → Rare → Epic → Legendary → Transcendent")}</caption><thead><tr><th>${L("순위", "Rank")}</th><th>${L("등급", "Tier")}</th><th>${L("구분", "Details")}</th></tr></thead><tbody>${SKIN_TIERS.list.slice().reverse().map((row, i) => `<tr data-tier="${row.id}"${row.id === 5 ? ' class="highest"' : ""}><th scope="row">${i + 1}</th><td style="color:${row.c}">${L(row.ko, row.en)}</td><td>${row.id === 5 ? L("전설보다 높은 최고 등급 · 700 초월 코인", "Above Legendary · 700 Transcendent coins") : row.id === 4 ? L("초월 바로 아래 등급", "One tier below Transcendent") : L(`${row.id}단계`, `Tier ${row.id}`)}</td></tr>`).join("")}</tbody></table></div>`;
+  $("armory").querySelector(".ar-hd").after(guide);
   const panel = document.createElement("section"); panel.id = "phantom-panel";
-  panel.innerHTML = `<details><summary>${L("챔피언스 팬텀 · 스킨 팩", "Champions Phantom · Skin pack")}</summary><div class="phantom-content">
-    <p>${L("카빈 전용 · 공격/수비 외형 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Carbine only · Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
+  panel.innerHTML = `<details><summary>${L("초월 상점 · 챔피언스 팬텀", "Transcendent shop · Champions Phantom")}</summary><div class="phantom-content">
+    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 카빈 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Carbine Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
     <div class="phantom-buttons"><button type="button" data-phantom-skin="champions_atk" aria-pressed="true">${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" data-phantom-skin="champions_def" aria-pressed="false">${L("수비 · 상아빛", "Defense · Ivory")}</button></div>
     <div class="phantom-buttons">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")], ["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(([k, v]) => `<button type="button" data-phantom-demo="${k}">${v}</button>`).join("")}<button type="button" id="phantom-stop">${L("중지", "Stop")}</button></div>
     <p id="phantom-status" role="status">${L("기본 게임 외형 사용 중 · 원본 JAR을 불러오면 원본 모델과 배너로 바뀝니다.", "Using the game model · Import your JAR for the original model and banner.")}</p>
     <label class="phantom-import">${L("원본 JAR 불러오기", "Import original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("기본 외형으로", "Use game model")}</button>
-    <small>${L("이 브라우저에만 저장됩니다. 다른 플레이어도 원본 외형을 보려면 각자 불러와야 합니다. 원본 제작: Seafle · 원본 파일 재배포 금지. 미보유 스킨은 미리보기만 가능하며 뽑기·상점·관리자 지급으로 획득합니다.", "Saved in this browser only. Others must import their own copy to see original assets. Original by Seafle; do not redistribute. Unowned skins are preview only; obtain them through pulls, shop or owner grants.")}</small>
+    <small>${L("이 브라우저에만 저장됩니다. 다른 플레이어도 원본 외형을 보려면 각자 불러와야 합니다. 원본 제작: Seafle · 원본 파일 재배포 금지. 미보유 스킨은 미리보기만 가능합니다. 초월 상점 코인 700개 또는 뽑기 0.00000000000000001%로 획득합니다.", "Saved in this browser only. Others must import their own copy to see original assets. Original by Seafle; do not redistribute. Unowned skins are preview only; obtain them for 700 coins or a 0.00000000000000001% pull.")}</small>
     </div></details>`;
   $("armory").appendChild(panel);
   panel.querySelectorAll("[data-phantom-skin]").forEach((b) => b.onclick = () => choose(b.dataset.phantomSkin));

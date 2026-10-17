@@ -24,6 +24,7 @@
 | `js/damage-cause.js` | 무기 전환 이후에도 유지할 피해 원인과 실행 범위 |
 | `js/game-events.js` | 최종 입력·재접속 보호, 처치 사건, 피니셔, 라운드 경계 |
 | `js/phantom-assets.js`, `js/champions-phantom.js` | 로컬 JAR 데이터 읽기, 챔피언스 카빈 모델·배너·마무리·사운드·무기고 미리보기 |
+| `js/skin-tiers.js`, `js/champion-shop.js` | 전설 위의 초월 등급·정확한 극소 확률 추첨·700코인 상점과 잔액 표시 |
 | `js/home.js`, `js/home-details.js` | 홈 배치·미리보기·최근 설정·즐겨찾기·안내 |
 | `js/home-navigation.js`, `css/home-navigation.css` | 원래 홈 스타일을 유지하는 상단 메뉴와 배치 치수 |
 | `js/modal-focus.js` | 설정·구매·관리자·무기고·미션·지도·점수판·뽑기·로그인·배치 편집 포커스 |

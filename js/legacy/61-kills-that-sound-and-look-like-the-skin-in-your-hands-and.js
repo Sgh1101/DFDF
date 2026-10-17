@@ -202,7 +202,7 @@ body.kf-acc #killflash{background:radial-gradient(ellipse at center,transparent 
           clearTimeout(accT);
           accT = setTimeout(() => document.body.classList.remove("kf-acc"), 1900);
         } else document.body.classList.remove("kf-acc");
-        if (tag) tag.textContent = s ? `${EN() ? s.en : s.ko} · ${tier >= 4 ? (EN() ? "LEGENDARY" : "전설") : EN() ? "EPIC" : "영웅"}` : "";
+        if (tag) tag.textContent = s ? `${EN() ? s.en : s.ko} · ${GUN_SKINS.rar[tier][EN() ? "en" : "ko"]}` : "";
         // the banner plays its entrance again for the new look
         if (badge) {
           badge.style.animation = "none";

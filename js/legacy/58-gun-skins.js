@@ -36,10 +36,7 @@
   // glow breathes), hue (the sheen cycles through colours), drift (the pattern moves)
   const RAR = [
     { ko: "기본", en: "Stock", c: "#8a97ab" },
-    { ko: "일반", en: "Common", c: "#4ade80" },
-    { ko: "희귀", en: "Rare", c: "#38bdf8" },
-    { ko: "영웅", en: "Epic", c: "#c084fc" },
-    { ko: "전설", en: "Legendary", c: "#ffc849" },
+    ...SKIN_TIERS.list,
   ];
   const SKINS = [
     { id: "default", ko: "기본", en: "Stock", rar: 0 },
@@ -95,8 +92,8 @@
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
-    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 4, only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
-    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 4, only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
+    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
+    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -1321,6 +1318,7 @@
   const gated = () => isOnline();
   const signed = () => gated() && !!token();
   const owns = (key, id) => "default" === id || (!!BY[id] && fits(BY[id], key) && (!gated() || !!(INV.own[key] && INV.own[key].includes(id))));
+  const pullableLeft = () => Object.keys(WEAPONS).reduce((n, key) => n + skinsFor(key).filter((s) => s.rar > 0 && !s.excl && !owns(key, s.id)).length, 0);
   const totalOf = (key) => skinsFor(key).length - 1;
   const ownedOf = (key) => (gated() ? (INV.own[key] || []).filter((id) => BY[id] && fits(BY[id], key)).length : totalOf(key));
   const ownedAll = () => {
@@ -1444,7 +1442,7 @@
     if (a._botSk) return a._botSk;
     const t = {},
       v = GC().botMaxTier,
-      cap = null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2,
+      cap = null != v && isFinite(+v) ? Math.max(0, Math.min(SKIN_TIERS.max, +v)) : 2,
       pool = SKINS.filter((s) => !s.gone && !s.excl && s.rar >= 1 && s.rar <= cap);
     let h = (((a.id | 0) + 1) * 2654435761 + seed) >>> 0;
     for (const k of Object.keys(WEAPONS)) {
@@ -1609,7 +1607,7 @@
   }
   const botCap = () => {
     const v = GC().botMaxTier;
-    return null != v && isFinite(+v) ? Math.max(0, Math.min(4, +v)) : 2;
+    return null != v && isFinite(+v) ? Math.max(0, Math.min(SKIN_TIERS.max, +v)) : 2;
   };
   // guest: my table and its ticket to the host; the newest call wins, and a
   // ticket the server did not give is asked for again a little later
@@ -1856,6 +1854,12 @@
   // an answer from the server that carries the collection
   function takeInv(j) {
     if (!j || !j.own || "object" != typeof j.own) return;
+    if (j.user) syncSession(j.user);
+    if (Number.isSafeInteger(j.championCoins)) {
+      const s = session();
+      if (s && s.user) { s.user.championCoins = j.championCoins; syncSession(s.user); }
+      dispatchEvent(new CustomEvent("champion-wallet", { detail: { coins: j.championCoins } }));
+    }
     INV.own = j.own;
     j.items > 0 && (INV.items = +j.items);
     INV.synced = !0;
@@ -1928,8 +1932,8 @@
   async function pull(n) {
     n = 10 === n ? 10 : 1;
     if (INV.busy || !signed()) return null;
-    const left = itemsAll() - ownedAll();
-    if (left < n) return note(left > 0 ? L(`남은 스킨이 ${left}개뿐입니다`, `Only ${left} skins left`) : L("모든 스킨을 모았습니다", "You own every skin")), null;
+    const left = pullableLeft();
+    if (left < n) return note(left > 0 ? L(`남은 스킨이 ${left}개뿐입니다`, `Only ${left} skins left`) : L("일반~전설 뽑기 스킨을 모두 모았습니다", "You own every Common-Legendary pull skin")), null;
     if (INV.gold < costOf(n)) return note(L("골드가 부족합니다", "Not enough gold")), null;
     INV.busy = !0;
     paintGacha();
@@ -2338,6 +2342,7 @@
     ["rare", 2],
     ["epic", 3],
     ["legendary", 4],
+    ["transcendent", 5],
   ];
   // the pull page: prices, odds, the collection by tier, why a pull is off, the last pulls
   function paintGacha() {
@@ -2346,16 +2351,16 @@
     const odds = GC().odds || { common: 60, rare: 25, epic: 11, legendary: 4 },
       w = (k) => Math.max(0, +odds[k] || 0),
       tot = TIERS.reduce((a, [k]) => a + w(k), 0) || 1;
-    $("ar-odds").innerHTML = TIERS.map(([k, r]) => `<i style="color:${RAR[r].c}">${EN ? RAR[r].en : RAR[r].ko} ${Math.round((1000 * w(k)) / tot) / 10}%</i>`).join("");
+    $("ar-odds").innerHTML = TIERS.map(([k, r]) => `<i style="color:${RAR[r].c}">${EN ? RAR[r].en : RAR[r].ko} ${r === 5 ? SKIN_TIERS.transcendentPercent + "%" : Math.round((1000 * w(k)) / tot) / 10 + "%"}</i>`).join("");
     $("ar-count").textContent = `${L("스킨", "Skins")} ${ownedAll()}/${itemsAll()}`;
-    const left = itemsAll() - ownedAll(),
+    const left = pullableLeft(),
       disc = Math.round(100 * (1 - costOf(10) / Math.max(1, 10 * costOf(1))));
     let why1 = "";
     for (const n of [1, 10]) {
       const b = $("ar-pull" + n),
         cost = costOf(n);
       b.innerHTML = `${L(n + "회 뽑기", 1 === n ? "Pull ×1" : "Pull ×10")}<i>🪙 ${cost.toLocaleString()}</i>${10 === n && disc > 0 ? `<em>${disc}% ${L("할인", "off")}</em>` : ""}`;
-      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : !INV.synced ? (syncError ? L("스킨 정보를 불러오지 못했습니다 · 무기고를 다시 열어주세요", "Could not load skins · reopen the armory to retry") : L("스킨 정보를 불러오는 중…", "Loading your skins…")) : INV.busy ? L("뽑는 중…", "Pulling…") : left < n ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("모든 스킨을 모았습니다", "You own every skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
+      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : !INV.synced ? (syncError ? L("스킨 정보를 불러오지 못했습니다 · 무기고를 다시 열어주세요", "Could not load skins · reopen the armory to retry") : L("스킨 정보를 불러오는 중…", "Loading your skins…")) : INV.busy ? L("뽑는 중…", "Pulling…") : left < n ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("일반~전설 뽑기 스킨을 모두 모았습니다", "You own every Common-Legendary pull skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
       b.disabled = !!why;
       b.title = why;
       1 === n && (why1 = why);
@@ -2375,7 +2380,7 @@
             t++;
             owns(g, s.id) && o++;
           }
-      return `<div class="pl-tier"><b style="color:${RAR[r].c}">${EN ? RAR[r].en : RAR[r].ko}</b><em>${Math.round((1000 * w(k)) / tot) / 10}%</em><div class="pl-bar"><i style="width:${t ? ((100 * o) / t).toFixed(1) : 0}%;background:${RAR[r].c}"></i></div><small>${o}/${t}</small></div>`;
+      return `<div class="pl-tier"><b style="color:${RAR[r].c}">${EN ? RAR[r].en : RAR[r].ko}</b><em>${r === 5 ? SKIN_TIERS.transcendentPercent + "%" : Math.round((1000 * w(k)) / tot) / 10 + "%"}</em><div class="pl-bar"><i style="width:${t ? ((100 * o) / t).toFixed(1) : 0}%;background:${RAR[r].c}"></i></div><small>${o}/${t}</small></div>`;
     }).join("");
     const G = (window.SERVER_CFG && window.SERVER_CFG.gold) || {},
       gv = (k, d) => (isFinite(+G[k]) && null != G[k] ? +G[k] : d);
@@ -2583,7 +2588,7 @@
       hiss(0.13, { f: 3400, ft: "highpass", v: 0.13 });
     },
     card(r) {
-      const b = [0, 523, 587, 659, 784][r] || 523;
+      const b = [0, 523, 587, 659, 784, 1047][r] || 523;
       tone(b * 2, 0.26, { v: 0.11, w: "triangle" });
       r >= 3 && tone(b * 3, 0.5, { v: 0.09, at: 0.07 });
       r >= 4 && [1, 1.26, 1.5, 2].forEach((k, i) => tone(b * 2 * k, 0.7, { v: 0.075, at: 0.12 + i * 0.07 }));
@@ -3180,7 +3185,8 @@
       fxBurst(x, y, RAR[r].c, 18, { sp: 170, size: 4, d: 0.7 });
     };
     if (top >= 3) rvT(shift(3), (at - (top >= 4 ? 0.95 : 0.5) - el) * 1e3);
-    if (top >= 4) rvT(shift(4), (at - 0.42 - el) * 1e3);
+    if (top >= 4) rvT(shift(4), (at - (top >= 5 ? 0.64 : 0.42) - el) * 1e3);
+    if (top >= 5) rvT(shift(5), (at - 0.24 - el) * 1e3);
     rvT(() => burst(!1), (at - el) * 1e3);
   }
   function buildCards() {
@@ -3193,7 +3199,7 @@
         g = WEAPONS[r.g] || { name: r.g },
         c = document.createElement("div"),
         th = thumbCached(r.g, r.s);
-      c.className = "rv-card" + (4 === s.rar ? " leg" : "");
+      c.className = "rv-card" + (s.rar >= 4 ? " leg" : "") + (s.rar === 5 ? " transcendent" : "");
       c.style.setProperty("--rc", RAR[s.rar].c);
       c.dataset.i = i;
       c.innerHTML = `<div class="rv-in"><div class="rv-f"><img class="th" alt="" src="${th || swatchURL(s)}" data-th="${r.g}|${r.s}"><small>${g.name}</small><b>${nameOf(s)}</b><i>${EN ? RAR[s.rar].en : RAR[s.rar].ko}</i></div><div class="rv-b"><span>13</span></div></div>`;
@@ -3328,7 +3334,7 @@
     RV.res.forEach((r, i) => openCard(i, !0));
     $("ar-reveal").classList.add("done");
     $("rv-equip").disabled = !1;
-    const left = itemsAll() - ownedAll();
+    const left = pullableLeft();
     $("rv-one").disabled = left < 1 || INV.gold < costOf(1);
     $("rv-ten").disabled = left < 10 || INV.gold < costOf(10);
     selectCard(RV.best);
@@ -3421,7 +3427,7 @@
     if (FEAT.length) return FEAT;
     const guns = ["rifle", "vector", "sniper", "carbine", "bullpup", "marksman", "shotgun", "lmg", "smg"].filter((k) => WEAPONS[k]);
     let gi = Math.floor(Math.random() * Math.max(1, guns.length));
-    for (const s of SKINS.filter((x) => !x.gone && !x.excl && 4 === x.rar).concat(SKINS.filter((x) => !x.gone && !x.excl && 3 === x.rar))) {
+    for (const s of SKINS.filter((x) => !x.gone && !x.excl && x.rar >= 3).sort((a, b) => b.rar - a.rar || a.i - b.i)) {
       const g = s.only || guns[gi++ % guns.length];
       g && WEAPONS[g] && FEAT.push({ g, s: s.id });
     }
@@ -3580,7 +3586,7 @@
     const classes = [...new Set(all.map((x) => x.cls))];
     MI.cls && !classes.includes(MI.cls) && (MI.cls = "");
     f.innerHTML =
-      [0, 1, 2, 3, 4].map((r) => `<button data-r="${r}" class="${MI.tier === r ? "on" : ""}" style="--rc:${r ? RAR[r].c : "var(--gold)"}">${r ? (EN ? RAR[r].en : RAR[r].ko) : L("전체", "All")} ${cnt(r)}</button>`).join("") +
+      RAR.map((_, r) => `<button data-r="${r}" class="${MI.tier === r ? "on" : ""}" style="--rc:${r ? RAR[r].c : "var(--gold)"}">${r ? (EN ? RAR[r].en : RAR[r].ko) : L("전체", "All")} ${cnt(r)}</button>`).join("") +
       `<select id="mi-cls"><option value="">${L("모든 총", "All guns")}</option>${classes.map((c) => `<option value="${c}"${c === MI.cls ? " selected" : ""}>${c}</option>`).join("")}</select>` +
       `<button data-eq="1" class="${MI.eq ? "on" : ""}">${L("장착 중만", "Worn only")}</button><span class="mi-n" id="mi-n"></span>`;
     f.querySelectorAll("button[data-r]").forEach((b) => (b.onclick = () => ((MI.tier = +b.dataset.r), paintMine())));
@@ -3863,6 +3869,7 @@
       r = RAR[shown.rar];
     $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? (BY[AR.peek] && BY[AR.peek].excl ? `<em>${L("시즌 보상 · 랭크전 시즌을 골드 티어 이상으로 마치면 모든 총에", "Season reward · finish a ranked season at Gold or above for every gun")}</em>` : `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>`) : ""}`;
     const aw = $("ar-wish");
+    if (shown.excl === "coins") $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i><em>${L("초월 상점 · 코인 700개 또는 뽑기 0.00000000000000001%", "Transcendent shop · 700 coins or 0.00000000000000001% pull")}</em>`;
     aw && (aw.onclick = () => toggleWish(AR.key, AR.peek));
   }
   // by gun: the gun list, the turntable, that gun's skins (owned ones worn on a tap, the rest only looked at)
@@ -3902,7 +3909,7 @@
       b.className = "ar-sk" + (s === cur && !AR.peek ? " on" : "") + (has ? "" : " locked") + (AR.peek === s.id ? " peek" : "") + (!has && wished(AR.key, s.id) ? " wish" : "");
       b.dataset.s = s.id;
       b.dataset.g = AR.key;
-      has || (b.title = L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull"));
+      has || (b.title = s.excl === "coins" ? L("미보유 · 초월 코인 700개로 구매", "Not owned · 700 Transcendent coins") : L("미보유 · 뽑기에서 획득", "Not owned · win it in a pull"));
       const cv = document.createElement("canvas");
       cv.width = 120;
       cv.height = 56;
@@ -4061,5 +4068,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { receive: takeInv, shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();

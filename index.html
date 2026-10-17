@@ -198,7 +198,7 @@ footer a{color:var(--steel)}
       <div class="tier" id="meTier" hidden><div class="tb" id="meTierB"></div><div class="ti"><b id="meTierN"></b><div class="tbar"><i id="meTierX"></i></div><small id="meTierT"></small><small class="ssn" id="meSeason"></small></div></div>
       <div class="ssn-end" id="ssnEnd" hidden><span id="ssnEndT"></span><button type="button" id="ssnEndOk"></button></div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
-      <div class="wallet"><span class="g" id="meGold">🪙 0</span><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span><a id="meChampionCoins" href="./play.html#champion-shop"></a><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
@@ -317,6 +317,9 @@ function drawMe() {
   $("#meGold").hidden = $("#meSkins").hidden = !wallet;
   $("#meGold").textContent = "🪙 " + (u.gold || 0).toLocaleString();
   $("#meGold").title = t("gold");
+  $("#meChampionCoins").hidden = !wallet;
+  $("#meChampionCoins").textContent = (L === "en" ? "Transcendent coins " : "초월 코인 ") + (u.championCoins || 0).toLocaleString();
+  $("#meChampionCoins").href = gameUrl("") + "#champion-shop";
   $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 942);
   // straight to the skin page in the game: pulls, or the skins I own
   $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;

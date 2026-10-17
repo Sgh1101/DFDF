@@ -4,6 +4,7 @@
 // connected from the Vercel dashboard). The owner password is never in the
 // repository: it is the ADMIN_MASTER_PASS environment variable.
 const crypto = require("crypto");
+const SKIN_TIERS = require("../js/skin-tiers");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -274,7 +275,7 @@ const rankOf = (rr) => {
 };
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -337,9 +338,9 @@ const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
 const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4 };
-SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 4;
+SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 // skins no pull or shop gives: only the end of a season (or the owner)
-const EXCLUSIVE = { laurel: "season" };
+const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = "carbine";
@@ -347,7 +348,7 @@ const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
 const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"];
 const ITEMS = GUNS.reduce((n, g) => n + SKIN_IDS.filter((s) => fits(s, g)).length, 0);
-const TIER_KEYS = ["common", "rare", "epic", "legendary"];
+const TIER_KEYS = SKIN_TIERS.list.map((tier) => tier.key);
 // the summary of a match the game sends with its report: only these fields,
 // each clamped. The account keeps the last thirty.
 const HIST_MAX = 30;
@@ -365,6 +366,7 @@ const histOf = (u) => (Array.isArray(u.hist) ? u.hist.slice(0, HIST_MAX) : []);
 const RETIRED = { obsidian: 1, ice: 2, holo: 4 };
 function ensureWallet(u, c) {
   let changed = !1;
+  if (!Number.isSafeInteger(u.championCoins) || u.championCoins < 0) { u.championCoins = 0; changed = true; }
   if ("number" != typeof u.gold || !isFinite(u.gold)) ((u.gold = c.gold.signup), (changed = !0));
   if (!isObj(u.own)) ((u.own = {}), (changed = !0));
   let back = 0;
@@ -435,7 +437,7 @@ const ownedCount = (u) => {
 const hasItem = (u, g, s) => !!(isObj(u.own) && Array.isArray(u.own[g]) && u.own[g].includes(s) && fits(s, g));
 // the tier a pull lands on, by the owner's weights
 function rollTier(odds) {
-  const w = TIER_KEYS.map((k) => Math.max(0, Math.floor(+(odds && odds[k]) || 0)));
+  const w = TIER_KEYS.slice(0, 4).map((k) => Math.max(0, Math.floor(+(odds && odds[k]) || 0)));
   const tot = w.reduce((a, b) => a + b, 0);
   if (!tot) return 1;
   let x = crypto.randomInt(tot);
@@ -445,14 +447,20 @@ function rollTier(odds) {
   }
   return 1;
 }
-const poolOf = (u, tier) => {
+const poolOf = (u, tier, allowCoins = false) => {
   const out = [];
-  for (const s of SKIN_IDS) if (SKIN_TIER[s] === tier && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && !hasItem(u, g, s) && out.push([g, s]);
+  for (const s of SKIN_IDS) if (SKIN_TIER[s] === tier && (!EXCLUSIVE[s] || allowCoins && EXCLUSIVE[s] === "coins")) for (const g of GUNS) fits(s, g) && !hasItem(u, g, s) && out.push([g, s]);
   return out;
 };
 // one pull: never a duplicate. The tier is rolled; if every skin of that tier
 // is already owned the next tier up is tried, and from the top back down.
 function rollOne(u, odds) {
+  const transcendent = poolOf(u, 5, true);
+  if (transcendent.length && SKIN_TIERS.rollTranscendent(crypto.randomBytes)) {
+    const [g, s] = transcendent[crypto.randomInt(transcendent.length)];
+    (u.own[g] = u.own[g] || []).push(s);
+    return { g, s, r: 5 };
+  }
   const t = rollTier(odds),
     order = [];
   for (let x = t; x <= 4; x++) order.push(x);
@@ -620,7 +628,7 @@ A.skins = async (q, b) => {
     if (!u.skins || t > u.skins.t) { u.skins = { t, m }; dirty = !0; }
   }
   dirty && (await saveUser(u));
-  return { skins: u.skins || null, own: u.own, gold: u.gold, items: ITEMS, dropped };
+  return { skins: u.skins || null, own: u.own, gold: u.gold, championCoins: u.championCoins, items: ITEMS, dropped };
 };
 // what a player wears, signed. In a room every player's skins travel with
 // this ticket and the others show them only as the server signed them: the
@@ -664,6 +672,30 @@ A.prefs = async (q, b) => {
 };
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
 A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
+// Transcendent skins have a separate earned currency, never a gold price or random pull.
+const CHAMPION_PRICE = 700;
+const championItems = () => SKIN_IDS.filter((s) => SKIN_TIER[s] === 5 && EXCLUSIVE[s] === "coins").map((s) => ({ g: SKIN_ONLY[s], s, r: 5, price: CHAMPION_PRICE }));
+A.champion_shop = async (q, b) => {
+  const c = await loadConfig(), u = b.token ? await who(b.token) : null;
+  if (b.token && !u) throw fail(401, "다시 로그인해 주세요");
+  if (u && ensureWallet(u, c)) await saveUser(u);
+  return { offers: championItems(), championCoins: u ? u.championCoins : null, own: u ? u.own : {}, gold: u ? u.gold : null, items: ITEMS };
+};
+A.champion_buy = async (q, b) => {
+  const c = await loadConfig(), u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("championbuy:" + rlKey(u), 10, 10)) throw fail(429, "너무 빨리 눌렀습니다");
+  ensureWallet(u, c);
+  const item = championItems().find((x) => x.g === b.g && x.s === b.s);
+  if (!item) throw fail(400, "초월 상점에 없는 스킨입니다");
+  if (hasItem(u, item.g, item.s)) throw fail(409, "이미 보유한 스킨입니다");
+  if (u.championCoins < CHAMPION_PRICE) throw fail(402, "초월 코인이 부족합니다 (700개 필요)");
+  u.championCoins -= CHAMPION_PRICE;
+  (u.own[item.g] = u.own[item.g] || []).push(item.s);
+  await saveUser(u);
+  await log("shop", `${u.id} 초월 스킨 구매: ${item.g}/${item.s} · 초월 코인 ${CHAMPION_PRICE}개`, { user: u.id });
+  return { item, championCoins: u.championCoins, own: u.own, gold: u.gold, items: ITEMS, user: publicUser(u, c.xp.perLevel) };
+};
 
 // ── profile cosmetics ──
 // slot title / card / banner, tier 1-4. The names and looks are in js/cosmetics.js (a test checks the ids
@@ -742,7 +774,7 @@ const nextKstMidnight = (t) => {
   d.setUTCHours(24, 0, 0, 0);
   return d.getTime() - 9 * 36e5;
 };
-const shopPrice = (c, g, s) => Math.max(0, Math.round((+c.shop.price[TIER_KEYS[SKIN_TIER[s] - 1]] || 0) * (SKIN_ONLY[s] ? Math.max(1, +c.shop.knife || 1) : 1)));
+const shopPrice = (c, g, s) => Math.max(0, Math.round((+c.shop.price[TIER_KEYS[SKIN_TIER[s] - 1]] || 0) * (SKIN_ONLY[s] === "knife" ? Math.max(1, +c.shop.knife || 1) : 1)));
 function shopOf(c, day) {
   const out = [],
     usedGun = new Set(),
@@ -783,7 +815,7 @@ function weeklyOf(c, week) {
   if (!W || !W.on) return [];
   const out = [],
     off = Math.max(0, Math.min(90, +W.off || 0));
-  for (const tk of ["epic", "legendary"]) {
+  for (const tk of ["epic", "legendary", "transcendent"]) {
     const ti = TIER_KEYS.indexOf(tk),
       want = Math.max(0, Math.floor(+(W.mix && W.mix[tk]) || 0));
     if (!want) continue;
@@ -829,7 +861,7 @@ A.shop = async (q, b) => {
 // the wishlist: skins (gun|skin) the player wants; the shop marks them and the game says
 // when one is on sale today. Thirty at most.
 const WISH_MAX = 30;
-const cleanWish = (u) => (Array.isArray(u.wish) ? u.wish.filter((x) => "string" == typeof x && /^[a-z]+\|[a-z]+$/.test(x)).filter((x) => { const [g, s] = x.split("|"); return GUNS.includes(g) && SKIN_TIER[s] && !EXCLUSIVE[s] && fits(s, g); }).slice(0, WISH_MAX) : []);
+const cleanWish = (u) => (Array.isArray(u.wish) ? u.wish.filter((x) => "string" == typeof x && /^[a-z]+\|[a-z_]+$/.test(x)).filter((x) => { const [g, s] = x.split("|"); return GUNS.includes(g) && SKIN_TIER[s] && !EXCLUSIVE[s] && fits(s, g); }).slice(0, WISH_MAX) : []);
 A.wish = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -871,7 +903,7 @@ A.shop_buy = async (q, b) => {
   u.bought = (u.bought || 0) + 1;
   u.spent = (u.spent || 0) + it.price;
   await saveUser(u);
-  await log("shop", `${u.id} 구매${it.w ? "(주간 특가)" : ""}: ${it.g}/${it.s} (${["", "일반", "희귀", "영웅", "전설"][it.r]}) ${it.price}골드`, { user: u.id });
+  await log("shop", `${u.id} 구매${it.w ? "(주간 특가)" : ""}: ${it.g}/${it.s} (${SKIN_TIERS.label(it.r)}) ${it.price}골드`, { user: u.id });
   return { item: it, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // a pull of one or ten: gold out, items in, never one already owned. The
@@ -885,8 +917,8 @@ A.gacha = async (q, b) => {
   ensureWallet(u, c);
   const n = 10 === (b.n | 0) ? 10 : 1,
     cost = Math.max(0, Math.round(10 === n ? c.gacha.cost10 : c.gacha.cost1)),
-    left = ITEMS - ownedCount(u);
-  if (left < n) throw fail(409, left > 0 ? `남은 스킨이 ${left}개뿐입니다` : "모든 스킨을 다 모았습니다");
+    left = TIER_KEYS.reduce((total, _, i) => total + poolOf(u, i + 1).length, 0);
+  if (left < n) throw fail(409, left > 0 ? `남은 스킨이 ${left}개뿐입니다` : "일반~전설 뽑기 스킨을 모두 모았습니다");
   if (u.gold < cost) throw fail(402, `골드가 부족합니다 (${cost} 필요)`);
   const results = [];
   for (let i = 0; i < n; i++) {
@@ -896,8 +928,8 @@ A.gacha = async (q, b) => {
   u.gold -= cost;
   u.pulls = (u.pulls || 0) + n;
   await saveUser(u);
-  const leg = results.filter((r) => 4 === r.r);
-  leg.length && (await log("gacha", `${u.id} 전설 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
+  const leg = results.filter((r) => r.r >= 4);
+  leg.length && (await log("gacha", `${u.id} 전설·초월 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
   return { results, cost, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // ── missions ──
@@ -1046,6 +1078,7 @@ A.progress = async (q, b) => {
   const left = cap > 0 ? Math.max(0, cap - (u.goldDay.n || 0)) : Infinity;
   const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
+  u.championCoins += 1;
   u.goldDay.n = (u.goldDay.n || 0) + gold;
   // the rank: up with a win (more with kills), down a little with a loss
   const R = c.rank,
@@ -1068,7 +1101,7 @@ A.progress = async (q, b) => {
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
-  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain: 1, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
@@ -1076,7 +1109,7 @@ A.progress = async (q, b) => {
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   const rb = rankOf(rr0);
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, gain, gold, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, gain, gold, coinGain: 1, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
@@ -1471,7 +1504,7 @@ ADMIN.config_reset = async () => {
 };
 
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [1, 4], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
