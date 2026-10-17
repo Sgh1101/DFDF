@@ -70,10 +70,19 @@
     scene.add(g);
     return { g, lid: lidPivot, beam, ring, light };
   }
+  // a chest's own geometries and materials go with it (the shared gold stays)
+  const free = (o) => {
+    o.parent && o.parent.remove(o);
+    o.traverse((m) => {
+      if (m.geometry) m.geometry.dispose();
+      m.material && m.material !== GOLD && m.material.dispose && m.material.dispose();
+    });
+    o.dispose && o.dispose();
+  };
   function clear() {
     for (const c of CH) {
-      c.m && scene.remove(c.m.g);
-      c.gun && scene.remove(c.gun);
+      c.m && free(c.m.g);
+      c.gun && free(c.gun);
     }
     CH = [];
     prog = 0;
@@ -229,7 +238,7 @@
         const s = k > 1.2 ? Math.max(0, 1 - (k - 1.2) / 0.4) : 1.1;
         c.gun.scale.setScalar(Math.max(0.001, s));
         if (k > 1.6) {
-          scene.remove(c.gun);
+          free(c.gun);
           c.gun = null;
         }
       }
@@ -295,7 +304,7 @@
       for (const c of CH) {
         c.open = !1;
         c.t = 0;
-        c.gun && (scene.remove(c.gun), (c.gun = null));
+        c.gun && (free(c.gun), (c.gun = null));
       }
       prog = 0;
       isHost() && world.actors && world.actors.forEach(strip);
