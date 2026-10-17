@@ -36,13 +36,14 @@ function harness(options = {}) {
       case "ZADD": case "ZREM": case "ZREMRANGEBYSCORE": return 1;
       case "LPUSH": case "RPUSH": { const list = db.get(key) || []; op === "LPUSH" ? list.unshift(args[0]) : list.push(args[0]); db.set(key, list); return list.length; }
       case "LTRIM": return "OK";
+      case "LREM": { db.set(key, (db.get(key) || []).filter((x) => x !== args[1])); return 1; }
       case "ZRANGE": return [...db.keys()].filter((x) => x.startsWith("user:")).map((x) => x.slice(5));
       case "LRANGE": return db.get(key) || [];
       default: throw new Error("unsupported redis command: " + op);
     }
   }
   const sandbox = {
-    require, module: { exports: {} }, Buffer, Date: Clock, AbortController, setTimeout, clearTimeout,
+    require: (name) => name === "crypto" && options.randomBytes ? { ...crypto, randomBytes: options.randomBytes } : require(name), module: { exports: {} }, Buffer, Date: Clock, AbortController, setTimeout, clearTimeout,
     process: { env: { KV_REST_API_URL: "https://redis.test", KV_REST_API_TOKEN: "test", ADMIN_MASTER_PASS: "owner-password", OWNER_ID: "owner", SESSION_SECRET: "test-secret" } },
     fetch: async (url, options) => {
       // Yield before execution, so parallel calls read overlapping snapshots.

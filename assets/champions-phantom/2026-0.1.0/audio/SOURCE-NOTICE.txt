@@ -1,0 +1,13 @@
+Kill arrangements: Seafle, ChampionsPhantom2026-0.1.0.jar.
+Read from the original constant table com.seafle.championsphantom.client.g.b.
+kill-sequences.json records source JAR/class hashes, note names, time, pitch and gain.
+No Java mod code is executed in the browser or by the extraction script.
+
+Instrument recordings: Minecraft 1.20.1 note-block sounds, Mojang Studios.
+These seven Ogg recordings are unmodified, not synthesized or re-encoded.
+samples.json records the official resource URL, size, SHA-1 and SHA-256 for each.
+The Seafle arrangement attribution does not claim authorship of these recordings.
+
+Browser playback follows the original 1st through 5th kill recipes, with pitches
+clamped to 0.5..2 as in the source player. DFDF's shared output mixer and user
+volume settings still apply. Other shot/finisher sounds remain DFDF adaptations.

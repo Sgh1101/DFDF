@@ -93,8 +93,13 @@
   "js/legacy/91-target-range-moving-targets-a-minute-and-a-score.js",
   "js/legacy/92-profile-cosmetics-titles-name-cards-and-kill-effects-for-gold.js",
   "js/legacy/93-two-more-maps-the-night-harbor-and-the-rooftop-city.js",
-  "js/legacy/94-abandoned-hospital-a-three-floor-maze-you-can-climb.js",
-  "js/legacy/95-first-person-hands-and-gun-finish.js",
-  "js/legacy/96-character-details-fingers-brows-ears-soles.js",
-  "js/legacy/97-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js"
+  "js/legacy/94-capture-the-flag-take-theirs-home-while-yours-is-safe.js",
+  "js/legacy/95-shrinking-zone-last-one-standing-in-a-circle-that-closes.js",
+  "js/legacy/96-champions-wave-rings-of-light-leave-the-muzzle-and-a-kill-sends-waves-out.js",
+  "js/legacy/97-legendary-finishers-the-round-s-last-kill-of-a-legendary-skin-turns-the-world.js",
+  "js/legacy/98-all-guns-half-again-as-large-in-your-hands.js",
+  "js/legacy/99-abandoned-hospital-a-three-floor-maze-you-can-climb.js",
+  "js/legacy/100-first-person-hands-and-gun-finish.js",
+  "js/legacy/101-character-details-fingers-brows-ears-soles.js",
+  "js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js"
 ]

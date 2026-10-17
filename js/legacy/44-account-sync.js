@@ -572,7 +572,9 @@
       pending.shift(); keepReports();
       S.user = j.user; S.hist = j.hist || S.hist;
       localStorage.setItem("lgp_session", JSON.stringify(S));
-      banner(j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP · 🪙 +${j.gold}`, "#ffc849");
+      const reward = j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP · 🪙 +${j.gold}`;
+      banner(reward + (j.coinGain ? L(" · 초월 코인 +1", " · Transcendent coin +1") : ""), "#ffc849");
+      dispatchEvent(new CustomEvent("account-reward"));
     } catch (e) {
       if (!sessionMatches(ownerToken)) return;
       if ([400, 409].includes(e.status) && !e.retryable) { pending.shift(); keepReports(); }

@@ -1,5 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
-const source = fs.readFileSync('js/legacy/44-account-sync.js', 'utf8');
+const source = fs.readFileSync('js/legacy/44-account-sync.js', 'utf8').replace(/\r\n/g, '\n');
 const heartbeat = source.slice(source.indexOf('  async function beat()'), source.indexOf('\n  setInterval(() => {\n    (hb', source.indexOf('  async function beat()')));
 test('late room heartbeat cannot run old-room commands in a new room or account', async () => {
   for (const change of ['room', 'transport', 'account']) {

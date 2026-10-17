@@ -206,7 +206,7 @@
       } else banner(msg, "#8a97ab");
     } catch (e) {}
   }
-  const tabs = ["pull", "shop", "mine", "gun"];
+  const tabs = ["pull", "shop", "champions", "mine", "gun"];
   function mount() {
     const nav = $("ar-tabs"),
       shop = $("ar-p-shop");

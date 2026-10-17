@@ -9,7 +9,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       page = p;
       await p.route("**/js/legacy/03-engine.js", async (route) => { engineSeen(); await engineGate; await route.continue(); });
       await p.route("**/api/v1?*", async (route) => {
-        if (new URL(route.request().url()).searchParams.get("a") === "skins") { skinsSeen(); await skinsGate; }
+        const a = new URL(route.request().url()).searchParams.get("a"); if (a === "skins" || a === "champion_shop") { skinsSeen(); await skinsGate; } // the Champions page opens with its own answer, which also carries the collection
         await route.fallback();
       });
     } });

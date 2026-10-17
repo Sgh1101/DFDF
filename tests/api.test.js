@@ -230,7 +230,7 @@ test("the owner's dashboard summary counts accounts, grants, ranks and the day's
   assert.ok(j.logs.login + j.logs.join >= 1);
   assert.ok(j.recent.some((r) => /aim/.test(r.msg)));
   assert.deepEqual(j.config.aim, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
-  assert.equal(j.items, 940);
+  assert.equal(j.items, 973);
 });
 
 test("retired skins leave the collection and come back as gold, once", async () => {
@@ -349,7 +349,7 @@ test("seasons: the end of one pays by tier, gives the season skin from gold up, 
   assert.equal((await h.api("wish", { token: p.token, item: "rifle|laurel" })).status, 400);
   assert.ok((await h.api("shop", {})).items.every((x) => x.s !== "laurel"));
   const cat = await h.api("catalog", {});
-  assert.equal(cat.tiers.laurel, 4); assert.equal(cat.items, 940);
+  assert.equal(cat.tiers.laurel, 4); assert.equal(cat.items, 973);
   // the owner ends the season now: a new one from today; not played, so no reward, the cut still
   const c = JSON.parse(JSON.stringify(h.config));
   c.season.startDay = 20261029; c.season.skip = 2;
@@ -467,4 +467,153 @@ test("profile cosmetics: bought with gold, owned once, equipped only in their ow
   u.cos = { own: ["marksman", "gone"], eq: { title: "gone", card: "marksman", banner: "" } };
   h.db.set("user:player", JSON.stringify(u));
   assert.deepEqual((await h.api("me", { token: p.token })).user.cos, { own: ["marksman"], eq: { title: "", card: "", banner: "" } });
+});
+
+test("the feedback box: each kind is checked, rate limited and kept; the owner reads, marks and answers; the sender sees the answer", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner"), other = await login(h, "second");
+  const send = (b, who = p) => h.api("feedback_submit", Object.assign({ token: who.token }, b));
+  // signed in only
+  assert.equal((await h.api("feedback_submit", { type: "bug", text: "에러가 납니다 정말로" })).status, 401);
+  // a kind, and words
+  assert.equal((await send({ type: "nope", text: "내용이 충분히 깁니다" })).status, 400);
+  assert.equal((await send({ type: "bug", text: "짧" })).status, 400);
+  // a bug, with where it happened
+  const bug = await send({ type: "bug", title: "상점이 안 열려요", text: "구매 단계에서 B를 눌러도 상점이 열리지 않습니다", bug: { where: "게임 중", steps: "1. 시작 2. B" }, ctx: { ua: "UA".repeat(200), view: "844x390", page: "play", mode: "std", map: "field" } });
+  assert.equal(bug.status, 200);
+  // an agent idea: a name and at least one ability
+  assert.equal((await send({ type: "agent", text: "새 요원을 제안합니다 능력은 아래와 같아요", agent: { name: "", abilities: [{ name: "a", desc: "b" }] } })).status, 400, "a name");
+  assert.equal((await send({ type: "agent", text: "새 요원을 제안합니다 능력은 아래와 같아요", agent: { name: "시계공", abilities: [] } })).status, 400, "an ability");
+  const ag = await send({ type: "agent", text: "시간을 다루는 요원입니다", agent: { name: "시계공", role: "전략가", abilities: [{ name: "되감기", desc: "3초 전 위치로 돌아간다" }, { name: "정지", desc: "" }, { name: "", desc: "" }, { name: "가속", desc: "팀 이동 속도 증가" }, { name: "다섯째", desc: "버려짐" }] } });
+  assert.equal(ag.status, 200);
+  // a player report needs a name
+  assert.equal((await send({ type: "report", text: "벽을 뚫고 쏘는 것 같습니다 의심됩니다", report: { target: "" } })).status, 400);
+  assert.equal((await send({ type: "report", text: "벽을 뚫고 쏘는 것 같습니다 의심됩니다", report: { target: "의심자", reason: "cheat", room: "abc123" } }, other)).status, 200);
+  // the same words twice are one
+  assert.equal((await send({ type: "bug", title: "상점이 안 열려요", text: "구매 단계에서 B를 눌러도 상점이 열리지 않습니다" })).status, 409);
+  // a brake: five an hour
+  for (let i = 0; i < 2; i++) assert.equal((await send({ type: "idea", text: "개선 제안 번호 " + i + " 입니다 길게" })).status, 200);
+  assert.equal((await send({ type: "ask", text: "문의 내용입니다 길게 적었어요" })).status, 429, "the sixth in an hour");
+  h.advance(3600001);
+  assert.equal((await send({ type: "ask", text: "문의 내용입니다 길게 적었어요" })).status, 200, "an hour later");
+
+  // the owner's box: everything, newest first, with counts
+  assert.equal((await h.api("a_feedback", { atoken: p.token })).status, 401, "not for players");
+  const o2 = await login(h, "owner");
+  const all = await h.api("a_feedback", { atoken: o2.atoken });
+  assert.equal(all.status, 200);
+  assert.equal(all.items.length, 6);
+  assert.equal(all.counts.total, 6); assert.equal(all.counts.new, 6);
+  assert.deepEqual(all.counts.byType, { bug: 1, agent: 1, report: 1, idea: 2, ask: 1 });
+  assert.equal(all.items[0].type, "ask", "newest first");
+  const b0 = all.items.find((x) => x.type === "bug");
+  assert.equal(b0.by.id, "player"); assert.equal(b0.by.guest, false); assert.equal(b0.by.level, 1);
+  assert.equal(b0.ctx.ua.length, 160, "the browser text is cut"); assert.equal(b0.bug.where, "게임 중");
+  const a0 = all.items.find((x) => x.type === "agent");
+  assert.deepEqual(a0.agent.abilities.map((x) => x.key + x.name), ["Q되감기", "E정지", "X가속"], "empty rows go, four at most, keys by position");
+  assert.equal(a0.title, "요원 제안: 시계공", "an agent idea without a title is named by the agent");
+  const r0 = all.items.find((x) => x.type === "report");
+  assert.equal(r0.title, "신고: 의심자");
+  assert.deepEqual(r0.report, { target: "의심자", reason: "cheat", room: "ABC123" });
+  // filters
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, type: "idea" })).items.length, 2);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, q: "시계공" })).items.length, 1);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken, status: "done" })).items.length, 0);
+  // mark, note and answer
+  assert.equal((await h.api("a_feedback_set", { atoken: o2.atoken, id: b0.id, status: "weird" })).status, 400);
+  assert.equal((await h.api("a_feedback_set", { atoken: o2.atoken, id: "nothing", status: "done" })).status, 404);
+  const set = await h.api("a_feedback_set", { atoken: o2.atoken, id: b0.id, status: "doing", note: "재현됨", reply: "확인했습니다. 곧 고칩니다" });
+  assert.equal(set.status, 200); assert.equal(set.item.status, "doing"); assert.ok(set.item.replyT > 0);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken })).counts.new, 5);
+  // the sender sees where it stands and the answer; not the note, not others' words
+  const mine = await h.api("feedback_mine", { token: p.token });
+  assert.equal(mine.status, 200);
+  const mb = mine.items.find((x) => x.id === b0.id);
+  assert.equal(mb.status, "doing"); assert.equal(mb.reply, "확인했습니다. 곧 고칩니다"); assert.equal(mb.note, undefined);
+  assert.ok(mine.items.every((x) => x.id !== r0.id), "someone else's report is not mine");
+  assert.equal((await h.api("feedback_mine", {})).status, 401);
+  // a delete
+  const del = await h.api("a_feedback_del", { atoken: o2.atoken, ids: [b0.id, a0.id] });
+  assert.equal(del.status, 200); assert.equal(del.deleted, 2);
+  assert.equal((await h.api("a_feedback", { atoken: o2.atoken })).items.length, 4);
+  assert.ok(h.db.get("logs").some((l) => /feedback/.test(l) && /상점이 안 열려요/.test(l)), "logged");
+});
+
+test("paid cheats by bank transfer: an order with a code and the account to pay; the owner opens it, it merges into the account's cheats; reject, refund, cancel", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner"), other = await login(h, "second");
+  const guest = await h.api("guest", { device: "device-guest-1" });
+  const order = (b, who = p) => h.api("order_create", Object.assign({ token: who.token }, b));
+  // closed until the owner opens it; nothing about the bank before then
+  const info0 = await h.api("order_info", {});
+  assert.equal(info0.on, false);
+  assert.equal(info0.items.length, 10);
+  assert.equal(info0.items.find((x) => x.k === "wall").price, 5000);
+  assert.equal(JSON.stringify(info0).includes("bank"), false);
+  assert.equal((await order({ items: ["radar"], days: 7 })).status, 403, "closed");
+  assert.equal((await h.api("config", {})).config.order.on, false);
+  // the owner opens it and names the account
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동";
+  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).status, 200);
+  h.advance(30000);
+  assert.equal((await h.api("config", {})).config.order.on, true);
+  assert.equal(JSON.stringify((await h.api("config", {})).config).includes("000000"), false, "the account is not in the public settings");
+  // who and what
+  assert.equal((await order({ items: ["radar"], days: 7 }, guest)).status, 403, "a guest cannot");
+  assert.equal((await h.api("order_create", { items: ["radar"], days: 7 })).status, 401);
+  assert.equal((await order({ items: [], days: 7 })).status, 400);
+  assert.equal((await order({ items: ["nothing"], days: 7 })).status, 400);
+  assert.equal((await order({ items: ["radar"], days: 5 })).status, 400);
+  // prices: per 7 days, times the length
+  const pay = async (days, items = ["radar", "wall"]) => (await order({ items, days, depositor: "홍철수" })).order.total;
+  assert.equal(await pay(7), 8000);
+  const o30 = await order({ items: ["radar", "wall"], days: 30 }); assert.equal(o30.order.total, 24000);
+  const o1 = await order({ items: ["radar", "wall"], days: 1 }); assert.equal(o1.order.total, 2400);
+  assert.equal(o1.pay.bank, "국민 000000-00-000000"); assert.equal(o1.pay.holder, "홍길동");
+  assert.match(o30.order.id, /^[A-Z2-9]{6}$/);
+  assert.equal((await order({ items: ["radar"], days: 0 })).status, 409, "three waiting at most");
+  // mine: the account shows only while something waits
+  let mine = await h.api("order_mine", { token: p.token });
+  assert.equal(mine.orders.length, 3); assert.equal(mine.pay.bank, "국민 000000-00-000000");
+  // cancel: only my own, only waiting
+  assert.equal((await h.api("order_cancel", { token: other.token, id: o1.order.id })).status, 403);
+  assert.equal((await h.api("order_cancel", { token: p.token, id: o1.order.id })).status, 200);
+  assert.equal((await h.api("order_cancel", { token: p.token, id: o1.order.id })).status, 409);
+  // the owner: the list, then open one
+  assert.equal((await h.api("a_orders", { atoken: p.token })).status, 401);
+  const ow = await login(h, "owner");
+  const list = await h.api("a_orders", { atoken: ow.atoken });
+  assert.equal(list.orders.length, 3); assert.equal(list.counts.pending, 2); assert.equal(list.names.wall, "벽 투시");
+  const first = list.orders.find((x) => x.days === 7);
+  const t0 = h.now();
+  const g = await h.api("a_order_set", { atoken: ow.atoken, id: first.id, op: "grant", note: "입금 확인 10:02" });
+  assert.equal(g.status, 200); assert.equal(g.order.status, "granted");
+  const perm = h.user("player").perm;
+  assert.equal(perm.on, true); assert.equal(perm.radar, true); assert.equal(perm.wall, true); assert.equal(perm.god, false);
+  assert.ok(Math.abs(perm.until - (t0 + 7 * 864e5)) < 5000, "seven days from now");
+  assert.equal((await h.api("me", { token: p.token })).user.perm.radar, true, "the game sees it");
+  assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: first.id, op: "grant" })).status, 409, "once");
+  // a second order adds its length and its cheats (speed, buff are level values)
+  const o2 = await order({ items: ["god", "speed", "buff"], days: 30 });
+  assert.equal(o2.status, 200);
+  await h.api("a_order_set", { atoken: ow.atoken, id: o2.order.id, op: "grant" });
+  const perm2 = h.user("player").perm;
+  assert.deepEqual([perm2.radar, perm2.wall, perm2.god, perm2.speed, perm2.buff], [true, true, true, 1.5, 10]);
+  assert.ok(Math.abs(perm2.until - (perm.until + 30 * 864e5)) < 5000, "added to what was running");
+  // reject, refund with the cheats taken back
+  const rej = await h.api("a_order_set", { atoken: ow.atoken, id: o30.order.id, op: "reject", reason: "입금 없음" });
+  assert.equal(rej.order.status, "rejected");
+  assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: o30.order.id, op: "grant" })).status, 409, "no opening a rejected one");
+  const ref = await h.api("a_order_set", { atoken: ow.atoken, id: o2.order.id, op: "refund", revoke: true, reason: "환불" });
+  assert.equal(ref.order.status, "refunded");
+  assert.equal(h.user("player").perm.on, false, "taken back");
+  mine = await h.api("order_mine", { token: p.token });
+  assert.deepEqual(mine.orders.map((x) => x.status).sort(), ["cancelled", "granted", "refunded", "rejected"].sort());
+  assert.equal(mine.pay, null, "nothing waits: no account shown");
+  assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: "NOPE", op: "grant" })).status, 404);
+  assert.ok(h.db.get("logs").some((l) => /주문/.test(l) && /열어 줌/.test(l)));
+  // a permanent one
+  const op = await order({ items: ["noRecoil"], days: 0 });
+  assert.equal(op.order.total, 20000);
+  await h.api("a_order_set", { atoken: ow.atoken, id: op.order.id, op: "grant" });
+  assert.equal(h.user("player").perm.until, 0, "permanent");
 });

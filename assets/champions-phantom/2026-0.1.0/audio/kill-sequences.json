@@ -1,0 +1,675 @@
+{
+  "sourceClass": "com.seafle.championsphantom.client.g.b",
+  "sourceClassSha256": "19dde8e664681227bb47930652af1833b8dd61569fc189533d56b66372b5983a",
+  "sourceJarSha256": "99e2c9076976b9ca5c7f38ffcae8e08e6f06b0df55ce13b9a597cb1a97d86683",
+  "minecraftVersion": "1.20.1",
+  "profiles": {
+    "kill_1": {
+      "category": "PLAYERS",
+      "events": [
+        {
+          "at": 0.0,
+          "sound": "block.note_block.basedrum",
+          "pitch": 0.5,
+          "volume": 0.43560001254081726
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.guitar",
+          "pitch": 0.8909000158309937,
+          "volume": 0.5182999968528748
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 0.8909000158309937,
+          "volume": 0.3718999922275543
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.6003000140190125
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 1.7818000316619873,
+          "volume": 0.3772999942302704
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.3348000049591064,
+          "volume": 0.3544999957084656
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.6674000024795532,
+          "volume": 0.421999990940094
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.6674000024795532,
+          "volume": 0.2574000060558319
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 0.8909000158309937,
+          "volume": 0.390500009059906
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.30090001225471497
+        }
+      ]
+    },
+    "kill_2": {
+      "category": "PLAYERS",
+      "events": [
+        {
+          "at": 0.0,
+          "sound": "block.note_block.basedrum",
+          "pitch": 0.5,
+          "volume": 0.43560001254081726
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.guitar",
+          "pitch": 1.0,
+          "volume": 0.5220999717712402
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 1.0,
+          "volume": 0.37229999899864197
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 1.0,
+          "volume": 0.6057000160217285
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 2.0,
+          "volume": 0.37959998846054077
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.4982999563217163,
+          "volume": 0.36079999804496765
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7491999864578247,
+          "volume": 0.43950000405311584
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.7491999864578247,
+          "volume": 0.10920000076293945
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 1.0,
+          "volume": 0.3928999900817871
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.flute",
+          "pitch": 1.0,
+          "volume": 0.303600013256073
+        }
+      ]
+    },
+    "kill_3": {
+      "category": "PLAYERS",
+      "events": [
+        {
+          "at": 0.0,
+          "sound": "block.note_block.basedrum",
+          "pitch": 0.5,
+          "volume": 0.43560001254081726
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.guitar",
+          "pitch": 1.059499979019165,
+          "volume": 0.5166000127792358
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 1.059499979019165,
+          "volume": 0.37209999561309814
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6072999835014343
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 1.059499979019165,
+          "volume": 0.3506999909877777
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.36399999260902405
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7936999797821045,
+          "volume": 0.18389999866485596
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.7936999797821045,
+          "volume": 0.1193000003695488
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.6674000024795532,
+          "volume": 0.10130000114440918
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 1.059499979019165,
+          "volume": 0.3935000002384186
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.3043999969959259
+        }
+      ]
+    },
+    "kill_4": {
+      "category": "PLAYERS",
+      "events": [
+        {
+          "at": 0.0,
+          "sound": "block.note_block.basedrum",
+          "pitch": 0.5,
+          "volume": 0.43560001254081726
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.guitar",
+          "pitch": 1.1892000436782837,
+          "volume": 0.5203999876976013
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 1.1892000436782837,
+          "volume": 0.374099999666214
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 1.1892000436782837,
+          "volume": 0.6148999929428101
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 1.1892000436782837,
+          "volume": 0.35190001130104065
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.1892000436782837,
+          "volume": 0.12389999628067017
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.7818000316619873,
+          "volume": 0.3711000084877014
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7491999864578247,
+          "volume": 0.2937000095844269
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.225600004196167
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.7491999864578247,
+          "volume": 0.1525000035762787
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 1.1892000436782837,
+          "volume": 0.39489999413490295
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.flute",
+          "pitch": 1.1892000436782837,
+          "volume": 0.30820000171661377
+        }
+      ]
+    },
+    "kill_5": {
+      "category": "PLAYERS",
+      "events": [
+        {
+          "at": 0.0,
+          "sound": "block.note_block.basedrum",
+          "pitch": 0.5,
+          "volume": 0.43560001254081726
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.pling",
+          "pitch": 1.7818000316619873,
+          "volume": 0.5328999757766724
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.3375999927520752
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.8909000158309937,
+          "volume": 0.06710000336170197
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.harp",
+          "pitch": 0.6674000024795532,
+          "volume": 0.11760000139474869
+        },
+        {
+          "at": 0.0,
+          "sound": "block.note_block.bell",
+          "pitch": 1.3348000049591064,
+          "volume": 0.3158999979496002
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.pling",
+          "pitch": 1.7818000316619873,
+          "volume": 0.5328999757766724
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.3375999927520752
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 0.8909000158309937,
+          "volume": 0.06710000336170197
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.harp",
+          "pitch": 0.6674000024795532,
+          "volume": 0.11760000139474869
+        },
+        {
+          "at": 0.1875,
+          "sound": "block.note_block.bell",
+          "pitch": 1.3348000049591064,
+          "volume": 0.3158999979496002
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.42500001192092896
+        },
+        {
+          "at": 0.375,
+          "sound": "block.note_block.bell",
+          "pitch": 1.3348000049591064,
+          "volume": 0.3158999979496002
+        },
+        {
+          "at": 0.5625,
+          "sound": "block.note_block.pling",
+          "pitch": 1.7818000316619873,
+          "volume": 0.5328999757766724
+        },
+        {
+          "at": 0.5625,
+          "sound": "block.note_block.flute",
+          "pitch": 0.8909000158309937,
+          "volume": 0.3375999927520752
+        },
+        {
+          "at": 0.5625,
+          "sound": "block.note_block.harp",
+          "pitch": 0.8909000158309937,
+          "volume": 0.06710000336170197
+        },
+        {
+          "at": 0.5625,
+          "sound": "block.note_block.harp",
+          "pitch": 0.6674000024795532,
+          "volume": 0.11760000139474869
+        },
+        {
+          "at": 0.5625,
+          "sound": "block.note_block.bell",
+          "pitch": 1.3348000049591064,
+          "volume": 0.3158999979496002
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.4300000071525574
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.flute",
+          "pitch": 0.529699981212616,
+          "volume": 0.20720000565052032
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.flute",
+          "pitch": 0.6674000024795532,
+          "volume": 0.3393000066280365
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7936999797821045,
+          "volume": 0.2782999873161316
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.harp",
+          "pitch": 0.6674000024795532,
+          "volume": 0.5692999958992004
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.harp",
+          "pitch": 0.529699981212616,
+          "volume": 0.3100999891757965
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.bass",
+          "pitch": 1.587399959564209,
+          "volume": 0.8069999814033508
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 0.75,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 0.9375,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.5412999987602234
+        },
+        {
+          "at": 0.9375,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 0.9375,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 1.125,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6814000010490417
+        },
+        {
+          "at": 1.125,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7936999797821045,
+          "volume": 0.19709999859333038
+        },
+        {
+          "at": 1.125,
+          "sound": "block.note_block.bass",
+          "pitch": 1.587399959564209,
+          "volume": 0.5713000297546387
+        },
+        {
+          "at": 1.125,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 1.125,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 1.3125,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.7645999789237976
+        },
+        {
+          "at": 1.3125,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 1.3125,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 1.5,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6814000010490417
+        },
+        {
+          "at": 1.5,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7936999797821045,
+          "volume": 0.17560000717639923
+        },
+        {
+          "at": 1.5,
+          "sound": "block.note_block.bass",
+          "pitch": 1.587399959564209,
+          "volume": 0.5713000297546387
+        },
+        {
+          "at": 1.5,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 1.5,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 1.6875,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.7645999789237976
+        },
+        {
+          "at": 1.6875,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 1.6875,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 1.875,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6814000010490417
+        },
+        {
+          "at": 1.875,
+          "sound": "block.note_block.harp",
+          "pitch": 0.7936999797821045,
+          "volume": 0.15649999678134918
+        },
+        {
+          "at": 1.875,
+          "sound": "block.note_block.bass",
+          "pitch": 1.587399959564209,
+          "volume": 0.5091999769210815
+        },
+        {
+          "at": 1.875,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 1.875,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 2.0625,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6814000010490417
+        },
+        {
+          "at": 2.0625,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 2.0625,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 2.25,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.6072999835014343
+        },
+        {
+          "at": 2.25,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 2.25,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 2.4375,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.5412999987602234
+        },
+        {
+          "at": 2.4375,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 2.4375,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        },
+        {
+          "at": 2.625,
+          "sound": "block.note_block.flute",
+          "pitch": 1.059499979019165,
+          "volume": 0.48240000009536743
+        },
+        {
+          "at": 2.625,
+          "sound": "block.note_block.bell",
+          "pitch": 1.059499979019165,
+          "volume": 0.1225999966263771
+        },
+        {
+          "at": 2.625,
+          "sound": "block.note_block.bell",
+          "pitch": 1.587399959564209,
+          "volume": 0.4083999991416931
+        }
+      ]
+    }
+  }
+}

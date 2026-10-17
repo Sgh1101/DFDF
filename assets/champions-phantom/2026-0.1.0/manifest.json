@@ -1,0 +1,173 @@
+{
+  "version": "2026-0.1.0",
+  "author": "Seafle",
+  "source": "ChampionsPhantom2026-0.1.0.jar",
+  "sourceSha256": "99e2c9076976b9ca5c7f38ffcae8e08e6f06b0df55ce13b9a597cb1a97d86683",
+  "files": [
+    {
+      "name": "animations/phantom_champions_2026.animation.json",
+      "size": 303870,
+      "sha256": "1c915414b843306c00d42d2b0c9b3d159c76fed73096b756cd56c23524baa625"
+    },
+    {
+      "name": "geo/finisher/dragon_low.geo.json",
+      "size": 267893,
+      "sha256": "e659799b612d11a128efe7da514763b7c9cd76756e08b5f3b9a36c7362fc370d"
+    },
+    {
+      "name": "geo/finisher/serpent_cream.geo.json",
+      "size": 333278,
+      "sha256": "46c0c5446bce2c60938c9c7acaba651f529abd8b37628b9816a6b39f661c69c9"
+    },
+    {
+      "name": "geo/finisher/serpent_red.geo.json",
+      "size": 326986,
+      "sha256": "540d954ea19c873298286e95d2c7c0830ad0ff17cd75e8135d16756c08aafcf4"
+    },
+    {
+      "name": "geo/phantom_champions_2026.geo.json",
+      "size": 619976,
+      "sha256": "36fe668022913cc238e24de8096685e956e6715c7fc8bd71c622fa9a3234d2f2"
+    },
+    {
+      "name": "textures/finisher/dragon_low_black.png",
+      "size": 6964,
+      "sha256": "cdcad3b9214a5130414ea96ed4732afd4fb058d6600aaedf4f4460a4d39c8030"
+    },
+    {
+      "name": "textures/finisher/dragon_low_white.png",
+      "size": 7653,
+      "sha256": "4bfcafb9741645c0bfd9402442aa19da4ff334050d0475a2486d56a602d546d4"
+    },
+    {
+      "name": "textures/finisher/fx/diamond.png",
+      "size": 116,
+      "sha256": "6a3280ea1b47b664ebdb7c5ffc183705045f16be854f693061d16b98ab1fd05f"
+    },
+    {
+      "name": "textures/finisher/fx/ember.png",
+      "size": 112,
+      "sha256": "4dae2abaa441347e5c82e8873d48d4496c4b263e9155a56ffafa536b338580c6"
+    },
+    {
+      "name": "textures/finisher/fx/glow.png",
+      "size": 340,
+      "sha256": "9919fbf3de1aa74b5754bb0624e89d9c223bbfbcb22b52ae896acfb06546856e"
+    },
+    {
+      "name": "textures/finisher/fx/ray.png",
+      "size": 218,
+      "sha256": "f54b03090c0500cf02d86217a0c2e9ad6c27438e3804776f0020f79622d7a354"
+    },
+    {
+      "name": "textures/finisher/fx/ribbon_red.png",
+      "size": 146,
+      "sha256": "ea60dae25d4002d81ec316edb58b4b6cfa711ad54574bec546d2f21e63178c04"
+    },
+    {
+      "name": "textures/finisher/fx/ribbon_white.png",
+      "size": 139,
+      "sha256": "7ff0d14b74f91a58c3e59c6ad9f0271e538ac8fc3d53969050bba890dacca059"
+    },
+    {
+      "name": "textures/finisher/fx/ring.png",
+      "size": 857,
+      "sha256": "f127602bedf400a6c88080dce9cfabec3060becf423eda60e28ec7b5bb5e808c"
+    },
+    {
+      "name": "textures/finisher/fx/star8.png",
+      "size": 628,
+      "sha256": "6481261728dc519cc104987723a673486b50872081251a1f2e336ecb592ac72d"
+    },
+    {
+      "name": "textures/finisher/fx/swirl.png",
+      "size": 574,
+      "sha256": "ac204eeab75fb16635d31e78e8e3486951af8ded877b9d89df204ff375a0067c"
+    },
+    {
+      "name": "textures/finisher/fx/white.png",
+      "size": 78,
+      "sha256": "508e92238640e05034d4f6ac7d906a3288e82dbe047b7e8f55ff4d993a7523ef"
+    },
+    {
+      "name": "textures/finisher/serpent_cream.png",
+      "size": 21065,
+      "sha256": "40de4495d9689068ded72c7360615db717a239dac6d8deb2df7fcf04de451852"
+    },
+    {
+      "name": "textures/finisher/serpent_red.png",
+      "size": 18300,
+      "sha256": "81ccb39b12adccf0c711131535c072ec5aafd8d2ff5cfd21b06f0896516a31e6"
+    },
+    {
+      "name": "textures/gui/banner/emblem_fin_attacker.png",
+      "size": 620,
+      "sha256": "1353855c4419cd637100d94c95b1f6362084c337cfdc18d3675ca9cec586f8da"
+    },
+    {
+      "name": "textures/gui/banner/emblem_fin_defender.png",
+      "size": 617,
+      "sha256": "a07641e27c41d0f04c9da5e871be3057408eb9378d388bed3056317a958f28a4"
+    },
+    {
+      "name": "textures/gui/banner/emblem_new_attacker.png",
+      "size": 531,
+      "sha256": "0256347aec2577c3d1009b3877a9758357cc39a4ad8bdf7520243ce1b7747e6e"
+    },
+    {
+      "name": "textures/gui/banner/emblem_new_defender.png",
+      "size": 572,
+      "sha256": "c296d3679d900c0da80ce56a3d35df46c680ba4223e898b8ee7e3e1cae5d746b"
+    },
+    {
+      "name": "textures/gui/banner/frame1.png",
+      "size": 466,
+      "sha256": "039296f0de047b75790251ddd6979dc557a4195d714e15a627da47336e1e71d3"
+    },
+    {
+      "name": "textures/gui/banner/frame2.png",
+      "size": 795,
+      "sha256": "d90e09a9a266dd92478196493d6610d46fe09ee59833bbfb8bec80f8a9d426f7"
+    },
+    {
+      "name": "textures/gui/banner/frame3.png",
+      "size": 1336,
+      "sha256": "63c6c4df1ac9a8005a72f905a5ae5aa58d3d2bbe788cbb84f4527e7a6b829823"
+    },
+    {
+      "name": "textures/gui/banner/frame4.png",
+      "size": 1405,
+      "sha256": "9b0e39f7ecfa5e2734c96523a12ba21f1cee31de2bc0aaf2d01af8d77ee1b5b1"
+    },
+    {
+      "name": "textures/gui/banner/frame5.png",
+      "size": 1386,
+      "sha256": "18053f95898deb596999bc4c30e2def0974e53e8d3236ff9ade9643efccb114f"
+    },
+    {
+      "name": "textures/gui/banner/frame_fin.png",
+      "size": 1386,
+      "sha256": "18053f95898deb596999bc4c30e2def0974e53e8d3236ff9ade9643efccb114f"
+    },
+    {
+      "name": "textures/item/phantom_attacker.png",
+      "size": 17002,
+      "sha256": "1a2c17e93cfa2c9370e7d81006f3c458ec4ea270d43c54eacb14b35f3631664f"
+    },
+    {
+      "name": "textures/item/phantom_attacker_glowmask.png",
+      "size": 2029,
+      "sha256": "a617422b7b0c775e1f4b7a7b8e0225a70deacf81be40a3775cd82f826a5435d3"
+    },
+    {
+      "name": "textures/item/phantom_defender.png",
+      "size": 16840,
+      "sha256": "37823e13e7dc21209cdc18e5ef8203623382c1874639cc73f8f4140db998d20d"
+    },
+    {
+      "name": "textures/item/phantom_defender_glowmask.png",
+      "size": 1973,
+      "sha256": "abbac045ffc13584eec8d39f976cb6029d7064aa06ceaedb8f522675b2e45693"
+    }
+  ]
+}
