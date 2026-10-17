@@ -52,7 +52,7 @@
 
 ## 테스트
 
-`npm test`는 단위 테스트(`tests/`)입니다. 브라우저 검사(`npm run test:browser`, `test:regression`, `test:startup`, `test:maps`, `test:online`, `test:ranked`, `test:shift`, `test:reload`, `test:knife`, `test:aim`, `test:admin`, `test:shop`, `test:modes2`, `test:wish`, `test:train`, `test:agents4`, `test:season`, `test:infection`, `test:conquest`, `test:range`, `test:cosmetics`, `test:newmaps`, `test:hospital`, `test:ui-fixes`, `test:followup`)는 Playwright가 필요하고 `DFDF_PLAYWRIGHT_MODULE`, `DFDF_BASE_URL` 등을 설정합니다. 소프트웨어 GL(헤드리스) 환경에서는 느려서 `test:regression`의 첫 클릭과 `test:followup`의 실제 클릭이 간헐적으로 시간 초과됩니다. 코드를 바꾸지 않은 브랜치에서도 같았습니다.
+`npm test`는 단위 테스트(`tests/`)입니다. 브라우저 검사(`npm run test:browser`, `test:regression`, `test:startup`, `test:maps`, `test:online`, `test:ranked`, `test:shift`, `test:reload`, `test:knife`, `test:aim`, `test:admin`, `test:shop`, `test:modes2`, `test:wish`, `test:train`, `test:agents4`, `test:season`, `test:infection`, `test:conquest`, `test:range`, `test:cosmetics`, `test:newmaps`, `test:hospital`, `test:details`, `test:ui-fixes`, `test:followup`)는 Playwright가 필요하고 `DFDF_PLAYWRIGHT_MODULE`, `DFDF_BASE_URL` 등을 설정합니다. 소프트웨어 GL(헤드리스) 환경에서는 느려서 `test:regression`의 첫 클릭과 `test:followup`의 실제 클릭이 간헐적으로 시간 초과됩니다. 코드를 바꾸지 않은 브랜치에서도 같았습니다.
 
 ## 파일
 
