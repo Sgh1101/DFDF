@@ -354,7 +354,7 @@ SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
-SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = "rifle";
+SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = "carbine";
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
 const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"];
@@ -380,17 +380,17 @@ function ensureWallet(u, c) {
   if (!Number.isSafeInteger(u.championCoins) || u.championCoins < 0) { u.championCoins = 0; changed = true; }
   if ("number" != typeof u.gold || !isFinite(u.gold)) ((u.gold = c.gold.signup), (changed = !0));
   if (!isObj(u.own)) ((u.own = {}), (changed = !0));
-  // Move the previously sold carbine copies without charging again or replacing other skins.
+  // Move the previously sold rifle copies without charging again or replacing other skins.
   const phantom = (s) => s === "champions_atk" || s === "champions_def";
-  const moved = Array.isArray(u.own.carbine) ? u.own.carbine.filter(phantom) : [];
+  const moved = Array.isArray(u.own.rifle) ? u.own.rifle.filter(phantom) : [];
   if (moved.length) {
-    u.own.rifle = [...new Set([...(Array.isArray(u.own.rifle) ? u.own.rifle : []), ...moved])];
-    u.own.carbine = u.own.carbine.filter((s) => !phantom(s)); changed = true;
+    u.own.carbine = [...new Set([...(Array.isArray(u.own.carbine) ? u.own.carbine : []), ...moved])];
+    u.own.rifle = u.own.rifle.filter((s) => !phantom(s)); changed = true;
   }
-  if (isObj(u.skins?.m) && phantom(u.skins.m.carbine)) {
-    const previous = u.skins.m.carbine;
-    if ((!u.skins.m.rifle || u.skins.m.rifle === "default") && hasItem(u, "rifle", previous)) u.skins.m.rifle = previous;
-    delete u.skins.m.carbine;
+  if (isObj(u.skins?.m) && phantom(u.skins.m.rifle)) {
+    const previous = u.skins.m.rifle;
+    if ((!u.skins.m.carbine || u.skins.m.carbine === "default") && hasItem(u, "carbine", previous)) u.skins.m.carbine = previous;
+    delete u.skins.m.rifle;
     u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
   }
   let back = 0;

@@ -63,7 +63,7 @@
     // A confirmed projectile carries its skin; abilities cannot borrow the held gun's sound.
     const gun = event ? event.gun : actor && actorWeaponKey(actor);
     const id = event ? event.skin : (actor && GUN_SKINS.skinOf(actor, gun) || {}).id;
-    if (actor && gun === "rifle" && phantom(id) && (!event || event.kind === "gun" || event.kind === "head")) {
+    if (actor && gun === "carbine" && phantom(id) && (!event || event.kind === "gun" || event.kind === "head")) {
       const old = counts.get(actor), round = world.round;
       const count = old && old.round === round ? old.count + 1 : 1;
       counts.set(actor, { round, count }); void play(count);

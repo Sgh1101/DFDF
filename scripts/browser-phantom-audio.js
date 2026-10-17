@@ -27,7 +27,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const me = player; window.myActor = () => me; world.round = 77;
       const counts = [];
       for (let n = 1; n <= 5; n++) {
-        window.KILL_EVENT = { gun: "rifle", skin: "champions_atk", kind: n % 2 ? "gun" : "head" };
+        window.KILL_EVENT = { gun: "carbine", skin: "champions_atk", kind: n % 2 ? "gun" : "head" };
         playKillFx("test", n % 2 === 0); delete window.KILL_EVENT;
         // load() and resume() each yield a microtask before the scheduler runs.
         for (let i = 0; i < 6; i++) await Promise.resolve();
@@ -42,10 +42,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       CHAMPIONS_AUDIO.reset(); __audio.sources.length = 0; SETTINGS.sfx = false;
       const muted = await CHAMPIONS_AUDIO.play(1); SETTINGS.sfx = true;
       world.round++;
-      KILL_EVENT = { gun: "rifle", skin: "champions_def", kind: "gun" }; const exclusive = SFX.kill(false); delete window.KILL_EVENT;
+      KILL_EVENT = { gun: "carbine", skin: "champions_def", kind: "gun" }; const exclusive = SFX.kill(false); delete window.KILL_EVENT;
       for (let i = 0; i < 6; i++) await Promise.resolve();
       const count = __audio.sources.length;
-      KILL_EVENT = { gun: "rifle", skin: "champions_def", kind: "ability" }; const ability = SFX.kill(false); delete window.KILL_EVENT;
+      KILL_EVENT = { gun: "carbine", skin: "champions_def", kind: "ability" }; const ability = SFX.kill(false); delete window.KILL_EVENT;
       CHAMPIONS_AUDIO.reset(); cancelAnimationFrame(__audio.raf); GAME_AUDIO.output.disconnect(__audio.analyser); __audio.analyser.disconnect(); __audio.mute.disconnect();
       return { muted, exclusive, count, ability: ability === false };
     });
