@@ -18,6 +18,7 @@
   function texture(name) {
     if (!textures.has(name)) {
       const tex = new T.TextureLoader().load(url(name));
+      tex.name = name;
       tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
       textures.set(name, tex);
     }
@@ -107,20 +108,38 @@
     return renderFrame.apply(this, arguments);
   };
 
-  function finisher(group, skin) {
-    const crown = new T.Group(); crown.userData.phantom = true; group.add(crown);
-    const gold = new T.MeshBasicMaterial({ color: 0xeacb81, transparent: true, opacity: 0.9 });
-    const ring = new T.Mesh(new T.TorusGeometry(0.45, 0.035, 6, 40), gold); ring.rotation.x = Math.PI / 2; crown.add(ring);
-    const points = Array.from({ length: 65 }, (_, i) => { const t = i / 64; return new T.Vector3(Math.cos(t * Math.PI * 4) * (0.55 - 0.25 * t), 0.2 + t * 2.1, Math.sin(t * Math.PI * 4) * (0.55 - 0.25 * t)); });
-    crown.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points), 56, 0.045, 5, false), new T.MeshBasicMaterial({ color: skin.glow, transparent: true, opacity: 0.9 })));
-    const head = new T.Mesh(new T.ConeGeometry(0.18, 0.4, 4), gold); head.position.copy(points[64]); head.rotation.z = -0.7; crown.add(head);
-    if (model && assets["geo/finisher/dragon_low.geo.json"]) {
-      const geo = A.json(assets, "geo/finisher/dragon_low.geo.json")["minecraft:geometry"][0];
-      const dragon = buildGeo(geo, new T.MeshBasicMaterial({ map: texture("textures/finisher/dragon_low_" + (skin.id === ids[0] ? "black" : "white") + ".png"), transparent: true, side: T.DoubleSide }));
-      const b = new T.Box3().setFromObject(dragon), c = b.getCenter(new T.Vector3()), s = b.getSize(new T.Vector3());
-      dragon.position.sub(c); const mount = new T.Group(); mount.add(dragon); mount.scale.setScalar(1.4 / Math.max(s.x, s.y, s.z)); mount.position.y = 1.25; crown.add(mount);
+  function finisher(group, skin, event = {}) {
+    // The supplied renderer draws BOTH source models, not a generated spiral.
+    // client.c.b.d: models appear at 2.66s; DEFENDER changes black -> white at 2.8s.
+    // ATTACKER uses serpent_cream; DEFENDER uses serpent_red (c.a enum verified).
+    const snake = skin.id === ids[0] ? "cream" : "red";
+    const names = ["dragon_low", "serpent_" + snake];
+    if (!model || !names.every(name => assets["geo/finisher/" + name + ".geo.json"])) return null;
+    const figure = new T.Group(), native = new T.Group(), mats = [];
+    figure.name = "champions-original-finisher"; figure.userData.phantom = true;
+    // Original GeckoLib unit conversion and the renderer's 1.25 scale about y=4.15.
+    native.scale.setScalar(1.25 / 16); native.position.y = 4.15 * (1 - 1.25); figure.add(native);
+    for (const name of names) {
+      const path = name === "dragon_low" ? "dragon_low_black" : name;
+      const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.01, side: T.DoubleSide });
+      mats.push(material);
+      const geo = A.json(assets, "geo/finisher/" + name + ".geo.json")["minecraft:geometry"][0];
+      const rig = buildGeo(geo, material); rig.name = "original-" + name; rig.userData.source = "geo/finisher/" + name + ".geo.json"; native.add(rig);
     }
-    return (t) => { crown.rotation.y = t * Math.PI * 2; crown.position.y = Math.sin(t * Math.PI) * 0.45; crown.scale.setScalar(Math.min(1, t * 7) * (1 - Math.max(0, t - 0.7) / 0.3)); };
+    const box = new T.Box3().setFromObject(figure), size = box.getSize(new T.Vector3());
+    const playerHeight = 2.1 * BODY_K, enlargement = Math.max(1, playerHeight * 5 / size.y);
+    figure.scale.setScalar(enlargement);
+    figure.position.y = -0.6 - box.min.y * enlargement; // victim's foot, same origin as the source scene
+    figure.rotation.y = Number.isFinite(event.finisherYaw) ? event.finisherYaw : 0;
+    figure.userData.playerHeight = playerHeight; figure.userData.height = size.y * enlargement;
+    figure.userData.serpent = snake; figure.visible = false; group.add(figure);
+    return (t) => {
+      const seconds = t * 8;
+      figure.visible = seconds >= 2.66 && seconds < 8;
+      mats[0].map = texture("textures/finisher/dragon_low_" + (skin.id === ids[1] && seconds >= 2.8 ? "white" : "black") + ".png");
+      // Original one-second alpha exit, with the hold shortened for the requested 8s round transition.
+      for (const material of mats) material.opacity = 1 - Math.max(0, Math.min(1, seconds - 7));
+    };
   }
   function banner(id, kills = 1, final = false) {
     const fx = $("killfx"); if (!fx) return;
@@ -184,13 +203,16 @@
     const parsed = A.validate(next); // Validate before replacing a working pack.
     const revision = ++installRevision, stagedTextures = new Map(), stagedUrls = new Map(); let committed = false;
     try {
-      const decoded = await Promise.allSettled(["attacker", "defender"].flatMap((side) => ["", "_glowmask"].map(async (suffix) => {
-        const name = `textures/item/phantom_${side}${suffix}.png`; if (!next[name]) return;
+      const weaponTextures = ["attacker", "defender"].flatMap(side => ["", "_glowmask"].map(suffix => `textures/item/phantom_${side}${suffix}.png`));
+      const finisherTextures = ["dragon_low_black", "dragon_low_white", "serpent_cream", "serpent_red"].map(name => `textures/finisher/${name}.png`);
+      const decoded = await Promise.allSettled([...weaponTextures, ...finisherTextures].map(async name => {
+        if (!next[name]) return;
         const address = URL.createObjectURL(new Blob([next[name]], { type: "image/png" })); stagedUrls.set(name, address);
         const tex = await new T.TextureLoader().loadAsync(address); stagedTextures.set(name, tex);
-        if (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height) throw Error("원본 텍스처와 모델 크기가 맞지 않습니다.");
+        tex.name = name;
+        if (weaponTextures.includes(name) && (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height)) throw Error("원본 텍스처와 모델 크기가 맞지 않습니다.");
         tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
-      })));
+      }));
       const failed = decoded.find((item) => item.status === "rejected"); if (failed) throw failed.reason;
       if (revision !== installRevision) return;
       if (persist) await store(next);

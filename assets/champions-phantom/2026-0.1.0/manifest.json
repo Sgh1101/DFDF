@@ -15,6 +15,16 @@
       "sha256": "e659799b612d11a128efe7da514763b7c9cd76756e08b5f3b9a36c7362fc370d"
     },
     {
+      "name": "geo/finisher/serpent_cream.geo.json",
+      "size": 333278,
+      "sha256": "46c0c5446bce2c60938c9c7acaba651f529abd8b37628b9816a6b39f661c69c9"
+    },
+    {
+      "name": "geo/finisher/serpent_red.geo.json",
+      "size": 326986,
+      "sha256": "540d954ea19c873298286e95d2c7c0830ad0ff17cd75e8135d16756c08aafcf4"
+    },
+    {
       "name": "geo/phantom_champions_2026.geo.json",
       "size": 619976,
       "sha256": "36fe668022913cc238e24de8096685e956e6715c7fc8bd71c622fa9a3234d2f2"
@@ -28,6 +38,16 @@
       "name": "textures/finisher/dragon_low_white.png",
       "size": 7653,
       "sha256": "4bfcafb9741645c0bfd9402442aa19da4ff334050d0475a2486d56a602d546d4"
+    },
+    {
+      "name": "textures/finisher/serpent_cream.png",
+      "size": 21065,
+      "sha256": "40de4495d9689068ded72c7360615db717a239dac6d8deb2df7fcf04de451852"
+    },
+    {
+      "name": "textures/finisher/serpent_red.png",
+      "size": 18300,
+      "sha256": "81ccb39b12adccf0c711131535c072ec5aafd8d2ff5cfd21b06f0896516a31e6"
     },
     {
       "name": "textures/gui/banner/emblem_fin_attacker.png",

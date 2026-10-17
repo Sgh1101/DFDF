@@ -15,7 +15,9 @@
   function finisher(event) {
     return !!event && event.finisher !== false && event.mode === "std" && event.last === true && ["gun", "head", "melee"].includes(event.kind) && event.killer !== event.victim && typeof event.skin === "string" && event.skin !== "default";
   }
-  const rules = { validInput, abilityReady, outcome, finisher };
+  const championsSkin = (id) => ["champion", "champions_atk", "champions_def"].includes(id);
+  const championsFinisher = (event) => finisher(event) && championsSkin(event.skin);
+  const rules = { validInput, abilityReady, outcome, finisher, championsSkin, championsFinisher };
   if (typeof module === "object" && module.exports) module.exports = rules;
   else root.GAME_RULES = rules;
 })(typeof window === "object" ? window : globalThis);

@@ -6,7 +6,7 @@ const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex"
   const source = process.argv[2] || process.env.PHANTOM_JAR;
   if (!source) throw Error("Pass the supplied JAR path or set PHANTOM_JAR.");
   const jar = fs.readFileSync(source), assets = await A.read(jar.buffer.slice(jar.byteOffset, jar.byteOffset + jar.byteLength), async (bytes) => new Uint8Array(zlib.inflateRawSync(bytes)));
-  const names = [...A.required, ...["attacker", "defender"].map((s) => `textures/item/phantom_${s}_glowmask.png`), "geo/finisher/dragon_low.geo.json", ...["black", "white"].map((s) => `textures/finisher/dragon_low_${s}.png`), ...["1", "2", "3", "4", "5", "_fin"].map((n) => `textures/gui/banner/frame${n}.png`), ...["fin", "new"].flatMap((n) => ["attacker", "defender"].map((s) => `textures/gui/banner/emblem_${n}_${s}.png`))].sort();
+  const names = [...A.required, ...["attacker", "defender"].map((s) => `textures/item/phantom_${s}_glowmask.png`), "geo/finisher/dragon_low.geo.json", ...["cream", "red"].flatMap((s) => [`geo/finisher/serpent_${s}.geo.json`, `textures/finisher/serpent_${s}.png`]), ...["black", "white"].map((s) => `textures/finisher/dragon_low_${s}.png`), ...["1", "2", "3", "4", "5", "_fin"].map((n) => `textures/gui/banner/frame${n}.png`), ...["fin", "new"].flatMap((n) => ["attacker", "defender"].map((s) => `textures/gui/banner/emblem_${n}_${s}.png`))].sort();
   const root = path.resolve(__dirname, "../assets/champions-phantom/2026-0.1.0"), files = [];
   for (const name of names) {
     const bytes = assets[name]; if (!bytes) throw Error("Missing original asset: " + name);
