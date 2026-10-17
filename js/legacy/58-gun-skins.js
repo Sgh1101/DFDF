@@ -2747,6 +2747,7 @@
     const tg = pvTarget();
     if (!tg || !WEAPONS[tg.g]) return void pvRender();
     const shown = skinById(tg.s);
+    if (window.CHAMPIONS_PHANTOM?.isSkin(shown.id) && !CHAMPIONS_PHANTOM.loaded()) return void pvRender();
     let g = null;
     try {
       g = buildFor(tg.g, shown);

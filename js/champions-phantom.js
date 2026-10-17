@@ -5,7 +5,7 @@
   const ids = ["champions_atk", "champions_def"], isSkin = (id) => ids.includes(id);
   const L = (ko, en) => window.GAME_LANG === "en" ? en : ko, $ = (id) => document.getElementById(id);
   const variant = (id) => id === ids[0] ? "attacker" : "defender";
-  let assets = null, model = null, selected = ids[0], preview = null, previewRAF = 0, generation = 0, loading = false, bannerHome = null;
+  let assets = null, model = null, ready = false, selected = ids[0], preview = null, previewRAF = 0, generation = 0, installRevision = 0, loading = false, bannerHome = null, bundledRequest = null;
   const urls = new Map(), textures = new Map(), materials = new Map();
   const rad = Math.PI / 180;
   const motion = () => SETTINGS.motion !== 0 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -80,7 +80,7 @@
     const side = variant(id), key = "weapon-" + side;
     if (!materials.has(key)) {
       const mask = "textures/item/phantom_" + side + "_glowmask.png";
-      materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
+      materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
     }
     const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
     // Source points down +X; DFDF points down -Z. Fit to the carbine's existing grip.
@@ -221,11 +221,40 @@
     for (const tex of textures.values()) tex.dispose(); textures.clear();
     for (const mat of materials.values()) mat.dispose(); materials.clear();
   }
-  async function install(next, persist = true) {
+  function bundled() {
+    if (!bundledRequest) bundledRequest = A.bundled().catch((error) => { bundledRequest = null; throw error; });
+    return bundledRequest;
+  }
+  function availability(message) {
+    const slot = $("slot-champions");
+    slot.classList.toggle("phantom-unavailable", !ready); slot.setAttribute("aria-busy", String(!ready));
+    $("phantom-model-message").textContent = message || L("제공된 원본 모델을 불러오는 중…", "Loading the supplied original model…");
+    $("phantom-model-notice").hidden = ready;
+  }
+  async function install(next, persist = true, origin = "local") {
     const parsed = A.validate(next); // Validate before replacing a working pack.
-    if (persist) await store(next);
-    stop(); release(); assets = next; model = parsed; refresh();
-    $("phantom-status").textContent = L("원본 모델·배너·용 마무리 준비됨 · Seafle 제작", "Original model, banner and dragon ready · by Seafle");
+    const revision = ++installRevision, stagedTextures = new Map(), stagedUrls = new Map(); let committed = false;
+    try {
+      const decoded = await Promise.allSettled(["attacker", "defender"].flatMap((side) => ["", "_glowmask"].map(async (suffix) => {
+        const name = `textures/item/phantom_${side}${suffix}.png`; if (!next[name]) return;
+        const address = URL.createObjectURL(new Blob([next[name]], { type: "image/png" })); stagedUrls.set(name, address);
+        const tex = await new T.TextureLoader().loadAsync(address); stagedTextures.set(name, tex);
+        if (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height) throw Error("원본 텍스처와 모델 크기가 맞지 않습니다.");
+        tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
+      })));
+      const failed = decoded.find((item) => item.status === "rejected"); if (failed) throw failed.reason;
+      if (revision !== installRevision) return;
+      if (persist) await store(next);
+      if (revision !== installRevision) return;
+      stop(); release(); assets = next; model = parsed; ready = true;
+      for (const [name, tex] of stagedTextures) textures.set(name, tex);
+      for (const [name, address] of stagedUrls) urls.set(name, address);
+      committed = true; refresh(); availability();
+      $("phantom-status").textContent = origin === "bundled" ? L("제공된 원본 모델·텍스처 자동 적용됨 · Seafle 제작", "Supplied original model and textures loaded automatically · by Seafle") : L("불러온 원본 모델·텍스처 적용됨 · Seafle 제작", "Imported original model and textures loaded · by Seafle");
+      if (GS.isOpen() && GS.curTab() === "champions") showSelected();
+    } finally {
+      if (!committed) { for (const tex of stagedTextures.values()) tex.dispose(); for (const address of stagedUrls.values()) URL.revokeObjectURL(address); }
+    }
   }
   function stop() {
     cancelAnimationFrame(previewRAF); previewRAF = 0; SOUNDPACK.stop();
@@ -280,14 +309,17 @@
   guide.innerHTML = `<summary>${L("스킨 등급표", "Skin tier guide")} <span>${L("최고 등급: 초월", "Highest tier: Transcendent")}</span></summary>
     <div class="skin-tier-scroll"><table><caption>${L("일반 → 희귀 → 영웅 → 전설 → 초월", "Common → Rare → Epic → Legendary → Transcendent")}</caption><thead><tr><th>${L("순위", "Rank")}</th><th>${L("등급", "Tier")}</th><th>${L("구분", "Details")}</th></tr></thead><tbody>${SKIN_TIERS.list.slice().reverse().map((row, i) => `<tr data-tier="${row.id}"${row.id === 5 ? ' class="highest"' : ""}><th scope="row">${i + 1}</th><td style="color:${row.c}">${L(row.ko, row.en)}</td><td>${row.id === 5 ? L("전설보다 높은 최고 등급 · 700 초월 코인", "Above Legendary · 700 Transcendent coins") : row.id === 4 ? L("초월 바로 아래 등급", "One tier below Transcendent") : L(`${row.id}단계`, `Tier ${row.id}`)}</td></tr>`).join("")}</tbody></table></div>`;
   $("armory").querySelector(".ar-hd").after(guide);
+  const notice = document.createElement("div"); notice.id = "phantom-model-notice";
+  notice.innerHTML = `<p id="phantom-model-message" role="status"></p><button type="button" id="phantom-retry">${L("원본 다시 불러오기", "Retry original model")}</button>`;
+  $("slot-champions").appendChild(notice); availability();
   const panel = document.createElement("section"); panel.id = "phantom-panel";
   panel.innerHTML = `<details open><summary>${L("챔피언스 팬텀 · 스킨과 연출 미리보기", "Champions Phantom · Skin & effects preview")}</summary><div class="phantom-content">
     <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 카빈 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Carbine Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
     <div class="phantom-buttons"><button type="button" data-phantom-skin="champions_atk" aria-pressed="true">${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" data-phantom-skin="champions_def" aria-pressed="false">${L("수비 · 상아빛", "Defense · Ivory")}</button></div>
     <div class="phantom-buttons">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")], ["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(([k, v]) => `<button type="button" data-phantom-demo="${k}">${v}</button>`).join("")}<button type="button" id="phantom-stop">${L("중지", "Stop")}</button></div>
-    <p id="phantom-status" role="status">${L("기본 게임 외형 사용 중 · 원본 JAR을 불러오면 원본 모델과 배너로 바뀝니다.", "Using the game model · Import your JAR for the original model and banner.")}</p>
-    <label class="phantom-import">${L("원본 JAR 불러오기", "Import original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("기본 외형으로", "Use game model")}</button>
-    <small>${L("이 브라우저에만 저장됩니다. 다른 플레이어도 원본 외형을 보려면 각자 불러와야 합니다. 원본 제작: Seafle · 원본 파일 재배포 금지. 미보유 스킨은 미리보기만 가능합니다. 초월 상점 코인 700개 또는 뽑기 0.00000000000000001%로 획득합니다.", "Saved in this browser only. Others must import their own copy to see original assets. Original by Seafle; do not redistribute. Unowned skins are preview only; obtain them for 700 coins or a 0.00000000000000001% pull.")}</small>
+    <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
+    <label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button>
+    <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>
     </div></details>`;
   $("champions-content").appendChild(panel);
   addEventListener("champions-open", showSelected);
@@ -297,15 +329,29 @@
   $("phantom-stop").onclick = stop;
   $("phantom-file").onchange = async (event) => {
     const file = event.target.files[0]; if (!file || loading) return;
-    loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = true;
+    ++installRevision; loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = true;
     try { if (file.size > 48 * 1024 * 1024) throw Error("JAR 파일은 48MB 이하여야 합니다."); $("phantom-status").textContent = L("불러오는 중…", "Importing…"); await install(await A.read(await file.arrayBuffer())); choose(selected); }
     catch (e) { $("phantom-status").textContent = L("불러오기 실패: ", "Import failed: ") + e.message; }
     finally { loading = false; event.target.value = ""; $("phantom-file").disabled = $("phantom-remove").disabled = false; }
   };
-  $("phantom-remove").onclick = async () => { if (loading) return; try { await store(null, true); stop(); release(); assets = model = null; refresh(); $("phantom-status").textContent = L("기본 게임 외형을 사용합니다.", "Using the game model."); choose(selected); } catch (e) { $("phantom-status").textContent = e.message; } };
+  async function restoreBundled() {
+    if (loading) return;
+    ++installRevision; loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = true;
+    try { const original = await bundled(); await install(original, false, "bundled"); await store(null, true).catch(() => {}); }
+    catch (error) { const message = L("원본 불러오기 실패: ", "Original model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); }
+    finally { loading = false; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = false; }
+  }
+  $("phantom-remove").onclick = $("phantom-retry").onclick = restoreBundled;
   new MutationObserver(() => { if ($("armory").hidden) stop(); }).observe($("armory"), { attributes: true, attributeFilter: ["hidden"] });
-  window.CHAMPIONS_PHANTOM = { isSkin, dress, finisher, choose, demo, stop, pose, loaded: () => !!model };
+  window.CHAMPIONS_PHANTOM = { isSkin, dress, finisher, choose, demo, stop, pose, loaded: () => ready };
   // Do not overwrite a user import if the startup IndexedDB read resolves later.
   const version = generation;
-  store().then((saved) => { if (saved && generation === version && !loading) return install(saved, false); }).catch(() => {});
+  (async () => {
+    const saved = await store().catch(() => null);
+    if (saved && generation === version && !loading) {
+      try { await install(saved, false); return; } catch (error) { /* A broken local override must not hide the supplied original. */ }
+    }
+    try { const original = await bundled(); if (generation === version && !loading) await install(original, false, "bundled"); }
+    catch (error) { if (generation === version && !ready) { const message = L("원본 불러오기 실패: ", "Original model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); } }
+  })();
 })();

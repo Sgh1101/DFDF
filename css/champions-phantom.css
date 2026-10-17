@@ -3,6 +3,9 @@
 #ar-p-champions{overflow:auto;padding-right:4px}
 .champions-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,1.1fr);gap:20px;align-items:start}
 #slot-champions{min-height:clamp(220px,55vh,520px);position:sticky;top:0}
+#slot-champions.phantom-unavailable .ar-view{visibility:hidden}
+#phantom-model-notice{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#e6d2e3;border:1px solid #664158;border-radius:18px;background:#141019;font-size:13px;line-height:1.7}
+#phantom-model-notice[hidden]{display:none}#phantom-retry{padding:10px 14px;border:1px solid #af708e;border-radius:8px;background:#352431;color:#ffe4f3;cursor:pointer}#phantom-retry:focus-visible{outline:2px solid #ffb4e6;outline-offset:2px}
 #champions-content{min-width:0;padding-bottom:12px}#champions-content>h2{margin:0;color:#ffdbef;font-size:24px}.champions-intro{font-size:12px;color:#c9b9ce;line-height:1.7}
 #skin-tier-guide{flex:0 0 auto;margin:8px 0 0;border:1px solid #5e3857;border-radius:9px;background:#15101c;color:#e8dfea;font-size:12px}
 #armory:has(#skin-tier-guide[open])>.ar-pane:not(#ar-p-champions){overflow:hidden}

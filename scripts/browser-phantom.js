@@ -15,7 +15,20 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.equal(await p.locator("#champion-shop").isVisible(), true);
     assert.equal(await p.locator('#ar-p-champions #ar-cv').count(), 1, "the shared weapon preview moves into the Champions page");
     await p.locator('[data-phantom-skin="champions_atk"]').click();
-    await p.waitForFunction(() => GUN_SKINS._pv()?.obj?.getObjectByProperty("type", "Mesh"));
+    await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"));
+    assert.equal(await p.locator("#phantom-model-notice").isVisible(), false);
+    assert.match(await p.locator("#phantom-status").innerText(), /자동 적용/);
+    const originalPreview = await p.evaluate(() => {
+      const rig = GUN_SKINS._pv().obj.getObjectByName("phantom-rig"); let vertices = 0; const dimensions = [];
+      rig.traverse((part) => { if (part.isMesh) { vertices += part.geometry.attributes.position.count; for (const tex of [part.material.map, part.material.emissiveMap]) if (tex) dimensions.push([tex.image.naturalWidth, tex.image.naturalHeight]); } });
+      return { vertices, dimensions };
+    });
+    assert.equal(originalPreview.vertices, 878 * 36, "every source cube is present before any manual JAR import");
+    assert.ok(originalPreview.dimensions.length > 0 && originalPreview.dimensions.every(([w, h]) => w === 512 && h === 512), "original 512×512 textures are decoded before showing the gun");
+    await p.screenshot({ path: path.join(dir, "bundled-original-attack.png") });
+    await p.locator('[data-phantom-skin="champions_def"]').click();
+    await p.screenshot({ path: path.join(dir, "bundled-original-defense.png") });
+    await p.locator('[data-phantom-skin="champions_atk"]').click();
     assert.equal(await p.evaluate(() => GUN_SKINS.of("carbine").id), "default", "unowned preview never grants equipment");
     assert.equal(await p.evaluate(() => GUN_SKINS.curTab()), "champions", "preview stays on the purchase page");
     await p.locator("#skin-tier-guide summary").click();
@@ -123,8 +136,12 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
         drop.userData.skinDone = 1; drop.add(drop.userData.spin); scene.add(drop);
       });
       await p.locator("#phantom-remove").click();
-      await p.waitForFunction(() => !CHAMPIONS_PHANTOM.loaded());
-      assert.equal(await p.evaluate(() => !!scene.getObjectByName("phantom-test-drop").getObjectByName("phantom-rig")), false, "dropped weapons switch back with the local pack");
+      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && document.getElementById("phantom-status").textContent.includes("자동 적용"));
+      assert.equal(await p.evaluate(() => !!scene.getObjectByName("phantom-test-drop").getObjectByName("phantom-rig")), true, "restoring the supplied original keeps dropped weapons on the real model");
+      assert.equal(await p.evaluate(() => new Promise((resolve, reject) => {
+        const request = indexedDB.open("dfdf-phantom", 1); request.onerror = () => reject(request.error);
+        request.onsuccess = () => { const db = request.result, tx = db.transaction("assets"), read = tx.objectStore("assets").get("local"); tx.oncomplete = () => { resolve(read.result === undefined); db.close(); }; };
+      })), true, "restoring the supplied original removes the browser override");
     }
     assert.equal(await p.evaluate(() => JSON.stringify(WEAPONS.carbine)), stats, "cosmetics preserve weapon balance");
     await p.setViewportSize({ width: 852, height: 393 });
@@ -145,6 +162,6 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await p.evaluate(() => GUN_SKINS.close());
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     assert.deepEqual(f.errors, []);
-    console.log("Phantom: separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", original JAR, merged geometry, reload persistence and removal" : " (set PHANTOM_JAR to check original assets)"));
+    console.log("Phantom: original model by default without JAR import, 878 cubes and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

@@ -56,6 +56,28 @@
     }
     validate(out); return out;
   }
+  async function bundled(fetcher = fetch, base = "./assets/champions-phantom/2026-0.1.0/") {
+    const response = await fetcher(base + "manifest.json");
+    if (!response.ok) throw Error("원본 리소스 목록을 불러오지 못했습니다.");
+    const manifest = await response.json(), files = manifest.files;
+    if (!Array.isArray(files) || !files.length || files.length > 128) throw Error("원본 리소스 목록이 올바르지 않습니다.");
+    const names = new Set(); let total = 0;
+    for (const file of files) {
+      if (typeof file.name !== "string" || !/^(geo|animations|textures)\/[a-zA-Z0-9_./-]+\.(png|json)$/.test(file.name) || file.name.includes("..") || names.has(file.name) || !Number.isSafeInteger(file.size) || file.size <= 0 || file.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(file.sha256)) throw Error("원본 리소스 항목이 올바르지 않습니다.");
+      names.add(file.name); total += file.size;
+    }
+    if (total > MAX) throw Error("원본 리소스가 너무 큽니다.");
+    const out = Object.create(null);
+    await Promise.all(files.map(async (file) => {
+      const result = await fetcher(base + file.name);
+      if (!result.ok) throw Error("원본 리소스를 불러오지 못했습니다: " + file.name);
+      const bytes = new Uint8Array(await result.arrayBuffer());
+      const sha256 = Array.from(new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", bytes)), (n) => n.toString(16).padStart(2, "0")).join("");
+      if (bytes.length !== file.size || sha256 !== file.sha256) throw Error("원본 리소스가 손상되었습니다: " + file.name);
+      out[file.name] = bytes;
+    }));
+    validate(out); return out;
+  }
   const json = (assets, name) => JSON.parse(new TextDecoder().decode(assets[name]));
   function validate(assets) {
     if (!required.every((key) => assets[key] instanceof Uint8Array)) throw Error("필수 자산이 없습니다.");
@@ -93,6 +115,6 @@
     }
     return value(track[keys[keys.length - 1]]);
   }
-  const api = { entries, read, validate, json, sample, crc32, required };
+  const api = { entries, read, bundled, validate, json, sample, crc32, required };
   if (typeof module === "object" && module.exports) module.exports = api; else root.PHANTOM_ASSETS = api;
 })(typeof window === "object" ? window : globalThis);
