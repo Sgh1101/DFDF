@@ -7,6 +7,7 @@
   const variant = (id) => id === ids[0] ? "attacker" : "defender";
   let assets = null, model = null, ready = false, selected = ids[0], preview = null, previewRAF = 0, generation = 0, installRevision = 0, loading = false, bannerHome = null, bundledRequest = null;
   const urls = new Map(), textures = new Map(), materials = new Map();
+  let killPreviewCount = 0;
   const rad = Math.PI / 180;
   const motion = () => SETTINGS.motion !== 0 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   function url(name) {
@@ -22,60 +23,7 @@
     }
     return textures.get(name);
   }
-  // Merge boxes per bone: the supplied weapon has 878 cubes, but only 13 mesh draws.
-  function geometry(cubes, pivot, desc) {
-    const positions = [], normals = [], uv = [];
-    const faces = ["east", "west", "up", "down", "south", "north"];
-    for (const cube of cubes) {
-      const size = cube.size.map((v) => Math.max(v, 0.001)), inflation = Number(cube.inflate) || 0;
-      const g = new T.BoxGeometry(...size.map((v) => Math.max(0.001, v + inflation * 2)));
-      const coords = g.getAttribute("uv"), indices = g.index;
-      for (let face = 0; face < 6; face++) {
-        let spec = cube.uv?.[faces[face]];
-        if (Array.isArray(cube.uv)) {
-          const [u, v] = cube.uv, [x, y, z] = size;
-          const box = [[u, v + z, z, y], [u + z + x, v + z, z, y], [u + z, v, x, z], [u + z + x, v, x, z], [u + z + x + z, v + z, x, y], [u + z, v + z, x, y]][face];
-          spec = { uv: box.slice(0, 2), uv_size: box.slice(2) };
-        }
-        if (!spec) { // Absent faces are removed below, rather than sampling an unrelated pixel.
-          for (let k = face * 6; k < face * 6 + 6; k++) indices.array[k] = 0;
-          continue;
-        }
-        const origin = spec.uv || [0, 0], extent = spec.uv_size || [size[0], size[1]];
-        for (let k = face * 4; k < face * 4 + 4; k++) {
-          coords.setXY(k, (origin[0] + coords.getX(k) * extent[0]) / desc.texture_width, 1 - (origin[1] + (1 - coords.getY(k)) * extent[1]) / desc.texture_height);
-        }
-      }
-      g.translate(...cube.origin.map((v, i) => v + size[i] / 2));
-      if (cube.rotation) {
-        const p = cube.pivot || pivot; g.translate(...p.map((v) => -v));
-        g.applyMatrix4(new T.Matrix4().makeRotationFromEuler(new T.Euler(...cube.rotation.map((v) => v * rad), "ZYX")));
-        g.translate(...p);
-      }
-      g.translate(...pivot.map((v) => -v));
-      const flat = g.toNonIndexed();
-      positions.push(...flat.attributes.position.array); normals.push(...flat.attributes.normal.array); uv.push(...flat.attributes.uv.array);
-      flat.dispose(); g.dispose();
-    }
-    const merged = new T.BufferGeometry();
-    merged.setAttribute("position", new T.Float32BufferAttribute(positions, 3)); merged.setAttribute("normal", new T.Float32BufferAttribute(normals, 3)); merged.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
-    return merged;
-  }
-  function buildGeo(geo, mat) {
-    const rig = new T.Group(), nodes = new Map();
-    rig.name = "phantom-rig"; rig.userData.phantomRig = true;
-    for (const bone of geo.bones) {
-      const node = new T.Group(), pivot = bone.pivot || [0, 0, 0], parent = geo.bones.find((b) => b.name === bone.parent), base = parent?.pivot || [0, 0, 0];
-      node.name = "phantom-bone-" + bone.name;
-      node.position.set(...pivot.map((v, i) => v - base[i]));
-      node.rotation.set(...(bone.rotation || [0, 0, 0]).map((v) => v * rad), "ZYX");
-      node.userData.base = { p: node.position.toArray(), r: (bone.rotation || [0, 0, 0]).slice() };
-      if (bone.cubes?.length) node.add(new T.Mesh(geometry(bone.cubes, pivot, geo.description), mat));
-      nodes.set(bone.name, node);
-    }
-    for (const bone of geo.bones) (nodes.get(bone.parent) || rig).add(nodes.get(bone.name));
-    return rig;
-  }
+  const buildGeo = (geo, mat) => { const rig = BEDROCK_RIG.build(geo, mat); rig.name = "phantom-rig"; rig.userData.phantomRig = true; return rig; };
   function weapon(id) {
     const side = variant(id), key = "weapon-" + side;
     if (!materials.has(key)) {
@@ -83,8 +31,8 @@
       materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
     }
     const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
-    // Source points down +X; DFDF points down -Z. Fit to the carbine's existing grip.
-    // (drawn at 1.6x the first fit (2.4x with the 1.5x every gun gets in hand), which read small next to the other guns; its rear stays where the carbine's was, the extra length goes forward)
+    // Source points down +X; DFDF points down -Z. Fit to the rifle's grip.
+    // Preserve the larger Phantom fit and the shared 1.5x first-person gun sizing.
     rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.02); wrapper.add(rig);
     const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
     rig.position.set(-center.x, -center.y + 0.02, -center.z + 0.3 - size.z / 2);
@@ -270,10 +218,11 @@
     stop(); const skin = GS.list.find((s) => s.id === selected);
     if (part === "kill") {
       const fx = $("killfx"); bannerHome = fx.parentElement; document.body.appendChild(fx); fx.classList.add("phantom-preview"); fx.hidden = false;
-      $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = "CHAMPIONS 2026"; $("kf-streak").hidden = true;
-      banner(selected, 3, false); SOUNDPACK.preview(selected, "kill", "carbine");
+      killPreviewCount = killPreviewCount % 5 + 1;
+      $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`원본 ${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Original kill ${killPreviewCount} · press again for next`); $("kf-streak").hidden = true;
+      banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
     }
-    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, "carbine");
+    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, "rifle");
     else if (motion()) {
       const studio = GS._pv(); if (!studio) return;
       const obj = studio.obj;
@@ -293,12 +242,13 @@
     }
   }
   function choose(id) {
-    stop(); selected = id; GS.open("carbine", "champions");
-    if (GS.owns("carbine", id)) GS.set("carbine", id);
+    if (id !== selected) killPreviewCount = 0;
+    stop(); selected = id; GS.open("rifle", "champions");
+    if (GS.owns("rifle", id)) GS.set("rifle", id);
     showSelected();
   }
   function showSelected() {
-    GS.preview("carbine", selected);
+    GS.preview("rifle", selected);
     const studio = GS._pv();
     if (studio?.obj) {
       const size = new T.Box3().setFromObject(studio.obj).getSize(new T.Vector3());
@@ -315,7 +265,7 @@
   $("slot-champions").appendChild(notice); availability();
   const panel = document.createElement("section"); panel.id = "phantom-panel";
   panel.innerHTML = `<details open><summary>${L("챔피언스 팬텀 · 스킨과 연출 미리보기", "Champions Phantom · Skin & effects preview")}</summary><div class="phantom-content">
-    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 카빈 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Carbine Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
+    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 돌격소총 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Assault rifle Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
     <div class="phantom-buttons"><button type="button" data-phantom-skin="champions_atk" aria-pressed="true">${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" data-phantom-skin="champions_def" aria-pressed="false">${L("수비 · 상아빛", "Defense · Ivory")}</button></div>
     <div class="phantom-buttons">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")], ["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(([k, v]) => `<button type="button" data-phantom-demo="${k}">${v}</button>`).join("")}<button type="button" id="phantom-stop">${L("중지", "Stop")}</button></div>
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>

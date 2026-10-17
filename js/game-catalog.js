@@ -9,6 +9,7 @@
     skins: GUN_SKINS.guns().reduce((n, gun) => n + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0),
   });
   const news = [
+    { title: ["새 요원 · 네온", "New agent · Neon"], text: ["추월차선·릴레이볼트·고속기어·오버드라이브. 원본 팔·스킬 아이콘과 슬라이딩 동작을 우리 전투에 연결했습니다", "Fast Lane, Relay Bolt, High Gear and Overdrive, with supplied original arms, icons and slide animation"] },
     { title: ["깃발 탈취 · 축소전", "Capture the Flag · Shrinking Zone"], text: ["적 깃발을 우리 깃발 자리로 가져오는 3점 먼저의 팀전, 한 번뿐인 목숨에 줄어드는 구역의 마지막 한 명 개인전", "Carry their flag to yours, first to 3; or a one-life free for all inside a circle that keeps closing"] },
     { title: ["새 맵 · 야간 항구 · 옥상 도시", "New maps: Night Harbor and Rooftop City"], text: ["밤의 항구 3대3(가로등과 크레인 탐조등), 계단으로 오르는 옥상과 집라인의 5대5 도시", "A 3v3 harbor after dark with street lamps and a crane searchlight; a 5v5 city whose roofs you climb by stairs, with ziplines"] },
     { title: ["감염 · 점령전", "Infection · Conquest"], text: ["술래에게 잡히면 술래가 되는 생존전, 90초마다 옮겨 가는 구역을 오래 차지하는 점령전", "Survive the seeker, or the caught join it; and a hill that moves every 90 seconds"] },

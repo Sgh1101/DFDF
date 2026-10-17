@@ -23,7 +23,7 @@
 | `js/game-rules.js` | 입력·능력·결과·피니셔 허용 규칙 |
 | `js/damage-cause.js` | 무기 전환 이후에도 유지할 피해 원인과 실행 범위 |
 | `js/game-events.js` | 최종 입력·재접속 보호, 처치 사건, 피니셔, 라운드 경계 |
-| `js/phantom-assets.js`, `js/champions-phantom.js` | 로컬 JAR 데이터 읽기, 챔피언스 카빈 모델·배너·마무리·사운드·무기고 미리보기 |
+| `js/phantom-assets.js`, `js/champions-phantom.js` | 로컬 JAR 데이터 읽기, 챔피언스 돌격소총 모델·배너·마무리·사운드·무기고 미리보기 |
 | `js/skin-tiers.js`, `js/champion-shop.js` | 전설 위의 초월 등급·정확한 극소 확률 추첨·700코인 상점과 잔액 표시 |
 | `assets/champions-phantom/2026-0.1.0/`, `scripts/package-phantom-assets.js` | 제공 JAR의 모델·512×512 텍스처를 바이트 그대로 패키징하고 SHA-256으로 확인하는 기본 원본 리소스 |
 | `js/home.js`, `js/home-details.js` | 홈 배치·미리보기·최근 설정·즐겨찾기·안내 |
@@ -51,3 +51,5 @@
 
 
 멀티 전송은 엔진의 `netCloseTransport()`가 기존 Peer와 대기 요청을 먼저 분리한 뒤 닫습니다. 30번 파일은 손님 참가·재접속의 세대를 관리하고, 45번 파일은 현재 Peer/채널만 수신하며 상태 채널의 대체 전송과 대기실 자리 보존을 담당합니다. 신호 서버 재접속은 기존 데이터 채널을 유지합니다. 진행 중 참가 응답은 맵·요원 목록·현재 경기 상태를 포함하고, 44번 파일의 방 응답은 요청 시점의 방/Peer/계정과 일치할 때만 적용합니다.
+
+`js/bedrock-rig.js`는 원본 상자·UV·뼈대를 보존하는 공통 렌더러, `js/phantom-audio.js`는 원본 킬 연주 재생기, `js/neon-data.js`와 `js/neon-agent.js`는 네온 요원의 원본 동작·전투 연결을 담당합니다.

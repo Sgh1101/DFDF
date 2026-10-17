@@ -1,0 +1,55 @@
+{
+  "minecraftVersion": "1.20.1",
+  "attribution": "Minecraft note-block recordings by Mojang Studios. Kill arrangements from Seafle ChampionsPhantom2026. Original recordings preserved without re-encoding.",
+  "samples": {
+    "block.note_block.basedrum": {
+      "file": "bd.ogg",
+      "bytes": 3850,
+      "sha1": "1afefaa39a53606d2737bab9cb3409350cb2dc9f",
+      "sha256": "829e1ff33546ef3de4e1e1a38ca3e0dc8a582227c284052868963333ed790686",
+      "source": "https://resources.download.minecraft.net/1a/1afefaa39a53606d2737bab9cb3409350cb2dc9f"
+    },
+    "block.note_block.bass": {
+      "file": "bassattack.ogg",
+      "bytes": 5574,
+      "sha1": "037b9fb7f74381f354739d015193dc4a6897f620",
+      "sha256": "7261568b63fea6a5763335479d16980329ae0c8db35f1b743eb86005d1a12150",
+      "source": "https://resources.download.minecraft.net/03/037b9fb7f74381f354739d015193dc4a6897f620"
+    },
+    "block.note_block.bell": {
+      "file": "bell.ogg",
+      "bytes": 5907,
+      "sha1": "dffb5d6066ba89a4d3a609eb0c607606d4a524e2",
+      "sha256": "056d21042ed25e07e2dde0891c06b60976c34d19c79b83aa741296d76eaa41e4",
+      "source": "https://resources.download.minecraft.net/df/dffb5d6066ba89a4d3a609eb0c607606d4a524e2"
+    },
+    "block.note_block.flute": {
+      "file": "flute.ogg",
+      "bytes": 8137,
+      "sha1": "a7f05f19c3e553c61deb61e5e8123a82cdbec758",
+      "sha256": "2b4e79504ba86f3b289a67ad636c3b894f3c9adae7861b97a9ecd31a667169a2",
+      "source": "https://resources.download.minecraft.net/a7/a7f05f19c3e553c61deb61e5e8123a82cdbec758"
+    },
+    "block.note_block.guitar": {
+      "file": "guitar.ogg",
+      "bytes": 7989,
+      "sha1": "3ea516355b5ec2bef08d9e6aa3ebc6626acb583b",
+      "sha256": "75da8f1256ef95bc2f22ddfa710190584f64d6c1c7f00b099f011f7a722697bf",
+      "source": "https://resources.download.minecraft.net/3e/3ea516355b5ec2bef08d9e6aa3ebc6626acb583b"
+    },
+    "block.note_block.harp": {
+      "file": "harp2.ogg",
+      "bytes": 7533,
+      "sha1": "6b6bae253b1032ce3f3b4fb5816a9a819cac7b59",
+      "sha256": "76af99978d769012f2c8bac72a2f772357ab5767c9eaaf245425976419600a60",
+      "source": "https://resources.download.minecraft.net/6b/6b6bae253b1032ce3f3b4fb5816a9a819cac7b59"
+    },
+    "block.note_block.pling": {
+      "file": "pling.ogg",
+      "bytes": 6274,
+      "sha1": "20d06589bd5ab81a73989bdac8ca59ecd4d66932",
+      "sha256": "d7e3638d4c0fba4614f24ba94d6380935ae2341536d76989e44f00ffd94a1459",
+      "source": "https://resources.download.minecraft.net/20/20d06589bd5ab81a73989bdac8ca59ecd4d66932"
+    }
+  }
+}
