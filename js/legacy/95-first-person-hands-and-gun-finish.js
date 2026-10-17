@@ -98,7 +98,7 @@
   const sleeveGeo = (l) =>
     cacheGeo("sleeve" + l.toFixed(3), () => {
       const pts = [],
-        n = 30;
+        n = 20;
       for (let i = 0; i <= n; i++) {
         const u = i / n,
           y = -l / 2 + u * l,
@@ -107,17 +107,17 @@
           cuff = u < 0.08 ? 0.006 * (1 - u / 0.08) : 0;
         pts.push(new T.Vector2(base + fold + cuff, y));
       }
-      return new T.LatheGeometry(pts, 18);
+      return new T.LatheGeometry(pts, 12);
     });
   const geo = {
     pad: () => cacheGeo("pad", () => new T.BoxGeometry(0.044, 0.11, 0.008)),
     padEdge: () => cacheGeo("padEdge", () => new T.BoxGeometry(0.048, 0.016, 0.01)),
     strap: () => cacheGeo("strap", () => new T.CylinderGeometry(0.052, 0.052, 0.022, 16, 1, true)),
     buckle: () => cacheGeo("buckle", () => new T.BoxGeometry(0.02, 0.016, 0.01)),
-    seam: () => cacheGeo("seam", () => new T.TorusGeometry(0.045, 0.0016, 4, 18)),
-    finger: () => cacheGeo("finger", () => new T.CapsuleGeometry(0.0105, 0.026, 3, 8)),
-    tip: () => cacheGeo("tip", () => new T.CapsuleGeometry(0.0095, 0.014, 3, 8)),
-    knuckle: () => cacheGeo("knuckle", () => new T.SphereGeometry(0.0125, 8, 6)),
+    seam: () => cacheGeo("seam", () => new T.TorusGeometry(0.045, 0.0016, 3, 12)),
+    finger: () => cacheGeo("finger", () => new T.CapsuleGeometry(0.0105, 0.026, 1, 6)),
+    tip: () => cacheGeo("tip", () => new T.CapsuleGeometry(0.0095, 0.014, 1, 6)),
+    knuckle: () => cacheGeo("knuckle", () => new T.SphereGeometry(0.0125, 6, 4)),
     guard: () => cacheGeo("guard", () => new T.BoxGeometry(0.058, 0.01, 0.034)),
     ridge: () => cacheGeo("ridge", () => new T.BoxGeometry(0.008, 0.006, 0.03)),
     watch: () => cacheGeo("watch", () => new T.BoxGeometry(0.036, 0.011, 0.036)),

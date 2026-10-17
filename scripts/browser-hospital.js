@@ -11,13 +11,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.evaluate(() => { titleCam = () => {}; });
     const load = await page.evaluate(() => {
       room.mode = "std"; room.map = "hospital"; startGame(AGENTS[0], false); closeShop();
-      return { key: CUR_MAP_KEY, listed: MAP_LIST.some((m) => m.key === "hospital"), size: MAP_SIZE("hospital"), cat: MAP_CAT("hospital"), colliders: COLLIDERS.length, meshes: HOSPITAL.meshes.length, lights: HOSPITAL.lights.length, slabs: COLLIDERS.filter((c) => c.y0 > 0).length };
+      return { key: CUR_MAP_KEY, listed: MAP_LIST.some((m) => m.key === "hospital"), size: MAP_SIZE("hospital"), cat: MAP_CAT("hospital"), colliders: COLLIDERS.length, meshes: HOSPITAL.meshes.length, mats: new Set(HOSPITAL.meshes.map((m) => m.material.uuid)).size, lights: HOSPITAL.lights.length, slabs: COLLIDERS.filter((c) => c.y0 > 0).length };
     });
     console.log(JSON.stringify(load));
     assert.equal(load.key, "hospital"); assert.ok(load.listed, "in the map list"); assert.equal(load.size, 5); assert.equal(load.cat, "full");
     assert.ok(load.colliders > 1000 && load.slabs > 500, "walls, slabs and props are colliders");
-    assert.ok(load.meshes <= 40, "merged by material: few draw calls (" + load.meshes + ")");
-    assert.ok(load.lights >= 6 && load.lights <= 12, "a handful of real lights");
+    assert.ok(load.mats <= 40 && load.meshes <= 300, "merged by material and cut into chunks: " + load.meshes + " meshes of " + load.mats + " materials");
+    assert.ok(load.lights >= 3 && load.lights <= 5, "a handful of real lights (every light is paid on every pixel)");
 
     // the entrances are barriered while buying (checked below): start the round first
     await page.waitForFunction(() => { world.phase = "live"; return !HOSPITAL.barriers.list; }, null, { timeout: 15000 });
@@ -116,6 +116,27 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     console.log("entrances", JSON.stringify(gates));
     assert.deepEqual(gates.shut, [true, true, true], "closed while buying");
     assert.deepEqual(gates.open, [true, true, true], "open when the round is live");
+
+    // ── floors switch off when they cannot be seen, and come back at the atrium, on decks, outside ──
+    const fl = await page.evaluate(async () => {
+      const wait = () => new Promise((r) => setTimeout(r, 700)), me = myActor(), vis = (lv) => HOSPITAL.chunks.filter((m) => m.userData.lv === lv && m.visible).length;
+      const put = async (x, y, z) => { me.pos.set(x, y, z); me.y = y; player.pos.set(x, y, z); player.y = y; world.phase = "live"; camera.position.set(x, y + 1.7, z); for (const t of HOSPITAL.tick) t(0, 0); };
+      const out = {};
+      await put(-33.75, 0, -8.75); out.groundRoom = [vis(0), vis(1), vis(2)];
+      await put(0, 0, 5); out.atrium = [vis(0), vis(1), vis(2)];
+      await put(0, 0, 52); out.lot = [vis(0), vis(1), vis(2)];
+      await put(-38.75, 8, -8.75); out.thirdRoom = [vis(0), vis(1), vis(2)];
+      await put(-20, 8, -33); out.deck = [vis(0), vis(1), vis(2)];
+      out.total = [0, 1, 2].map((lv) => HOSPITAL.chunks.filter((m) => m.userData.lv === lv).length);
+      return out;
+    });
+    console.log("floors", JSON.stringify(fl));
+    assert.equal(fl.groundRoom[2], 0, "in a ground-floor room the third floor is not drawn");
+    assert.ok(fl.groundRoom[0] > 0 && fl.groundRoom[1] > 0, "the floors you can see are");
+    assert.equal(fl.atrium[2], fl.total[2], "at the atrium everything is drawn");
+    assert.equal(fl.lot[0], fl.total[0], "outside everything is drawn");
+    assert.equal(fl.thirdRoom[0], 0, "in a third-floor room the ground floor is not drawn");
+    assert.equal(fl.deck[0], fl.total[0], "on a deck everything is drawn");
 
     // ── a look: the atrium from the balcony and from the floor ──
     if (dir) {

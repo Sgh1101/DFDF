@@ -418,20 +418,28 @@
   const GREY = colOf("#aaaaaa", 1);
 
   // ── geometry batches ──
+  // Geometry is cut into chunks of 40 x 40 m per floor, so the renderer can skip what is behind the
+  // camera and the building can switch whole floors off (a merged map is one huge, never-culled mesh).
+  const CHUNK = 40;
   class Geo {
     constructor() {
-      this.p = [];
-      this.n = [];
-      this.u = [];
-      this.c = [];
+      this.b = new Map();
+    }
+    bucket(x, y, z) {
+      const lv = Math.max(0, Math.min(2, Math.floor((y + 0.05) / FH))),
+        k = lv + ":" + Math.floor((x - OX) / CHUNK) + ":" + Math.floor((z - OZ) / CHUNK);
+      let b = this.b.get(k);
+      b || this.b.set(k, (b = { lv, p: [], n: [], u: [], c: [] }));
+      return b;
     }
     quad(a, b, c, d, n, uv, col) {
+      const t = this.bucket((a[0] + c[0]) / 2, Math.min(a[1], c[1]), (a[2] + c[2]) / 2);
       for (const k of [0, 1, 2, 0, 2, 3]) {
         const v = [a, b, c, d][k];
-        this.p.push(v[0], v[1], v[2]);
-        this.n.push(n[0], n[1], n[2]);
-        this.u.push(uv[k][0], uv[k][1]);
-        this.c.push(col[0], col[1], col[2]);
+        t.p.push(v[0], v[1], v[2]);
+        t.n.push(n[0], n[1], n[2]);
+        t.u.push(uv[k][0], uv[k][1]);
+        t.c.push(col[0], col[1], col[2]);
       }
     }
     // a primitive transformed into place (props)
@@ -443,26 +451,33 @@
         na = g.attributes.normal,
         ua = g.attributes.uv,
         v = new T.Vector3();
+      const t = this.bucket(pa.getX(0), pa.getY(0), pa.getZ(0));
       for (let i = 0; i < pa.count; i++) {
-        this.p.push(pa.getX(i), pa.getY(i), pa.getZ(i));
+        t.p.push(pa.getX(i), pa.getY(i), pa.getZ(i));
         v.fromBufferAttribute(na, i).applyMatrix3(nm).normalize();
-        this.n.push(v.x, v.y, v.z);
-        this.u.push(ua ? ua.getX(i) : 0, ua ? ua.getY(i) : 0);
-        this.c.push(col[0], col[1], col[2]);
+        t.n.push(v.x, v.y, v.z);
+        t.u.push(ua ? ua.getX(i) : 0, ua ? ua.getY(i) : 0);
+        t.c.push(col[0], col[1], col[2]);
       }
       g.dispose();
     }
+    // one mesh per chunk
     mesh(mat) {
-      if (!this.p.length) return null;
-      const g = new T.BufferGeometry();
-      g.setAttribute("position", new T.Float32BufferAttribute(this.p, 3));
-      g.setAttribute("normal", new T.Float32BufferAttribute(this.n, 3));
-      g.setAttribute("uv", new T.Float32BufferAttribute(this.u, 2));
-      g.setAttribute("color", new T.Float32BufferAttribute(this.c, 3));
-      g.computeBoundingSphere();
-      const m = new T.Mesh(g, mat);
-      m.userData.noMerge = !0;
-      return m;
+      const out = [];
+      for (const t of this.b.values()) {
+        if (!t.p.length) continue;
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(t.p, 3));
+        g.setAttribute("normal", new T.Float32BufferAttribute(t.n, 3));
+        g.setAttribute("uv", new T.Float32BufferAttribute(t.u, 2));
+        g.setAttribute("color", new T.Float32BufferAttribute(t.c, 3));
+        g.computeBoundingSphere();
+        const m = new T.Mesh(g, mat);
+        m.userData.noMerge = !0;
+        m.userData.lv = t.lv;
+        out.push(m);
+      }
+      return out;
     }
   }
   // an axis-aligned box into a Geo; `faces` picks which sides ("nx px ny py nz pz"), uv in metres / `us`
@@ -740,9 +755,9 @@
     car: [2.0, 4.3, 1.5], rubble: [2.2, 2.2, 1.0], ac: [2.2, 1.6, 1.4], tank: [2.6, 2.6, 3.0], dumpster: [1.9, 1.3, 1.4], counter: [3.6, 0.9, 1.1], pillar: [0.5, 0.5, 4.0],
   };
   const geoBox = new T.BoxGeometry(1, 1, 1),
-    geoCyl = new T.CylinderGeometry(1, 1, 1, 14),
-    geoSph = new T.SphereGeometry(1, 10, 8),
-    geoCone = new T.ConeGeometry(1, 1, 12);
+    geoCyl = new T.CylinderGeometry(1, 1, 1, 8),
+    geoSph = new T.SphereGeometry(1, 8, 6),
+    geoCone = new T.ConeGeometry(1, 1, 8);
   const _m = new T.Matrix4(),
     _q = new T.Quaternion(),
     _e = new T.Euler(),
@@ -819,13 +834,13 @@
       for (let i = 0; i < 5; i++) f.box("metal", 0.6, 0.04, 4.6, -0.03, 0.2 + i * 0.5, 0, "#8b949b");
       f.box("metal", 0.03, 2.2, 4.5, -0.34, 1.1, 0, "#6c747a");
       // stock: little boxes and bottles, some missing
-      for (let lvl = 0; lvl < 4; lvl++) for (let k = 0; k < 10; k++) {
+      for (let lvl = 0; lvl < 4; lvl++) for (let k = 0; k < 8; k++) {
         const q = hash(h * 100 + lvl, k, 4);
-        if (q < 0.38) continue;
-        const z = -2.1 + k * 0.45;
+        if (q < 0.45) continue;
+        const z = -2.1 + k * 0.58;
         q < 0.7
           ? f.box("matte", 0.32, 0.2 + q * 0.16, 0.34, 0.02, 0.2 + lvl * 0.5 + 0.12 + q * 0.04, z, pick(["#e4e0d2", "#d9c9a4", "#9cc0c8", "#e1b5a8"], q * 9))
-          : f.cyl("gloss", 0.07, 0.26, 0.05, 0.2 + lvl * 0.5 + 0.15, z, pick(["#b57b2c", "#3d7d5a", "#cfd3d6"], q * 7));
+          : f.box("gloss", 0.14, 0.26, 0.14, 0.05, 0.2 + lvl * 0.5 + 0.15, z, pick(["#b57b2c", "#3d7d5a", "#cfd3d6"], q * 7));
       }
     },
     desk(f, h) {
@@ -1043,13 +1058,12 @@
       g.quad([bx - w / 2 + sh, top, bz], [bx + w / 2 + sh, top, bz], [bx + w / 2, 0.05, bz], [bx - w / 2, 0.05, bz], [0, 0, 1], [[0, 0], [1, 0], [1, 1], [0, 1]], [1, 1, 1]);
       g.quad([bx + sh, top, bz - w / 2], [bx + sh, top, bz + w / 2], [bx, 0.05, bz + w / 2], [bx, 0.05, bz - w / 2], [1, 0, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], [1, 1, 1]);
     }
-    const m = g.mesh(MT.beam);
-    m && out.push(m);
+    out.push(...g.mesh(MT.beam));
     return out;
   }
 
   // ── building everything ──
-  const S = { key: null, lights: [], tick: [], meshes: [], buy: null };
+  const S = { key: null, lights: [], tick: [], meshes: [], chunks: [], buy: null };
   window.HOSPITAL = S;
   const KEEP = (o) => (S.meshes.push(o), "undefined" != typeof _mapMeshes && _mapMeshes.push(o), scene.add(o), o);
   const MESHOF = {};
@@ -1063,6 +1077,7 @@
     S.lights = [];
     S.tick = [];
     S.meshes = [];
+    S.chunks = [];
   }
   function build() {
     clear();
@@ -1081,14 +1096,16 @@
     buildStairs();
     buildProps();
     buildLights();
-    // meshes
+    // meshes: one per chunk
     const add = (g, mat, key) => {
-      const m = g.mesh(mat);
-      if (!m) return null;
-      m.castShadow = m.receiveShadow = !1;
-      KEEP(m);
-      key && (MESHOF[key] = m);
-      return m;
+      const ms = g.mesh(mat);
+      for (const m of ms) {
+        m.castShadow = m.receiveShadow = !1;
+        KEEP(m);
+        S.chunks.push(m);
+      }
+      ms.length && key && (MESHOF[key] = ms[0]);
+      return ms;
     };
     add(G.wall, MT.wall, "wall");
     add(G.ext, MT.ext, "ext");
@@ -1100,10 +1117,13 @@
     tubes.steady.forEach((g, i) => add(g, TUBE.steady[i]));
     add(tubes.flick, TUBE.flick);
     add(tubes.dying, TUBE.dying);
-    for (const [text, x, y, z, ry] of P.signs) KEEP(signMesh(text, x, y, z, ry));
-    const dec = buildDecals();
-    dec && KEEP(dec);
-    for (const m of buildBeams()) KEEP(m);
+    for (const [text, x, y, z, ry] of P.signs) {
+      const m = KEEP(signMesh(text, x, y, z, ry));
+      m.userData.lv = Math.max(0, Math.min(2, Math.floor(y / FH)));
+      S.chunks.push(m);
+    }
+    for (const m of buildDecals()) (KEEP(m), S.chunks.push(m));
+    for (const m of buildBeams()) (KEEP(m), S.chunks.push(m));
     // colliders
     const meshFor = (k) => ("wall" === k || "pillar" === k ? MESHOF.wall : "slab" === k ? MESHOF.floor : "prop" === k ? MESHOF.pmatte : "fence" === k ? MESHOF.fence : MESHOF.conc);
     for (const c of colliders) {
@@ -1131,16 +1151,32 @@
       scene.add(l);
       return l;
     };
-    lamp(0xcfe3ff, 2.4, 44, 0, 8, ez(18));
-    lamp(0x9ad8d2, 1.5, 26, P.sites[0].x, 3, P.sites[0].z);
-    lamp(0xffd9a0, 1.5, 26, P.sites[1].x, 3, P.sites[1].z);
-    lamp(0xa8c4ff, 1.4, 28, 0, 3, P.defendSpawn[1]);
-    lamp(0xffd9b0, 1.4, 26, 0, 3, cz(29));
-    lamp(0xff9a8a, 1.2, 24, cx(7), 3, cz(29));
-    lamp(0xffb878, 1.2, 24, cx(40), 3, cz(29));
-    lamp(0xb8d8ff, 1.0, 30, cx(7), 7, cz(18));
-    lamp(0xb8d8ff, 1.0, 30, cx(40), 7, cz(18));
+    // four, not nine: every light is paid for on every pixel of every standard material
+    lamp(0xcfe3ff, 2.6, 46, 0, 8, ez(18));
+    lamp(0x9ad8d2, 1.6, 28, P.sites[0].x, 3, P.sites[0].z);
+    lamp(0xffd9a0, 1.6, 28, P.sites[1].x, 3, P.sites[1].z);
+    lamp(0xffd9b0, 1.5, 34, 0, 3, cz(29));
     // the tubes that flicker, the dying ones stay dim
+    // while you stand in a roofed room on the ground floor the third floor cannot be seen, and the other
+    // way round: those chunks are not drawn (never near the atrium, the stairs, the decks or outside)
+    const open = "tba09xs ";
+    let lastHide = -1;
+    S.tick.push(() => {
+      const cp = camera.position,
+        c = Math.floor((cp.x - OX) / CELL),
+        r = Math.floor((cp.z - OZ) / CELL),
+        lvC = Math.max(0, Math.min(2, Math.floor((cp.y - 0.3) / FH)));
+      let hide = -1;
+      if (0 === lvC || 2 === lvC) {
+        const z = zoneAt(lvC, c, r),
+          nearAtrium = c >= 13 && c <= 34 && r >= 7 && r <= 28;
+        " " !== z && !open.includes(z) && !nearAtrium && (hide = 2 - lvC);
+      }
+      if (hide !== lastHide) {
+        lastHide = hide;
+        for (const m of S.chunks) m.visible = m.userData.lv !== hide;
+      }
+    });
     const tubeOn = new T.Color(0xe8f2ff);
     S.tick.push((dt, t) => {
       const q = Math.sin(t * 29) * Math.sin(t * 7.3) > 0.15 ? 1 : 0.18;

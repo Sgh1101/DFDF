@@ -13,10 +13,12 @@
     const c = new T.Color(HX(hex));
     return [c.r * (k || 1), c.g * (k || 1), c.b * (k || 1)];
   };
+  // low-poly on purpose: ten fighters are on screen, so a finger is a five-sided prism (20 triangles)
+  // and an ear a six-by-four ball; the first version used capsules (208 each) and tripled a forearm
   const G = {
     box: new T.BoxGeometry(1, 1, 1),
-    cap: new T.CapsuleGeometry(1, 1, 3, 8),
-    sph: new T.SphereGeometry(1, 10, 8),
+    cap: new T.CylinderGeometry(1, 0.78, 1, 5, 1),
+    sph: new T.SphereGeometry(1, 6, 4),
   };
   const _m = new T.Matrix4(),
     _q = new T.Quaternion(),
@@ -90,20 +92,17 @@
     const col = gloveColour(mesh),
       lift = col.map((v) => Math.min(1, v * 1.5 + 0.012)),
       pcs = [];
-    // four fingers curling forward (-z) off the lower edge of the glove
+    // four fingers curling forward (-z) off the lower edge of the glove: a proximal and a distal bone
     for (let i = 0; i < 4; i++) {
       const x = -0.0265 + i * 0.0177,
-        len = 0.034 - (i === 3 ? 0.008 : i === 0 ? 0.002 : 0);
-      pcs.push(piece(G.cap, x, -0.368, -0.036, 0.62, 0, 0, 0.0086, len, 0.0086, col, 0.85, 0));
-      // the fingertip bends under
-      pcs.push(piece(G.cap, x, -0.402, -0.058, 1.35, 0, 0, 0.0082, 0.014, 0.0082, col, 0.85, 0));
-      // a knuckle on the back of the hand
-      pcs.push(piece(G.sph, x, -0.288, -0.0, 0, 0, 0, 0.0105, 0.0085, 0.0105, lift, 0.7, 0.05));
+        len = 0.088 - (i === 3 ? 0.02 : i === 0 ? 0.005 : 0);
+      pcs.push(piece(G.cap, x, -0.364, -0.034, 0.62, 0, 0, 0.0088, len * 0.55, 0.0088, col, 0.85, 0));
+      pcs.push(piece(G.cap, x, -0.398, -0.056, 1.3, 0, 0, 0.0084, len * 0.4, 0.0084, col, 0.85, 0));
     }
     // the thumb on the inner side
-    pcs.push(piece(G.cap, side * 0.043, -0.318, -0.026, 0.9, 0, side * 0.35, 0.0095, 0.034, 0.0095, col, 0.85, 0));
-    // a ridge across the back of the hand
-    pcs.push(piece(G.box, 0, -0.272, 0.014, 0, 0, 0, 0.074, 0.007, 0.012, lift, 0.6, 0.1));
+    pcs.push(piece(G.cap, side * 0.043, -0.318, -0.026, 0.9, 0, side * 0.35, 0.0098, 0.07, 0.0098, col, 0.85, 0));
+    // a ridge of knuckles across the back of the hand
+    pcs.push(piece(G.box, 0, -0.283, -0.004, 0, 0, 0, 0.074, 0.01, 0.02, lift, 0.6, 0.1));
     append(mesh, pcs);
   }
   function face(m, st) {
