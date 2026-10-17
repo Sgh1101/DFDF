@@ -1118,7 +1118,8 @@ A.shop_buy = async (q, b) => {
   if (b.day && b.day !== day) throw fail(409, "상점이 새로 바뀌었습니다. 다시 확인해 주세요");
   if (b.week && b.week !== kstWeek(now())) throw fail(409, "주간 특가가 새로 바뀌었습니다. 다시 확인해 주세요");
   // a weekly-deal skin is bought at its weekly price, from the weekly list
-  const it = (b.w ? weeklyOf(c, kstWeek(now())) : shopOf(c, day)).find((x) => x.g === b.g && x.s === b.s);
+  const weekly = weeklyOf(c, kstWeek(now()));
+  const it = (b.w ? weekly : shopOf(c, day).filter(x => !weekly.some(w => w.g === x.g && w.s === x.s))).find((x) => x.g === b.g && x.s === b.s);
   if (!it) throw fail(404, b.w ? "이번 주 특가에 없는 스킨입니다" : "오늘 상점에 없는 스킨입니다");
   if (hasItem(u, it.g, it.s)) throw fail(409, "이미 가진 스킨입니다");
   if (u.gold < it.price) throw fail(402, `골드가 부족합니다 (${it.price.toLocaleString()} 필요)`);

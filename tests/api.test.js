@@ -230,7 +230,7 @@ test("the owner's dashboard summary counts accounts, grants, ranks and the day's
   assert.ok(j.logs.login + j.logs.join >= 1);
   assert.ok(j.recent.some((r) => /aim/.test(r.msg)));
   assert.deepEqual(j.config.aim, { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true });
-  assert.equal(j.items, 545);
+  assert.equal(j.items, 421);
 });
 
 test("retired skins leave the collection and come back as gold, once", async () => {
@@ -337,7 +337,7 @@ test("seasons: the end of one pays by tier, gives the season skin from gold up, 
   u = await me();
   assert.deepEqual([u.season.n, u.season.played], [2, 0]);
   const L = u.season.last;
-  assert.deepEqual([L.n, L.tier, L.div, L.played, L.gold, L.skin, L.rr, L.after], [1, "gold", 2, 3, 700, 17, 1000, 500]);
+  assert.deepEqual([L.n, L.tier, L.div, L.played, L.gold, L.skin, L.rr, L.after], [1, "gold", 2, 3, 700, 13, 1000, 500]);
   assert.equal(h.user("player").gold, gold0 + 700);
   assert.equal(h.user("player").rr, 500);
   assert.ok(Object.values(h.user("player").own).every((list) => list.includes("laurel")));
@@ -349,7 +349,7 @@ test("seasons: the end of one pays by tier, gives the season skin from gold up, 
   assert.equal((await h.api("wish", { token: p.token, item: "rifle|laurel" })).status, 400);
   assert.ok((await h.api("shop", {})).items.every((x) => x.s !== "laurel"));
   const cat = await h.api("catalog", {});
-  assert.equal(cat.tiers.laurel, 4); assert.equal(cat.items, 545);
+  assert.equal(cat.tiers.laurel, 4); assert.equal(cat.items, 421);
   // the owner ends the season now: a new one from today; not played, so no reward, the cut still
   const c = JSON.parse(JSON.stringify(h.config));
   c.season.startDay = 20261029; c.season.skip = 2;

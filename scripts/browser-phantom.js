@@ -3,7 +3,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
   const f = await fixture(), dir = process.env.SHOT_DIR || path.resolve("test-results/phantom"); fs.mkdirSync(dir, { recursive: true });
   try {
     const p = await f.page("phantom", { width: 1280, height: 800 });
-    assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 545);
+    assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 421);
     await p.locator("#go-armory").click();
     await p.locator('#ar-tabs [data-tab="pull"]').click();
     assert.equal(await p.locator("#champion-shop").isVisible(), false, "the regular pull screen has no Champions purchase panel");

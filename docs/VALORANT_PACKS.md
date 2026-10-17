@@ -1,6 +1,6 @@
 # 제공된 무기 팩 적용
 
-`Valorant_gunpack_v0.1.4_beta3_fix1`의 기본 총 9종과 `Valorant Knife Pack-0.1.0`의 칼 6종을 DFDF에 연결합니다. 작업은 로컬 브랜치에 있으며 병합·운영 배포는 별도입니다.
+`Valorant_gunpack_v0.1.4_beta3_fix1`의 기본 총 9종과 `Valorant Knife Pack-0.1.0`의 칼 6종을 DFDF에 연결합니다. 이 문서는 보존한 원본과 게임 적용 범위를 설명합니다.
 
 ## 총과 보유 정보
 
@@ -16,7 +16,7 @@
 | marksman | 아웃로 |
 | sniper | 오퍼레이터 |
 
-중복 무기를 칼 포함 31종에서 17종으로 줄였습니다. `handcan→revolver`, `vector/pdw/burstsmg/ripper/whisper→smg`, `slugger→shotgun`, `doublebarrel→pocketshot`, `battle→rifle`, `bullpup→carbine`, `lmg/minigun→hmg`, `scout→marksman`, `antimat→sniper`입니다. 기존 네트워크 인덱스와 옛 ID 직접 참조는 유지하며 구매·스킨 목록에서는 통합된 ID만 보입니다.
+중복 무기를 칼 포함 31종에서 13종으로 줄였습니다. `handcan→revolver`, `vector/pdw/burstsmg/ripper/whisper→smg`, `shotgun/slugger→autoshot`, `doublebarrel→pocketshot`, `battle/burst→rifle`, `machpist/stinger→pistol`, `bullpup→carbine`, `lmg/minigun→hmg`, `scout→marksman`, `antimat→sniper`입니다. 기존 네트워크 인덱스와 옛 ID 직접 참조는 유지하며 구매·스킨 목록에서는 통합된 ID만 보입니다. 제공된 총 9종의 ID·성능·모델과 챔피언스 카빈은 이 추가 통합에서 변경하지 않습니다.
 
 서버는 기존 보유 스킨을 통합 총으로 옮기고 원래 보유 목록을 `weaponArchive`에 남깁니다. 같은 스킨이 이미 있으면 기존 중복 환급 기준으로 한 번만 보상합니다. 대상 총의 장착 선택을 우선 보존하고 빈 선택은 이전 장착으로 채우며 위시리스트도 통합합니다. 챔피언스는 계속 **카빈(carbine)** 전용입니다.
 
@@ -25,6 +25,14 @@
 ## 칼 스킨
 
 욕망의 검, 영원의 도끼, 영원의 카람빗, 미래 나비칼, 미래 단검, 천둥 망치를 전설 등급의 **나이프 전용 스킨**으로 등록합니다. 무기 성능과 피해량은 기존 나이프와 같습니다. 스킨 창 미리보기와 실제 장착은 같은 원본 모델을 사용합니다.
+
+## 경기 장비 구매창
+
+보조·기관단총·산탄총·소총·저격소총·중화기와 방어구를 열로 배치하고 하단에서 스킬·수류탄을 구매합니다. 나이프는 계속 기본 보유하며 구매 카드로 판매하지 않습니다. 총 카드는 실제 장착 모델로 만든 실루엣이고, 마우스나 키보드 포커스로 선택한 장비를 오른쪽에서 확인합니다. 카드 클릭 또는 오른쪽 구매 버튼으로 구매합니다.
+
+오른쪽은 원본 해상도의 모델·텍스처를 Three.js로 직접 렌더링하며 장착한 챔피언스 등 스킨도 반영합니다. 이름·가격·연사·탄창·사거리·거리 보정 전 기본 피해를 게임 데이터에서 읽습니다. 보유·잔액 부족·구매 단계 종료를 구분하며 이미 가진 총과 낮은 방어구에는 중복 과금하지 않습니다. 온라인 손님은 기존 호스트 구매 메시지를 전송하고 호스트 결과가 도착하면 목록을 갱신합니다.
+
+가로 모바일은 카테고리와 오른쪽 설명을 유지하고 세로 모바일은 2열 목록 아래 상세 패널을 배치합니다. 미리보기는 선택·크기 변경 시에만 다시 그리며 카드 이미지는 순서대로 생성하고 캐시합니다.
 
 ## 원본과 런타임
 
@@ -41,6 +49,7 @@ node scripts/package-valorant.js <gun-folder> <knife-folder>
 npm run check
 npm test
 npm run test:valorant
+npm run test:weapon-shop
 ```
 
 브라우저 검사에는 실행 중인 개발 서버와 Playwright/Chromium이 필요합니다. `DFDF_BASE_URL`, `DFDF_PLAYWRIGHT_MODULE`, `CHROME_BIN`을 기존 검사와 동일하게 설정합니다.

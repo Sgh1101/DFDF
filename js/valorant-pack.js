@@ -7,7 +7,7 @@
   const blobs=new Map(),buffers=new Map();let manifest,clock=0,inspect=0,attack=0,draw=0,current=null,reloadStart=0,firingActor=null;
   const canonical=D.canonical;
   // Keep legacy properties and wire indices readable, while all enumerated
-  // shopping/gacha lists expose only the 17 distinct weapons.
+  // Shopping/gacha lists expose only the distinct weapons.
   for(const [old,target] of Object.entries(D.aliases))if(WEAPONS[old])Object.defineProperty(WEAPONS,old,{value:WEAPONS[target],writable:true,configurable:true,enumerable:false});
   for(const [key,name] of Object.entries(D.names))Object.assign(WEAPONS[key],D.profiles[key],{name});
   const purchase=applyPurchase;
