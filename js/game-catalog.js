@@ -9,6 +9,7 @@
     skins: GUN_SKINS.guns().reduce((n, gun) => n + GUN_SKINS.skinsFor(gun).filter((skin) => skin.id !== "default").length, 0),
   });
   const news = [
+    { title: ["깃발 탈취 · 축소전", "Capture the Flag · Shrinking Zone"], text: ["적 깃발을 우리 깃발 자리로 가져오는 3점 먼저의 팀전, 한 번뿐인 목숨에 줄어드는 구역의 마지막 한 명 개인전", "Carry their flag to yours, first to 3; or a one-life free for all inside a circle that keeps closing"] },
     { title: ["새 맵 · 야간 항구 · 옥상 도시", "New maps: Night Harbor and Rooftop City"], text: ["밤의 항구 3대3(가로등과 크레인 탐조등), 계단으로 오르는 옥상과 집라인의 5대5 도시", "A 3v3 harbor after dark with street lamps and a crane searchlight; a 5v5 city whose roofs you climb by stairs, with ziplines"] },
     { title: ["감염 · 점령전", "Infection · Conquest"], text: ["술래에게 잡히면 술래가 되는 생존전, 90초마다 옮겨 가는 구역을 오래 차지하는 점령전", "Survive the seeker, or the caught join it; and a hill that moves every 90 seconds"] },
     { title: ["꾸미기 · 주간 특가 · 사격장", "Looks, weekly deal, range"], text: ["골드로 칭호·네임카드·킬 효과를, 주마다 바뀌는 전설 특가를, 혼자 하기 → 사격장에서 표적 연습을", "Titles, name cards and kill effects for gold; a weekly legendary deal; a target range in solo play"] },

@@ -5,7 +5,8 @@
   // that (no timer set), a fighter dead for over 4 s with no timer running gets
   // one, so nobody stays dead for the rest of a match.
   if ("undefined" == typeof netStep || !window.GAME_MODES) return;
-  const respawnOn = () => !!(GAME_MODES[room.mode] && GAME_MODES[room.mode].respawn);
+  // (the shrinking zone has one life: out is out)
+  const respawnOn = () => !!(GAME_MODES[room.mode] && GAME_MODES[room.mode].respawn && !GAME_MODES[room.mode].zone);
   const host = () => "undefined" == typeof NET || "client" !== NET.mode;
   const _ns = netStep;
   netStep = function (dt) {

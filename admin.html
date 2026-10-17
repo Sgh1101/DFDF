@@ -39,6 +39,7 @@ td .acts button{padding:3px 8px;font-size:12px}
 .tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;border:1px solid var(--line);color:var(--steel)}
 .tag.red{color:#ff9aa5;border-color:#5c2630}.tag.gold{color:var(--gold);border-color:#5c4b1f}.tag.green{color:var(--green);border-color:#1f5c36}.tag.blue{color:var(--blue);border-color:#1d4a63}
 button.gold{border-color:#5c4b1f;color:var(--gold)}
+button.red{border-color:#5c2630;color:#ff9aa5}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(5,7,10,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .sheet{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
 .modal h3{font-size:17px}
@@ -125,6 +126,23 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
 .qc .rg{display:flex;align-items:center;gap:8px}.qc .rg input[type=range]{flex:1;accent-color:var(--gold)}.qc .rg input[type=number]{width:72px;text-align:right}
 .qc .wide{grid-column:1/-1}
 @media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}table.sk th,table.sk td{display:table-cell!important}}
+
+/* the feedback box */
+#osum a{color:var(--gold)}
+#fbBadge:not(:empty),#odBadge:not(:empty){display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:#ff3b4e;color:#fff;font-size:11px;font-weight:700;line-height:18px}
+.fbc{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
+.fbc.new{border-color:#5c4b1f;box-shadow:0 0 0 1px rgba(255,200,73,.15)}
+.fbc>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 14px}
+.fbc>summary::-webkit-details-marker{display:none}
+.fbc>summary b{font-size:14px}.fbc>summary .sp{flex:1}
+.fbc .in{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.fbc .txt{white-space:pre-wrap;word-break:break-word;line-height:1.6;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.fbc .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:12.5px}.fbc .kv span:nth-child(odd){color:var(--dim)}
+.fbc .abl{display:grid;grid-template-columns:36px 150px 1fr;gap:6px 10px;align-items:start;font-size:12.5px}
+.fbc .abl i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid #5c2630;color:#ff9aa5;font-style:normal;font-weight:700}
+.fbc textarea{width:100%;min-height:58px}.fbc .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fbc .acts .sp{flex:1}
+.fbx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 </style>
 <script src="./js/client-request.js"></script>
 <script src="./js/skin-tiers.js"></script>
@@ -145,6 +163,8 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
       <button data-v="users">가입자</button>
       <button data-v="rooms">서버·방</button>
       <button data-v="bans">차단</button>
+      <button data-v="orders">구매 주문<span id="odBadge"></span></button>
+      <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
       <button data-v="config">게임 설정</button>
     </nav>
@@ -181,7 +201,7 @@ function logout() { clearInterval(timer); AT = ""; sessionStorage.removeItem("ad
 $("#go").onclick = login; $("#pw").onkeydown = (e) => { if (e.key === "Enter") login(); }; $("#out").onclick = logout;
 let view = "dash", timer = null;
 $("#nav").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; view = b.dataset.v; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x === b)); show(); };
-function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); }
+function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); fbBadge(); odBadge(); setInterval(() => { fbBadge(); odBadge(); }, 60000); }
 function show() { clearInterval(timer); VIEWS[view]().catch((e) => ($("#main").innerHTML = `<p class="err">${esc(e.message)}</p>`)); }
 const days = (msg) => { const v = prompt(msg + "\n며칠? (0 = 영구)", "0"); return v === null ? null : Math.max(0, +v || 0); };
 // ── cheats opened for one account, item by item ──
@@ -582,6 +602,86 @@ VIEWS.bans = async () => {
     toast("풀었습니다"); VIEWS.bans();
   };
 };
+
+
+// ── paid cheats: orders waiting for the money, to open by hand once it has arrived ──
+const OD_ST = { pending: ["입금 대기", "gold"], granted: ["열어 줌", "green"], rejected: ["거절", "red"], cancelled: ["취소", ""], refunded: ["환불", "red"] };
+async function odBadge() { try { const j = await call("a_orders", { limit: 1 }); const e = $("#odBadge"); e && (e.textContent = j.counts.pending ? String(j.counts.pending) : ""); return j.counts; } catch (e) {} }
+VIEWS.orders = async () => {
+  $("#main").innerHTML = `<div id="osum" class="fbx"></div><div class="bar"><select id="os"><option value="">모든 상태</option>${Object.entries(OD_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="oq" placeholder="검색 (주문번호·계정·입금자)"><button id="or">새로고침</button></div><div id="ol"><p class="muted">불러오는 중…</p></div>`;
+  const load = async () => {
+    const j = await call("a_orders", { status: $("#os").value, q: $("#oq").value });
+    $("#odBadge").textContent = j.counts.pending ? String(j.counts.pending) : "";
+    $("#osum").innerHTML = `<span class="tag ${j.on ? "green" : "red"}">${j.on ? "판매 중" : "판매 꺼짐"}</span>${j.bank ? "" : `<span class="tag red">입금 계좌 없음</span>`}<span class="tag gold">입금 대기 ${j.counts.pending}</span><span class="tag">열어 준 금액 합계 ${j.counts.sum.toLocaleString()}원</span><span class="muted">판매 열기·계좌·가격은 <a href="#" id="ocfg">게임 설정 → order</a></span>`;
+    $("#ocfg").onclick = (e) => { e.preventDefault(); view = "config"; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x.dataset.v === "config")); show(); };
+    const nm = (k) => j.names[k] || k, dur = (d) => (d ? d + "일" : "영구");
+    $("#ol").innerHTML = j.orders.length ? `<table><tr><th>주문번호</th><th>시각</th><th>계정</th><th>내용</th><th>기간</th><th>금액</th><th>입금자</th><th>상태</th><th></th></tr>${j.orders.map((o) => { const st = OD_ST[o.status] || OD_ST.pending; return `<tr data-id="${esc(o.id)}"><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${esc(o.by)}</td><td>${o.items.map((k) => `<span class="tag blue">${esc(nm(k))}</span>`).join(" ")}</td><td>${dur(o.days)}</td><td><b>${o.total.toLocaleString()}원</b></td><td>${esc(o.depositor)}</td><td><span class="tag ${st[1]}">${st[0]}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}${o.note ? `<div class="muted">📝 ${esc(o.note)}</div>` : ""}</td><td>${o.status === "pending" ? `<button data-op="grant" class="gold">입금 확인 · 열어주기</button> <button data-op="reject" class="red">거절</button>` : o.status === "granted" ? `<button data-op="refund" class="red">환불·회수</button>` : ""} <button data-op="note">메모</button></td></tr>`; }).join("")}</table>` : `<p class="muted">주문이 없습니다.</p>`;
+  };
+  $("#or").onclick = load; $("#os").onchange = load; $("#oq").onkeydown = (e) => { if (e.key === "Enter") load(); };
+  $("#ol").onclick = async (e) => {
+    const b = e.target.closest("button"), tr = e.target.closest("tr[data-id]"); if (!b || !tr) return;
+    const id = tr.dataset.id, op = b.dataset.op;
+    if (op === "grant") { if (!confirm(`주문 ${id}: 입금을 확인하셨나요?\n확인을 누르면 그 계정에 바로 치트가 열립니다.`)) return; await call("a_order_set", { id, op: "grant" }); toast("열어 줬습니다"); }
+    else if (op === "reject") { const r = prompt("거절 사유 (보낸 사람에게 보입니다)", "입금이 확인되지 않았습니다"); if (r === null) return; await call("a_order_set", { id, op: "reject", reason: r }); toast("거절했습니다"); }
+    else if (op === "refund") { const rv = confirm(`주문 ${id}: 환불 처리합니다.\n이 계정의 치트도 함께 끌까요? (확인=끔, 취소=그대로 둠)`); const r = prompt("환불 사유", "환불"); if (r === null) return; await call("a_order_set", { id, op: "refund", revoke: rv, reason: r }); toast("환불 처리했습니다"); }
+    else if (op === "note") { const n = prompt("운영자 메모 (보낸 사람에겐 안 보임)", ""); if (n === null) return; await call("a_order_set", { id, op: "note", note: n }); toast("저장했습니다"); }
+    await load(); odBadge();
+  };
+  await load();
+};
+// ── the feedback box: what players sent (bugs, agent ideas, reports, suggestions, questions) ──
+const FB_ST = { new: ["새 문의", "gold"], read: ["확인함", "blue"], doing: ["처리 중", "blue"], done: ["완료", "green"], no: ["보류", "red"] };
+const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "개선 제안"], ask: ["❓", "문의"], other: ["💬", "기타"] };
+const FB_REASON = { cheat: "치트·핵", abuse: "욕설·비매너", grief: "팀킬·방해", afk: "자리 비움", name: "부적절한 이름", other: "기타" };
+async function fbBadge() { try { const j = await call("a_feedback", { limit: 1 }); const e = $("#fbBadge"); e && (e.textContent = j.counts.new ? String(j.counts.new) : ""); return j.counts; } catch (e) {} }
+function fbCard(r) {
+  const k = FB_KIND[r.type] || ["💬", r.type], st = FB_ST[r.status] || FB_ST.new;
+  const who = `${esc(r.by.id)}${r.by.guest ? " <span class='tag'>게스트</span>" : ` <span class="muted">Lv.${r.by.level}</span>`}`;
+  let extra = "";
+  if (r.type === "agent" && r.agent) extra = `<div class="kv"><span>요원 이름</span><span><b>${esc(r.agent.name)}</b> ${r.agent.role ? `<span class="tag blue">${esc(r.agent.role)}</span>` : ""}</span></div><div class="abl">${r.agent.abilities.map((a) => `<i>${esc(a.key)}</i><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>`).join("")}</div>`;
+  if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${esc(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
+  if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
+  const c = r.ctx || {};
+  const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
+  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span><b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
+    <div class="in">${extra}<div class="txt">${esc(r.text)}</div>
+    <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
+    <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
+    <label class="muted">운영자 메모 (보낸 사람에겐 안 보임)<textarea data-note maxlength="500">${esc(r.note)}</textarea></label>
+    <label class="muted">답장 (보낸 사람의 '내 문의'에 보입니다)<textarea data-reply maxlength="500" placeholder="예: 확인했습니다. 다음 업데이트에 고칩니다">${esc(r.reply)}</textarea></label>
+    <div class="acts"><button data-save class="gold">메모·답장 저장</button><span class="muted">${r.replyT ? "답장 " + when(r.replyT) : ""}</span></div></div></details>`;
+}
+VIEWS.feedback = async () => {
+  $("#main").innerHTML = `<div class="bar"><select id="ft"><option value="">모든 종류</option>${Object.entries(FB_KIND).map(([k, v]) => `<option value="${k}">${v[0]} ${v[1]}</option>`).join("")}</select><select id="fs"><option value="">모든 상태</option>${Object.entries(FB_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="fq" placeholder="검색 (제목·내용·보낸 사람)"><button id="fr">새로고침</button></div><div id="fsum" class="fbx"></div><div id="fl"><p class="muted">불러오는 중…</p></div>`;
+  const load = async () => {
+    const j = await call("a_feedback", { type: $("#ft").value, status: $("#fs").value, q: $("#fq").value, limit: 300 });
+    $("#fbBadge").textContent = j.counts.new ? String(j.counts.new) : "";
+    $("#fsum").innerHTML = `<span class="tag gold">새 문의 ${j.counts.new}</span><span class="tag">전체 ${j.counts.total}</span>${Object.entries(j.counts.byType).map(([k, n]) => `<span class="tag">${(FB_KIND[k] || [""])[0]} ${(FB_KIND[k] || [0, k])[1]} ${n}</span>`).join("")}`;
+    $("#fl").innerHTML = j.items.length ? j.items.map(fbCard).join("") : `<p class="muted">조건에 맞는 문의가 없습니다.</p>`;
+    window.__fb = Object.fromEntries(j.items.map((x) => [x.id, x]));
+  };
+  $("#fr").onclick = load; $("#ft").onchange = load; $("#fs").onchange = load; $("#fq").onkeydown = (e) => { if (e.key === "Enter") load(); };
+  const mark = async (card, status) => {
+    const id = card.dataset.id;
+    const j = await call("a_feedback_set", { id, status });
+    const st = FB_ST[j.item.status] || FB_ST.new;
+    const tag = card.querySelector("[data-st]"); tag.className = "tag " + st[1]; tag.textContent = st[0];
+    card.classList.toggle("new", j.item.status === "new");
+    card.querySelectorAll("[data-s]").forEach((b) => b.classList.toggle("gold", b.dataset.s === j.item.status));
+    window.__fb && (window.__fb[id] = j.item);
+    fbBadge();
+  };
+  $("#fl").addEventListener("toggle", (e) => { const d = e.target; if (d.open && d.classList.contains("new")) mark(d, "read").catch(() => {}); }, true);
+  $("#fl").onclick = async (e) => {
+    const card = e.target.closest(".fbc"); if (!card) return;
+    const b = e.target.closest("button"); if (!b) return;
+    const id = card.dataset.id;
+    if (b.dataset.s) { await mark(card, b.dataset.s); toast("상태를 바꿨습니다"); }
+    else if (b.hasAttribute("data-save")) { await call("a_feedback_set", { id, note: card.querySelector("[data-note]").value, reply: card.querySelector("[data-reply]").value }); toast("저장했습니다"); }
+    else if (b.hasAttribute("data-del")) { if (confirm("이 문의를 지울까요?")) { await call("a_feedback_del", { id }); card.remove(); toast("지웠습니다"); fbBadge(); } }
+  };
+  await load();
+};
 VIEWS.logs = async () => {
   $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option><option value="gacha">뽑기</option><option value="shop">상점</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;
   const load = async () => { const j = await call("a_logs", { type: $("#lt").value, q: $("#lq").value, limit: 2000 });
@@ -601,6 +701,15 @@ const LABELS = {
   "game.registerOpen": ["새 가입 허용"],
   "game.maxRoomPlayers": ["방 최대 인원"],
   "game.roomListOpen": ["방 목록 공개", "끄면 게임의 같이 하기 화면에서 방 목록이 비어 보입니다"],
+  order: ["치트 판매 (계좌이체)", "플레이어가 원하는 치트를 골라 주문하고, 입금을 확인한 뒤 운영자가 '구매 주문'에서 열어 줍니다. 입금 계좌는 여기에만 적고 저장소에는 올리지 마세요"],
+  "order.on": ["판매 열기", "켜면 홈페이지와 게임 메뉴에 '치트 구매'가 나타납니다. 계좌를 먼저 적으세요"],
+  "order.bank": ["입금 계좌 (은행 + 계좌번호)", "예: 국민 123456-78-901234"],
+  "order.holder": ["예금주"],
+  "order.note": ["입금 안내 문구", "주문 직후 화면에 그대로 보입니다"],
+  "order.price": ["치트별 가격 (7일, 원)", "기간별 가격은 아래 배수를 곱해 100원 단위로 반올림합니다"],
+  "order.price.radar": ["레이더"], "order.price.wall": ["벽 투시"], "order.price.cheat": ["치트 모드"], "order.price.god": ["무적"], "order.price.oneShot": ["한 방 처치"], "order.price.infAmmo": ["탄약 무한"], "order.price.noRecoil": ["반동 없음"], "order.price.speed": ["이동 속도 ×1.5"], "order.price.fastFire": ["연사 ×2"], "order.price.buff": ["능력 재충전 10초"],
+  "order.dur": ["기간 배수", "7일 가격에 곱합니다"],
+  "order.dur.d1": ["1일"], "order.dur.d7": ["7일"], "order.dur.d30": ["30일"], "order.dur.d0": ["영구"],
   cheat: ["치트", "숨은 비밀번호로 여는 치트의 모든 규칙"],
   "cheat.enabled": ["치트 사용", "끄면 비밀번호가 그려지지 않고 아무도 못 엽니다"],
   "cheat.codeLength": ["비밀번호 자릿수", "3~6"],
