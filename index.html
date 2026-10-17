@@ -328,7 +328,7 @@ function drawMe() {
   $("#meChampionCoins").hidden = !wallet;
   $("#meChampionCoins").textContent = (L === "en" ? "Transcendent coins " : "초월 코인 ") + (u.championCoins || 0).toLocaleString();
   $("#meChampionCoins").href = gameUrl("") + "#champion-shop";
-  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 942);
+  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 973);
   // straight to the skin page in the game: pulls, or the skins I own
   $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;
   $("#meSkinPull").textContent = t("skinPull");

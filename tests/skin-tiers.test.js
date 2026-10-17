@@ -6,5 +6,5 @@ test("Transcendent ranks above Legendary and only the two Phantom skins move to 
   const h = harness(), catalog = await h.api("catalog");
   assert.deepEqual(Object.keys(catalog.tiers).filter((id) => catalog.tiers[id] === 5).sort(), ["champions_atk", "champions_def"]);
   for (const id of ["lava", "galaxy", "storm", "laurel"]) assert.equal(catalog.tiers[id], 4);
-  assert.equal(catalog.items, 942);
+  assert.equal(catalog.items, 973);
 });
