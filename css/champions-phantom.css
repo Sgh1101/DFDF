@@ -5,7 +5,7 @@
 #slot-champions.phantom-unavailable .ar-view{visibility:hidden}
 #phantom-model-notice{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#e6d2e3;border:1px solid #664158;border-radius:18px;background:#141019;font-size:13px;line-height:1.7}
 #phantom-model-notice[hidden]{display:none}#phantom-retry{padding:10px 14px;border:1px solid #af708e;border-radius:8px;background:#352431;color:#ffe4f3;cursor:pointer}#phantom-retry:focus-visible{outline:2px solid #ffb4e6;outline-offset:2px}
-#champions-content{min-width:0;padding-bottom:12px}#champions-content>h2{margin:0;color:#ffdbef;font-size:24px}.champions-intro{font-size:12px;color:#c9b9ce;line-height:1.7}
+#champions-content{min-width:0;padding-bottom:12px}#champions-content .ch-head{position:relative;padding-left:14px}#champions-content .ch-head::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:3px;border-radius:3px;background:linear-gradient(180deg,#ffb4e6,#ff7bd5 55%,#9a3f86);box-shadow:0 0 14px #ff7bd5}.ch-kicker{display:block;font-size:10px;font-weight:700;letter-spacing:.22em;color:#b98ab0}#champions-content>.ch-head>h2{margin:2px 0 0;font-size:28px;font-weight:800;letter-spacing:.02em;background:linear-gradient(180deg,#fff4fb,#ffb4e6);-webkit-background-clip:text;background-clip:text;color:transparent}.champions-intro{margin:8px 0 14px;max-width:60ch;font-size:12.5px;color:#aeb8c8;line-height:1.7}
 #skin-tier-guide{flex:0 0 auto;margin:8px 0 0;border:1px solid #5e3857;border-radius:9px;background:#15101c;color:#e8dfea;font-size:12px}
 #armory:has(#skin-tier-guide[open])>.ar-pane:not(#ar-p-champions){overflow:hidden}
 #skin-tier-guide summary{padding:8px 12px;cursor:pointer;font-weight:700}#skin-tier-guide summary span{margin-left:10px;color:#ff7bd5;font-weight:400}
@@ -61,3 +61,16 @@
 #armory:has(#ar-p-champions:not([hidden])) #skin-samples{display:none}
 @media(max-width:650px){#phantom-panel{padding:14px 12px 12px 16px}#phantom-panel .pp-row em{flex-basis:100%}#phantom-panel .pp-btn{padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){#phantom-panel .pp-eq i{animation:none;transform:scaleY(.7)}}
+
+/* the stage: a transcendent halo behind the gun, and the tier bar and shop offers in the same material */
+#slot-champions{border-radius:18px;box-shadow:0 0 0 1px color-mix(in srgb,#ff7bd5 28%,#2a3340),0 24px 60px -30px #ff7bd5,0 18px 40px -26px #000}
+#slot-champions::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;background:radial-gradient(70% 55% at 50% 58%,color-mix(in srgb,#ff7bd5 14%,transparent),transparent 70%)}
+#skin-tier-guide{border-radius:14px;border-color:color-mix(in srgb,#ff7bd5 26%,#2a3340);background:linear-gradient(90deg,color-mix(in srgb,#ff7bd5 10%,transparent),transparent 60%),rgba(10,14,20,.86)}
+#skin-tier-guide summary{font-size:12px;letter-spacing:.04em}
+#champion-shop .champion-heading h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#ffb4e6}
+#champion-shop .champion-heading b{padding:3px 12px;border-radius:999px;border:1px solid color-mix(in srgb,#ff7bd5 40%,#2a3340);background:rgba(0,0,0,.3);font-size:12px;color:#fff4fb}
+#champion-shop .champion-offers button{position:relative;overflow:hidden;transition:border-color .15s,background .15s,transform .15s}
+#champion-shop .champion-offers button::before{content:"";width:9px;height:9px;flex:none;border-radius:50%;background:#ff5a6b;box-shadow:0 0 9px #ff5a6b}
+#champion-shop .champion-offers button+button::before{background:#f1e6cf;box-shadow:0 0 9px #f1e6cf}
+#champion-shop .champion-offers button strong{flex:1;font-weight:800}
+#champion-shop .champion-offers button.owned{border-color:rgba(255,200,73,.45)}#champion-shop .champion-offers button.owned span{color:#f3d58a}

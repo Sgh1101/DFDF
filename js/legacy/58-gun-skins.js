@@ -2606,7 +2606,7 @@
       <div class="ar-body"><div class="ar-guns" id="ar-guns"></div><div class="ar-slot" id="slot-gun"><div class="ar-view"><canvas id="ar-cv"></canvas><div class="ar-cap" id="ar-cap"></div><div class="ar-hint">${L("끌어서 돌리기", "Drag to turn")}</div></div></div><div class="ar-skins" id="ar-skins"></div></div>
     </section>
     <section class="ar-pane" id="ar-p-champions" hidden>
-      <div class="champions-layout"><div class="ar-slot" id="slot-champions"></div><div id="champions-content"><h2>${L("챔피언스", "Champions")}</h2><p class="champions-intro">${L("초월 등급 팬텀 · 경기 완료로 모은 코인으로 원하는 스킨을 구매하세요. 뽑기는 기존 뽑기 탭에서 함께 진행합니다.", "Transcendent Phantom · Buy your skin with coins earned by completing matches. Champions drops remain in the regular Pull tab.")}</p></div></div>
+      <div class="champions-layout"><div class="ar-slot" id="slot-champions"></div><div id="champions-content"><div class="ch-head"><span class="ch-kicker">${L("초월 등급 · 카빈 전용", "TRANSCENDENT · CARBINE")}</span><h2>${L("챔피언스", "Champions")}</h2></div><p class="champions-intro">${L("초월 등급 팬텀 · 경기 완료로 모은 코인으로 원하는 스킨을 구매하세요. 뽑기는 기존 뽑기 탭에서 함께 진행합니다.", "Transcendent Phantom · Buy your skin with coins earned by completing matches. Champions drops remain in the regular Pull tab.")}</p></div></div>
     </section>
     <div id="ar-reveal" hidden><div class="rv-bg"><i class="rv-rays"></i></div><div class="rv-flash"></div><div class="rv-fx" id="rv-fx"></div>
       <div class="rv-box"><div class="rv-hd"><div class="lbl">${L("뽑기", "Pull")}</div><h3 id="rv-title"></h3></div>
