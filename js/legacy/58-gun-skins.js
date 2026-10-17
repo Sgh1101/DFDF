@@ -2113,11 +2113,18 @@
     return !0;
   }
   // the same skin on every gun that has it
+  // (guns that cannot wear it, or whose copy is not owned, keep what they had; returns how many guns now wear it)
   function setAll(id) {
-    if (!BY[id]) return;
-    SK.mine = {};
-    if ("default" !== id) for (const k in WEAPONS) fits(BY[id], k) && owns(k, id) && (SK.mine[k] = id);
+    if (!BY[id]) return 0;
+    if ("default" === id) {
+      SK.mine = {};
+      changed();
+      return 0;
+    }
+    let n = 0;
+    for (const k in WEAPONS) fits(BY[id], k) && owns(k, id) && ((SK.mine[k] = id), n++);
     changed();
+    return n;
   }
   // each gun: stock or one of the skins it owns, at random
   function setRandom() {
@@ -4256,8 +4263,15 @@
   }
   $("ar-close").onclick = closeArmory;
   $("ar-all").onclick = () => {
-    setAll(mySkin(AR.key).id);
+    // the skin shown now: one only previewed (not owned yet) cannot go on, so say so instead of staying silent
+    const id = AR.peek && BY[AR.peek] ? AR.peek : AR.view && BY[AR.view] ? AR.view : mySkin(AR.key).id;
+    if (AR.peek && !owns(AR.key, AR.peek)) return void note(L("아직 없는 스킨입니다 · 가진 스킨을 고른 뒤 눌러 주세요", "Not owned yet · pick a skin you own, then press this"));
+    if ("default" === id) return void note(L("기본 스킨입니다 · 적용할 스킨을 먼저 고르세요 (전부 기본은 오른쪽 버튼)", "That is the stock look · pick a skin first (the right-hand button resets all)"));
+    const n = setAll(id),
+      total = Object.keys(WEAPONS).filter((k) => "knife" !== k && fits(BY[id], k)).length;
     armoryPaint();
+    pvShow();
+    note(n > 1 ? L(`${n}개 총에 적용했습니다 (가진 총만 · 이 스킨이 맞는 총 ${total}개 중)`, `Applied to ${n} guns (the ones you own · of ${total} that fit it)`) : L("이 스킨은 다른 총에는 없어서 이 총에만 적용됩니다 · 뽑기나 상점에서 다른 총용도 얻을 수 있습니다", "You own this skin for this gun only · pull or buy it for the others"));
   };
   $("ar-rand").onclick = () => {
     setRandom();
