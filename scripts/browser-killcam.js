@@ -22,6 +22,15 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       out.same = KILLCAM.titleOf(foe).id === KILLCAM.titleOf(foe).id;
       out.badId = KILLCAM.titleOf({ id: "x", ctrl: "p", __ttl: "marksman" }) && KILLCAM.titleOf({ id: "x", ctrl: "p", __ttl: "marksman" }).id;
       out.noBad = KILLCAM.titleOf({ id: "x", ctrl: "p", __ttl: "rm -rf" });
+      // a guest's title goes in the actor list the host sends (only a real title; anything else is dropped)
+      const guest = world.actors.find((x) => x !== me && x.team === me.team), mode = NET.mode, ctrl = guest.ctrl, was = room.started;
+      try {
+        NET.mode = "host"; guest.ctrl = "peer-x"; room.started = false;
+        NET.onAction("peer-x", { t: "hello", name: "손님", ttl: "marksman" });
+        out.manifestTitle = actorManifest()[world.actors.indexOf(guest)].ttl;
+        NET.onAction("peer-x", { t: "hello", name: "손님", ttl: "<img src=x onerror=1>" });
+        out.manifestBad = actorManifest()[world.actors.indexOf(guest)].ttl || "";
+      } finally { NET.mode = mode; guest.ctrl = ctrl; room.started = was; }
       // killed by the world: nothing
       killActor(me, null);
       out.worldSpectate = me.spectateT;
@@ -58,6 +67,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(r.same, "the same bot, the same title");
     assert.equal(r.badId, "marksman", "a guest's real title is shown");
     assert.equal(r.noBad, null, "an unknown title is not");
+    assert.equal(r.manifestTitle, "marksman", "a guest's title is in the actor list");
+    assert.equal(r.manifestBad, "", "a title that is not in the catalogue is dropped");
     assert.equal(r.worldActive, false, "a death with nobody to blame shows no kill view");
     assert.ok(r.spectateT >= 2, "the death view lasts at least as long as the kill view (" + r.spectateT + ")");
     assert.ok(r.active && r.on, "the kill view and the plate are up");
