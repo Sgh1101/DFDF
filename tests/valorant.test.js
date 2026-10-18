@@ -25,13 +25,19 @@ test('source pivot rotations cross the Y-down frame without rewriting original m
  assert.deepEqual(render.bones[0].rotation,[-30,25,15]);
  assert.deepEqual(render.bones[0].cubes[0].origin,[0,-2,1]);assert.equal(render.description.texture_width,2048);
 });
-test('17 firearms plus a knife and six new knife-only skins share the server catalog',async()=>{
- const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,18);assert.equal(c.items,576);
+test('18 firearms plus a knife and six new knife-only skins share the server catalog',async()=>{
+ const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,19);assert.equal(c.items,607);
  for(const k of Object.keys(D.aliases))assert.ok(!c.guns.includes(k));
  for(const s of D.knives){assert.equal(c.only[s.id],'knife');assert.equal(c.tiers[s.id],4);}
  assert.equal(c.only.champions_atk,'scout');
  for(const key of Object.keys(D.names))assert.equal(D.canonical(key),key,'supplied weapons and carbine stay active');
  for(const target of Object.values(D.aliases))assert.ok(c.guns.includes(target),'every retired weapon maps directly to an active weapon');
+});
+test('Phantom is the source automatic rifle; recon and burst keep distinct fire modes',()=>{
+ assert.equal(D.profiles.scout.auto,true);assert.equal(D.profiles.scout.burst,0);assert.equal(D.profiles.scout.mag,30);assert.equal(D.profiles.scout.rpm,660);
+ assert.equal(D.profiles.carbine.auto,false);assert.equal(D.profiles.carbine.mag,15);
+ assert.equal(D.profiles.bullpup.auto,true);assert.equal(D.names.bullpup,'코멧 소총');assert.equal(D.canonical('bullpup'),'bullpup');
+ const m=JSON.parse(fs.readFileSync('assets/valorant-packs/v1/manifest.json'));assert.equal(m.items.find(i=>i.id==='phantom').key,'scout');
 });
 test('consolidation preserves owned skins and equipped choices; duplicate compensation is once only',async()=>{
  const h=harness(),p=await h.api('auth',{id:'collector',pw:'password',device:'test-packs'}),u=h.user('collector');
@@ -40,13 +46,14 @@ test('consolidation preserves owned skins and equipped choices; duplicate compen
  assert.deepEqual(after.own.smg,['lava','snow','dragon']);assert.ok(!after.own.vector);assert.deepEqual(after.weaponArchive.vector,['dragon','lava']);assert.equal(after.skins.m.smg,'snow');assert.equal(after.skins.m.scout,'champions_atk');assert.ok(!after.skins.m.vector);assert.deepEqual(after.wish,['smg|dragon']);assert.equal(after.gold,gold+900);
  await h.api('skins',{token:p.token});assert.equal(h.user('collector').gold,after.gold);
 });
-test('restoring five firearms returns archived skins once and preserves current equipment and compensation',async()=>{
+test('restoring firearms including the new Comet returns archived skins once and preserves current equipment and compensation',async()=>{
  const h=harness(),p=await h.api('auth',{id:'oldbuyer',pw:'password',device:'oldbuyer-packs'}),u=h.user('oldbuyer');
  u.own={pistol:['lava','snow','dragon'],autoshot:['snow','gold'],rifle:['lava','gold'],scout:['champions_def'],machpist:['gold']};
- u.weaponArchive={machpist:['lava','snow'],whisper:['dragon'],shotgun:['gold'],burst:['gold'],scout:['snow']};
+ u.weaponArchive={machpist:['lava','snow'],whisper:['dragon'],shotgun:['gold'],burst:['gold'],scout:['snow'],bullpup:['lava']};
  u.skins={m:{pistol:'snow',autoshot:'snow',rifle:'lava',scout:'champions_def'},t:1};u.refunded=900;const gold=u.gold;h.db.set('user:oldbuyer',JSON.stringify(u));
  await Promise.all([h.api('skins',{token:p.token}),h.api('skins',{token:p.token})]);const next=h.user('oldbuyer');
  assert.deepEqual(next.own.machpist,['gold','lava','snow']);assert.deepEqual(next.own.whisper,['dragon']);assert.deepEqual(next.own.shotgun,['gold']);assert.deepEqual(next.own.burst,['gold']);assert.deepEqual(next.own.scout,['champions_def','snow']);
+ assert.deepEqual(next.own.bullpup,['lava']);
  assert.deepEqual(next.skins.m,u.skins.m);assert.deepEqual(next.own.scout,['champions_def','snow']);assert.equal(next.gold,gold);assert.equal(next.refunded,900);
  for(const key of D.restored)assert.equal(next.weaponRestored[key],true);
  // Later deliberate removals must not be undone by replaying the archive.

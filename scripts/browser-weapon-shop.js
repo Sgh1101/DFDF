@@ -7,16 +7,16 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'equipment-owner'});
  await f.h.api('a_user_set',{atoken:owner.atoken,id:'equipmentbuyer',op:'grant',item:'scout|champions_atk'});
  await p.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;const a=myActor();a.credits=10000;a.abilities[0].charges=0;openShop();});
- await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===17,null,{timeout:120000});
- assert.equal(await p.locator('#shop-grid [data-kind="weapon"]').count(),17);
+ await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===18,null,{timeout:120000});
+ assert.equal(await p.locator('#shop-grid [data-kind="weapon"]').count(),18);
  const catalog=await p.evaluate(()=>({keys:Object.keys(WEAPONS),profiles:Object.fromEntries(Object.keys(VALORANT_DATA.names).map(k=>[k,VALORANT_DATA.profiles[k]]))}));
- assert.equal(catalog.keys.length,18);for(const key of ['machpist','whisper','burst','shotgun','scout'])assert.ok(catalog.keys.includes(key));for(const key of Object.keys(catalog.profiles))assert.ok(catalog.keys.includes(key));
- assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('#shop-grid .buy-group')].map(g=>g.querySelectorAll('[data-kind="weapon"]').length)),[5,2,2,4,2,2,0]);
+ assert.equal(catalog.keys.length,19);for(const key of ['machpist','whisper','burst','shotgun','scout'])assert.ok(catalog.keys.includes(key));for(const key of Object.keys(catalog.profiles))assert.ok(catalog.keys.includes(key));
+ assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('#shop-grid .buy-group')].map(g=>g.querySelectorAll('[data-kind="weapon"]').length)),[5,2,2,5,2,2,0]);
  const filled=async()=>p.evaluate(()=>[...document.querySelectorAll('#shop-grid .shop-col')].map(c=>{const r=c.getBoundingClientRect(),last=c.lastElementChild.getBoundingClientRect();return Math.abs(r.bottom-last.bottom)<2;}));
  assert.ok((await filled()).every(Boolean),'desktop categories fill the available column height');
  const carbine=p.locator('#shop-grid [data-kind="weapon"][data-key="carbine"]');
  await carbine.hover();await p.waitForFunction(()=>document.getElementById('buy-name').textContent==='정찰 소총');
- assert.ok(await p.evaluate(()=>{let found=false;WEAPON_SHOP.preview().obj.traverse(n=>{if(n.userData.valorantItem==='phantom')found=true;});return found;}),'detail uses the actual supplied Phantom');
+ assert.ok(await p.evaluate(()=>{let found=false;WEAPON_SHOP.preview().obj.traverse(n=>{if(n.userData.weaponModel==='recon')found=true;});return found;}),'detail uses the scoped recon rifle');
  const cost=await p.evaluate(()=>WEAPONS.carbine.cost);await carbine.click();
  assert.deepEqual(await p.evaluate(()=>({key:myActor().weapons.primary,credits:myActor().credits})),{key:'carbine',credits:10000-cost});
  await p.locator('#shop-grid [data-key="carbine"]').click({force:true});assert.equal(await p.evaluate(()=>myActor().credits),10000-cost,'owned gun cannot be charged twice');
@@ -43,5 +43,5 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  }
  await p.setViewportSize({width:1280,height:800});await p.evaluate(()=>{world.phase='live';renderShop();});await p.locator('#shop-grid [data-key="rifle"]').hover();assert.ok(await p.locator('#buy-purchase').isDisabled());
  await p.locator('#shop-close').click();assert.ok(await p.locator('#shop').isHidden());assert.deepEqual(f.errors,[]);
- console.log('Equipment shop: 17 gun cards plus the separate knife, supplied/carbine models, purchases and credit gates, armor/nade/ability limits, host action, landscape/portrait layout and close passed. Match purchases use the in-memory fixture; no store payment.');
+ console.log('Equipment shop: 18 gun cards plus the separate knife, supplied/carbine models, purchases and credit gates, armor/nade/ability limits, host action, landscape/portrait layout and close passed. Match purchases use the in-memory fixture; no store payment.');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});
