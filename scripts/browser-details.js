@@ -29,7 +29,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(guns));
     assert.deepEqual(guns.bad, [], "every weapon equips");
-    assert.equal(guns.checked, 18, "17 firearms and the separate knife checked");
+    assert.equal(guns.checked, 19, "18 firearms and the separate knife checked");
     assert.ok(guns.live > 4, "the left hand and its pieces are still animated parts (live " + guns.live + " of " + guns.total + ")");
 
     // ── every agent: the detail goes into the baked meshes ──

@@ -24,7 +24,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  for(const s of skins)assert.equal((await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'knife|'+s.id})).status,200);
  await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'scout|champions_atk'});
  await page.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;openShop();});
- assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),18);
+ assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),19);
  const shop=await page.locator('#shop-grid').innerText();for(const name of ['밴달','팬텀','클래식','오퍼레이터','아웃로','오딘'])assert.ok(shop.includes(name));
  assert.ok(!shop.includes('속사 SMG')&&!shop.includes('핸드캐논')&&!shop.includes('전투소총'));
  await page.locator('#shop-grid .sitem').filter({has:page.locator('b',{hasText:/^밴달$/})}).click();

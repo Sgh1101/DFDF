@@ -6,7 +6,7 @@ const out=path.join(__dirname,'../assets/valorant-packs/v1'),files=[],items=[];
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 function copy(root,rel,prefix){const b=fs.readFileSync(path.join(root,rel)),name=prefix+'/'+rel.replaceAll('\\','/'),dest=path.join(out,name);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,b);files.push({name,size:b.length,sha256:hash(b)});}
 function walk(root,rel,prefix){for(const e of fs.readdirSync(path.join(root,rel),{withFileTypes:true})){const r=path.join(rel,e.name);if(e.isDirectory())walk(root,r,prefix);else if(/\.(json|png|ogg)$/.test(e.name))copy(root,r,prefix);}}
-const guns={pistol:'classic',silenced:'ghost',revolver:'sheriff',rifle:'vandal',carbine:'phantom',autoshot:'judge',hmg:'odin',marksman:'outlaw',sniper:'operator'};
+const guns={pistol:'classic',silenced:'ghost',revolver:'sheriff',rifle:'vandal',scout:'phantom',autoshot:'judge',hmg:'odin',marksman:'outlaw',sniper:'operator'};
 for(const [n,root] of roots.entries()){
  const prefix=n?'knife':'gun',ns=n?'wtyj':'valorant';walk(root,'assets',prefix);walk(root,'data',prefix);
  const dir=path.join(root,'assets',ns,'display',n?'melee':'guns');

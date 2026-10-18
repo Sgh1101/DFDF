@@ -1,15 +1,20 @@
-/* Opt-in local map trial. The ordinary catalog does not download map assets. */
+/* Public map selection; terrain assets load only when this map is selected. */
 (() => {
   'use strict';
-  if (new URLSearchParams(location.search).get('ascent-trial') !== '1') return;
-  const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'loading',active:false,meshes:[],meta:null};
-  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','마크X발로 맵 시험');
+  const trial=new URLSearchParams(location.search).get('ascent-trial')==='1';
+  const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null};
+  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','마크X발로 불러오기');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
   const title=document.createElement('strong');title.textContent='마크X발로';
   const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='원본 지형을 준비하는 중…';msg.style.margin='8px 0';
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
   const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px';
-  panel.append(title,msg,start,exit);document.body.append(panel);
+  panel.append(title,msg,start,exit);panel.hidden=!trial;document.body.append(panel);
+  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[]};
+  const entry={key:KEY,name:'마크X발로',size:5};
+  (window.MAP_EXTRA||=[]).push(entry);
+  if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push(entry);
+  let pending=null,startRevision=0,loadRevision=0;
   let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
   const flows=new Map();
   const on=()=>S.active&&CUR_MAP_KEY===KEY;
@@ -233,8 +238,11 @@
   createActor=function(){const a=oldCreate.apply(this,arguments);if(on()){const p=safe(a.pos);a.y=p.y;a.pos.y=p.y;}return a;};
   const oldLoad=loadMap;
   loadMap=function(key) {
+    const revision=++loadRevision;
     if(key!==KEY)return oldLoad.apply(this,arguments);
-    if(S.status!=='ready')return false;
+    if(S.status!=='ready'){
+      S.ensure().then(ok=>{if(ok&&revision===loadRevision)loadMap(KEY);});return false;
+    }
     clearMapGeometry();previousNav=NAV.slice();previousCell=GRID.cell;CUR_MAP_KEY=KEY;S.active=true;
     applyMapData(MAPS[KEY]);THEME.cur=THEMES.glacier;THEME.key='glacier';applyMapMood(MAPS[KEY]);
     // Neutral daylight keeps vanilla stone/wool colors intact rather than
@@ -279,25 +287,43 @@
         S.textureCount=palette.tiles.length;
       }
       MAPS[KEY]={
-        key:KEY,name:'마크X발로',theme:'glacier',fog:.002,
+        key:KEY,name:'마크X발로',size:5,theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
         attackSpawn:sourcePoint(95,193),defendSpawn:sourcePoint(175,55),
         sites:[{id:'A',label:'A 거점',...sourcePoint(220,177),r:6},{id:'B',label:'B 거점',...sourcePoint(105,70),r:6}],
         nodes:{atk:sourcePoint(95,193),mid:sourcePoint(180,125),A:sourcePoint(220,177),B:sourcePoint(105,70),def:sourcePoint(175,55)},walls:[],
       };
-      (window.MAP_EXTRA||=[]).push({key:KEY,name:MAPS[KEY].name});
-      if(window.POGU){POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push({key:KEY,name:MAPS[KEY].name});
       S.status='ready';start.disabled=false;
-      msg.textContent='원본 지형에 마인크래프트 기본 블록 텍스처를 복원했어. 이동·사격을 시험해봐. 제작 중인 로컬 시험 맵이야.';
-    }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;}
+      msg.textContent='마크X발로 준비 완료 · 원본 지형과 마인크래프트 기본 텍스처를 사용합니다.';
+      if(!trial)panel.hidden=true;
+      return true;
+    }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;return false;}
   }
+  S.ensure=()=>{
+    if(S.status==='ready')return Promise.resolve(true);
+    if(!pending){panel.hidden=false;pending=load().finally(()=>{pending=null;});}
+    return pending;
+  };
+  function prepare(fn,args,key){
+    const revision=++startRevision;
+    if(key!==KEY||S.status==='ready')return fn.apply(null,args);
+    const screen=fn===solo?document.getElementById('s-select'):fn===hostStart?document.getElementById('lobby'):null,visible=screen&&!screen.hidden;
+    return S.ensure().then(ok=>{if(ok&&revision===startRevision&&room.map===KEY&&!(visible&&screen.hidden))return fn.apply(null,args);});
+  }
+  const solo=startGame,hostStart=hostStartMatch,clientStart=clientBeginMatch;
+  startGame=function(){return prepare(solo,arguments,room.map);};
+  hostStartMatch=function(){return prepare(hostStart,arguments,room.map);};
+  clientBeginMatch=function(message){if(message.map===KEY)room.map=KEY;return prepare(clientStart,arguments,message.map);};
+  const selectMaps=paintSelMaps,lobbyMaps=paintMaps;
+  paintSelMaps=function(){const r=selectMaps.apply(this,arguments);if(room.map===KEY)S.ensure();return r;};
+  paintMaps=function(snapshot){const r=lobbyMaps.apply(this,arguments);if(snapshot.map===KEY)S.ensure();return r;};
   start.onclick=async()=>{
     if(S.status==='error'){start.textContent='이 맵으로 연습 시작';await load();return;}
     start.disabled=true;msg.textContent='지형과 이동 경로를 만드는 중…';
     await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,30)));
-    try{room.map=KEY;room.mode='std';startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();panel.hidden=true;S.started=true;}
+    try{room.map=KEY;room.mode='std';await startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();panel.hidden=true;S.started=true;}
     catch(e){msg.textContent=e.message;start.disabled=false;}
   };
   S.show=()=>{panel.hidden=false;};
-  load();
+  if(trial)S.ensure();
 })();

@@ -10,13 +10,15 @@
 | silenced | 고스트 |
 | revolver | 셰리프 |
 | rifle | 밴달 |
-| carbine | 정찰 소총 (원본 팬텀 모델) |
+| scout | 팬텀 (원본 모델·30발 자동사격) |
 | autoshot | 저지 |
 | hmg | 오딘 |
 | marksman | 아웃로 |
 | sniper | 오퍼레이터 |
 
-**총기 17종과 별도 나이프**를 제공합니다. 구매창은 보조 5·기관단총 2·산탄총 2·소총 4·저격소총 2·중화기 2종으로 채웁니다. 기관권총·위스퍼 기관단총·점사소총·산탄총·정찰 소총을 다시 활성화했습니다. `handcan→revolver`, `stinger→pistol`, `vector/pdw/burstsmg/ripper→smg`, `slugger→shotgun`, `doublebarrel→pocketshot`, `battle→rifle`, `bullpup→carbine`, `lmg/minigun→hmg`, `antimat→sniper`는 계속 통합합니다. 기존 네트워크 인덱스와 옛 ID 직접 참조는 유지합니다. 제공된 총 9종의 ID·성능·모델은 유지합니다. 표시 이름은 carbine을 정찰 소총, scout를 팬텀으로 맞바꾸었으며 챔피언스 스킨은 팬텀(scout) 전용입니다.
+**총기 18종과 별도 나이프**를 제공합니다. 구매창은 보조 5·기관단총 2·산탄총 2·소총 5·저격소총 2·중화기 2종입니다. 새 코멧 소총(`bullpup`)은 뒤쪽 탄창·속이 빈 개머리판·환기구·구리 방열판을 갖춘 독립적인 DFDF 모델이며 30발·750 RPM의 자동 소총입니다. 예전에 통합한 bullpup 스킨은 보관 목록에서 한 번만 돌려줍니다. 나머지 `handcan→revolver`, `stinger→pistol`, `vector/pdw/burstsmg/ripper→smg`, `slugger→shotgun`, `doublebarrel→pocketshot`, `battle→rifle`, `lmg/minigun→hmg`, `antimat→sniper` 통합은 유지합니다.
+
+이전에는 표시 이름만 바뀌어 팬텀이 단발 정찰 소총처럼 동작했습니다. 이제 **팬텀(scout)은 원본 Phantom 모델·발사음·애니메이션, 30발·660 RPM 자동사격**을 사용합니다. 챔피언스 공격/수비도 같은 자동사격 성능입니다. 점사소총은 기존 모델과 3점사를 유지합니다. 정찰 소총(carbine)은 스코프·15발 단발 정밀사격으로 구분합니다. 팬텀의 정찰용 스코프 화면은 제거했습니다. 원본 팩 485개 파일은 보존하고 등록 manifest의 대상 키만 수정합니다. 서비스 워커가 예전 등록 정보를 재사용하지 않도록 manifest 요청 버전도 변경합니다. 네트워크의 기존 인덱스를 재정렬하지 않고 누락된 활성 총 ID를 뒤에 추가하므로 팬텀·코멧도 스냅샷에서 권총으로 바뀌지 않습니다.
 
 서버는 기존 보유 스킨을 통합 총으로 옮기고 원래 보유 목록을 `weaponArchive`에 남깁니다. 같은 스킨이 이미 있으면 기존 중복 환급 기준으로 한 번만 보상합니다. 대상 총의 장착 선택을 우선 보존하고 빈 선택은 이전 장착으로 채우며 위시리스트도 통합합니다. 기존 rifle·carbine에 보유하거나 장착했던 챔피언스 공격·수비 스킨은 **팬텀(scout)**으로 무료 이전합니다. 일반 스킨과 대상 총의 기존 장착 선택, 코인·골드는 유지하며 기존 구매분을 다시 구매할 필요가 없습니다.
 
