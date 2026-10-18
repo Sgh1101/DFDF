@@ -34,18 +34,24 @@ const only = (process.env.DFDF_UI_ONLY || "").split(",").filter(Boolean), viewOn
       for (const cat of ["full", "small", "1v1"]) await run("select-maps-" + cat, async () => { await back(); await click("#go-play"); await page.evaluate((c) => { const b = [...document.querySelectorAll("#s-select .lb-tab, #s-select [data-cat], #s-select .map-tabs button")].find((x) => (x.dataset.cat || x.dataset.c || x.textContent).includes(c) || false); b && b.click(); }, cat === "full" ? "5" : cat === "small" ? "3" : "1"); });
       await run("settings", async () => { await back(); await click("#go-set"); }, ["#s-title"]);
       await run("armory-guns", async () => { await back(); await page.evaluate(() => GUN_SKINS.open("rifle", "gun")); }, ["#s-title"]);
-      for (const tab of ["knife", "shop", "cos"]) await run("armory-" + tab, async () => { await back(); await page.evaluate(() => GUN_SKINS.open("rifle", "gun")); await page.evaluate((t) => { const b = document.querySelector(`#ar-tabs [data-t="${t}"], #ar-tab-${t}`) || [...document.querySelectorAll("#ar-tabs button")].find((x) => x.id.includes(t) || (x.dataset.t || "").includes(t)); b && b.click(); }, tab); }, ["#s-title"]);
+      for (const tab of ["knife", "shop", "cos", "mine", "champions"]) await run("armory-" + tab, async () => {
+        await back();
+        await page.evaluate((t) => GUN_SKINS.open(t === "knife" ? "knife" : "rifle", "gun"), tab);
+        if (tab !== "knife") await page.locator(tab === "cos" ? "#ar-tab-cos" : '#ar-tabs [data-tab="' + tab + '"]').click();
+        const active = tab === "knife" ? "gun" : tab;
+        await page.locator("#ar-p-" + active).waitFor({ state: "visible", timeout: 10000 });
+      }, ["#s-title"]);
       await run("multi", async () => { await back(); await click("#go-multi"); });
       // in a match
       await page.evaluate(() => { room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); });
       await page.waitForTimeout(600);
       await run("game-buy", async () => { await page.evaluate(() => { world.phase = "buy"; openShop(); }); }, ["#hud"]);
       await run("game-live", async () => { await page.evaluate(() => { closeShop(); world.phase = "live"; myActor().nades = 2; }); await page.waitForTimeout(900); });
-      await run("game-scoreboard", async () => { await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { code: "Tab", key: "Tab" }))); });
+      await run("game-scoreboard", async () => { await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { code: "Tab", key: "Tab" }))); }, ["#hud", "#touch", "#lockhint"]);
       await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keyup", { code: "Tab", key: "Tab" })));
       await page.evaluate(() => { try { document.getElementById("bd-x").click(); } catch (e) {} });
       await run("game-pause", async () => { await page.evaluate(() => { try { openPause(); } catch (e) { document.getElementById("pause").hidden = false; } }); }, ["#hud"]);
-      await run("game-over", async () => { await page.evaluate(() => { document.getElementById("pause").hidden = true; world.round = 3; world.scoreAtk = 13; gameOver(); }); });
+      await run("game-over", async () => { await page.evaluate(() => { document.getElementById("pause").hidden = true; world.round = 3; world.scoreAtk = 13; world.over = true; gameOver(); }); });
       await page.context().close();
     }
     fs.writeFileSync(process.env.DFDF_UI_OUT || "/tmp/ui-audit.json", JSON.stringify(found, null, 1));

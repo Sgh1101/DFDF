@@ -65,6 +65,19 @@ test('quitting during a redial releases busy state and does not resume the old r
   const p = h.c.netRedial(); await h.advance(250); h.c.netShutdown(); await h.advance(50000);
   assert.equal(h.c.NET_RC.busy, false); assert.equal(h.c.NET.mode, 'solo'); assert.equal(h.c.NET_REDIALS || 0, 0); await p;
 });
+
+test('full peer destruction retains the previous id for automatic seat recovery', async () => {
+  const h = setup(), old = await h.connect(), previous = old.id;
+  h.c.world.phase = 'live'; h.c.myActor = () => ({ id: 7 });
+  // PeerJS removes its id before announcing close during destroy().
+  old.id = null; old.destroy(); await h.flush(); await h.advance(250);
+  const current = h.peers.at(-1);
+  assert.notEqual(current, old); current.emit('open', current.id);
+  current.channels[0].ready(); current.channels[1].ready(); await h.flush();
+  const hello = current.channels[1].sent.find(m => m.t === 'hello');
+  assert.equal(hello.prev, previous); assert.equal(hello.actorId, 7);
+  assert.equal(h.c.NET_REDIALS, 1); assert.equal(h.c.NET_RC.busy, false);
+});
 test('join timeout destroys the failed peer and ignores a late open', async () => {
   const h = setup(); let result; const p = h.c.netJoin('ABC123', 1000).catch((e) => result = e);
   const peer = h.peers[0]; await h.advance(1001); await p;

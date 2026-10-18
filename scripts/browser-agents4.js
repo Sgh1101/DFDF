@@ -188,7 +188,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(r.costume.offOnShot && r.costume.timedOut, "a shot or the clock ends it");
     // 바꿔치기, 탈바꿈
     assert.equal(r.swapRefund, false);
-    assert.deepEqual(r.swap, { me: ["sniper", "primary", true], foe: ["vector", "primary"] });
+    assert.deepEqual(r.swap, { me: ["sniper", "primary", true], foe: ["smg", "primary"] }, "swapped legacy Vector is canonicalized to the current SMG");
     assert.equal(r.swapNobody, true);
     assert.deepEqual(r.life, [90, 40, 20, 5]);
     assert.ok(r.lifeNobody, "no one to swap with: the ultimate comes back");

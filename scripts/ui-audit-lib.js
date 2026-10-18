@@ -19,7 +19,8 @@ module.exports.AUDIT_SRC = `(() => {
   // the part of an element that is not clipped by a scrolling/hidden-overflow ancestor
   const shown = (e) => {
     let r = e.getBoundingClientRect(), L = Math.max(0, r.left), T = Math.max(0, r.top), R = Math.min(innerWidth, r.right), B = Math.min(innerHeight, r.bottom);
-    let scroller = false;
+    const root = document.scrollingElement;
+    let scroller = !!root && root.scrollHeight > innerHeight + 2 && !/(hidden|clip)/.test(getComputedStyle(root).overflowY);
     for (let n = e.parentElement; n && n !== document.body; n = n.parentElement) {
       const s = getComputedStyle(n);
       if (/(auto|scroll|hidden|clip)/.test(s.overflowX + s.overflowY)) {
@@ -55,7 +56,9 @@ module.exports.AUDIT_SRC = `(() => {
       }
       // too small to hit
       const min = o.touch ? 30 : 18;
-      if (seenArea > 4 && (s.w < min || s.h < min) && !/range|checkbox|radio/.test(e.type || "")) add("small", e, { size: Math.round(s.w) + "x" + Math.round(s.h) });
+      // Scroll edges can reveal only a sliver of a full-sized control. Measure
+      // its target box, with half a pixel of tolerance for fractional layout.
+      if (seenArea > 4 && (r.width < min - .5 || r.height < min - .5) && !/range|checkbox|radio/.test(e.type || "")) add("small", e, { size: Math.round(r.width) + "x" + Math.round(r.height) });
       // text running out of its box
       const cs = getComputedStyle(e);
       if (/(button|summary)/i.test(e.tagName) && e.scrollWidth > e.clientWidth + 3 && cs.overflowX !== "visible" && cs.textOverflow !== "ellipsis") add("text-cut", e, { sw: e.scrollWidth, cw: e.clientWidth });

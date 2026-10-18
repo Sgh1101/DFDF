@@ -211,7 +211,7 @@
     if ("revolver" === key || "handcan" === key) return "revolver";
     if ("doublebarrel" === key || "pocketshot" === key) return "break";
     if ("산탄총" === w.cls || w.pellets > 1) return "shells";
-    if ("sniper" === key || "antimat" === key || "scout" === key) return "bolt";
+    if ("sniper" === key || "antimat" === key) return "bolt";
     if ("기관총" === w.cls) return "belt";
     if ("보조" === w.cls) return "pistol";
     return "mag";

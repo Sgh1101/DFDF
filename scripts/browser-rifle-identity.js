@@ -22,10 +22,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  assert.equal(new Set(Object.values(previews)).size,3,'Phantom, burst and the new Comet have different rendered silhouettes');
  await p.locator('#shop-grid [data-key="bullpup"]').click({timeout:90000});assert.equal(await p.evaluate(()=>myActor().weapons.primary),'bullpup');
  await p.evaluate(()=>{closeShop();world.phase='live';requestAnimationFrame=()=>0;for(const a of world.actors){a.invuln=999;a.fireCd=999;}window.equipTest=(key,skin)=>{const a=myActor();GUN_SKINS.set(key,skin||'default');a.weapons.primary=key;a.slot='primary';a.fireCd=0;a.reloading=0;a.burstLeft=0;a._held=false;a.ammo[key]=WEAPONS[key].mag;a.reserve[key]=999;a.vel.set(0,0,0);keys.fire=false;updateViewmodel(true);tickViewmodel(.02);};});
- await p.locator('#cv').click({force:true});await p.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
+ await p.locator('#cv').click({force:true});await p.waitForFunction(()=>locked&&document.pointerLockElement===document.getElementById('cv'));
  const results={};
  for(const [label,key,skin] of [['phantom','scout','default'],['champions-atk','scout','champions_atk'],['champions-def','scout','champions_def'],['burst','burst','default'],['comet','bullpup','default'],['recon','carbine','default']]){
   await p.evaluate(([key,skin])=>equipTest(key,skin),[key,skin]);await p.mouse.down();
+  await p.waitForFunction(()=>keys.fire,null,{timeout:5000});
   results[label]=await p.evaluate(key=>{const a=myActor(),before=a.ammo[key];for(let i=0;i<55;i++){world.phase='live';netStep(.02);}tickViewmodel(.02);const model=VM.current;let source=false,champions=false,comet=false;model.traverse(n=>{if(n.userData.valorantItem==='phantom')source=true;if(n.name==='phantom-rig')champions=true;if(n.userData.weaponModel==='comet')comet=true;});return{shots:before-a.ammo[key],source,champions,comet,wire:WKEYS[packActor(a)[9]]};},key);
   await p.mouse.up();await p.evaluate(()=>{keys.fire=false;netStep(.01);});
   assert.equal(results[label].wire,key,'snapshot retains '+key);

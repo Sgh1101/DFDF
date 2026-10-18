@@ -110,6 +110,7 @@
   // joining waited 12 s for both channels; a busy phone mid-match (or a slow
   // network) needs longer, and a retry that tears down a half-open link just
   // starts the wait again. Same join, 25 s.
+  let lastPeerId = null;
   netJoin = function (code, ms) {
     return new Promise((resolve, reject) => {
       if (typeof Peer === "undefined") return reject(new Error("네트워크 모듈을 불러오지 못했습니다"));
@@ -141,8 +142,9 @@
         notified = true; NET.status = "closed";
         NET.onHostGone && NET.onHostGone();
       };
-      peer.on("open", () => {
+      peer.on("open", (clientId) => {
         if (!current() || peer.destroyed || NET.up) return;
+        lastPeerId = clientId || peer.id;
         const id = roomToPeerId(code),
           state = peer.connect(id, { label: "state", reliable: false, serialization: "json" }),
           event = peer.connect(id, { label: "event", reliable: true, serialization: "json" });
@@ -182,6 +184,7 @@
   };
   const _ns = netShutdown;
   netShutdown = function () {
+    lastPeerId = null;
     RC.quit = !0;
     RC.generation++;
     RC.busy = RC.wait = !1;
@@ -190,6 +193,7 @@
   };
   const _jr = joinRoom;
   joinRoom = function () {
+    lastPeerId = null;
     RC.generation++;
     RC.busy = RC.wait = !1;
     RC.quit = RC.bye = !1;
@@ -210,7 +214,8 @@
     RC.busy = !0;
     const generation = RC.generation, active = () => generation === RC.generation && !RC.quit && !RC.bye;
     const code = NET.room,
-      prev = NET.peer && NET.peer.id,
+      // PeerJS clears id during destroy(), before its close callback redials.
+      prev = (NET.peer && NET.peer.id) || lastPeerId,
       me = typeof myActor == "function" && myActor(),
       actorId = me ? me.id : null;
     const TRIES = 6;
