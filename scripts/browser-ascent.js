@@ -3,11 +3,15 @@ const {fixture}=require('./browser-fixture');
 (async()=>{
  const f=await fixture();fs.mkdirSync('test-results',{recursive:true});
  try{
-  const page=await f.page('ascenttester',{width:1280,height:720},{},{path:'/play.html?ascent-trial=1',bootTimeout:120000});
+  const page=await f.page('ascenttester',{width:1280,height:720},{},{bootTimeout:120000});
+  assert.equal(await page.evaluate(()=>ASCENT_TRIAL.status),'idle');
+  assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length),0);
+  await page.locator('#go-play').click();
+  await page.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
   await page.waitForFunction(()=>window.ASCENT_TRIAL?.status==='ready');
-  await page.getByRole('button',{name:'이 맵으로 연습 시작'}).click({timeout:120000});
-  await page.waitForFunction(()=>ASCENT_TRIAL.started,{},{timeout:120000});
-  await page.evaluate(()=>{ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;});
+  await page.locator('#sel-go').click({timeout:120000});
+  await page.waitForFunction(()=>CUR_MAP_KEY==='ascent_trial'&&!!myActor()&&ASCENT_TRIAL.active,{},{timeout:120000});
+  await page.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;});
   if(!await page.evaluate(()=>document.pointerLockElement===document.getElementById('cv')))await page.locator('#cv').click({force:true});
   await page.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
   const state=await page.evaluate(()=>({key:CUR_MAP_KEY,name:MAP.name,textures:ASCENT_TRIAL.textureCount,mesh:ASCENT_TRIAL.meshes.length,walk:ASCENT_TRIAL.walkable,components:ASCENT_TRIAL.nav.groups.slice(0,10),spawn:world.actors.map(a=>({y:a.y,free:!collideXZ(a.pos.x,a.pos.z,a.y,PR)})),routes:[MAP.defendSpawn,...MAP.sites].map(p=>findPath(MAP.attackSpawn.x,MAP.attackSpawn.z,p.x,p.z).length)}));
@@ -86,9 +90,9 @@ const {fixture}=require('./browser-fixture');
   });
   console.log('cleanup',cleanup);assert.equal(cleanup.active,false);assert.equal(cleanup.meshes,0);assert.equal(cleanup.imported,0);assert.equal(cleanup.disposed,cleanup.expected);assert.ok(cleanup.floor);assert.equal(cleanup.cell,2.5);
   await page.close();
-  // The normal entry must not load the 7.8 MB trial data or change its catalog.
+  // The map is public without downloading its 7.8 MB terrain on ordinary entry.
   const normal=await f.page('ascentnormal',{width:960,height:600});
-  assert.deepEqual(await normal.evaluate(()=>({trial:!!window.ASCENT_TRIAL,map:!!MAPS.ascent_trial,requests:performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length})),{trial:false,map:false,requests:0});
+  assert.deepEqual(await normal.evaluate(()=>({status:ASCENT_TRIAL.status,map:MAP_LIST.some(m=>m.key==='ascent_trial'),requests:performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length})),{status:'idle',map:true,requests:0});
   assert.deepEqual(f.errors,[]);console.log('Ascent: real keyboard movement, full route physics, wall/body and hitscan collision, cleanup, normal entry isolation passed');
  }finally{await f.browser.close();}
 })().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

@@ -94,7 +94,7 @@
     },
     {
       "id": "phantom",
-      "key": "carbine",
+      "key": "scout",
       "model": "gun/assets/valorant/geo_models/gun/phantom_geo.json",
       "texture": "gun/assets/valorant/textures/gun/uv/phantom.png",
       "animation": "gun/assets/valorant/animations/phantom.animation.json",
