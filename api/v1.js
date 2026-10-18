@@ -940,14 +940,14 @@ A.champion_buy = async (q, b) => {
 // and tiers match); the server decides who owns what and what is on.
 const COS = [];
 const cosAdd = (s, r, ids) => ids.split(" ").forEach((id) => COS.push({ id, s, r }));
-cosAdd("title", 1, "rookie scout patrol scrap");
-cosAdd("title", 2, "marksman bulwark shade tempest");
-cosAdd("title", 3, "commander deadeye phoenix wraith");
-cosAdd("title", 4, "legend13 sovereign flawless");
-cosAdd("card", 1, "snow dusk");
-cosAdd("card", 2, "neoncity dancheong");
-cosAdd("card", 3, "galaxy magma");
-cosAdd("card", 4, "laurelc aurorac");
+cosAdd("title", 1, "rookie scout patrol scrap recruit lookout fieldmedic sprinter tinker sentry");
+cosAdd("title", 2, "marksman bulwark shade tempest tracker ambusher breacher brawler nightowl hawkeye rescuer demolition");
+cosAdd("title", 3, "commander deadeye phoenix wraith vanguard lastline clutch silentfox webacrobat hospghost harbormaster");
+cosAdd("title", 4, "legend13 sovereign flawless unbroken thirteenth grandmaster avatar13 apex");
+cosAdd("card", 1, "snow dusk forest harbor concrete sandstorm");
+cosAdd("card", 2, "neoncity dancheong rooftopc wardhall carbon bluehour tacmap");
+cosAdd("card", 3, "galaxy magma thunder bloodmoon abyss circuit");
+cosAdd("card", 4, "laurelc aurorac prism eclipsec royalc");
 cosAdd("banner", 2, "gold bolt sakura");
 cosAdd("banner", 3, "neonpink flame frost");
 cosAdd("banner", 4, "ink stars");

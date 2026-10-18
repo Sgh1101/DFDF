@@ -13,10 +13,42 @@
 .home-resume[hidden]{display:none!important}
 .home-reduced .tt-bg{display:none}
 .home-reduced *{animation:none!important;transition:none!important}
-#skin-samples{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--stroke2);flex-shrink:0}
-#skin-sample-label{margin-right:auto;font-size:12px;color:var(--steel)}
-#skin-samples .btn{padding:7px 12px;font-size:11px;min-height:34px}
-#skin-samples .btn:disabled{opacity:.35;cursor:default}
+/* the sound preview under the armory header: a card tinted by the skin's rarity, the buttons a segmented control */
+#skin-samples{--rc:#8a97ab;position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;margin:10px 26px 6px;padding:10px 12px 10px 20px;border:1px solid color-mix(in srgb,var(--rc) 30%,var(--stroke2));border-radius:16px;background:radial-gradient(120% 180% at 0% 0%,color-mix(in srgb,var(--rc) 15%,transparent),transparent 62%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01)),rgba(10,14,20,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 30px -20px #000;flex-shrink:0;overflow:hidden}
+#skin-samples::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;background:var(--rc);box-shadow:0 0 14px var(--rc)}
+#skin-sample-label{min-width:0;display:grid;gap:3px}
+#skin-sample-label .ss-title{display:flex;align-items:center;gap:9px;min-width:0}
+#skin-sample-label .ss-title b{font-size:17px;font-weight:800;letter-spacing:.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#skin-sample-label .ss-rar{flex:none;font-style:normal;font-size:9.5px;font-weight:700;letter-spacing:.14em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 10%,transparent)}
+#skin-sample-label .ss-rar:empty{display:none}
+#skin-sample-label .ss-meta{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:12px;color:var(--steel)}
+#skin-sample-label .ss-gun{flex:none;color:#cfd8e6;font-weight:700}
+#skin-sample-label .ss-note{font-style:normal;color:var(--steel-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#skin-sample-label .ss-note:not(:empty)::before{content:"·";margin-right:8px;color:var(--steel-dim)}
+#skin-sample-label .ss-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+#skin-sample-label .ss-tag{font-size:10.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--stroke2);color:var(--steel-dim);background:rgba(255,255,255,.02)}
+#skin-sample-label .ss-tag.on{color:#f3d58a;border-color:rgba(255,200,73,.38);background:rgba(255,200,73,.07)}
+#skin-samples .ss-btns{display:flex;gap:4px;padding:4px;border:1px solid var(--stroke2);border-radius:14px;background:rgba(0,0,0,.28)}
+#skin-samples .ss-btn{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:8px 13px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+#skin-samples .ss-btn svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+#skin-samples .ss-btn:hover:not(:disabled){background:rgba(255,255,255,.07)}
+#skin-samples .ss-btn:focus-visible{outline:2px solid var(--cyan,#22d3ee);outline-offset:1px}
+#skin-samples .ss-btn[data-sample="shot"]{color:#f3d58a}
+#skin-samples .ss-btn[data-sample="stop"]{color:var(--steel);margin-left:2px;border-left-color:var(--stroke2);border-radius:4px 10px 10px 4px}
+#skin-samples .ss-btn[data-sample="stop"]:hover{color:#ff8a95}
+#skin-samples .ss-btn:disabled{opacity:.32;cursor:not-allowed}
+#skin-samples .ss-btn.playing{color:#fff;background:color-mix(in srgb,var(--rc) 24%,transparent);border-color:color-mix(in srgb,var(--rc) 60%,transparent)}
+#skin-samples .ss-eq{display:none;align-items:flex-end;gap:2px;height:12px;margin-left:2px}
+#skin-samples .ss-btn.playing .ss-eq{display:inline-flex}
+#skin-samples .ss-eq i{display:block;width:2px;height:100%;background:currentColor;border-radius:1px;transform-origin:bottom;animation:ssEq .7s ease-in-out infinite}
+#skin-samples .ss-eq i:nth-child(2){animation-delay:.18s}#skin-samples .ss-eq i:nth-child(3){animation-delay:.36s}
+@keyframes ssEq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+/* the dressing room has no gun and no sound to describe */
+#armory:has(#ar-p-cos:not([hidden])) #skin-samples{display:none}
+@media(prefers-reduced-motion:reduce){#skin-samples .ss-eq i{animation:none;transform:scaleY(.7)}}
+@media(max-width:760px){#skin-samples{grid-template-columns:minmax(0,1fr);margin:8px 12px 4px;gap:10px;padding:10px 10px 10px 16px}#skin-samples .ss-btns{justify-content:stretch}#skin-samples .ss-btn{flex:1;justify-content:center;padding:8px 6px}#skin-samples .ss-btn[data-sample="stop"] span{display:none}}
+@media(max-width:420px){#skin-samples .ss-btn svg{display:none}}
+@media(max-height:520px) and (min-width:600px){#skin-samples{margin:6px 14px 4px;padding:6px 10px 6px 16px}#skin-sample-label .ss-tags{display:none}#skin-samples .ss-btn{min-height:32px;padding:5px 10px}}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #67d4ff;outline-offset:3px}
 #agent-favorites{position:relative;z-index:30;display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:5px 0 10px;flex-shrink:0;font-size:11px;color:var(--steel)}
 #agent-favorites .btn{padding:6px 10px;min-height:32px;font-size:11px}
@@ -33,4 +65,4 @@ html[data-game-loading] body{pointer-events:none}
 @media(max-height:480px){#agent-favorites{padding:2px 0 4px;gap:5px}#agent-favorites .btn{min-height:27px;padding:4px 8px}#s-title .tt-menu{max-height:calc(100dvh - 65px)}}
 @media(max-height:520px) and (orientation:landscape){#s-select:not([hidden]){grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"top top" "fav fav" "grid det" "foot det"}#agent-favorites{grid-area:fav;padding:3px 10px}}
 @media(max-height:480px){#s-title{padding-top:52px!important}#home-account{gap:5px}#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){font-size:10px!important;min-height:28px;max-width:165px;padding:4px 7px!important}.home-guide{margin-top:3px}.home-resume{padding:7px 12px!important}#skin-samples{padding:4px 8px}#skin-samples .btn{padding:4px 8px;min-height:28px}#skin-sample-label{font-size:10px}}
-@media(max-width:520px){#home-account{justify-content:center}#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){max-width:150px}#s-title{padding-top:94px!important}.home-guide{font-size:11px}#skin-sample-label{flex-basis:100%}}
+@media(max-width:520px){#home-account{justify-content:center}#home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){max-width:150px}#s-title{padding-top:94px!important}.home-guide{font-size:11px}}

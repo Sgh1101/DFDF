@@ -61,23 +61,71 @@
     heading.textContent = L(...item.title); text.textContent = L(...item.text); row.append(heading, text); newsList.append(row);
   }
   news.replaceChildren(newsLabel, newsList);
-  const sample = document.createElement("section"); sample.id = "skin-samples"; sample.setAttribute("aria-label", L("스킨 연출 미리보기", "Skin effect preview"));
-  const text = document.createElement("span"); text.id = "skin-sample-label"; sample.append(text);
-  let selected = "default", selectedGun = "rifle";
+  // the sound preview under the armory header: which skin and gun, what the sound is, and four ways to hear it
+  const sample = document.createElement("section"); sample.id = "skin-samples"; sample.setAttribute("aria-label", L("스킨 음색 미리듣기", "Skin sound preview"));
+  const text = document.createElement("div"); text.id = "skin-sample-label";
+  text.innerHTML = '<div class="ss-title"><b></b><i class="ss-rar"></i></div><div class="ss-meta"><span class="ss-gun"></span><em class="ss-note"></em></div><div class="ss-tags"><span class="ss-tag ss-pack"></span><span class="ss-tag ss-fin"></span></div>';
+  const part$ = (cls) => text.querySelector(cls);
+  const group = document.createElement("div"); group.className = "ss-btns"; group.setAttribute("role", "group"); group.setAttribute("aria-label", L("미리듣기", "Preview"));
+  sample.append(text, group);
+  const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICON = {
+    shot: svg('<path d="M4 10v4h3l4 3V7L7 10H4z"/><path d="M15 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>'),
+    kill: svg('<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>'),
+    fin: svg('<path d="M12 3l2.3 5.4L20 9.2l-4.3 3.9L17 19l-5-3-5 3 1.3-5.9L4 9.2l5.7-.8z"/>'),
+    stop: svg('<rect x="7" y="7" width="10" height="10" rx="2"/>'),
+  };
+  // how long each preview sounds, for the moving bars (the sound itself is SOUNDPACK's)
+  const LEN = { shot: 700, kill: 1100, fin: 2600 };
+  let selected = "default", selectedGun = "rifle", timers = [];
+  const settle = () => { timers.forEach(clearTimeout); timers = []; for (const b of group.children) b.classList.remove("playing"); };
   for (const [part, label] of [["shot", L("총소리", "Gunshot")], ["kill", L("처치음", "Kill sound")], ["fin", L("피니셔", "Finisher")], ["stop", L("정지", "Stop")]]) {
-    const button = document.createElement("button"); button.className = "btn"; button.textContent = label; button.dataset.sample = part;
-    button.onclick = () => part === "stop" ? SOUNDPACK.stop() : SOUNDPACK.preview(selected, part, selectedGun);
-    sample.append(button);
+    const button = document.createElement("button"); button.type = "button"; button.className = "ss-btn"; button.dataset.sample = part;
+    button.innerHTML = `${ICON[part]}<span>${label}</span><s class="ss-eq" aria-hidden="true"><i></i><i></i><i></i></s>`;
+    button.onclick = () => {
+      if (part === "stop") { SOUNDPACK.stop(); settle(); return; }
+      settle();
+      if (SOUNDPACK.preview(selected, part, selectedGun)) { button.classList.add("playing"); timers.push(setTimeout(() => button.classList.remove("playing"), LEN[part])); }
+    };
+    group.append(button);
   }
   $("armory").querySelector(".ar-hd").after(sample);
   function updateSample(id, gun) {
     selected = id; if (WEAPONS[gun]) selectedGun = gun;
-    const pack = SOUNDPACK.packs[SOUNDPACK.skins[id]], skin = GUN_SKINS.list.find((s) => s.id === id);
-    text.textContent = skin ? `${EN ? skin.en : skin.ko} · ${pack ? EN ? pack.en : pack.ko : L("기본 음색", "Stock sound")} · ${pack ? L("피니셔 지원", "Finisher available") : L("피니셔 없음", "No finisher")}` : "";
-    sample.querySelector('[data-sample="fin"]').disabled = !pack;
-    sample.querySelector('[data-sample="kill"]').disabled = !pack;
+    const pack = SOUNDPACK.packs[SOUNDPACK.skins[id]], skin = GUN_SKINS.list.find((s) => s.id === id), rar = skin && GUN_SKINS.rar[skin.rar], spec = window.GUNSYNTH && GUNSYNTH.SPEC[selectedGun];
+    sample.style.setProperty("--rc", rar ? rar.c : "#8a97ab");
+    part$(".ss-title b").textContent = skin ? (EN ? skin.en : skin.ko) : "";
+    part$(".ss-rar").textContent = rar ? (EN ? rar.en : rar.ko) : "";
+    part$(".ss-rar").style.color = rar ? rar.c : "";
+    part$(".ss-gun").textContent = WEAPONS[selectedGun] ? WEAPONS[selectedGun].name : "";
+    part$(".ss-note").textContent = !EN && spec ? spec.note : "";
+    part$(".ss-pack").textContent = pack ? (EN ? pack.en : pack.ko) + L(" 음색", " sound") : L("기본 음색", "Stock sound");
+    part$(".ss-fin").textContent = pack ? L("피니셔 지원", "Finisher available") : L("피니셔 없음", "No finisher");
+    part$(".ss-pack").classList.toggle("on", !!pack); part$(".ss-fin").classList.toggle("on", !!pack);
+    for (const k of ["fin", "kill"]) {
+      const b = sample.querySelector(`[data-sample="${k}"]`);
+      b.disabled = !pack;
+      b.title = pack ? "" : L("이 스킨에는 전용 음색이 없습니다", "This skin has no sound pack");
+    }
+    settle();
   }
   updateSample("default");
+  // the gun list (by gun) has no key on its buttons, and re-draws its skin cards for the chosen gun: follow that, so
+  // the strip describes the gun in view (the carbine, not the rifle it started on) and plays its shot
+  const skinList = $("ar-skins");
+  if (skinList) {
+    let syncT = 0;
+    new MutationObserver(() => {
+      clearTimeout(syncT);
+      syncT = setTimeout(() => {
+        const first = skinList.querySelector("[data-g]");
+        if (!first || !WEAPONS[first.dataset.g] || first.dataset.g === selectedGun) return;
+        // a new gun: show the skin it wears (a skin picked on the same gun is the click's, below)
+        const worn = skinList.querySelector(".ar-sk.on") || first;
+        updateSample(worn.dataset.s, first.dataset.g);
+      }, 40);
+    }).observe(skinList, { childList: true });
+  }
   document.addEventListener("click", (e) => {
     const card = e.target.closest("[data-s],[data-th]");
     if (!card || !$("armory").contains(card)) return;
@@ -86,7 +134,7 @@
     SOUNDPACK.stop();
   }, true);
   const close = GUN_SKINS.close;
-  GUN_SKINS.close = function () { SOUNDPACK.stop(); return close.apply(this, arguments); };
+  GUN_SKINS.close = function () { SOUNDPACK.stop(); settle(); return close.apply(this, arguments); };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   function motion() { title.classList.toggle("home-reduced", reduced.matches || SETTINGS.motion === 0 || ["fast", "low"].includes(SETTINGS.quality)); }
   const orbit = titleCam;

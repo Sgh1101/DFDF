@@ -16,7 +16,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.click("#ar-tab-cos");
     await page.waitForSelector("#ar-p-cos .cs-it", { timeout: 20000 });
     const view = await page.evaluate(() => ({ secs: document.querySelectorAll("#ar-p-cos .cs-sec").length, items: document.querySelectorAll("#ar-p-cos .cs-it").length, panesHidden: ["pull", "shop", "mine", "gun"].every((k) => document.getElementById("ar-p-" + k).hidden), on: document.getElementById("ar-tab-cos").classList.contains("on") }));
-    assert.deepEqual(view, { secs: 3, items: 31, panesHidden: true, on: true });
+    assert.deepEqual(view, { secs: 3, items: 73, panesHidden: true, on: true });
     await page.screenshot({ path: dir + "/cos-tab.png" });
     // a title: select, arm, buy; it is put on at once
     await page.click('#ar-p-cos .cs-it[data-id="marksman"]');

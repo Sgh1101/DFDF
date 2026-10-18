@@ -230,8 +230,10 @@
       if (!committed) { for (const tex of stagedTextures.values()) tex.dispose(); for (const address of stagedUrls.values()) URL.revokeObjectURL(address); }
     }
   }
+  let playingTimer = 0;
+  const settle = () => { clearTimeout(playingTimer); for (const b of document.querySelectorAll("#phantom-panel .pp-btn.playing")) b.classList.remove("playing"); };
   function stop() {
-    cancelAnimationFrame(previewRAF); previewRAF = 0; SOUNDPACK.stop();
+    settle(); cancelAnimationFrame(previewRAF); previewRAF = 0; SOUNDPACK.stop();
     if (preview) {
       preview.obj.position.copy(preview.position); preview.obj.rotation.copy(preview.rotation);
       pose(preview.obj, "idle", 0); preview = null;
@@ -289,19 +291,35 @@
   notice.innerHTML = `<p id="phantom-model-message" role="status"></p><button type="button" id="phantom-retry">${L("원본 다시 불러오기", "Retry original model")}</button>`;
   $("slot-champions").appendChild(notice); availability();
   const panel = document.createElement("section"); panel.id = "phantom-panel";
-  panel.innerHTML = `<details open><summary>${L("챔피언스 팬텀 · 스킨과 연출 미리보기", "Champions Phantom · Skin & effects preview")}</summary><div class="phantom-content">
-    <p>${L("초월 등급 · 전설보다 높은 최고 등급 · 팬텀 공격/수비 · 처치 배너 · 용 마무리 · 전용 합성 사운드", "Transcendent · Above Legendary · Phantom Attack/Defense · Kill banner · Dragon finisher · Synth sound")}</p>
-    <div class="phantom-buttons"><button type="button" data-phantom-skin="champions_atk" aria-pressed="true">${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" data-phantom-skin="champions_def" aria-pressed="false">${L("수비 · 상아빛", "Defense · Ivory")}</button></div>
-    <div class="phantom-buttons">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")], ["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(([k, v]) => `<button type="button" data-phantom-demo="${k}">${v}</button>`).join("")}<button type="button" id="phantom-stop">${L("중지", "Stop")}</button></div>
+  const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICON = {
+    shot: svg('<path d="M4 10v4h3l4 3V7L7 10H4z"/><path d="M15 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>'),
+    kill: svg('<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>'),
+    fin: svg('<path d="M12 3l2.3 5.4L20 9.2l-4.3 3.9L17 19l-5-3-5 3 1.3-5.9L4 9.2l5.7-.8z"/>'),
+    inspect: svg('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>'),
+    reload: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+    stop: svg('<rect x="7" y="7" width="10" height="10" rx="2"/>'),
+  };
+  const demoButton = ([k, v]) => `<button type="button" class="pp-btn" data-phantom-demo="${k}">${ICON[k]}<span>${v}</span><s class="pp-eq" aria-hidden="true"><i></i><i></i><i></i></s></button>`;
+  panel.style.setProperty("--rc", (SKIN_TIERS.list.find((row) => row.id === 5) || {}).c || "#ff7bd5");
+  panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L("팬텀 전용", "PHANTOM ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
+    <div class="pp-sides" role="group" aria-label="${L("진영", "Side")}"><button type="button" class="pp-side" data-phantom-skin="champions_atk" aria-pressed="true"><b></b>${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" class="pp-side" data-phantom-skin="champions_def" aria-pressed="false"><b></b>${L("수비 · 상아빛", "Defense · Ivory")}</button></div></div>
+    <p class="pp-desc">${L("전설보다 높은 최고 등급의 팬텀 스킨. 원본 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the Phantom: the original model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
+    <div class="pp-tags"><span class="pp-tag">${L("공격 / 수비", "Attack / Defense")}</span><span class="pp-tag">${L("처치 배너", "Kill banner")}</span><span class="pp-tag">${L("용 마무리", "Dragon finisher")}</span><span class="pp-tag">${L("전용 사운드", "Own sound")}</span></div>
+    <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
+    <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
+
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
-    <label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button>
-    <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>
-    </div></details>`;
+    <div class="pp-source"><label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button></div>
+    <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
   $("champions-content").appendChild(panel);
   addEventListener("champions-open", showSelected);
   new MutationObserver(() => { if ($("ar-p-champions").hidden) stop(); }).observe($("ar-p-champions"), { attributes: true, attributeFilter: ["hidden"] });
   panel.querySelectorAll("[data-phantom-skin]").forEach((b) => b.onclick = () => choose(b.dataset.phantomSkin));
-  panel.querySelectorAll("[data-phantom-demo]").forEach((b) => b.onclick = () => { choose(selected); demo(b.dataset.phantomDemo); });
+  panel.querySelectorAll("[data-phantom-demo]").forEach((b) => b.onclick = () => {
+    choose(selected); demo(b.dataset.phantomDemo); b.classList.add("playing");
+    playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 2800, inspect: 3000, reload: 2800 }[b.dataset.phantomDemo] || 1500);
+  });
   $("phantom-stop").onclick = stop;
   $("phantom-file").onchange = async (event) => {
     const file = event.target.files[0]; if (!file || loading) return;
