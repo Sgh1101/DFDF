@@ -104,5 +104,6 @@
   "js/legacy/100-first-person-hands-and-gun-finish.js",
   "js/legacy/101-character-details-fingers-brows-ears-soles.js",
   "js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js",
-  "js/legacy/103-spider-web-swing-two-hands-a-rope-that-sways-and-a-real-pull.js"
+  "js/legacy/103-spider-web-swing-two-hands-a-rope-that-sways-and-a-real-pull.js",
+  "js/legacy/104-death-shows-who-killed-you-for-two-seconds-with-their-name-and-title.js"
 ]
