@@ -1,0 +1,13 @@
+---
+description: Check Claude and other concurrent work before every DFDF deployment
+alwaysApply: true
+---
+
+# 배포 전 공동 작업 확인
+
+- 사용자는 배포할 때마다 클로드의 최신 작업을 확인하라고 요청했다.
+- 배포 전에 remote를 fetch하고 main·claude 브랜치의 새 커밋, 열린 PR, 관련 로컬 worktree의 미반영 변경을 확인한다.
+- 현재 서비스의 프로젝트·배포 커밋과 배포하려는 커밋을 확인한다. 다른 작업자의 최신 변경을 예전 버전으로 덮어쓰지 않는다.
+- 포함할 변경은 diff를 검토하고 충돌을 해결한다. 원본 무기 파일·팬텀 장착 대상·보유 스킨 이전 등 기존 동작이 되돌아가지 않게 검사한다.
+- 관련 단위·브라우저 검사를 통과한 정확한 커밋을 배포하고 실제 서비스에서 다시 확인한다.
+- 사용자의 별도 병합 승인 없이 이 작업의 PR을 main에 병합하지 않는다.

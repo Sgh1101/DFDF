@@ -23,6 +23,20 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.match(await p.locator("#champion-shop").innerText(), /장착 대상: 팬텀/);
     await p.locator('[data-champion-buy="champions_def"]').click();
     assert.equal(await p.evaluate(() => GUN_SKINS.of("scout").id), "champions_def");
+    await p.evaluate(() => GUN_SKINS.open("scout", "gun"));
+    const attack = p.locator('#ar-skins [data-g="scout"][data-s="champions_atk"]');
+    const defense = p.locator('#ar-skins [data-g="scout"][data-s="champions_def"]');
+    assert.ok(!await defense.evaluate(el => el.classList.contains('locked')));
+    await attack.click(); await p.waitForFunction(() => GUN_SKINS.of('scout').id === 'champions_atk');
+    // Ownership granted while this armory stays open must not remain locked.
+    const updated = f.h.user('carbinemove'); updated.own.scout = updated.own.scout.filter(s => s !== 'champions_def');
+    f.h.db.set('user:carbinemove', JSON.stringify(updated)); await p.evaluate(() => GUN_SKINS.sync());
+    await p.waitForFunction(() => document.querySelector('#ar-skins [data-s="champions_def"]').classList.contains('locked'));
+    const owner = await f.h.api('auth', { id:'owner', pw:'owner-password', device:'owned-refresh-owner' });
+    await f.h.api('a_user_set', { atoken:owner.atoken, id:'carbinemove', op:'grant', item:'scout|champions_def' });
+    await defense.click(); await p.waitForFunction(() => GUN_SKINS.of('scout').id === 'champions_def');
+    assert.ok(!await defense.evaluate(el => el.classList.contains('locked')), 'late server-owned skin unlocks and equips on the same click');
+    await p.screenshot({ path:'test-results/champions-by-gun-unlocked.png' });
     await p.evaluate(() => { GUN_SKINS.tab("pull"); });
     assert.equal(await p.locator('#pl-recg .it[data-s="champions_def"]').getAttribute("data-g"), "scout");
     const models = await p.evaluate(() => {

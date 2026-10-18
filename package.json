@@ -26,6 +26,7 @@
     "test:maps": "node scripts/browser-map-cleanup.js",
     "test:ascent": "node scripts/browser-ascent.js",
     "test:valorant": "node scripts/browser-valorant.js",
+    "test:valorant-scopes": "node scripts/browser-valorant-scopes.js",
     "test:weapon-shop": "node scripts/browser-weapon-shop.js",
     "import:ascent": "node scripts/import-ascent.js sources/maps/ascent-final2021.schematic",
     "test:network-recovery": "node scripts/browser-network-recovery.js",

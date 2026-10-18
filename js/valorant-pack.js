@@ -8,7 +8,7 @@
   const canonical=D.canonical;
   const poseEuler=new T.Euler(0,0,0,'ZYX'),poseQuaternion=new T.Quaternion();
   S.bounds=root=>{
-    let pack=false;root.traverse(n=>{if(n.userData.valorantRig)pack=true;});
+    let pack=false;root.traverse(n=>{if(n.userData.valorantRig||n.userData.sourceAttachment)pack=true;});
     if(!pack)return new T.Box3().setFromObject(root);
     root.updateWorldMatrix(true,true);const box=new T.Box3();
     root.traverseVisible(n=>{if(!n.isMesh||!n.geometry||Math.abs(n.matrixWorld.determinant())<1e-12)return;n.geometry.computeBoundingBox();box.union(n.geometry.boundingBox.clone().applyMatrix4(n.matrixWorld));});
@@ -53,6 +53,19 @@
     // The supplied hands are kept in the source and geometry, but DFDF's
     // agent arms own hand rendering. Never hide gun-and-hand parent nodes.
     for(const node of rig.childrenWithBones)if(/^(left|right)(hand|arm)(?:_pos|_\d+|\d*)$/i.test(node.userData.sourceBone))for(const c of node.children.slice())if(c.isMesh){node.remove(c);c.geometry.dispose();}
+    for(const attachment of item.attachments){
+      const socket=rig.childrenWithBones.find(n=>n.userData.sourceBone===attachment.type+'_pos');
+      const part=BEDROCK_RIG.build(attachment.renderGeo,attachment.material);
+      part.name='valorant-attachment-'+attachment.type;part.userData.sourceAttachment=attachment.id;part.userData.sourceCubes=attachment.cubes;
+      part.traverse(node=>{
+        const name=node.name.slice(13);if(node.userData.base)node.userData.attachmentBone=name;
+        // These source planes are used for TACZ's lens stencil/reticle pass.
+        // DFDF's existing scoped view owns the aiming overlay.
+        if(attachment.type==='scope'&&/^(division|ocular)(?:_\d+)?$/.test(name))node.visible=false;
+        if(node.isMesh)node.userData.live=true;
+      });
+      socket.add(part);
+    }
     pose(rig,item,'static_idle',0);
     // Hand-holding rotations can turn a thin knife edge-on in the armory.
     // Present its assembled rest orientation; equipped rigs receive the full
@@ -64,7 +77,7 @@
     rig.rotation.y=0;rig.scale.setScalar(item.key==='knife'?.045:.027);wrapper.add(rig);
     const box=S.bounds(wrapper),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
     rig.position.set(-center.x,-center.y+.03,-center.z+.25-size.z/2);
-    wrapper.userData.valorantItem=item.id;wrapper.userData.valorantRig=true;wrapper.userData.sourceCubes=item.cubes;
+    wrapper.userData.valorantItem=item.id;wrapper.userData.valorantRig=true;wrapper.userData.sourceCubes=item.cubes;wrapper.userData.sourceAttachmentCubes=item.attachments.reduce((n,a)=>n+a.cubes,0);
     return wrapper;
   }
   S.build=id=>{const item=S.items.get(id)||[...S.items.values()].find(item=>item.id===id);if(!item)throw Error('원본 무기가 아직 준비되지 않았어');return build(item);};
@@ -84,6 +97,19 @@
   async function tex(name,normal=false){
     const b=await bytes(name),url=URL.createObjectURL(new Blob([b],{type:'image/png'}));blobs.set(name,url);
     const t=await new T.TextureLoader().loadAsync(url);t.colorSpace=normal?T.NoColorSpace:T.SRGBColorSpace;t.magFilter=T.NearestFilter;t.name=name;return t;
+  }
+  const json=async name=>D.parse(new TextDecoder().decode(await bytes(name)));
+  const resource=(ref,area,dir,ext)=>{const [ns,file]=ref.split(':');return `gun/${area}/${ns}/${dir}/${file}${ext}`;};
+  async function attachments(spec){
+    if(spec.key==='knife')return [];
+    const data=await json(`gun/data/valorant/data/guns/${spec.id}_data.json`);
+    return Promise.all(Object.entries(data.builtin_attachments||{}).map(async([type,id])=>{
+      const index=await json(resource(id,'data','index/attachments','.json'));
+      const display=await json(resource(index.display,'assets','display/attachments','.json'));
+      const [geo,texture]=await Promise.all([json(resource(display.model,'assets','geo_models','.json')),tex(resource(display.texture,'assets','textures','.png'))]);
+      const model=geo['minecraft:geometry'][0],material=new T.MeshStandardMaterial({map:texture,roughness:.45,metalness:.2,alphaTest:.05,side:T.DoubleSide});material.userData.kind='polymer';
+      return {id,type,geo:model,renderGeo:D.renderGeometry(model),material,cubes:model.bones.reduce((n,b)=>n+(b.cubes?.length||0),0)};
+    }));
   }
   const audioContext=()=>window.GAME_AUDIO?.context?.()||null;
   async function sound(name,volume=1){
@@ -134,11 +160,12 @@
     try{
       const response=await fetch(base+'manifest.json');if(!response.ok)throw Error('무기 목록 로딩 실패');manifest=await response.json();
       await Promise.all(manifest.items.map(async spec=>{
-        const [g,a,texture,normal]=await Promise.all([bytes(spec.model),bytes(spec.animation),tex(spec.texture),spec.normal?tex(spec.normal,true):null]);
+        const [g,a,texture,normal,builtin]=await Promise.all([bytes(spec.model),bytes(spec.animation),tex(spec.texture),spec.normal?tex(spec.normal,true):null,attachments(spec)]);
         const geo=D.parse(new TextDecoder().decode(g))['minecraft:geometry'][0],animations=D.parse(new TextDecoder().decode(a)).animations;
         if(!geo?.bones||!animations)throw Error('잘못된 원본 모델');
+        if(builtin.some(a=>!geo.bones.some(b=>b.name===a.type+'_pos')))throw Error('원본 부착물 장착 지점 누락: '+spec.id);
         const material=new T.MeshStandardMaterial({map:texture,normalMap:normal,roughness:.45,metalness:.2,alphaTest:.05,side:T.DoubleSide});material.userData.kind='polymer';
-        S.items.set(spec.key==='knife'?spec.id:spec.key,{...spec,geo,renderGeo:D.renderGeometry(geo),animations,material,cubes:geo.bones.reduce((s,b)=>s+(b.cubes?.length||0),0)});
+        S.items.set(spec.key==='knife'?spec.id:spec.key,{...spec,geo,renderGeo:D.renderGeometry(geo),animations,material,attachments:builtin,cubes:geo.bones.reduce((s,b)=>s+(b.cubes?.length||0),0)});
       }));
       for(const spec of manifest.items){const key=spec.key==='knife'?spec.id:spec.key;if(spec.key==='knife')KNIVES.build['vp_'+spec.id]=()=>build(S.items.get(key));else{GUN_BUILD[spec.key]=()=>build(S.items.get(key));WEAPONS[spec.key].reload=S.items.get(key).animations.reload_tactical?.animation_length||2;}}
       S.status='ready';status.remove();window.refreshSkinAssets();

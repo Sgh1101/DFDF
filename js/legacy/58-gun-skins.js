@@ -2203,17 +2203,19 @@
       takeInv(await AC().api("skins", { token: t, set: SK.mine, t: SK.t }));
     } catch (e) {}
   }
-  let syncing = !1, syncError = !1;
-  async function sync(force) {
+  let syncing = !1, syncError = !1, syncFlight = null;
+  function sync(force) {
     const t = token();
-    if (!t || !isOnline() || syncing || (!force && pulled === t)) return;
+    if (syncing) return syncFlight;
+    if (!t || !isOnline() || (!force && pulled === t)) return Promise.resolve();
     pulled = t;
     syncing = !0;
     syncError = !1;
     paintGacha();
-    try {
+    syncFlight = (async () => { try {
       const j = await AC().api("skins", { token: t }),
         srv = j && j.skins;
+      if (t !== token()) return;
       if (srv && srv.m && (+srv.t || 0) > SK.t) {
         SK.mine = clean(srv.m);
         SK.t = +srv.t || Date.now();
@@ -2226,9 +2228,8 @@
     } catch (e) {
       pulled = "";
       syncError = !0;
-    }
-    syncing = !1;
-    paintGacha();
+    } finally { syncing = !1; paintGacha(); } })();
+    return syncFlight;
   }
   GAME_BOOT.ready.then(() => sync(!1));
   setInterval(() => sync(!1), 2500);
@@ -3788,6 +3789,7 @@
   // ── the tabs ──
   let previewFrame = 0;
   function setTab(t) {
+    AR.pickRevision = (AR.pickRevision || 0) + 1;
     ["pull", "shop", "champions", "mine", "gun"].includes(t) || (t = "pull");
     AR.tab = t;
     if (t !== "champions") AR.peek = null;
@@ -3804,6 +3806,7 @@
     "pull" === t && (AR.feat ? paintFeat() : nextFeat());
     placeView();
     if (!AR.open) return;
+    if (t === "gun" || t === "mine") void sync(!0);
     armoryPaint();
     if (AR.pv) pvShow();
     else {
@@ -4236,6 +4239,7 @@
         b.className = "ar-gun" + (k === AR.key ? " on" : "") + ("default" !== s.id ? " skinned" : "");
         b.innerHTML = `<b>${WEAPONS[k].name}</b><span>${nameOf(s)}${gated() ? ` · ${ownedOf(k)}/${totalOf(k)}` : ""}</span>`;
         b.onclick = () => {
+          AR.pickRevision = (AR.pickRevision || 0) + 1;
           AR.key = k;
           AR.peek = null;
           armoryPaint();
@@ -4266,10 +4270,13 @@
       rr.textContent = EN ? RAR[s.rar].en : RAR[s.rar].ko;
       rr.style.color = RAR[s.rar].c;
       b.append(nm, rr);
-      b.onclick = () => {
-        // a locked skin is only looked at
-        AR.peek = has ? null : s.id;
-        has && setSkin(AR.key, s.id);
+      b.onclick = async () => {
+        const key = AR.key, captured = token(), pick = AR.pickRevision = (AR.pickRevision || 0) + 1;
+        if (!owns(key, s.id) && captured) { b.setAttribute("aria-busy", "true"); await sync(!0); }
+        if (!AR.open || AR.tab !== "gun" || AR.key !== key || captured !== token() || pick !== AR.pickRevision) return;
+        const owned = owns(key, s.id);
+        AR.peek = owned ? null : s.id;
+        owned && setSkin(key, s.id);
         armoryPaint();
         pvShow();
       };
