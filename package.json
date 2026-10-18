@@ -15,6 +15,7 @@
     "test:phantom-motion": "node scripts/browser-phantom-motion.js",
     "test:neon-online": "node scripts/browser-neon-online.js",
     "test:neon": "node scripts/browser-neon.js",
+    "test:neon-fidelity": "node scripts/browser-neon-fidelity.js",
     "test:phantom-audio": "node scripts/browser-phantom-audio.js",
     "test:phantom-loading": "node scripts/browser-phantom-loading.js",
     "package:phantom": "node scripts/package-phantom-assets.js",

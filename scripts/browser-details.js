@@ -45,7 +45,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
           out.meshDelta.push(k);
           // each hand got fingers: the forearm mesh holds the glove pieces
           const fore = m.armL.fore.children.find((c) => c.isMesh);
-          fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
+          if (ag.id === 'neon_agent') {
+            let n = 0; m.group.traverse(o => { if (o.userData.neonSkin) { n++; if (o.material.map !== NEON_AGENT.sourceSkin()) out.bad.push('Neon source texture'); } });
+            if (n !== 20) out.bad.push('Neon source skin mesh count ' + n);
+          } else fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
         } catch (e) { out.bad.push(ag.id + ": " + e.message); }
       }
       out.maxMeshes = Math.max(...out.meshDelta); out.minMeshes = Math.min(...out.meshDelta); delete out.meshDelta;
