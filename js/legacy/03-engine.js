@@ -150,8 +150,9 @@ function ejectActorsFrom(e) {
   }
 }
 function addBox(e, t, o, a, n, r, s = {}) {
+  const baseY = s.y ?? (s.temp ? abilityGroundY(e, t) : 0);
   const i = new T.Mesh(new T.BoxGeometry(o, n, a), r);
-  (i.position.set(e, n / 2, t),
+  (i.position.set(e, baseY + n / 2, t),
     (i.castShadow = !0),
     (i.receiveShadow = !0),
     scene.add(i));
@@ -160,7 +161,8 @@ function addBox(e, t, o, a, n, r, s = {}) {
     maxX: e + o / 2,
     minZ: t - a / 2,
     maxZ: t + a / 2,
-    h: n,
+    h: baseY + n,
+    y0: baseY,
     mesh: i,
     hp: s.hp || 1 / 0,
     destructible: !!s.hp,
@@ -1155,6 +1157,14 @@ function moveWithSlide(e, t, o, a, n) {
     (e.z = clamp(e.z, l.minZ + n, l.maxZ - n)),
     s
   );
+}
+// Legacy abilities use a flat zero floor; imported block terrain supplies the
+// actual supporting surface, including steps and stacked floors.
+function abilityGroundY(x, z, reference = player.y || 0) {
+  return window.ASCENT_TRIAL?.active && CUR_MAP_KEY === "ascent_trial" ? ASCENT_TRIAL.groundY(x, z, reference) : 0;
+}
+function abilityOnFloor(actor, y, height = 2.4) {
+  return !window.ASCENT_TRIAL?.active || ((actor.y || 0) + 1.8 > y && (actor.y || 0) < y + height);
 }
 function groundAt(e, t, o) {
   let a = 0;
@@ -4054,7 +4064,7 @@ function aimPoint(e) {
           Math.abs(i.y - (e.y + 1)) < 1.25 &&
           dist2(i.x, i.z, e.pos.x, e.pos.z) < 0.9
         )
-          return { x: e.pos.x, y: 0, z: e.pos.z, hit: !0, target: e };
+          return { x: e.pos.x, y: e.y || 0, z: e.pos.z, hit: !0, target: e };
     for (const e of COLLIDERS)
       if (
         i.y < e.h &&
@@ -4704,7 +4714,7 @@ function castAbility(e, t) {
             4.2,
             11,
             16734780,
-            { dps: 12, name: "불꽃 장막" },
+            { y: abilityGroundY(e.x, e.z, e.y), dps: 12, name: "불꽃 장막" },
           );
         }
         banner("불꽃 장막", "#ff5a3c");
@@ -4713,7 +4723,7 @@ function castAbility(e, t) {
       case "proj_fire":
         throwProjectile(16742956, 22, (e, t, o) => {
           (explode(e, o, 7.5, 55, 30, 16734780),
-            makeZone(e, o, 7, 1.2, 3, 16734780, { dps: 20, name: "화염" }));
+            makeZone(e, o, 7, 1.2, 3, 16734780, { y: abilityGroundY(e, o, t), dps: 20, name: "화염" }));
         });
         break;
       case "smoke_fire":
@@ -4729,14 +4739,14 @@ function castAbility(e, t) {
             (t.slowT = 5),
             (t.revealed = 5),
             t.ai && (t.ai.crouchT = 0));
-          const o = makeMire(e.x, e.z, 7.6, 5227511, 0.38, 6);
+          const o = makeMire(e.x, e.z, 7.6, 5227511, 0.38, 6, e.y);
           (o && (o.team = (player && player.team) || "atk"),
             endBurst(e.x, e.z, 5227511, 7.6),
             screenShake(0.22));
           try {
             SFX.abilityHit();
           } catch (e) {}
-        });
+        }, undefined, e.y);
         break;
       }
       case "wall_ice": {
@@ -4756,7 +4766,7 @@ function castAbility(e, t) {
                 roughness: 0.2,
                 metalness: 0.4,
               }),
-              { hp: 400, temp: !0 },
+              { hp: 400, temp: !0, y: abilityGroundY(e.x, e.z, e.y) },
             ));
         t.mesh.rotation.y = player.yaw;
         const a = Math.abs(o.x) > Math.abs(o.z);
@@ -4771,7 +4781,8 @@ function castAbility(e, t) {
             t.maxZ - t.minZ,
           )),
           (t.mesh.rotation.y = 0),
-          t.mesh.position.set(e.x, 2.1, e.z),
+          t.mesh.position.set(e.x, (t.y0 || 0) + 2.1, e.z),
+          (CHASH.dirty = true),
           setTimeout(() => {
             COLLIDERS.includes(t) && destroyCollider(t);
           }, 3e4),
@@ -4784,7 +4795,7 @@ function castAbility(e, t) {
       case "ult_ice": {
         banner("빙결", "#4fc3f7");
         const e = aimPoint(26);
-        (makeZone(e.x, e.z, 14, 5, 2.4, 10476799, { freeze: !0, name: "빙결" }),
+        (makeZone(e.x, e.z, 14, 5, 2.4, 10476799, { y: abilityGroundY(e.x, e.z, e.y), freeze: !0, name: "빙결" }),
           shardErupt(e.x, e.z, 14, 10476799, 22),
           otherFighters().forEach((t) => {
             t.alive &&
@@ -4799,7 +4810,7 @@ function castAbility(e, t) {
       case "recon_dart":
         throwProjectile(11225020, 30, (e, t, o) => {
           (revealArea(e, o, 14, 3),
-            makeZone(e, o, 14, 0.4, 3, 11225020, { name: "탐지" }));
+            makeZone(e, o, 14, 0.4, 3, 11225020, { y: abilityGroundY(e, o, t), name: "탐지" }));
         });
         break;
       case "dash": {
@@ -4850,7 +4861,7 @@ function castAbility(e, t) {
           if (collideXZ(s, i, player.y, PR)) break;
           if (((a.x = s), (a.z = i), o % 2 == 0)) {
             const e = glowDot(16754470, 0.6, 1.8);
-            (e.position.set(s, 1.1, i),
+            (e.position.set(s, (player.y || 0) + 1.1, i),
               addFx(e, 0.35, (e, t) => {
                 e.material.opacity = 0.7 * (1 - t);
               }));
@@ -4894,7 +4905,7 @@ function castAbility(e, t) {
         break;
       case "heal": {
         const e = aimPoint(16);
-        (makeZone(e.x, e.z, 8, 1.5, 8, 6732650, { heal: 15, name: "회복" }),
+        (makeZone(e.x, e.z, 8, 1.5, 8, 6732650, { y: abilityGroundY(e.x, e.z, e.y), heal: 15, name: "회복" }),
           banner("회복의 씨앗", "#66bb6a"));
         break;
       }
@@ -4913,6 +4924,7 @@ function castAbility(e, t) {
             ? ((e.root = 2.5),
               (e.revealed = 3),
               makeZone(e.pos.x, e.pos.z, 2, 2.5, 2.5, 6732650, {
+                y: abilityGroundY(e.pos.x, e.pos.z, e.y),
                 name: "결박",
               }),
               banner("뿌리 결박", "#66bb6a"))
@@ -4951,7 +4963,7 @@ function castAbility(e, t) {
       }
       case "emp": {
         const e = aimPoint(24);
-        (makeZone(e.x, e.z, 10, 3, 6, 16766287, { silence: !0, name: "교란" }),
+        (makeZone(e.x, e.z, 10, 3, 6, 16766287, { y: abilityGroundY(e.x, e.z, e.y), silence: !0, name: "교란" }),
           otherFighters().forEach((t) => {
             t.alive &&
               t.team !== player.team &&
@@ -4973,14 +4985,14 @@ function castAbility(e, t) {
             (t.revealed = 4),
             (t.slow = 0.42),
             (t.slowT = 4));
-          const o = makeMire(e.x, e.z, 7, 16766287, 0.45, 5);
+          const o = makeMire(e.x, e.z, 7, 16766287, 0.45, 5, e.y);
           (o && (o.team = (player && player.team) || "atk"),
             explode(e.x, e.z, 7, 55, 22, 16766287),
             screenShake(0.55));
           try {
             SFX.abilityHit();
           } catch (e) {}
-        });
+        }, undefined, e.y);
         break;
       }
       case "ult_emp":
@@ -5048,7 +5060,8 @@ function castAbility(e, t) {
 }
 function makeZone(e, t, o, a, n, r, s) {
   const i = new T.Group();
-  i.position.set(e, 0, t);
+  const groundY = s?.y ?? abilityGroundY(e, t);
+  i.position.set(e, groundY, t);
   const l = new T.Mesh(
     new T.CylinderGeometry(o, o, a, 32, 1, !0),
     new T.MeshBasicMaterial({
@@ -5128,9 +5141,10 @@ function makeZone(e, t, o, a, n, r, s) {
       i.add(e),
       u.push(e));
   }
-  (fxFlash(r, 2.2, 2.6 * o, e, 0.5 * a, t, 0.7, 1.5), scene.add(i));
+  (fxFlash(r, 2.2, 2.6 * o, e, groundY + 0.5 * a, t, 0.7, 1.5), scene.add(i));
   const y = {
     x: e,
+    y: groundY,
     z: t,
     r: o,
     h: a,
@@ -5226,12 +5240,12 @@ function makeSmoke(e, t, o, a) {
       o.scale.setScalar(0.05),
       s.add(o));
   }
-  (s.position.set(e.x, 0, e.z), scene.add(s));
+  (s.position.set(e.x, abilityGroundY(e.x, e.z, e.y ?? player.y), e.z), scene.add(s));
   const c = {
     x: e.x,
     z: e.z,
     r: t,
-    y: 0,
+    y: s.position.y,
     life: o,
     maxLife: o,
     mesh: s,
@@ -5282,7 +5296,7 @@ function revTex() {
 }
 function deployFx(e, t, o) {
   const a = o || 10479871;
-  (fxRing(e, t, 2.2, a, 0.45), glowFlare(e, 0.5, t, a, 1.6, 0.3));
+  (fxRing(e, t, 2.2, a, 0.45), glowFlare(e, abilityGroundY(e, t) + 0.5, t, a, 1.6, 0.3));
   const n = new T.Mesh(
     new T.CylinderGeometry(0.05, 0.12, 3.2, 8, 1, !0),
     new T.MeshBasicMaterial({
@@ -5292,7 +5306,7 @@ function deployFx(e, t, o) {
       side: T.DoubleSide,
     }),
   );
-  (n.position.set(e, 1.6, t),
+  (n.position.set(e, abilityGroundY(e, t) + 1.6, t),
     addFx(n, 0.45, (e, t) => {
       ((e.material.opacity = 0.6 * (1 - t)),
         e.scale.set(1 - 0.6 * t, 1 + 0.4 * t, 1 - 0.6 * t));
@@ -5467,7 +5481,7 @@ function fxRing(e, t, o, a, n, r) {
       depthWrite: !1,
     }),
   );
-  ((s.rotation.x = -Math.PI / 2), s.position.set(e, r || 0.1, t));
+  ((s.rotation.x = -Math.PI / 2), s.position.set(e, r || abilityGroundY(e, t) + 0.1, t));
   const i = MOT();
   addFx(s, n || 0.6, (e, t) => {
     const a = 0.3 + t * o;
@@ -5515,6 +5529,7 @@ function fxTracer(e, t, o, a, n, r, s) {
   );
 }
 function fxColumn(e, t, o, a, n) {
+  const groundY = abilityGroundY(e, t);
   const r = new T.Mesh(
     new T.CylinderGeometry(0.35, 0.35, a || 7, 12, 1, !0),
     new T.MeshBasicMaterial({
@@ -5525,20 +5540,21 @@ function fxColumn(e, t, o, a, n) {
       depthWrite: !1,
     }),
   );
-  (r.position.set(e, (a || 7) / 2, t),
+  (r.position.set(e, groundY + ((a || 7) / 2), t),
     addFx(r, n || 1, (e, t) => {
       ((e.material.opacity = 0.5 * (1 - t)),
         e.scale.set(1 + 0.6 * t, 1, 1 + 0.6 * t));
     }));
 }
 function fxShatter(e, t, o) {
+  const groundY = abilityGroundY(e, t);
   const a = Math.max(4, Math.round(14 * Math.max(0.3, MOT())));
   for (let n = 0; n < a; n++) {
     const a = new T.Mesh(
       new T.TetrahedronGeometry(rnd(0.06, 0.16)),
       new T.MeshBasicMaterial({ color: o, transparent: !0, depthWrite: !1 }),
     );
-    a.position.set(e, rnd(0.6, 1.8), t);
+    a.position.set(e, groundY + (rnd(0.6, 1.8)), t);
     const n = Math.random() * Math.PI * 2,
       r = rnd(2, 6);
     let s = rnd(1, 4);
@@ -5557,6 +5573,7 @@ function fxShatter(e, t, o) {
   }
 }
 function fxArc(e, t, o, a, n) {
+  const groundY = abilityGroundY(e, t);
   const r = new T.Mesh(
     new T.RingGeometry(
       0.93,
@@ -5574,7 +5591,7 @@ function fxArc(e, t, o, a, n) {
     }),
   );
   ((r.rotation.x = -Math.PI / 2),
-    r.position.set(e, 0.15, t),
+    r.position.set(e, groundY + 0.15, t),
     addFx(r, 0.7, (e, t) => {
       const o = 1 + t * a;
       (e.scale.set(o, o, 1), (e.material.opacity = 0.8 * (1 - t)));
@@ -5642,7 +5659,7 @@ function beeCloud(e, t, o, a, n) {
       r.add(e),
       l.push(e));
   }
-  r.position.set(e, 0, t);
+  r.position.set(e, abilityGroundY(e, t), t);
   let d = 0;
   abilSpawn({
     update(e) {
@@ -5695,7 +5712,7 @@ function spawnSeeker(e, t, o) {
     ) && (l = 0.9);
   } catch (e) {}
   const c = new T.Vector3(e.pos.x + s * l, 0, e.pos.z + i * l);
-  (a.position.set(c.x, 2.1, c.z), scene.add(a));
+  (a.position.set(c.x, (e.y || 0) + 2.1, c.z), scene.add(a));
   let d = o.life || 7,
     h = o.delay || 0,
     p = t,
@@ -5706,7 +5723,7 @@ function spawnSeeker(e, t, o) {
   return abilSpawn({
     update(t) {
       if (((y += t), h > 0))
-        return ((h -= t), (a.position.y = 2.1 + 0.8 * y), !0);
+        return ((h -= t), (a.position.y = (e.y || 0) + 2.1 + 0.8 * y), !0);
       if (((d -= t), !p || !p.alive)) {
         p = null;
         let o = 1e9;
@@ -5727,7 +5744,7 @@ function spawnSeeker(e, t, o) {
       let n = p.pos.x,
         s = p.pos.z;
       if (
-        !!rayBlocked(c.x, 1.2, c.z, p.pos.x, p.y + 1.1, p.pos.z) &&
+        !!rayBlocked(c.x, abilityGroundY(c.x, c.z, e.y) + 1.2, c.z, p.pos.x, p.y + 1.1, p.pos.z) &&
         u &&
         u.length
       ) {
@@ -5743,8 +5760,8 @@ function spawnSeeker(e, t, o) {
         l = s - c.z,
         M = Math.hypot(i, l) || 1,
         w = o.speed || 9;
-      moveWithSlide(c, (i / M) * w * t, (l / M) * w * t, 0, 0.25);
-      const T = (o.fly ? 1.35 : 0.45) + 0.08 * Math.sin(9 * y);
+      moveWithSlide(c, (i / M) * w * t, (l / M) * w * t, abilityGroundY(c.x, c.z, e.y), 0.25);
+      const T = abilityGroundY(c.x, c.z, e.y) + (o.fly ? 1.35 : 0.45) + 0.08 * Math.sin(9 * y);
       return (
         a.position.set(
           c.x,
@@ -5883,7 +5900,7 @@ const CAST_EXT = {
           if (((h -= e), (p += e), !u)) {
             if (
               (moveWithSlide(i, c * e, d * e, 0, 0.45),
-              s.group.position.set(i.x, 0, i.z),
+              s.group.position.set(i.x, abilityGroundY(i.x, i.z), i.z),
               (s.group.rotation.y = l),
               (m += 9 * e),
               animateFake(s, m),
@@ -6002,7 +6019,7 @@ const CAST_EXT = {
           depthWrite: !1,
         }),
       );
-      ((i.rotation.x = -Math.PI / 2), i.position.set(r, 0.06, s), scene.add(i));
+      ((i.rotation.x = -Math.PI / 2), i.position.set(r, abilityGroundY(r, s) + 0.06, s), scene.add(i));
       let l = 2.6;
       abilSpawn({
         update(e) {
@@ -6064,12 +6081,12 @@ const CAST_EXT = {
         }
         const o = s + n * e * 2.3,
           a = i + r * e * 2.3;
-        (t.position.set(o, 0, a), scene.add(t));
+        (t.position.set(o, abilityGroundY(o, a), a), scene.add(t));
         const c = {
           x: o,
           z: a,
           r: 2.4,
-          y: 0,
+          y: t.position.y,
           life: 6.5,
           maxLife: 6.5,
           mesh: t,
@@ -6084,9 +6101,9 @@ const CAST_EXT = {
           const o = c < 5 ? 6 * e : 0;
           for (const e of l)
             (o &&
-              !collideXZ(e.x + t.x * o, e.z + t.z * o, 0, 0.4) &&
+              !collideXZ(e.x + t.x * o, e.z + t.z * o, e.y, 0.4) &&
               ((e.x += t.x * o), (e.z += t.z * o)),
-              e.mesh.position.set(e.x, 0, e.z));
+              e.mesh.position.set(e.x, e.y = abilityGroundY(e.x, e.z, e.y), e.z));
           for (const e of foesOf(a))
             for (const t of l)
               if (dist2(e.pos.x, e.pos.z, t.x, t.z) < 2.6 * 2.6) {
@@ -6120,13 +6137,13 @@ const CAST_EXT = {
           );
         (a.position.set(Math.cos(t) * o, rnd(1, 4), Math.sin(t) * o), i.add(a));
       }
-      (i.position.set(n, 0, r),
+      (i.position.set(n, abilityGroundY(n, r), r),
         scene.add(i),
         world.smokes.push({
           x: n,
           z: r,
           r: 0.9 * s,
-          y: 0,
+          y: i.position.y,
           life: 14,
           maxLife: 14,
           mesh: i,
@@ -6157,7 +6174,7 @@ const CAST_EXT = {
           for (
             ;
             t < 7 * (window.AB_R || 1) &&
-            !collideXZ(r + i * e * t, s + l * e * t, 0.5, 0.1);
+            !collideXZ(r + i * e * t, s + l * e * t, abilityGroundY(r, s) + 0.5, 0.1);
             t += 0.25
           );
           return Math.max(0.8, t);
@@ -6175,7 +6192,7 @@ const CAST_EXT = {
           opacity: 0.55,
         }),
         w = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, y, 5), M);
-      (w.position.set((p + m) / 2, 0.55, (u + f) / 2),
+      (w.position.set((p + m) / 2, abilityGroundY(r, s) + 0.55, (u + f) / 2),
         w.rotation.set(0, -Math.atan2(f - u, m - p), Math.PI / 2),
         scene.add(w));
       const g = new T.MeshStandardMaterial({
@@ -6189,7 +6206,7 @@ const CAST_EXT = {
           [m, f],
         ].map(([e, t]) => {
           const o = new T.Mesh(x, g);
-          return (o.position.set(e, 0.55, t), scene.add(o), o);
+          return (o.position.set(e, abilityGroundY(e, t) + 0.55, t), scene.add(o), o);
         });
       let S = 60,
         v = 0.8;
@@ -6211,7 +6228,7 @@ const CAST_EXT = {
               ),
               o = p + (m - p) * t,
               n = u + (f - u) * t;
-            if (Math.hypot(e.pos.x - o, e.pos.z - n) < 0.5)
+            if (abilityOnFloor(e, w.position.y - .55) && Math.hypot(e.pos.x - o, e.pos.z - n) < 0.5)
               return (
                 withCaster(a, () => {
                   (statusOn(e, "revealed", 5),
@@ -6262,7 +6279,7 @@ const CAST_EXT = {
         d = new T.Mesh(new T.ConeGeometry(0.14, 0.22, 10, 1, !0), l);
       d.position.y = 0.17;
       const h = new T.Group();
-      (h.add(c, d), h.position.set(r, 0.08, s), scene.add(h));
+      (h.add(c, d), h.position.set(r, abilityGroundY(r, s) + 0.08, s), scene.add(h));
       const p = new T.Mesh(
         new T.RingGeometry(8.92, 9, 60),
         new T.MeshBasicMaterial({
@@ -6273,12 +6290,12 @@ const CAST_EXT = {
           depthWrite: !1,
         }),
       );
-      ((p.rotation.x = -Math.PI / 2), p.position.set(r, 0.06, s), scene.add(p));
+      ((p.rotation.x = -Math.PI / 2), p.position.set(r, abilityGroundY(r, s) + 0.06, s), scene.add(p));
       let u = 45,
         m = 0;
       const f = {
         x: r,
-        y: 0.25,
+        y: abilityGroundY(r, s) + 0.25,
         z: s,
         r: 0.35,
         team: a.team,
@@ -6360,13 +6377,13 @@ const CAST_EXT = {
           new T.SphereGeometry(s, 28, 14, 0, 2 * Math.PI, 0, Math.PI / 2),
           i,
         );
-      (l.position.set(n, 0, r), scene.add(l));
+      (l.position.set(n, abilityGroundY(n, r), r), scene.add(l));
       const c = new T.Mesh(
         new T.TorusGeometry(s, 0.05, 6, 56),
         new T.MeshBasicMaterial({ color: 16765286 }),
       );
-      ((c.rotation.x = Math.PI / 2), c.position.set(n, 0.05, r), scene.add(c));
-      const d = { x: n, y: 0, z: r, r: 0.2 * s, hitT: 0 };
+      ((c.rotation.x = Math.PI / 2), c.position.set(n, abilityGroundY(n, r) + 0.05, r), scene.add(c));
+      const d = { x: n, y: abilityGroundY(n, r), z: r, r: 0.2 * s, hitT: 0 };
       DOMES.push(d);
       let h = 9,
         p = 0;
@@ -6500,7 +6517,7 @@ const CAST_EXT = {
       const f = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), c);
       (f.position.set(0, 0.06, -0.21),
         h.add(f),
-        d.position.set(r, 0, s),
+        d.position.set(r, abilityGroundY(r, s), s),
         scene.add(d));
       const y = a.yaw;
       h.rotation.y = y;
@@ -6508,7 +6525,7 @@ const CAST_EXT = {
       a._turret = M;
       const w = {
         x: r,
-        y: 0.75,
+        y: abilityGroundY(r, s) + 0.75,
         z: s,
         r: 0.4,
         team: a.team,
@@ -6533,7 +6550,7 @@ const CAST_EXT = {
               c = a * a + l * l;
             c > o ||
               a * n + l * i < 0 ||
-              rayBlocked(r, 1, s, e.pos.x, e.y + 1.2, e.pos.z) ||
+              rayBlocked(r, w.y + .25, s, e.pos.x, e.y + 1.2, e.pos.z) ||
               ((t = e), (o = c));
           }
           if (t) {
@@ -6551,7 +6568,7 @@ const CAST_EXT = {
               const e = Math.sqrt(o);
               (fxTracer(
                 r - 0.62 * Math.sin(h.rotation.y),
-                0.76,
+                w.y + .01,
                 s - 0.62 * Math.cos(h.rotation.y),
                 t.pos.x + rnd(-0.3, 0.3),
                 t.y + 1.1 + rnd(-0.3, 0.3),
@@ -6687,7 +6704,7 @@ const CAST_EXT = {
           }),
         );
         ((n.rotation.x = -Math.PI / 2),
-          n.position.set(e, 0.12, o),
+          n.position.set(e, abilityGroundY(e, o, t) + 0.12, o),
           addFx(n, 1.1, (e, t) => {
             ((e.material.opacity = 0.8 * (1 - t)),
               (e.rotation.z += 0.02),
@@ -6813,12 +6830,12 @@ const CAST_EXT = {
           roughness: 0.7,
         }),
         l = new T.Mesh(new T.CylinderGeometry(0.22, 0.3, 0.42, 6), i);
-      (l.position.set(r, 0.21, s), scene.add(l));
+      (l.position.set(r, abilityGroundY(r, s) + 0.21, s), scene.add(l));
       let c = 60,
         d = 1;
       const h = {
         x: r,
-        y: 0.25,
+        y: abilityGroundY(r, s) + 0.25,
         z: s,
         r: 0.35,
         team: a.team,
@@ -8135,8 +8152,9 @@ function clearStatus(e) {
     (e._turret = null),
     e.ultW && endUltW(e));
 }
-function makeMire(e, t, o, a, n, r) {
-  const s = makeZone(e, t, o, 1.1, r || 5, a, { slow: n || 0.45 });
+function makeMire(e, t, o, a, n, r, reference) {
+  const groundY = abilityGroundY(e, t, reference);
+  const s = makeZone(e, t, o, 1.1, r || 5, a, { y: groundY, slow: n || 0.45 });
   s && ((s.team = "atk"), s._lit && (s._lit.intensity = 0.7));
   for (let n = 0; n < 10; n++) {
     const n = Math.random() * Math.PI * 2,
@@ -8150,15 +8168,16 @@ function makeMire(e, t, o, a, n, r) {
           depthWrite: !1,
         }),
       );
-    (s.position.set(e + Math.cos(n) * r, 0.12, t + Math.sin(n) * r),
+    (s.position.set(e + Math.cos(n) * r, groundY + 0.12, t + Math.sin(n) * r),
       addFx(s, 0.6 + 0.5 * Math.random(), (e, t) => {
-        ((e.position.y = 0.12 + 0.5 * Math.sin(t * Math.PI)),
+        ((e.position.y = groundY + 0.12 + 0.5 * Math.sin(t * Math.PI)),
           (e.material.opacity = 0.55 * (1 - t)));
       }));
   }
   return s;
 }
-function makeTrap(e, t, o, a, n, r) {
+function makeTrap(e, t, o, a, n, r, reference) {
+  const groundY = abilityGroundY(e, t, reference);
   const s = new T.Mesh(
     new T.CylinderGeometry(0.34, 0.22, 0.5, 8),
     new T.MeshStandardMaterial({
@@ -8167,7 +8186,7 @@ function makeTrap(e, t, o, a, n, r) {
       emissiveIntensity: 0.6,
     }),
   );
-  (s.position.set(e, 0.25, t), scene.add(s));
+  (s.position.set(e, groundY + 0.25, t), scene.add(s));
   const i = new T.Mesh(
     new T.RingGeometry(o - 0.16, o, 40),
     new T.MeshBasicMaterial({
@@ -8178,7 +8197,7 @@ function makeTrap(e, t, o, a, n, r) {
       depthWrite: !1,
     }),
   );
-  ((i.rotation.x = -Math.PI / 2), i.position.set(e, 0.07, t), scene.add(i));
+  ((i.rotation.x = -Math.PI / 2), i.position.set(e, groundY + 0.07, t), scene.add(i));
   const l = new T.Mesh(
     new T.CircleGeometry(0.96 * o, 40),
     new T.MeshBasicMaterial({
@@ -8196,6 +8215,7 @@ function makeTrap(e, t, o, a, n, r) {
   } catch (e) {}
   world.props.push({
     type: "trap",
+    y: groundY,
     x: e,
     z: t,
     r: o,
@@ -8326,12 +8346,13 @@ const PROJ_GEO = new T.SphereGeometry(0.15, 14, 10);
 PROJ_GEO.userData.shared = !0;
 const PROJ_BAND = new T.TorusGeometry(0.22, 0.018, 6, 24);
 function explode(e, t, o, a, n, r) {
+  const groundY = abilityGroundY(e, t);
   const s = o > 9 ? 26 : 16,
     i = new T.Mesh(
       new T.SphereGeometry(0.3 * o, s, s - 4),
       new T.MeshBasicMaterial({ color: r, transparent: !0, depthWrite: !1 }),
     );
-  (i.position.set(e, 1.2, t),
+  (i.position.set(e, groundY + 1.2, t),
     addFx(i, 0.5, (e, t) => {
       (e.scale.setScalar(1 + 1.5 * t),
         (e.material.opacity = (1 - t) * (1 - t) * 0.85));
@@ -8344,7 +8365,7 @@ function explode(e, t, o, a, n, r) {
       depthWrite: !1,
     }),
   );
-  (l.position.set(e, 1.2, t),
+  (l.position.set(e, groundY + 1.2, t),
     addFx(l, 0.22, (e, t) => {
       (e.scale.setScalar(1 + 2.2 * t), (e.material.opacity = 0.95 * (1 - t)));
     }));
@@ -8359,7 +8380,7 @@ function explode(e, t, o, a, n, r) {
       }),
     );
     ((n.rotation.x = -Math.PI / 2),
-      n.position.set(e, 0.12 + 0.05 * a, t),
+      n.position.set(e, groundY + (0.12 + 0.05 * a), t),
       addFx(n, 0.55 + 0.12 * a, (e, t) => {
         const o = 1 + t * (4.4 - 1.2 * a);
         (e.scale.set(o, o, 1),
@@ -8375,7 +8396,7 @@ function explode(e, t, o, a, n, r) {
       depthWrite: !1,
     }),
   );
-  (c.position.set(e, 0.28 * o, t),
+  (c.position.set(e, groundY + (0.28 * o), t),
     addFx(c, 0.6, (e, t) => {
       (e.scale.set(1 + 0.9 * t, 1 + 1.5 * t, 1 + 0.9 * t),
         (e.material.opacity = 0.34 * (1 - t)));
@@ -8386,7 +8407,7 @@ function explode(e, t, o, a, n, r) {
       Math.random() < 0.3 ? 16773836 : r,
       0.32 + 0.3 * Math.random(),
     );
-    o.position.set(e, 1.1, t);
+    o.position.set(e, groundY + 1.1, t);
     const a = Math.random() * Math.PI * 2,
       n = 2.6 + 4.2 * Math.random(),
       s = 5 + 9 * Math.random(),
@@ -8489,6 +8510,7 @@ function tickUltCut(e) {
   }
 }
 function castBurst(e, t, o, a) {
+  const groundY = abilityGroundY(e, t);
   const n =
       (a || 1) *
       (void 0 !== GFX ? Math.max(0.5, GFX.fx) : 1) *
@@ -8506,13 +8528,13 @@ function castBurst(e, t, o, a) {
         depthWrite: !1,
       }),
     );
-    ((r.rotation.x = -Math.PI / 2), r.position.set(e, 0.12 + 0.1 * a, t));
+    ((r.rotation.x = -Math.PI / 2), r.position.set(e, groundY + (0.12 + 0.1 * a), t));
     const l = (5 + 3.5 * a) * n;
     addFx(r, 0.55 + 0.12 * a, (e, t) => {
       const o = 1 + t * l;
       (e.scale.set(o, o, o),
         (e.material.opacity = (1 - t) * (0.85 - 0.2 * a) * i),
-        (e.position.y = 0.12 + 0.1 * a + t * s));
+        (e.position.y = groundY + 0.12 + 0.1 * a + t * s));
     });
   }
   if (!r) {
@@ -8525,7 +8547,7 @@ function castBurst(e, t, o, a) {
         depthWrite: !1,
       }),
     );
-    (a.position.set(e, 3.4 * n, t),
+    (a.position.set(e, groundY + (3.4 * n), t),
       addFx(a, 0.45, (e, t) => {
         ((e.material.opacity = 0.4 * (1 - t)),
           e.scale.set(1 + 0.7 * t, 1 + 0.5 * t, 1 + 0.7 * t));
@@ -8538,11 +8560,11 @@ function castBurst(e, t, o, a) {
       s = (a / l) * Math.PI * 2 + 0.4 * Math.random(),
       i = (3.5 + 7 * Math.random()) * n,
       d = 2.2 + 4 * Math.random();
-    (r.position.set(e + Math.cos(s) * c, 0.6, t + Math.sin(s) * c),
+    (r.position.set(e + Math.cos(s) * c, groundY + 0.6, t + Math.sin(s) * c),
       addFx(r, 0.6 + 0.3 * Math.random(), (o, a) => {
         ((o.position.x = e + Math.cos(s) * (c + i * a)),
           (o.position.z = t + Math.sin(s) * (c + i * a)),
-          (o.position.y = 0.6 + d * a - 9 * a * a),
+          (o.position.y = groundY + 0.6 + d * a - 9 * a * a),
           (o.material.opacity = 1 - a));
       }));
   }
@@ -8550,6 +8572,7 @@ function castBurst(e, t, o, a) {
     glowFlare(e, 1.6, t, o, 3 * n, 0.38));
 }
 function shardErupt(e, t, o, a, n) {
+  const groundY = abilityGroundY(e, t);
   const r =
       (void 0 !== GFX ? Math.max(0.5, GFX.fx) : 1) * Math.max(0.15, MOT()),
     s = Math.round((n || 16) * r);
@@ -8568,7 +8591,7 @@ function shardErupt(e, t, o, a, n) {
       ),
       d = e + Math.cos(r) * i,
       h = t + Math.sin(r) * i;
-    (c.position.set(d, -l, h),
+    (c.position.set(d, groundY + (-l), h),
       c.rotation.set(
         0.4 * (Math.random() - 0.5),
         3 * Math.random(),
@@ -8578,7 +8601,7 @@ function shardErupt(e, t, o, a, n) {
     addFx(c, 1.5, (e, t) => {
       const o = Math.max(0, (t - p) / (1 - p)),
         a = Math.min(1, 4.5 * o);
-      ((e.position.y = 1.32 * l * a - l),
+      ((e.position.y = groundY + 1.32 * l * a - l),
         (e.material.opacity = 0.78 * (1 - Math.max(0, (o - 0.55) / 0.45))));
     });
   }
@@ -8592,13 +8615,14 @@ function shardErupt(e, t, o, a, n) {
       depthWrite: !1,
     }),
   );
-  (i.position.set(e, 0, t),
+  (i.position.set(e, groundY + 0, t),
     addFx(i, 1.1, (e, t) => {
       (e.scale.setScalar(0.35 + 0.75 * t),
         (e.material.opacity = 0.28 * (1 - t)));
     }));
 }
 function empWave(e, t, o) {
+  const groundY = abilityGroundY(e, t);
   const a =
       (void 0 !== GFX ? Math.max(0.5, GFX.fx) : 1) * Math.max(0.15, MOT()),
     n = Math.hypot(camera.position.x - e, camera.position.z - t) < 6;
@@ -8613,7 +8637,7 @@ function empWave(e, t, o) {
       }),
     );
     ((r.rotation.x = -Math.PI / 2),
-      r.position.set(e, n ? 0.12 + 0.07 * a : 0.2 + 0.5 * a, t));
+      r.position.set(e, groundY + (n ? 0.12 + 0.07 * a : 0.2 + 0.5 * a), t));
     const s = 0.09 * a;
     addFx(r, 1.3, (e, t) => {
       const o = Math.max(0, t - s),
@@ -8630,7 +8654,7 @@ function empWave(e, t, o) {
         new T.BoxGeometry(0.1, 9, 0.1),
         new T.MeshBasicMaterial({ color: o, transparent: !0, depthWrite: !1 }),
       );
-    (i.position.set(e + Math.cos(n) * s, 4.5, t + Math.sin(n) * s),
+    (i.position.set(e + Math.cos(n) * s, groundY + 4.5, t + Math.sin(n) * s),
       addFx(i, 0.7, (e, t) => {
         ((e.material.opacity = (1 - t) * (Math.random() < 0.5 ? 0.9 : 0.35)),
           (e.scale.y = 1 + 0.5 * t));
@@ -8661,6 +8685,7 @@ function markPillars(e) {
   } catch (e) {}
 }
 function revivePillar(e, t, o) {
+  const groundY = abilityGroundY(e, t);
   const a = new T.Mesh(
     new T.CylinderGeometry(1.1, 1.8, 18, 22, 1, !0),
     new T.MeshBasicMaterial({
@@ -8671,7 +8696,7 @@ function revivePillar(e, t, o) {
       depthWrite: !1,
     }),
   );
-  (a.position.set(e, 9, t),
+  (a.position.set(e, groundY + 9, t),
     addFx(a, 1.5, (e, t) => {
       ((e.material.opacity = 0.65 * (1 - t)),
         e.scale.set(1 - 0.35 * t, 1, 1 - 0.35 * t));
@@ -8683,15 +8708,16 @@ function revivePillar(e, t, o) {
     const a = 7 * Math.random(),
       n = 0.6 + 2.4 * Math.random(),
       r = glowDot(o, 0.5);
-    r.position.set(e + Math.cos(a) * n, 0.2, t + Math.sin(a) * n);
+    r.position.set(e + Math.cos(a) * n, groundY + 0.2, t + Math.sin(a) * n);
     const s = 4 + 7 * Math.random();
     addFx(r, 1.2, (e, t) => {
-      ((e.position.y = 0.2 + s * t), (e.material.opacity = 1 - t));
+      ((e.position.y = groundY + 0.2 + s * t), (e.material.opacity = 1 - t));
     });
   }
   fxFlash(o, 6, 26, e, 3, t, 0.9, 1);
 }
 function endBurst(e, t, o, a) {
+  const groundY = abilityGroundY(e, t);
   const n = new T.Mesh(
     new T.RingGeometry(Math.max(0.4, 0.8 * a), a, 40),
     new T.MeshBasicMaterial({
@@ -8702,7 +8728,7 @@ function endBurst(e, t, o, a) {
     }),
   );
   ((n.rotation.x = -Math.PI / 2),
-    n.position.set(e, 0.14, t),
+    n.position.set(e, groundY + 0.14, t),
     addFx(n, 0.42, (e, t) => {
       const o = 1 - 0.55 * t;
       (e.scale.set(o, o, o), (e.material.opacity = 0.6 * (1 - t)));
@@ -8714,9 +8740,9 @@ function endBurst(e, t, o, a) {
     const s = glowDot(o, 0.5, 1.8),
       i = (n / r) * 7,
       l = 0.7 * a;
-    (s.position.set(e + Math.cos(i) * l, 0.4, t + Math.sin(i) * l),
+    (s.position.set(e + Math.cos(i) * l, groundY + 0.4, t + Math.sin(i) * l),
       addFx(s, 0.5, (e, t) => {
-        ((e.position.y = 0.4 + 1.8 * t), (e.material.opacity = 0.7 * (1 - t)));
+        ((e.position.y = groundY + 0.4 + 1.8 * t), (e.material.opacity = 0.7 * (1 - t)));
       }));
   }
 }
@@ -9168,12 +9194,12 @@ function makeSmokeAt(e, t, o, a, n) {
     ),
       r.add(e));
   }
-  (r.position.set(e, 0, t), scene.add(r));
+  (r.position.set(e, abilityGroundY(e, t), t), scene.add(r));
   const s = {
     x: e,
     z: t,
     r: o,
-    y: 0,
+    y: r.position.y,
     life: a,
     maxLife: a,
     mesh: r,
@@ -20388,10 +20414,10 @@ function updateZones(e) {
       continue;
     }
     const a = o.team || "atk",
-      n = (e) =>
+      n = (e) => abilityOnFloor(e, o.y || 0, Math.max(1.5, o.h || 0)) &&
         dist2(e.pos ? e.pos.x : e.x, e.pos ? e.pos.z : e.z, o.x, o.z) <
         o.r * o.r,
-      r = dist2(player.pos.x, player.pos.z, o.x, o.z) < o.r * o.r,
+      r = abilityOnFloor(player, o.y || 0, Math.max(1.5, o.h || 0)) && dist2(player.pos.x, player.pos.z, o.x, o.z) < o.r * o.r,
       s = player.team !== a;
     (o.dps &&
       (r && s && damagePlayer(o.dps * e),
@@ -20523,7 +20549,7 @@ function updateProps(e) {
     } else if ("trap" === o.type) {
       if (
         ((o.mesh.rotation.y += 1.4 * e),
-        (o.mesh.position.y = 0.25 + 0.06 * Math.sin(3 * o.life)),
+        (o.mesh.position.y = (o.y || 0) + 0.25 + 0.06 * Math.sin(3 * o.life)),
         o.ring)
       ) {
         const e = 0.78 + 0.22 * Math.sin(4.2 * o.life);
@@ -20539,6 +20565,7 @@ function updateProps(e) {
             n.alive &&
             n.team &&
             n.team !== e &&
+            abilityOnFloor(n, o.y || 0) &&
             dist2(n.pos.x, n.pos.z, o.x, o.z) < o.r * o.r
           ) {
             (o.onTrigger(n),

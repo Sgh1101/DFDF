@@ -126,28 +126,29 @@
       o.material && (Array.isArray(o.material) ? o.material.forEach((x) => x.dispose()) : o.material.dispose());
     });
   };
-  const disc = (x, z, r, col, op) => {
+  const disc = (x, z, r, col, op, reference) => {
     const m = new T.Mesh(new T.CircleGeometry(r, 48), mat(col, null == op ? 0.22 : op));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, 0.05, z);
+    m.position.set(x, abilityGroundY(x, z, reference) + 0.05, z);
     scene.add(m);
     return m;
   };
-  const ring = (x, z, r, col, op, w) => {
+  const ring = (x, z, r, col, op, w, reference) => {
     const m = new T.Mesh(new T.RingGeometry(Math.max(0.01, r - (w || 0.3)), r, 64), mat(col, null == op ? 0.7 : op, !0));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, 0.07, z);
+    m.position.set(x, abilityGroundY(x, z, reference) + 0.07, z);
     scene.add(m);
     return m;
   };
+  const groundPosition = (m, x, y, z) => m.position.set(x, abilityGroundY(x, z) + y, z);
   const dot = (col, size, x, y, z) => {
     const g = glowDot(col, size);
     g.position.set(x, y, z);
     scene.add(g);
     return g;
   };
-  function burst(x, z, r, col, y) {
-    y = null == y ? 1 : y;
+  function burst(x, z, r, col, y, absolute = false) {
+    y = (absolute ? 0 : abilityGroundY(x, z)) + (y == null ? 1 : y);
     const s = new T.Mesh(new T.SphereGeometry(0.35 * r, 18, 12), mat(col, 0.85, !0));
     s.position.set(x, y, z);
     addFx(s, 0.45, (m, t) => {
@@ -301,7 +302,7 @@
       pz = f.x,
       HALF = 7;
     const wall = new T.Mesh(new T.BoxGeometry(HALF * 2, 4, 0.25), mat(0xb3e5fc, 0.18, !0));
-    wall.position.set(p.x, 2, p.z);
+    wall.position.set(p.x, abilityGroundY(p.x, p.z, p.y) + 2, p.z);
     wall.rotation.y = c.yaw;
     scene.add(wall);
     const hit = new Map();
@@ -309,7 +310,7 @@
       wall.material.opacity = 0.14 + 0.08 * Math.sin(t * 9);
       if (Math.random() < 0.7) {
         const k = (Math.random() * 2 - 1) * HALF,
-          g = dot(0xe1f5fe, 0.3, p.x + px * k, 0.5 + Math.random() * 3, p.z + pz * k);
+          g = dot(0xe1f5fe, 0.3, p.x + px * k, abilityGroundY(p.x, p.z, p.y) + 0.5 + Math.random() * 3, p.z + pz * k);
         scene.remove(g);
         const s = Math.random() < 0.5 ? 1 : -1;
         addFx(g, 0.6, (m, q, dd) => ((m.position.x += f.x * s * 6 * (dd || 0.016)), (m.position.z += f.z * s * 6 * (dd || 0.016)), (m.material.opacity = 1 - q)));
@@ -378,11 +379,11 @@
       st(t, "revealed", 5);
       burst(t.pos.x, t.pos.z, 2, 0xf5f5f5, 0.4);
       const w = webDecal(1.6, 0xffffff);
-      w.position.set(t.pos.x, 0.06, t.pos.z);
+      w.position.set(t.pos.x, abilityGroundY(t.pos.x, t.pos.z, t.y) + 0.06, t.pos.z);
       scene.add(w);
       live(2.5, null, () => drop(w));
       tellTeam(c, "거미줄에 걸림", "#e0e0e0");
-    });
+    }, undefined, p.y);
     const pr = lastProp();
     if (pr && pr.ring) {
       const w = webDecal(3.2, 0xeeeeee);
@@ -417,9 +418,9 @@
       p = aimAt(30),
       R = 16;
     const g = webDecal(R, 0xe0e0e0);
-    g.position.set(p.x, 0.06, p.z);
+    g.position.set(p.x, abilityGroundY(p.x, p.z, p.y) + 0.06, p.z);
     scene.add(g);
-    const base = disc(p.x, p.z, R, 0x424242, 0.18);
+    const base = disc(p.x, p.z, R, 0x424242, 0.18, p.y);
     const inside = new Map();
     live(12, (t, dt) => {
       for (const e of foesOf(c)) {
@@ -444,13 +445,13 @@
   H.x_meteor = () => {
     const c = player,
       p = aimAt(35);
-    const w = ring(p.x, p.z, 6, 0xb39ddb, 0.8, 0.35),
-      fill = disc(p.x, p.z, 6, 0x7e57c2, 0.12);
+    const w = ring(p.x, p.z, 6, 0xb39ddb, 0.8, 0.35, p.y),
+      fill = disc(p.x, p.z, 6, 0x7e57c2, 0.12, p.y);
     const rock = new T.Mesh(new T.IcosahedronGeometry(0.9, 0), mat(0xffcc80, 0.95, !0));
     scene.add(rock);
     live(1.2, (t) => {
       const k = t / 1.2;
-      rock.position.set(p.x + 14 * (1 - k), 1 + 32 * (1 - k), p.z - 10 * (1 - k));
+      rock.position.set(p.x + 14 * (1 - k), abilityGroundY(p.x, p.z, p.y) + 1 + 32 * (1 - k), p.z - 10 * (1 - k));
       rock.rotation.x += 0.3;
       w.material.opacity = 0.5 + 0.4 * Math.sin(t * 20);
     }, () => (drop(w), drop(fill), drop(rock)), () => {
@@ -463,9 +464,9 @@
     const c = player,
       p = aimAt(25);
     fxColumn(p.x, p.z, 0xb39ddb, 8, 1.2);
-    ring(p.x, p.z, 6, 0xb39ddb, 0.6);
+    ring(p.x, p.z, 6, 0xb39ddb, 0.6, undefined, p.y);
     const lifted = within(foesOf(c), p.x, p.z, 6);
-    const r0 = ring(p.x, p.z, 6, 0xd1c4e9, 0.5);
+    const r0 = ring(p.x, p.z, 6, 0xd1c4e9, 0.5, undefined, p.y);
     lifted.forEach((e) => (st(e, "root", 1.5), st(e, "revealed", 3)));
     live(1.5, (t) => {
       for (const e of lifted) {
@@ -497,12 +498,12 @@
     const c = player,
       p = aimAt(35);
     const core = new T.Mesh(new T.SphereGeometry(1.6, 24, 16), new T.MeshBasicMaterial({ color: 0x050008 }));
-    core.position.set(p.x, 2.2, p.z);
+    core.position.set(p.x, abilityGroundY(p.x, p.z, p.y) + 2.2, p.z);
     const disk = new T.Mesh(new T.RingGeometry(2, 5.5, 64), mat(0x9575cd, 0.6, !0));
     disk.rotation.x = -Math.PI / 2.4;
     core.add(disk);
     scene.add(core);
-    const r20 = ring(p.x, p.z, 20, 0x7e57c2, 0.25, 0.4);
+    const r20 = ring(p.x, p.z, 20, 0x7e57c2, 0.25, 0.4, p.y);
     const tick = every(0.25);
     live(5, (t, dt) => {
       disk.rotation.z += 4 * dt;
@@ -517,7 +518,7 @@
       }
       if (Math.random() < 0.6) {
         const a = Math.random() * 6.28,
-          g = dot(0xb39ddb, 0.35, p.x + Math.cos(a) * 12, 0.6 + Math.random() * 3, p.z + Math.sin(a) * 12);
+          g = dot(0xb39ddb, 0.35, p.x + Math.cos(a) * 12, abilityGroundY(p.x, p.z, p.y) + 0.6 + Math.random() * 3, p.z + Math.sin(a) * 12);
         scene.remove(g);
         addFx(g, 0.8, (m, k) => ((m.position.x += (p.x - m.position.x) * 0.08), (m.position.z += (p.z - m.position.z) * 0.08), (m.material.opacity = 1 - k)));
       }
@@ -635,12 +636,12 @@
     const strip = new T.Mesh(new T.PlaneGeometry(3.2, L), mat(0x2e7d32, 0.3));
     strip.rotation.x = -Math.PI / 2;
     strip.rotation.z = -c.yaw;
-    strip.position.set(sx + (f.x * L) / 2, 0.05, sz + (f.z * L) / 2);
+    groundPosition(strip, sx + (f.x * L) / 2, 0.05, sz + (f.z * L) / 2);
     g.add(strip);
     for (let k = 0.6; k < L; k += 1.1)
       for (const side of [-1, 1]) {
         const th = new T.Mesh(new T.ConeGeometry(0.16, 0.9 + Math.random() * 0.6, 5), new T.MeshStandardMaterial({ color: 0x33691e, roughness: 0.8 }));
-        th.position.set(sx + f.x * k - f.z * side * (0.4 + Math.random() * 0.9), 0.35, sz + f.z * k + f.x * side * (0.4 + Math.random() * 0.9));
+        groundPosition(th, sx + f.x * k - f.z * side * (0.4 + Math.random() * 0.9), 0.35, sz + f.z * k + f.x * side * (0.4 + Math.random() * 0.9));
         th.rotation.z = (Math.random() - 0.5) * 0.6;
         g.add(th);
       }
@@ -654,7 +655,7 @@
   H.x_vine_snare = () => {
     const c = player,
       p = aimAt(25);
-    const w = ring(p.x, p.z, 5, 0x66bb6a, 0.8);
+    const w = ring(p.x, p.z, 5, 0x66bb6a, 0.8, undefined, p.y);
     later(0.6, () => {
       drop(w);
       shardErupt(p.x, p.z, 5, 0x43a047, 14);
@@ -666,7 +667,7 @@
       if (Math.random() > rate) return;
       const a = Math.random() * 6.28,
         rr = Math.sqrt(Math.random()) * r,
-        g = dot(col, 0.25 + Math.random() * 0.25, x + Math.cos(a) * rr, 0.3 + Math.random() * 2.2, z + Math.sin(a) * rr);
+        g = dot(col, 0.25 + Math.random() * 0.25, x + Math.cos(a) * rr, abilityGroundY(x, z) + 0.3 + Math.random() * 2.2, z + Math.sin(a) * rr);
       scene.remove(g);
       addFx(g, 1.2, (m, k) => ((m.position.y += 0.01), (m.material.opacity = Math.sin(k * Math.PI))));
     });
@@ -674,7 +675,7 @@
   H.x_pollen = () => {
     const c = player,
       p = aimAt(20),
-      base = disc(p.x, p.z, 7, 0xfff176, 0.12);
+      base = disc(p.x, p.z, 7, 0xfff176, 0.12, p.y);
     particleCloud(p.x, p.z, 7, 0xfff59d, 6, 0.9);
     live(6, () => {
       for (const e of within(foesOf(c), p.x, p.z, 7)) applyConcuss(e, 0.6);
@@ -694,7 +695,7 @@
       s.position.set(Math.cos(a) * rr, h / 2, Math.sin(a) * rr);
       g.add(s);
     }
-    g.position.set(p.x, 0, p.z);
+    g.position.set(p.x, abilityGroundY(p.x, p.z, p.y), p.z);
     scene.add(g);
     const tick = every(0.5);
     live(10, (t, dt) => {
@@ -721,8 +722,8 @@
   H.x_mire = () => {
     const c = player,
       p = aimAt(25),
-      base = disc(p.x, p.z, 8, 0x4e342e, 0.45),
-      edge = ring(p.x, p.z, 8, 0x8d6e63, 0.5);
+      base = disc(p.x, p.z, 8, 0x4e342e, 0.45, p.y),
+      edge = ring(p.x, p.z, 8, 0x8d6e63, 0.5, undefined, p.y);
     const tick = every(1);
     live(6, (t, dt) => {
       const h = tick(dt);
@@ -730,9 +731,9 @@
       if (Math.random() < 0.25) {
         const a = Math.random() * 6.28,
           rr = Math.random() * 7,
-          b = dot(0x9ccc65, 0.3, p.x + Math.cos(a) * rr, 0.1, p.z + Math.sin(a) * rr);
+          b = dot(0x9ccc65, 0.3, p.x + Math.cos(a) * rr, abilityGroundY(p.x, p.z, p.y) + 0.1, p.z + Math.sin(a) * rr);
         scene.remove(b);
-        addFx(b, 0.6, (m, k) => ((m.position.y = 0.1 + 0.4 * k), (m.material.opacity = 1 - k)));
+        addFx(b, 0.6, (m, k) => ((m.position.y = abilityGroundY(m.position.x, m.position.z) + 0.1 + 0.4 * k), (m.material.opacity = 1 - k)));
       }
     }, () => (drop(base), drop(edge)));
   };
@@ -792,7 +793,7 @@
       x = c.pos.x + f.x * 0.8,
       z = c.pos.z + f.z * 0.8,
       L = lanternMesh(0xffcc80, 1);
-    L.position.set(x, 0, z);
+    L.position.set(x, abilityGroundY(x, z), z);
     const r7 = ring(x, z, 7, 0xffcc80, 0.35),
       r14 = ring(x, z, 14, 0xffe0b2, 0.12);
     const tick = every(0.5);
@@ -871,7 +872,7 @@
       for (const o of clones) {
         if (o.done) continue;
         moveWithSlide(o.p, o.dx * 5 * dt, o.dz * 5 * dt, 0, 0.45);
-        o.g.group.position.set(o.p.x, 0, o.p.z);
+        o.g.group.position.set(o.p.x, abilityGroundY(o.p.x, o.p.z), o.p.z);
         o.g.group.rotation.y = o.yaw;
         o.ph += 9 * dt;
         try {
@@ -908,7 +909,7 @@
       for (const e of within(foesOf(c), t.pos.x, t.pos.z, 4)) (slowA(e, 0.4, 3), st(e, "blind", 1.2));
       burst(t.pos.x, t.pos.z, 4, 0xce93d8, 1);
       fxShatter(t.pos.x, t.pos.z, 0xe1bee7);
-    });
+    }, undefined, p.y);
   };
   H.x_ult_legion = () => {
     const c = player,
@@ -918,9 +919,9 @@
       const a = (c.yaw || 0) + (i / 5) * Math.PI * 2,
         x = p.x + Math.sin(a) * 4,
         z = p.z + Math.cos(a) * 4;
-      if (collideXZ(x, z, 0, 0.45)) continue;
+      if (collideXZ(x, z, abilityGroundY(x, z), 0.45)) continue;
       const g = ghostOf(c, 0.45);
-      g.group.position.set(x, 0, z);
+      g.group.position.set(x, abilityGroundY(x, z), z);
       ph.push({ g, x, z, cd: 0.4 + i * 0.24 });
       burst(x, z, 1.4, 0xce93d8, 1);
     }
@@ -928,7 +929,7 @@
       for (const o of ph) {
         if ((o.cd -= dt) > 0) continue;
         o.cd = 1.2;
-        const cand = within(foesOf(c), o.x, o.z, 25).filter((e) => !rayBlocked(o.x, 1.5, o.z, e.pos.x, (e.y || 0) + 1.2, e.pos.z)),
+        const cand = within(foesOf(c), o.x, o.z, 25).filter((e) => !rayBlocked(o.x, abilityGroundY(o.x, o.z) + 1.5, o.z, e.pos.x, (e.y || 0) + 1.2, e.pos.z)),
           e = nearest(cand, o.x, o.z, 26);
         if (!e) continue;
         o.g.group.rotation.y = Math.atan2(-(e.pos.x - o.x), -(e.pos.z - o.z));
@@ -952,7 +953,7 @@
       const stem = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.5, 6), mat(0x80deea, 0.95));
       stem.position.y = 0.25;
       g.add(stem);
-      g.position.set(x, 0, z);
+      g.position.set(x, abilityGroundY(x, z), z);
       scene.add(g);
       const pulse = every(0.4);
       live(4, (t, dt) => {
@@ -982,7 +983,7 @@
       for (const e of within(foesOf(c), t.pos.x, t.pos.z, 6)) (st(e, "nearsight", 3), st(e, "revealed", 4));
       for (let i = 0; i < 3; i++) later(0.12 * i, () => fxRing(t.pos.x, t.pos.z, 6, 0x80deea, 0.5));
       tellTeam(c, "비명 지뢰 작동", "#80deea");
-    });
+    }, undefined, p.y);
   };
   H.x_ult_soundwall = () => {
     const c = player,
@@ -991,7 +992,7 @@
     const pulse = every(0.6);
     live(10, (t, dt) => {
       if (!c.alive) return !1;
-      wall.position.set(c.pos.x, 1.5, c.pos.z);
+      wall.position.set(c.pos.x, abilityGroundY(c.pos.x, c.pos.z) + 1.5, c.pos.z);
       wall.material.opacity = 0.1 + 0.06 * Math.sin(t * 8);
       pulse(dt) && fxRing(c.pos.x, c.pos.z, 15, 0x80deea, 0.5);
       for (const e of within(foesOf(c), c.pos.x, c.pos.z, 15)) (applyConcuss(e, 0.6), st(e, "nearsight", 0.6), st(e, "revealed", 0.6));
@@ -1011,7 +1012,7 @@
     let prev = { x: e0.x, z: e0.z, y: e0.y - 0.3 },
       t0 = 0;
     stops.forEach((s, i) => {
-      const to = { x: c.pos.x + f.x * s, z: c.pos.z + f.z * s, y: 0.4 },
+      const to = { x: c.pos.x + f.x * s, z: c.pos.z + f.z * s, y: abilityGroundY(c.pos.x + f.x * s, c.pos.z + f.z * s, c.y) + .4 },
         dur = [0.45, 0.35, 0.3][i] || 0.3;
       seg.push({ from: prev, to, t0, t1: t0 + dur, h: [3.5, 2.2, 1.4][i] || 1.2, dmg: [30, 30, 20][i] || 20 });
       prev = to;
@@ -1066,8 +1067,8 @@
   H.x_ult_volcano = () => {
     const c = player,
       p = aimAt(30),
-      warn = disc(p.x, p.z, 14, 0xff3d00, 0.12),
-      edge = ring(p.x, p.z, 14, 0xff6e40, 0.7);
+      warn = disc(p.x, p.z, 14, 0xff3d00, 0.12, p.y),
+      edge = ring(p.x, p.z, 14, 0xff6e40, 0.7, undefined, p.y);
     const spots = [{ x: p.x, z: p.z }];
     for (let i = 0; i < 5; i++) {
       const a = (c.yaw || 0) + (i / 5) * Math.PI * 2 + 0.4;
@@ -1094,7 +1095,7 @@
       x = c.pos.x,
       z = c.pos.z,
       dome = new T.Mesh(new T.SphereGeometry(6, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xffe082, 0.16, !0));
-    dome.position.set(x, 0, z);
+    dome.position.set(x, abilityGroundY(x, z), z);
     scene.add(dome);
     const e = ring(x, z, 6, 0xffd54f, 0.6);
     live(6, (t) => {
@@ -1230,7 +1231,7 @@
       s = Math.min(L, s + 22 * dt);
       const x = x0 + f.x * s,
         z = z0 + f.z * s;
-      b.position.set(x, 5, z);
+      b.position.set(x, abilityGroundY(x, z) + 5, z);
       flap(b, t);
       for (const e of within(foesOf(c), x, z, 10)) if (!seen.has(e)) (seen.add(e), st(e, "revealed", 4), fxColumn(e.pos.x, e.pos.z, 0xbcaaa4, 6, 0.8));
     }, () => drop(b), () => tellTeam(c, seen.size ? `매의 눈 — ${seen.size}명` : "매의 눈 — 없음", "#d7ccc8"));
@@ -1268,7 +1269,7 @@
       jet = beamMesh(0x4fc3f7, 0.22, 0.6);
     placeBeam(jet, s.e.x, s.e.y - 0.25, s.e.z, s.end.x, s.end.y, s.end.z);
     live(0.35, (t) => (jet.material.opacity = 0.6 * (1 - t / 0.35)), () => drop(jet));
-    burst(s.end.x, s.end.z, 1.4, 0x81d4fa, s.end.y);
+    burst(s.end.x, s.end.z, 1.4, 0x81d4fa, s.end.y, true);
     if (!s.hit) return;
     shove(s.hit, f.x, f.z, 10, 0.35);
     hurt(s.hit, 15, c);
@@ -1286,7 +1287,7 @@
       mark.material.opacity = 0.4 + 0.4 * Math.sin(t * 6);
       if (!c.alive || world.round !== round) return !1;
     }, () => drop(mark), () => {
-      if (!c.alive || world.round !== round || collideXZ(home.x, home.z, 0, 0.4)) return;
+      if (!c.alive || world.round !== round || collideXZ(home.x, home.z, abilityGroundY(home.x, home.z), 0.4)) return;
       burst(c.pos.x, c.pos.z, 1.5, 0x81d4fa, 0.6);
       c.pos.x = home.x;
       c.pos.z = home.z;
@@ -1318,7 +1319,7 @@
     live(2.5, (t, dt) => {
       const ds = 16 * dt;
       s += ds;
-      wave.position.set(ox + f.x * s, 2.5 - 1.5 * (t / 2.5), oz + f.z * s);
+      groundPosition(wave, ox + f.x * s, 2.5 - 1.5 * (t / 2.5), oz + f.z * s);
       wave.scale.y = 1 - 0.5 * (t / 2.5);
       for (const e of foesOf(c)) {
         const rx = e.pos.x - ox,
@@ -1331,7 +1332,7 @@
       }
       if (Math.random() < 0.8) {
         const k = (Math.random() * 2 - 1) * 10,
-          g = dot(0xe1f5fe, 0.4, ox + f.x * s + px * k, 4 * (1 - t / 2.5) + 0.5, oz + f.z * s + pz * k);
+          g = dot(0xe1f5fe, 0.4, ox + f.x * s + px * k, (c.y || 0) + 4 * (1 - t / 2.5) + 0.5, oz + f.z * s + pz * k);
         scene.remove(g);
         addFx(g, 0.5, (m, q) => (m.material.opacity = 1 - q));
       }
@@ -1354,12 +1355,12 @@
       for (const e of within(foesOf(c), t.pos.x, t.pos.z, 5)) (st(e, "silenced", 5), st(e, "revealed", 5));
       const stamp = new T.Mesh(new T.PlaneGeometry(3.2, 3.2), mat(0xd50000, 0.7));
       stamp.rotation.x = -Math.PI / 2;
-      stamp.position.set(t.pos.x, 0.06, t.pos.z);
+      stamp.position.set(t.pos.x, abilityGroundY(t.pos.x, t.pos.z, t.y) + 0.06, t.pos.z);
       scene.add(stamp);
       live(2, (k) => (stamp.material.opacity = 0.7 * (1 - k / 2)), () => drop(stamp));
       burst(t.pos.x, t.pos.z, 5, 0xff5252, 0.6);
       tellTeam(c, "낙관 — 능력 봉인", "#ff5252");
-    });
+    }, undefined, p.y);
   };
   // a thrown blob that lands exactly where it was aimed
   function lob(c, p, dur, h, col, size, land) {
@@ -1370,14 +1371,14 @@
     scene.add(m);
     live(dur, (t) => {
       const k = t / dur;
-      m.position.set(sx + (p.x - sx) * k, sy + (0.2 - sy) * k + Math.sin(k * Math.PI) * h, sz + (p.z - sz) * k);
+      m.position.set(sx + (p.x - sx) * k, sy + (abilityGroundY(p.x, p.z, p.y) + 0.2 - sy) * k + Math.sin(k * Math.PI) * h, sz + (p.z - sz) * k);
     }, () => drop(m), land);
   }
   H.x_ink_splash = () => {
     const c = player,
       p = aimAt(30);
     lob(c, p, 0.45, 2.5, 0x212121, 0.3, () => {
-      const splat = disc(p.x, p.z, 5, 0x101010, 0.55);
+      const splat = disc(p.x, p.z, 5, 0x101010, 0.55, p.y);
       live(6, (t) => void (splat.material.opacity = 0.55 * (1 - t / 6)), () => drop(splat));
       burst(p.x, p.z, 5, 0x37474f, 0.6);
       for (const e of within(foesOf(c), p.x, p.z, 5)) (st(e, "nearsight", 3), slowA(e, 0.6, 2));
@@ -1406,9 +1407,9 @@
       bar.position.set(Math.cos(a) * R, 2, Math.sin(a) * R);
       g.add(bar);
     }
-    g.position.set(p.x, 0, p.z);
+    g.position.set(p.x, abilityGroundY(p.x, p.z, p.y), p.z);
     scene.add(g);
-    const e0 = ring(p.x, p.z, R, 0xc5cae9, 0.7);
+    const e0 = ring(p.x, p.z, R, 0xc5cae9, 0.7, undefined, p.y);
     live(4, (t, dt) => {
       g.rotation.y += 0.4 * dt;
       for (const e of caged) {
@@ -1435,7 +1436,7 @@
       round = world.round;
     live(1.5, (t) => {
       const k = Math.min(1, t / 1.2);
-      sh.position.set(sx + (tx - sx) * k, 0.06, sz + (tz - sz) * k);
+      groundPosition(sh, sx + (tx - sx) * k, 0.06, sz + (tz - sz) * k);
       if (!c.alive || world.round !== round) return !1;
     }, () => drop(sh), () => {
       if (!c.alive || world.round !== round) return;
@@ -1461,7 +1462,7 @@
     live(8, () => {
       if (!c.alive) return !1;
       moon.position.set(c.pos.x, (c.y || 0) + 16, c.pos.z);
-      halo.position.set(c.pos.x, 0.05, c.pos.z);
+      groundPosition(halo, c.pos.x, 0.05, c.pos.z);
       for (const e of within(foesOf(c), c.pos.x, c.pos.z, 30)) (st(e, "revealed", 0.6), slowA(e, 0.7, 0.3));
       for (const a of within(mates(c), c.pos.x, c.pos.z, 30)) speedUp(a, 1.2, 0.4);
     }, () => (scene.remove(moon), drop(halo)));
@@ -1504,7 +1505,7 @@
   H.x_hail = () => {
     const c = player,
       p = aimAt(25),
-      base = disc(p.x, p.z, 8, 0xb3e5fc, 0.15),
+      base = disc(p.x, p.z, 8, 0xb3e5fc, 0.15, p.y),
       tick = every(0.5);
     live(3, (t, dt) => {
       if (Math.random() < 0.9) {
@@ -1513,8 +1514,8 @@
           x = p.x + Math.cos(a) * rr,
           z = p.z + Math.sin(a) * rr,
           h = new T.Mesh(new T.IcosahedronGeometry(0.12, 0), mat(0xffffff, 0.95));
-        h.position.set(x, 12, z);
-        addFx(h, 0.45, (m, k) => (m.position.y = 12 * (1 - k)));
+        h.position.set(x, abilityGroundY(x, z) + 12, z);
+        addFx(h, 0.45, (m, k) => (m.position.y = abilityGroundY(m.position.x, m.position.z) + 12 * (1 - k)));
       }
       if (tick(dt)) for (const e of within(foesOf(c), p.x, p.z, 8)) (hurt(e, 8, c), slowA(e, 0.6, 1));
     }, () => drop(base));
@@ -1530,7 +1531,7 @@
       const s = new T.Mesh(new T.PlaneGeometry(0.45, L), mat(col, 0.45, !0));
       s.rotation.x = -Math.PI / 2;
       s.rotation.z = -c.yaw;
-      s.position.set(sx + (f.x * L) / 2 + -f.z * (i - 2.5) * 0.45, 0.06, sz + (f.z * L) / 2 + f.x * (i - 2.5) * 0.45);
+      groundPosition(s, sx + (f.x * L) / 2 + -f.z * (i - 2.5) * 0.45, 0.06, sz + (f.z * L) / 2 + f.x * (i - 2.5) * 0.45);
       g.add(s);
     });
     scene.add(g);
@@ -1543,8 +1544,8 @@
       p = aimAt(30),
       R = 18,
       cl = rainCloud(9, 0x37474f),
-      base = disc(p.x, p.z, R, 0x263238, 0.18);
-    cl.position.set(p.x, 14, p.z);
+      base = disc(p.x, p.z, R, 0x263238, 0.18, p.y);
+    cl.position.set(p.x, abilityGroundY(p.x, p.z, p.y) + 14, p.z);
     let cd = 0.4,
       k = 0;
     const tick = every(0.5);
@@ -1633,7 +1634,7 @@
     if (s.hit) return void (st(s.hit, "revealed", 10), headMark(s.hit, 0xffab40, 10, 0.4), tellTeam(c, "추적 다트 명중", "#ffab40"));
     const x = s.end.x - s.dx * 0.3,
       z = s.end.z - s.dz * 0.3,
-      blip = dot(0xffab40, 0.5, x, 1.2, z),
+      blip = dot(0xffab40, 0.5, x, abilityGroundY(x, z) + 1.2, z),
       r15 = ring(x, z, 15, 0xffab40, 0.15);
     live(15, (t) => {
       blip.material.opacity = 0.5 + 0.5 * Math.sin(t * 8);
@@ -1661,15 +1662,15 @@
     const c = player,
       tg = nearest(foesOf(c), c.pos.x, c.pos.z, 40),
       h = houndMesh(0x8d6e63),
-      p = new T.Vector3(c.pos.x + f.x, 0, c.pos.z + f.z);
+      p = new T.Vector3(c.pos.x + f.x, c.y || 0, c.pos.z + f.z);
     let done = !1;
     live(tg ? 5 : 1.2, (t, dt) => {
       const tx = tg ? tg.pos.x : c.pos.x + f.x * 8,
         tz = tg ? tg.pos.z : c.pos.z + f.z * 8,
         D = Math.hypot(tx - p.x, tz - p.z);
       if (tg && !tg.alive) return !1;
-      if (D > 1.4) moveWithSlide(p, ((tx - p.x) / D) * Math.min(D, 12 * dt), ((tz - p.z) / D) * Math.min(D, 12 * dt), 0, 0.3);
-      h.position.set(p.x, 0, p.z);
+      if (D > 1.4) moveWithSlide(p, ((tx - p.x) / D) * Math.min(D, 12 * dt), ((tz - p.z) / D) * Math.min(D, 12 * dt), abilityGroundY(p.x, p.z, p.y), 0.3);
+      h.position.set(p.x, abilityGroundY(p.x, p.z, p.y), p.z);
       h.rotation.y = Math.atan2(-(tx - p.x), -(tz - p.z));
       h.children.forEach((l, i) => l.userData.leg && (l.rotation.x = Math.sin(t * 22 + i * 1.6) * 0.7));
       if (tg && D <= 1.5) {
@@ -1685,10 +1686,10 @@
   H.x_flare = () => {
     const c = player,
       p = aimAt(30),
-      fl = dot(0xff6e40, 1.4, p.x, 0.5, p.z),
-      r20 = ring(p.x, p.z, 20, 0xff9e80, 0.18);
+      fl = dot(0xff6e40, 1.4, p.x, abilityGroundY(p.x, p.z, p.y) + 0.5, p.z),
+      r20 = ring(p.x, p.z, 20, 0xff9e80, 0.18, undefined, p.y);
     live(6.5, (t) => {
-      fl.position.y = Math.min(8, 0.5 + t * 15);
+      fl.position.y = abilityGroundY(p.x, p.z, p.y) + Math.min(8, 0.5 + t * 15);
       fl.material.opacity = 0.75 + 0.25 * Math.sin(t * 23);
       if (t > 0.5) for (const e of within(foesOf(c), p.x, p.z, 20)) st(e, "revealed", 0.6);
     }, () => (scene.remove(fl), drop(r20)));
@@ -1729,7 +1730,7 @@
     base.position.y = 0.3;
     head.position.y = 0.75;
     g.add(base, head);
-    g.position.set(p.x, 0, p.z);
+    g.position.set(p.x, abilityGroundY(p.x, p.z, p.y), p.z);
     scene.add(g);
     const beam = beamMesh(0xff1744, 0.05, 0.85),
       last = new Map();
@@ -1737,9 +1738,9 @@
       const a = t * Math.PI,
         dx = Math.sin(a),
         dz = Math.cos(a),
-        L = clearLen(p.x, p.z, dx, dz, 10, 0);
+        L = clearLen(p.x, p.z, dx, dz, 10, abilityGroundY(p.x, p.z, p.y));
       head.rotation.y = a;
-      placeBeam(beam, p.x, 0.75, p.z, p.x + dx * L, 0.75, p.z + dz * L);
+      placeBeam(beam, p.x, g.position.y + 0.75, p.z, p.x + dx * L, g.position.y + 0.75, p.z + dz * L);
       for (const e of onLine(foesOf(c), p.x, p.z, dx, dz, L, 0.9)) {
         if (t - (last.get(e) || -9) < 0.6) continue;
         last.set(e, t);
@@ -1756,12 +1757,12 @@
       pz = f.x,
       HALF = 7;
     const panel = new T.Mesh(new T.PlaneGeometry(HALF * 2, 3.6), mat(0x18ffff, 0.32, !0));
-    panel.position.set(p.x, 1.8, p.z);
+    panel.position.set(p.x, abilityGroundY(p.x, p.z, p.y) + 1.8, p.z);
     panel.rotation.y = c.yaw;
     scene.add(panel);
     const parts = [];
     for (let k = -HALF + 0.8; k <= HALF - 0.8; k += 1.6) {
-      const o = { x: p.x + px * k, z: p.z + pz * k, r: 1.15, y: 0, life: 15, maxLife: 15, mesh: new T.Group(), blocksVision: !0 };
+      const o = { x: p.x + px * k, z: p.z + pz * k, r: 1.15, y: abilityGroundY(p.x, p.z, p.y), life: 15, maxLife: 15, mesh: new T.Group(), blocksVision: !0 };
       scene.add(o.mesh);
       world.smokes.push(o);
       parts.push(o);
@@ -1795,7 +1796,7 @@
       const pop = () => {
         if (boom) return;
         boom = !0;
-        burst(p.x, p.z, 3, 0x69f0ae, p.y);
+        burst(p.x, p.z, 3, 0x69f0ae, p.y, true);
         for (const e of within(foesOf(c), p.x, p.z, 3)) (hurt(e, 40, c), st(e, "revealed", 5));
       };
       live(tg ? 8 : 2, (t, dt) => {
@@ -1829,7 +1830,7 @@
     scene.add(flask);
     live(0.5, (t) => {
       const k = t / 0.5;
-      flask.position.set(sx + (tg.pos.x - sx) * k, 1.4 + Math.sin(k * Math.PI) * 2.5, sz + (tg.pos.z - sz) * k);
+      groundPosition(flask, sx + (tg.pos.x - sx) * k, 1.4 + Math.sin(k * Math.PI) * 2.5, sz + (tg.pos.z - sz) * k);
     }, () => drop(flask), () => {
       if (!tg.alive) return;
       heal(tg, 40);
@@ -1842,7 +1843,7 @@
     const c = player,
       p = aimAt(20);
     particleCloud(p.x, p.z, 5, 0xce93d8, 1.4, 0.95);
-    const w = ring(p.x, p.z, 5, 0xba68c8, 0.6);
+    const w = ring(p.x, p.z, 5, 0xba68c8, 0.6, undefined, p.y);
     later(0.8, () => {
       drop(w);
       for (const e of within(foesOf(c), p.x, p.z, 5)) {
@@ -1859,13 +1860,13 @@
       z = c.pos.z + f.z * 0.6,
       bag = new T.Mesh(new T.SphereGeometry(0.28, 10, 8), new T.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9, emissive: 0x33691e, emissiveIntensity: 0.3 })),
       leaf = glowDot(0x9ccc65, 0.9);
-    bag.position.set(x, 0.3, z);
-    leaf.position.set(x, 0.7, z);
+    bag.position.set(x, abilityGroundY(x, z) + 0.3, z);
+    leaf.position.set(x, abilityGroundY(x, z) + 0.7, z);
     scene.add(bag);
     scene.add(leaf);
     const r3 = ring(x, z, 3, 0x9ccc65, 0.35);
     live(20, (t) => {
-      bag.position.y = 0.3 + 0.08 * Math.sin(t * 3);
+      bag.position.y = abilityGroundY(x, z) + 0.3 + 0.08 * Math.sin(t * 3);
       const a = within(mates(c), x, z, 3).filter((m) => m.hp < 100).sort((p, q) => p.hp - q.hp)[0];
       if (a) return void (heal(a, 50), burst(a.pos.x, a.pos.z, 1.5, 0x9ccc65, 1), !1);
     }, () => (drop(bag), scene.remove(leaf), drop(r3)));
@@ -1883,7 +1884,7 @@
       fl.position.set(Math.cos(a) * rr, 0.25 + Math.random() * 0.2, Math.sin(a) * rr);
       g.add(fl);
     }
-    g.position.set(x, 0, z);
+    g.position.set(x, abilityGroundY(x, z), z);
     scene.add(g);
     const base = disc(x, z, R, 0x66bb6a, 0.16),
       tick = every(0.5);
@@ -1902,12 +1903,12 @@
       sx = c.pos.x,
       sz = c.pos.z,
       shell = new T.Mesh(new T.SphereGeometry(0.22, 10, 8), mat(0x546e7a, 0.95)),
-      warn = ring(p.x, p.z, 6, 0xff7043, 0.7);
+      warn = ring(p.x, p.z, 6, 0xff7043, 0.7, undefined, p.y);
     shell.add(glowDot(0xffab40, 0.6));
     scene.add(shell);
     live(1.6, (t) => {
       const k = t / 1.6;
-      shell.position.set(sx + (p.x - sx) * k, 1.5 + Math.sin(k * Math.PI) * 20, sz + (p.z - sz) * k);
+      groundPosition(shell, sx + (p.x - sx) * k, 1.5 + Math.sin(k * Math.PI) * 20, sz + (p.z - sz) * k);
       warn.material.opacity = 0.4 + 0.35 * Math.sin(t * 16);
     }, () => (drop(shell), drop(warn)), () => {
       burst(p.x, p.z, 6, 0xffab40, 0.8);
@@ -1924,7 +1925,7 @@
       spots.push({ x: p.x + Math.sin(a) * 3, z: p.z + Math.cos(a) * 3 });
     }
     for (const s of spots) {
-      if (collideXZ(s.x, s.z, 0, 0.3)) continue;
+      if (collideXZ(s.x, s.z, abilityGroundY(s.x, s.z), 0.3)) continue;
       makeTrap(s.x, s.z, 2, 0xffab40, (t) => {
         burst(t.pos.x, t.pos.z, 2.5, 0xffab40, 0.6);
         hurt(t, 25, c);
@@ -1949,7 +1950,7 @@
     const geo = new T.BufferGeometry();
     geo.setAttribute("position", new T.Float32BufferAttribute(pts, 3));
     g.add(new T.LineSegments(geo, new T.LineBasicMaterial({ color: 0xb0bec5 })));
-    g.position.set(p.x, 0, p.z);
+    g.position.set(p.x, abilityGroundY(p.x, p.z, p.y), p.z);
     scene.add(g);
     const tick = every(0.25);
     live(20, (t, dt) => {

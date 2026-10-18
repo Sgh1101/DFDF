@@ -1,6 +1,6 @@
 {
   "minecraftVersion": "1.20.1",
-  "attribution": "Minecraft note-block recordings by Mojang Studios. Kill arrangements from Seafle ChampionsPhantom2026. Original recordings preserved without re-encoding.",
+  "attribution": "Minecraft note-block recordings by Mojang Studios. Kill, inspect and finisher music arrangements from Seafle ChampionsPhantom2026. Original recordings preserved without re-encoding.",
   "samples": {
     "block.note_block.basedrum": {
       "file": "bd.ogg",
@@ -50,6 +50,20 @@
       "sha1": "20d06589bd5ab81a73989bdac8ca59ecd4d66932",
       "sha256": "d7e3638d4c0fba4614f24ba94d6380935ae2341536d76989e44f00ffd94a1459",
       "source": "https://resources.download.minecraft.net/20/20d06589bd5ab81a73989bdac8ca59ecd4d66932"
+    },
+    "block.note_block.hat": {
+      "file": "hat.ogg",
+      "bytes": 3880,
+      "sha1": "fd2b6f745b05a2cf44a4e010f72631de2e5099f6",
+      "sha256": "8139400f63c0bc7114e960826a11bb1cd561e8f0c01dce077dbc6424ae51ab6c",
+      "source": "https://resources.download.minecraft.net/fd/fd2b6f745b05a2cf44a4e010f72631de2e5099f6"
+    },
+    "block.note_block.snare": {
+      "file": "snare.ogg",
+      "bytes": 3969,
+      "sha1": "6967f0af60f480e81d32f1f8e5f88ccafec3a40c",
+      "sha256": "a2a5168e70548dcddd5015204cec586365e611854e83bf634b42f2a6ddd8c3b7",
+      "source": "https://resources.download.minecraft.net/69/6967f0af60f480e81d32f1f8e5f88ccafec3a40c"
     }
   }
 }

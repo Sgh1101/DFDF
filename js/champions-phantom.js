@@ -253,6 +253,7 @@
   }
   function demo(part) {
     stop(); const skin = GS.list.find((s) => s.id === selected);
+    if (part === "inspect") window.CHAMPIONS_AUDIO?.playMusic("inspect", true, 10.2);
     if (part === "kill") {
       const fx = $("killfx"); bannerHome = fx.parentElement; document.body.appendChild(fx); fx.classList.add("phantom-preview"); fx.hidden = false;
       killPreviewCount = killPreviewCount % 5 + 1;
@@ -265,9 +266,14 @@
       const obj = studio.obj;
       if (!obj) return;
       preview = { obj, position: obj.position.clone(), rotation: obj.rotation.clone() }; const started = performance.now();
-      const duration = part === "inspect" ? 3 : 2.8;
+      const run = preview;
+      const duration = part === "inspect" ? 10.2 : 2.8;
       const frame = () => {
-        if (!preview || !GS.isOpen() || studio.obj !== obj) return stop();
+        if (preview !== run) return; // An older preview must never stop a newer song/motion.
+        if (!GS.isOpen()) return stop();
+        // Installing the original model can replace the studio object while its
+        // song is loading. Retire that motion without cancelling the new audio.
+        if (studio.obj !== obj) { preview = null; previewRAF = 0; return; }
         const t = (performance.now() - started) / 1000; if (t > duration) return stop();
         obj.position.copy(preview.position); obj.rotation.copy(preview.rotation);
         const envelope = Math.sin(Math.PI * t / duration);
@@ -319,16 +325,27 @@
     <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
     <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
 
+    <p id="phantom-audio-status" role="status" hidden></p>
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
     <div class="pp-source"><label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button></div>
     <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
   $("champions-content").appendChild(panel);
+  addEventListener("champions-audio-state", ({ detail }) => {
+    const node = $("phantom-audio-status");
+    node.hidden = detail === "idle";
+    node.textContent = ({
+      loading: L("원본 음원 불러오는 중… 잠시만 기다려 주세요.", "Loading original audio…"),
+      playing: L("원본 연주 재생 중 · 중지를 누르면 멈춥니다.", "Playing the original arrangement · press Stop to end."),
+      muted: L("효과음이 꺼져 있어요. 설정에서 효과음을 켠 뒤 다시 눌러 주세요.", "Sound effects are off. Enable them in Settings and try again."),
+      error: L("음원을 재생하지 못했어요. 미리보기 버튼을 다시 눌러 재시도하세요.", "Audio could not play. Press the preview button to retry."),
+    })[detail] || "";
+  });
   addEventListener("champions-open", showSelected);
   new MutationObserver(() => { if ($("ar-p-champions").hidden) stop(); }).observe($("ar-p-champions"), { attributes: true, attributeFilter: ["hidden"] });
   panel.querySelectorAll("[data-phantom-skin]").forEach((b) => b.onclick = () => choose(b.dataset.phantomSkin));
   panel.querySelectorAll("[data-phantom-demo]").forEach((b) => b.onclick = () => {
     choose(selected); demo(b.dataset.phantomDemo); b.classList.add("playing");
-    playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 2800, inspect: 3000, reload: 2800 }[b.dataset.phantomDemo] || 1500);
+    playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 8000, inspect: 10200, reload: 2800 }[b.dataset.phantomDemo] || 1500);
   });
   $("phantom-stop").onclick = stop;
   $("phantom-file").onchange = async (event) => {

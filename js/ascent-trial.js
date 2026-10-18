@@ -28,12 +28,16 @@
     return out;
   }
   S.nearby=nearby;
+  // Use the same support footprint and step ceiling as player movement. A tiny
+  // point ray falls through slab seams/ledge centers that still support a body.
+  S.groundY=(x,z,reference=player.y||0)=>groundAt(x,z,reference);
   function surface(x,z,ceiling=19,r=PR) {
     const candidates=nearby(x,z,r).filter(c=>c.h<=ceiling&&x+r>c.minX&&x-r<c.maxX&&z+r>c.minZ&&z-r<c.maxZ).sort((a,b)=>Math.abs(a.h-7.5)-Math.abs(b.h-7.5));
     for(const c of candidates) if(!collideXZ(x,z,c.h+.02,r)) return c.h;
     return NaN;
   }
   const oldGround=groundAt;
+  S.standAt=(x,z)=>{const p=safe({x,z});return Math.hypot(p.x-x,p.z-z)<=8&&!collideXZ(p.x,p.z,p.y,PR)?p:null;};
   groundAt=function(x,z,y) {
     if(!on()) return oldGround.apply(this,arguments);
     let top=0;
@@ -66,6 +70,21 @@
     }
     if(dy<0)best=Math.min(best,-oy/dy);
     return best;
+  };
+  const oldAim=aimPoint;
+  aimPoint=function(distance){
+    if(!on())return oldAim.apply(this,arguments);
+    const max=distance*(window.AB_D||1),origin=new T.Vector3(player.pos.x,(player.y||0)+eyeHeight(),player.pos.z);
+    const direction=new T.Vector3(-Math.sin(player.yaw)*Math.cos(player.pitch),Math.sin(player.pitch),-Math.cos(player.yaw)*Math.cos(player.pitch));
+    const wall=S.rayT(origin.x,origin.y,origin.z,direction.x,direction.y,direction.z,max);
+    let nearest=wall,target=null;
+    for(const actor of otherFighters())if(actor.alive&&actor.team!==player.team){
+      const t=raySphereT(origin,direction,actor.pos.x,(actor.y||0)+1,actor.pos.z,.9);
+      if(t>=0&&t<nearest){nearest=t;target=actor;}
+    }
+    if(target)return{x:target.pos.x,y:target.y||0,z:target.pos.z,hit:true,target};
+    const point=origin.addScaledVector(direction,Math.max(0,nearest-.025));
+    return{x:point.x,y:Math.max(0,point.y),z:point.z,hit:wall<max};
   };
   const oldRay=rayBlocked;
   rayBlocked=function(x,y,z,X,Y,Z,skip) {
