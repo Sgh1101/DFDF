@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
+const sourceOracle = require('./finisher-source-oracle');
 // The original finisher was explored and captured before this UI test was authored.
 (async () => {
   const f = await fixture(), dir = path.resolve("test-results/champions-finish"); fs.mkdirSync(dir, { recursive: true });
@@ -56,6 +57,9 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       assert.equal(state.vertices, (214 + (skin === "champions_atk" ? 259 : 256)) * 36);
       assert.match(state.map, skin === "champions_atk" ? /dragon_low_black/ : /dragon_low_white/);
       await p.evaluate(() => __finishRender()); await p.screenshot({ path: path.join(dir, skin + "-large-original.png") });
+      const fidelity = await sourceOracle(p);
+      for(const model of fidelity){assert.ok(model.maxError<.001,model.name+' native vertex error '+model.maxError);assert.ok(model.eyeDistance.every(n=>n<.35),model.name+' eye alignment '+JSON.stringify(model.eyeDistance));}
+      console.log('GeckoLib native reference',JSON.stringify(fidelity));
       await p.clock.fastForward(5199); state = await metrics(); assert.equal(state.round, start.round); assert.equal(state.phase, "end"); assert.equal(state.visible, true); assert.equal(state.timer, "1");
       await p.clock.fastForward(1); state = await metrics(); assert.equal(state.round, start.round + 1); assert.equal(state.phase, "buy"); assert.equal(state.active, 0);
       console.log(skin, "source vertices", (214 + (skin === "champions_atk" ? 259 : 256)) * 36, "height", preview.height, "8s next round passed");

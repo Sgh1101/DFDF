@@ -121,10 +121,20 @@
     native.scale.setScalar(1.25 / 16); native.position.y = 4.15 * (1 - 1.25); figure.add(native);
     for (const name of names) {
       const path = name === "dragon_low" ? "dragon_low_black" : name;
-      const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.01, side: T.DoubleSide });
+      const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.1, side: T.FrontSide });
+      // The supplied finisher_model shader shades each face with Minecraft's two
+      // diffuse lights, then mixes 20% emissive. A flat unlit material lost the form.
+      material.onBeforeCompile = shader => {
+        shader.vertexShader = 'varying vec3 vFinisherNormal;\n' + shader.vertexShader.replace('void main() {', 'void main() {\nvFinisherNormal = normalize(mat3(modelMatrix) * normal);');
+        shader.fragmentShader = 'varying vec3 vFinisherNormal;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+          vec3 finN = normalize(vFinisherNormal);
+          float finLight = min(1.0, 0.4 + 0.6 * (max(0.0, dot(normalize(vec3(0.2, 1.0, -0.7)), finN)) + max(0.0, dot(normalize(vec3(-0.2, 1.0, 0.7)), finN))));
+          diffuseColor.rgb *= mix(finLight, 1.0, 0.2);`);
+      };
+      material.customProgramCacheKey = () => 'champions-finisher-native-diffuse-v1';
       mats.push(material);
       const geo = A.json(assets, "geo/finisher/" + name + ".geo.json")["minecraft:geometry"][0];
-      const rig = buildGeo(geo, material); rig.name = "original-" + name; rig.userData.source = "geo/finisher/" + name + ".geo.json"; native.add(rig);
+      const rig = GECKO_FINISHER_RIG.build(geo, material); rig.name = "original-" + name; rig.userData.source = "geo/finisher/" + name + ".geo.json"; native.add(rig);
     }
     const box = new T.Box3().setFromObject(figure), size = box.getSize(new T.Vector3());
     const playerHeight = 2.1 * BODY_K, enlargement = Math.max(1, playerHeight * 5 / size.y);
