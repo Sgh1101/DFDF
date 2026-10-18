@@ -10,7 +10,7 @@
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
   const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px';
   panel.append(title,msg,start,exit);panel.hidden=!trial;document.body.append(panel);
-  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[]};
+  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[],graphicsStatic:true};
   const entry={key:KEY,name:'마크X발로',size:5};
   (window.MAP_EXTRA||=[]).push(entry);
   if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push(entry);
@@ -286,7 +286,7 @@
         const url=URL.createObjectURL(new Blob([ab],{type:'image/png'}));atlasTexture=await new T.TextureLoader().loadAsync(url);URL.revokeObjectURL(url);atlasTexture.colorSpace=T.SRGBColorSpace;atlasTexture.magFilter=T.NearestFilter;atlasTexture.minFilter=T.NearestMipmapNearestFilter;
         S.textureCount=palette.tiles.length;
       }
-      MAPS[KEY]={
+      MAPS[KEY]={graphicsStatic:true,
         key:KEY,name:'마크X발로',size:5,theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
         attackSpawn:sourcePoint(95,193),defendSpawn:sourcePoint(175,55),

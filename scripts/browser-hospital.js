@@ -7,7 +7,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   const f = await fixture();
   try {
     const dir = process.env.SHOT_DIR;
-    const page = await f.page("hospital", { width: 1280, height: 720 });
+    const page = await f.page("hospital", { width: 1280, height: 720 }, {}, {quality:'perf'});
     await page.evaluate(() => { titleCam = () => {}; });
     const load = await page.evaluate(() => {
       room.mode = "std"; room.map = "hospital"; startGame(AGENTS[0], false); closeShop();
@@ -151,7 +151,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // ── the graphics presets: more light and sharper surfaces on the stronger ones, the bank freed afterwards ──
     const tiers = await page.evaluate(() => {
       const out = {}, was = SETTINGS.quality;
-      for (const q of ["perf", "balance", "visual", "ultra", "balance"]) {
+      for (const q of ["mobile", "perf", "visual", "ultra", "perf"]) {
         setQuality(q);
         const mats = new Set(HOSPITAL.meshes.map((m) => m.material)), has = (k) => [...mats].some((m) => m[k] && m[k].image);
         const wall = [...mats].find((m) => m.map && m.map.image && m.map.image.width >= 256 && m.normalMap !== void 0 && m.vertexColors);
@@ -162,11 +162,11 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return out;
     });
     console.log("tiers", JSON.stringify(tiers));
-    assert.deepEqual([tiers.perf.lights, tiers.balance.lights, tiers.visual.lights, tiers.ultra.lights], [3, 4, 7, 9], "lights follow the preset");
-    assert.ok(tiers.perf.mapMax < tiers.balance.mapMax && tiers.balance.mapMax < tiers.visual.mapMax, "sharper surfaces on stronger presets: " + [tiers.perf.mapMax, tiers.balance.mapMax, tiers.visual.mapMax]);
-    assert.ok(!tiers.perf.normal && !tiers.balance.normal && tiers.visual.normal && tiers.visual.rough && tiers.ultra.normal, "relief and gloss maps only from the visual preset");
-    assert.ok(tiers.visual.aniso >= tiers.balance.aniso, "filtering is not weaker on the stronger preset");
-    assert.ok(!tiers.balance2.normal && tiers.balance2.mapMax === tiers.balance.mapMax, "going back to a weaker preset frees the stronger textures");
+    assert.deepEqual([tiers.mobile.lights, tiers.perf.lights, tiers.visual.lights, tiers.ultra.lights], [2, 3, 7, 9], "lights follow the preset");
+    assert.ok(tiers.mobile.mapMax === tiers.perf.mapMax && tiers.perf.mapMax < tiers.visual.mapMax, "sharper surfaces on visual presets: " + [tiers.mobile.mapMax, tiers.perf.mapMax, tiers.visual.mapMax]);
+    assert.ok(!tiers.mobile.normal && !tiers.perf.normal && tiers.visual.normal && tiers.visual.rough && tiers.ultra.normal, "relief and gloss maps only from the visual preset");
+    assert.ok(tiers.visual.aniso >= tiers.perf.aniso, "filtering is not weaker on the stronger preset");
+    assert.ok(!tiers.perf2.normal && tiers.perf2.mapMax === tiers.perf.mapMax, "going back to a weaker preset frees the stronger textures");
     assert.ok(tiers.visual.bankMs < 6000, "the textures of the strongest preset are made quickly (" + tiers.visual.bankMs + " ms; reading a GPU canvas back used to take 14 s)");
 
     // ── taking it down ──

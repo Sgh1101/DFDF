@@ -10,7 +10,7 @@ const T = THREE,
   canvas = $("cv"),
   renderer = new T.WebGLRenderer({
     canvas: canvas,
-    antialias: !0,
+    antialias: !1, // Visual modes use the post target's MSAA; low modes avoid permanent canvas MSAA.
     powerPreference: "high-performance",
   });
 (renderer.setPixelRatio(Math.min(devicePixelRatio, 2)),
@@ -1452,7 +1452,7 @@ const touch = {
     touchSens: 1,
     shake: !0,
     sfx: !0,
-    quality: "balance",
+    quality: GRAPHICS_SETTINGS.defaultMode(AUTO_TOUCH || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)),
     showFps: !1,
     dynRes: !0,
     dmgNums: !0,
@@ -1469,6 +1469,7 @@ function loadSettings() {
       for (const e in SET_DEF) void 0 !== t[e] && (SETTINGS[e] = t[e]);
     }
   } catch (e) {}
+  SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
 }
 function saveSettings() {
   try {
@@ -11634,108 +11635,9 @@ function viewmodelFireKick() {
     (VM.kickSide = 2 * (Math.random() - 0.5)));
 }
 const _rnd = (e, t) => e + Math.random() * (t - e),
-  GFX = {
-    pixel: 1,
-    shadow: !0,
-    shadowRes: 1024,
-    charShadow: !0,
-    decorShadow: !1,
-    lamps: 6,
-    detailGun: !1,
-    fx: 1,
-    tracer: !0,
-    shells: !0,
-    post: !0,
-    msaa: 2,
-    bloom: 1,
-  },
-  GFX_PRESETS = {
-    min: {
-      name: "최소",
-      desc: "가장 가볍다. 오래된 노트북·폰",
-      pixel: 0.6,
-      shadow: !1,
-      shadowRes: 512,
-      charShadow: !1,
-      decorShadow: !1,
-      lamps: 0,
-      detailGun: !1,
-      fx: 0.35,
-      tracer: !0,
-      shells: !1,
-      post: !1,
-      bloom: 0,
-    },
-    perf: {
-      name: "성능",
-      desc: "그림자를 끄고 해상도를 낮춘다",
-      pixel: 0.8,
-      shadow: !1,
-      shadowRes: 512,
-      charShadow: !1,
-      decorShadow: !1,
-      lamps: 3,
-      detailGun: !1,
-      fx: 0.6,
-      tracer: !0,
-      shells: !1,
-      post: !1,
-      bloom: 0,
-    },
-    balance: {
-      name: "균형",
-      desc: "기본값. 대부분의 기기에서 무난",
-      pixel: 1,
-      shadow: !0,
-      shadowRes: 1024,
-      charShadow: !0,
-      decorShadow: !1,
-      lamps: 4,
-      detailGun: !1,
-      fx: 1,
-      tracer: !0,
-      shells: !0,
-      post: !0,
-      bloom: 0.9,
-      msaa: 2,
-    },
-    visual: {
-      name: "비주얼",
-      desc: "3인칭 총 상세 모델 + 그림자 고해상도",
-      pixel: 1,
-      shadow: !0,
-      shadowRes: 2048,
-      charShadow: !0,
-      decorShadow: !0,
-      lamps: 12,
-      detailGun: !0,
-      fx: 1.4,
-      tracer: !0,
-      shells: !0,
-      post: !0,
-      bloom: 1,
-      msaa: 4,
-    },
-    ultra: {
-      name: "최고",
-      desc: "전부 최대. 사양 좋은 PC 전용",
-      pixel: 2,
-      shadow: !0,
-      shadowRes: 4096,
-      charShadow: !0,
-      decorShadow: !0,
-      lamps: 20,
-      detailGun: !0,
-      fx: 1.8,
-      tracer: !0,
-      shells: !0,
-      post: !0,
-      bloom: 1.1,
-      msaa: 4,
-      shadowEvery: 1,
-    },
-  },
-  GFX_ORDER = ["min", "perf", "balance", "visual", "ultra"],
+  GFX = {...GRAPHICS_SETTINGS.presets[SETTINGS.quality]},
+  GFX_PRESETS = GRAPHICS_SETTINGS.presets,
+  GFX_ORDER = GRAPHICS_SETTINGS.order,
   LAMP_LIT = { n: 0, max: 6 },
   DECOR = new T.Group();
 ((DECOR.userData.keep = !0), scene.add(DECOR));
@@ -18962,13 +18864,14 @@ function paintQuality() {
   const e = $("st-quality");
   if (!e) return;
   e.innerHTML = "";
-  [["auto", "자동", "프레임을 보고 알아서 조절"]]
-    .concat(GFX_ORDER.map((e) => [e, GFX_PRESETS[e].name, GFX_PRESETS[e].desc]))
+  GFX_ORDER.map((e) => [e, GFX_PRESETS[e].name, GFX_PRESETS[e].desc])
     .forEach(([t, o, a]) => {
       const n = document.createElement("button");
       ((n.className = "pz-q" + (SETTINGS.quality === t ? " on" : "")),
         (n.textContent = o),
         (n.title = a),
+        (n.dataset.quality = t),
+        n.setAttribute('aria-pressed', SETTINGS.quality === t ? 'true' : 'false'),
         (n.onclick = () => {
           (setQuality(t), paintQuality(), paintSettings());
         }),
@@ -18976,12 +18879,7 @@ function paintQuality() {
     });
   const t = $("st-q-desc");
   if (t) {
-    const e =
-      "auto" === SETTINGS.quality
-        ? "프레임이 떨어지면 성능 쪽으로, 여유가 있으면 비주얼 쪽으로 옮깁니다"
-        : GFX_PRESETS[SETTINGS.quality]
-          ? GFX_PRESETS[SETTINGS.quality].desc
-          : "";
+    const e = GFX_PRESETS[SETTINGS.quality]?.desc || "";
     t.textContent = e;
   }
   updateGfxLabel();
@@ -19379,7 +19277,8 @@ function updateAdminMark() {
   }),
   ($("pz-reset").onclick = () => {
     (Object.assign(SETTINGS, SET_DEF),
-      saveSettings(),
+      setQuality(SETTINGS.quality),
+      ($("fps").hidden = !SETTINGS.showFps),
       paintSettings(),
       banner("설정을 기본값으로 되돌렸습니다", "#4ade80"));
   }),
@@ -20033,9 +19932,6 @@ function drawMini() {
 let last = performance.now(),
   respawnT = 0;
 const perf = {
-  samples: [],
-  level: 2,
-  cooldown: 3,
   fps: 60,
   fpsT: 0,
   frames: 0,
@@ -20052,21 +19948,6 @@ function autoQuality(e, r) {
       (e.style.color =
         perf.fps >= 50 ? "#4ade80" : perf.fps >= 30 ? "#ffc849" : "#ff6b6b"));
   }
-  if ("auto" !== SETTINGS.quality) return;
-  if ((perf.samples.push(e), perf.samples.length < 45)) return;
-  const t = perf.samples.reduce((e, t) => e + t, 0) / perf.samples.length;
-  if (((perf.samples.length = 0), perf.cooldown > 0))
-    return void perf.cooldown--;
-  const o = 1 / t;
-  o < 40 && perf.level > 0
-    ? (perf.level--, (perf.cooldown = 3), applyQuality())
-    : o > 58 &&
-      perf.level < 2 &&
-      (perf.level++, (perf.cooldown = 8), applyQuality());
-}
-const AUTO_STEPS = ["perf", "balance", "visual"];
-function applyQuality() {
-  applyGfx(GFX_PRESETS[AUTO_STEPS[perf.level]] || GFX_PRESETS.balance, !0);
 }
 function setShadowRes(e) {
   try {
@@ -20090,7 +19971,7 @@ function applyGfx(e, t) {
     (renderer.setPixelRatio(Math.min(devicePixelRatio || 1, GFX.pixel)),
     void 0 !== DYNRES && ((DYNRES.scale = 1), (DYNRES.cool = 2)),
     (renderer.shadowMap.enabled = GFX.shadow),
-    GFX.shadow && setShadowRes(GFX.shadowRes),
+    setShadowRes(GFX.shadowRes),
     renderer.setSize(innerWidth, innerHeight),
     world.actors)
   )
@@ -20103,9 +19984,16 @@ function applyGfx(e, t) {
               GFX.charShadow &&
               !(!e.userData || !e.userData.cast));
         });
+  if (!GFX.shadow && sun.shadow.map) {
+    sun.shadow.map.dispose(); sun.shadow.map = null;
+  }
+  if (!GFX.post && POST.ok) {
+    for (const target of [POST.rt, POST.hA, POST.hB, POST.qA, POST.qB]) target.setSize(4, 4);
+    POST.w = POST.h = 0;
+  }
   if (
     (o !== GFX.detailGun && rebuildActorModels(),
-    a !== GFX.lamps && "function" == typeof loadMap && CUR_MAP_KEY)
+    a !== GFX.lamps && "function" == typeof loadMap && CUR_MAP_KEY && !MAPS[CUR_MAP_KEY]?.graphicsStatic)
   )
     try {
       loadMap(CUR_MAP_KEY);
@@ -20144,44 +20032,22 @@ function rebuildActorModels() {
     }
 }
 function setQuality(e) {
+  e = GRAPHICS_SETTINGS.normalize(e, SET_DEF.quality === 'mobile');
   ((SETTINGS.quality = e),
     saveSettings(),
-    "auto" === e
-      ? ((perf.level = 1), (perf.cooldown = 3), applyQuality())
-      : GFX_PRESETS[e] && applyGfx(GFX_PRESETS[e], !1),
+    applyGfx(GFX_PRESETS[e], !1),
     updateGfxLabel());
+  Object.assign(DYNRES, {scale:1,ema:1/60,cool:2,good:0});
 }
 function updateGfxLabel() {
   const e = $("st-q-now");
-  if (e)
-    if ("auto" === SETTINGS.quality) {
-      const t = GFX_PRESETS[AUTO_STEPS[perf.level]];
-      e.textContent = " 현재 " + (t ? t.name : "균형");
-    } else e.textContent = "";
+  if (e) e.textContent = "";
 }
 const DYNRES = { scale: 1, ema: 1 / 60, cool: 2, good: 0 };
 function dynRes(e) {
   if (!1 === SETTINGS.dynRes || navigator.webdriver) return;
-  if ("menu" === world.phase || document.hidden) return;
-  if (
-    ((DYNRES.ema += 0.06 * (e - DYNRES.ema)),
-    (DYNRES.cool -= e),
-    DYNRES.ema < 1 / 56 ? (DYNRES.good += e) : (DYNRES.good = 0),
-    DYNRES.cool > 0)
-  )
-    return;
-  let t = DYNRES.scale;
-  if (
-    (DYNRES.ema > 1 / 48 && DYNRES.scale > 0.6
-      ? (t = Math.max(0.6, DYNRES.scale - 0.1))
-      : DYNRES.good > 6 &&
-        DYNRES.scale < 1 &&
-        (t = Math.min(1, DYNRES.scale + 0.1)),
-    t !== DYNRES.scale)
-  ) {
-    ((DYNRES.scale = t),
-      (DYNRES.cool = t < 1 && DYNRES.ema > 1 / 48 ? 1.2 : 4),
-      (DYNRES.good = 0));
+  if (["menu", "over"].includes(world.phase) || document.hidden || shopOpen || !$("pause").hidden || !$("admin").hidden) return;
+  if (GRAPHICS_SETTINGS.advanceResolution(DYNRES, e, GFX.minScale)) {
     const e = Math.min(
       devicePixelRatio || 1,
       (void 0 !== GFX && GFX.pixel) || 1,
@@ -20197,7 +20063,7 @@ function tick(e) {
   let t = Math.min(TICK_STEP, r);
   ((last = e), autoQuality(t, r));
   try {
-    dynRes(t);
+    dynRes(r);
   } catch (e) {}
   const n =
       r > TICK_STEP
@@ -21148,7 +21014,7 @@ function startGame(e, t) {
     document.body.classList.toggle("touching", IS_TOUCH),
     IS_TOUCH && enableTouch());
   try {
-    setQuality(SETTINGS.quality || "balance");
+    setQuality(SETTINGS.quality);
     const e = $("fps");
     e && (e.hidden = !SETTINGS.showFps);
   } catch (e) {}
@@ -21272,7 +21138,7 @@ try {
 }
 ((world.phase = "menu"), show("s-title"));
 try {
-  GAME_BOOT.ready.then(renderTitleRoster);
+  GAME_BOOT.ready.then(() => { setQuality(SETTINGS.quality); renderTitleRoster(); });
 } catch (e) {
   console.warn("roster", e);
 }

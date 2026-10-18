@@ -31,7 +31,7 @@ async function fixture() {
       error.message += "\nBoot diagnostics: " + JSON.stringify({ errors, state: await page.evaluate(() => ({ boot: !!window.GAME_BOOT, loading: document.documentElement.dataset.gameLoading, alerts: [...document.querySelectorAll('.game-load-error')].map(n => n.textContent) })) });
       throw error;
     });
-    await page.evaluate(() => setQuality("fast"));
+    if (options.quality !== false) await page.evaluate(q => setQuality(q), options.quality || "mobile");
     if (options.syncSkins !== false) await page.evaluate(() => GUN_SKINS.sync());
     console.log("loaded browser account", id);
     return page;
