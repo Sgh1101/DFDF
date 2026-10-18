@@ -7,8 +7,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  const actual=await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.phaseT=999;const me=myActor();me.invuln=999;return{floor:me.y,ground:abilityGroundY(me.pos.x,me.pos.z),q:me.abilities[0].charges};});
  assert.ok(actual.floor>1);assert.ok(Math.abs(actual.floor-actual.ground)<.01);
- // Hold through the fixture's throttled animation frame so a polled key cannot
- // go down/up entirely between two frames.
+ // Async terrain loading can outlast the deploy button's activation. Follow the
+ // visible click-to-play path: keyboard abilities are gated on pointer capture.
+ const continueButton=p.getByRole('button',{name:'계속하기',exact:true});if(await continueButton.isVisible())await continueButton.click();
+ if(!await p.evaluate(()=>document.pointerLockElement===document.getElementById('cv')))await p.locator('#cv').click({force:true});
+ await p.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
  await p.keyboard.down('q');try{await p.waitForFunction(n=>myActor().abilities[0].charges===n-1,actual.q);}finally{await p.keyboard.up('q');}
  await p.waitForFunction(()=>myActor().onGround&&Math.abs(myActor().y-groundAt(myActor().pos.x,myActor().pos.z,myActor().y))<.01);
  const result=await p.evaluate(()=>{
