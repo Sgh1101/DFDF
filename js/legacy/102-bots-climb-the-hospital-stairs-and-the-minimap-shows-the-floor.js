@@ -527,7 +527,6 @@
   const whereTag = () => viewLv() + 1 + "층 · " + roomName(viewLv());
 
   // ── the round tactical map: only the walls on your floor, not the slabs and the floors above and below ──
-  const _dt = "function" == typeof drawTac ? drawTac : null;
   let slice = { n: -1, len: -1, list: [] };
   const onFloor = (n) => {
     if (slice.n !== n || slice.len !== COLLIDERS.length) {
@@ -536,16 +535,32 @@
     }
     return slice.list;
   };
-  _dt &&
-    (drawTac = function () {
-      if (!on()) return _dt.apply(this, arguments);
-      const list = onFloor(viewLv());
-      Object.defineProperty(COLLIDERS, Symbol.iterator, { value: () => list[Symbol.iterator](), configurable: true });
-      try {
-        return _dt.apply(this, arguments);
-      } finally {
-        delete COLLIDERS[Symbol.iterator];
+  // the engine paints the map's walls once into one picture and draws that; in the hospital the picture is made for the
+  // floor you stand on (the same look, the colliders of that floor only) and kept for each floor
+  const _dw = "function" == typeof drawTacWalls ? drawTacWalls : null;
+  const TACF = [null, null, null];
+  _dw &&
+    (drawTacWalls = function (r, s) {
+      if (!on()) return _dw.apply(this, arguments);
+      const n = viewLv(),
+        list = onFloor(n),
+        B = MAP.bounds,
+        sig = CUR_MAP_KEY + ":" + COLLIDERS.length + ":" + list.length;
+      let P = TACF[n];
+      if (!P || P.sig !== sig) {
+        const k = TACW.k,
+          w = Math.ceil((B.maxX - B.minX + 8) * k),
+          h = Math.ceil((B.maxZ - B.minZ + 8) * k);
+        P = TACF[n] = { cv: (P && P.cv) || document.createElement("canvas"), sig, minX: B.minX - 4, minZ: B.minZ - 4, w: w / k, h: h / k };
+        P.cv.width = w;
+        P.cv.height = h;
+        const g = P.cv.getContext("2d");
+        for (const c of list) {
+          g.fillStyle = c.h > STEP_H ? "rgba(86,100,120,.85)" : "rgba(70,82,98,.5)";
+          g.fillRect((c.minX - P.minX) * k, (c.minZ - P.minZ) * k, (c.maxX - c.minX) * k, (c.maxZ - c.minZ) * k);
+        }
       }
+      tctx.drawImage(P.cv, r(P.minX), s(P.minZ), r(P.w), s(P.h));
     });
 
   // a new map, a new graph
@@ -557,5 +572,5 @@
     GR = null;
     return r;
   };
-  window.HOSPITAL_NAV = { opts: SETTINGS_, graph, route: pathTo, startOf, nearest, floorImage, posts: { RINGS, BRIDGE }, cellsOf, zone, lvOf, tag: whereTag };
+  window.HOSPITAL_NAV = { opts: SETTINGS_, graph, route: pathTo, startOf, nearest, floorImage, posts: { RINGS, BRIDGE }, tacFloor: (n) => TACF[n] && TACF[n].cv, cellsOf, zone, lvOf, tag: whereTag };
 })();

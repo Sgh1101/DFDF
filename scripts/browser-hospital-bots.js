@@ -141,17 +141,18 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const me = myActor(), out = {};
       for (const lv of [0, 1, 2]) {
         me.pos.set(-38.75, lv * 4, -8.75); me.y = lv * 4; player.pos.set(-38.75, lv * 4, -8.75); player.y = lv * 4;
-        let seen = 0, big = 0;
-        const fr = tctx.fillRect;
-        tctx.fillRect = function (x, y, w, h) { if (/^rgba\((86|70),/.test(this.fillStyle)) { seen++; Math.abs(w) > 120 && Math.abs(h) > 120 && big++; } return fr.apply(this, arguments); };
-        try { drawTac(); } finally { delete tctx.fillRect; }
-        out[lv] = { seen, big, iter: Object.prototype.hasOwnProperty.call(COLLIDERS, Symbol.iterator) };
+        drawTac();
+        const cv = HOSPITAL_NAV.tacFloor(lv), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+        let seen = 0, h = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { seen++; h = (h * 31 + d[i] + d[i + 1] * 3 + d[i + 3] * 7 + (i % 9973)) | 0; }
+        out[lv] = { seen, h, share: seen / (d.length / 4) };
       }
       out.total = COLLIDERS.length;
       return out;
     });
     console.log("tactical", JSON.stringify(tac));
-    for (const lv of [0, 1, 2]) { assert.ok(tac[lv].seen > 20 && tac[lv].seen < tac.total / 2, "floor " + lv + " draws its own colliders (" + tac[lv].seen + " of " + tac.total + ")"); assert.equal(tac[lv].big, 0, "no slab-sized block on floor " + lv); assert.equal(tac[lv].iter, false, "COLLIDERS iterates normally again"); }
+    for (const lv of [0, 1, 2]) { assert.ok(tac[lv].seen > 2000 && tac[lv].share < 0.35, "floor " + lv + " paints its own walls, not every slab (" + tac[lv].seen + " px, " + (tac[lv].share * 100).toFixed(1) + "% of the picture)"); }
+    assert.equal(new Set([tac[0].h, tac[1].h, tac[2].h]).size, 3, "a different tactical picture on each floor");
 
     if (dir) {
       for (const [name, lv] of [["f1", 0], ["f2", 1], ["f3", 2]]) {
