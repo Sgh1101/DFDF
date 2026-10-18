@@ -19632,18 +19632,38 @@ addEventListener("resize", () => {
 const tac = $("tac"),
   tctx = tac && tac.getContext("2d"),
   TAC_RANGE = 52;
-// the map's walls on the tactical view are painted once into a picture (3 px a metre) and drawn as one image: a few hundred
-// rectangles every other frame were the largest cost of the view. The picture is made again when a collider appears, goes or
-// changes its height (a gate, a rising wall), which the signature below notices.
+// Both maps reuse their terrain image. The imported map has 44,380 boxes:
+// repainting them on the corner minimap every third step stalls the main thread.
+// Compare the exact painted bounds and tactical colour, including in-place door
+// and wall edits. A shared revision invalidates both images, even at equal counts.
+const MAP_WALLS = { key: null, bounds: [], boxes: new Float64Array(0), revision: 0 };
+function mapWallRevision() {
+  const b = MAP.bounds, state = MAP_WALLS;
+  let changed = state.key !== CUR_MAP_KEY || state.boxes.length !== COLLIDERS.length * 5 ||
+    state.bounds[0] !== b.minX || state.bounds[1] !== b.minZ || state.bounds[2] !== b.maxX || state.bounds[3] !== b.maxZ;
+  if (!changed) {
+    for (let i = 0, p = 0; i < COLLIDERS.length; i++, p += 5) {
+      const c = COLLIDERS[i], a = state.boxes;
+      if (a[p] !== c.minX || a[p + 1] !== c.minZ || a[p + 2] !== c.maxX || a[p + 3] !== c.maxZ || a[p + 4] !== (c.h > STEP_H ? 1 : 0)) {
+        changed = true; break;
+      }
+    }
+  }
+  if (changed) {
+    state.key = CUR_MAP_KEY; state.bounds = [b.minX, b.minZ, b.maxX, b.maxZ];
+    if (state.boxes.length !== COLLIDERS.length * 5) state.boxes = new Float64Array(COLLIDERS.length * 5);
+    for (let i = 0, p = 0; i < COLLIDERS.length; i++, p += 5) {
+      const c = COLLIDERS[i], a = state.boxes;
+      a[p] = c.minX; a[p + 1] = c.minZ; a[p + 2] = c.maxX; a[p + 3] = c.maxZ; a[p + 4] = c.h > STEP_H ? 1 : 0;
+    }
+    state.revision++;
+  }
+  return state.revision;
+}
 const TACW = { cv: null, sig: "", minX: 0, minZ: 0, w: 0, h: 0, k: 3 };
 function drawTacWalls(r, s) {
-  let sum = 0;
-  for (let i = 0; i < COLLIDERS.length; i++) {
-    const c = COLLIDERS[i];
-    sum += (c.h > STEP_H ? (i % 97) + 1 : 0) + 0.01 * (c.minX + c.maxZ);
-  }
   const B = MAP.bounds,
-    sig = CUR_MAP_KEY + ":" + COLLIDERS.length + ":" + Math.round(sum * 10);
+    sig = mapWallRevision() + ":" + TACW.k;
   if (!TACW.cv || TACW.sig !== sig) {
     const k = TACW.k,
       w = Math.ceil((B.maxX - B.minX + 8) * k),
@@ -19922,6 +19942,21 @@ function updateCross() {
 }
 const mini = $("mini"),
   mctx = mini.getContext("2d");
+const MINIW = { cv: null, sig: "" };
+function drawMiniWalls() {
+  const e = mini.width, t = mini.height,
+    sig = mapWallRevision() + ":" + e + ":" + t;
+  if (!MINIW.cv || MINIW.sig !== sig) {
+    const b = MAP.bounds, x = e / (b.maxX - b.minX), z = t / (b.maxZ - b.minZ);
+    MINIW.cv || (MINIW.cv = document.createElement("canvas"));
+    MINIW.cv.width = e; MINIW.cv.height = t;
+    const g = MINIW.cv.getContext("2d");
+    g.fillStyle = "#2a3444";
+    for (const c of COLLIDERS) g.fillRect((c.minX - b.minX) * x, (c.minZ - b.minZ) * z, (c.maxX - c.minX) * x, (c.maxZ - c.minZ) * z);
+    MINIW.sig = sig;
+  }
+  mctx.drawImage(MINIW.cv, 0, 0);
+}
 function drawMini() {
   const e = mini.width,
     t = mini.height,
@@ -19934,13 +19969,7 @@ function drawMini() {
     (mctx.fillStyle = "#0d1118"),
     mctx.fillRect(0, 0, e, t),
     (mctx.fillStyle = "#2a3444"));
-  for (const e of COLLIDERS)
-    mctx.fillRect(
-      r(e.minX),
-      s(e.minZ),
-      (e.maxX - e.minX) * a,
-      (e.maxZ - e.minZ) * n,
-    );
+  drawMiniWalls();
   (MAP.sites.forEach((e) => {
     ((mctx.strokeStyle = "rgba(255,59,78,.55)"),
       (mctx.lineWidth = 2),
