@@ -6,6 +6,14 @@
   status.style.cssText='position:fixed;bottom:6px;right:12px;z-index:10030;color:#b9e7ef;background:#101823e8;padding:5px 12px;border-radius:8px;font:12px sans-serif';document.body.append(status);
   const blobs=new Map(),buffers=new Map();let manifest,clock=0,inspect=0,attack=0,draw=0,current=null,reloadStart=0,firingActor=null;
   const canonical=D.canonical;
+  const poseEuler=new T.Euler(0,0,0,'ZYX'),poseQuaternion=new T.Quaternion();
+  S.bounds=root=>{
+    let pack=false;root.traverse(n=>{if(n.userData.valorantRig)pack=true;});
+    if(!pack)return new T.Box3().setFromObject(root);
+    root.updateWorldMatrix(true,true);const box=new T.Box3();
+    root.traverseVisible(n=>{if(!n.isMesh||!n.geometry||Math.abs(n.matrixWorld.determinant())<1e-12)return;n.geometry.computeBoundingBox();box.union(n.geometry.boundingBox.clone().applyMatrix4(n.matrixWorld));});
+    return box;
+  };
   // Keep legacy properties and wire indices readable, while all enumerated
   // Shopping/gacha lists expose only the distinct weapons.
   for(const [old,target] of Object.entries(D.aliases))if(WEAPONS[old])Object.defineProperty(WEAPONS,old,{value:WEAPONS[target],writable:true,configurable:true,enumerable:false});
@@ -32,22 +40,29 @@
     for(const node of rig.childrenWithBones||[]){
       const name=node.userData.sourceBone,idle=item.animations.static_idle?.bones?.[name]||{},track={...idle,...anim.bones?.[name]},rest=node.userData.rest;
       if(/camera/.test(name))continue;
-      const p=D.sample(track?.position,t,[0,0,0]),r=D.sample(track?.rotation,t,[0,0,0]),s=D.sample(track?.scale,t,[1,1,1]);
-      node.position.fromArray(rest.p.map((v,i)=>v+p[i]));node.rotation.set(...rest.r.map((v,i)=>(v+r[i])*Math.PI/180),'ZYX');node.scale.fromArray(s);
+      const p=D.sample(track?.position,t,[0,0,0]),r=D.rotation(D.sample(track?.rotation,t,[0,0,0])),s=D.sample(track?.scale,t,[1,1,1]);
+      node.position.fromArray(rest.p.map((v,i)=>v+p[i]));poseEuler.set(...r.map(v=>v*Math.PI/180),'ZYX');node.quaternion.fromArray(rest.q).multiply(poseQuaternion.setFromEuler(poseEuler));node.scale.fromArray(s);
     }
   }
   function build(item){
-    const rig=BEDROCK_RIG.build(item.geo,item.material),wrapper=new T.Group();rig.userData.valorantRig=true;rig.userData.item=item.id;rig.childrenWithBones=[];
+    const rig=BEDROCK_RIG.build(item.renderGeo,item.material),wrapper=new T.Group();rig.userData.valorantRig=true;rig.userData.item=item.id;rig.childrenWithBones=[];
     rig.traverse(node=>{
-      if(node.userData.base){node.userData.sourceBone=node.name.slice(13);node.userData.rest={p:node.position.toArray(),r:node.userData.base.r.slice()};rig.childrenWithBones.push(node);}
+      if(node.userData.base){node.userData.sourceBone=node.name.slice(13);node.userData.rest={p:node.position.toArray(),r:node.userData.base.r.slice(),q:node.quaternion.toArray()};rig.childrenWithBones.push(node);}
       if(node.isMesh){node.userData.live=true;node.material=item.material;}
     });
     // The supplied hands are kept in the source and geometry, but DFDF's
     // agent arms own hand rendering. Never hide gun-and-hand parent nodes.
     for(const node of rig.childrenWithBones)if(/^(left|right)(hand|arm)(?:_pos|_\d+|\d*)$/i.test(node.userData.sourceBone))for(const c of node.children.slice())if(c.isMesh){node.remove(c);c.geometry.dispose();}
     pose(rig,item,'static_idle',0);
+    // Hand-holding rotations can turn a thin knife edge-on in the armory.
+    // Present its assembled rest orientation; equipped rigs receive the full
+    // source pose on their first viewmodel tick, including these ancestors.
+    if(item.key==='knife'){
+      let node=rig.childrenWithBones.find(n=>/^(weapon|axe|hammer)$/.test(n.userData.sourceBone));
+      for(;node&&node!==rig;node=node.parent)if(node.userData.rest){node.position.fromArray(node.userData.rest.p);node.rotation.set(...node.userData.rest.r.map(v=>v*Math.PI/180),'ZYX');}
+    }
     rig.rotation.y=0;rig.scale.setScalar(item.key==='knife'?.045:.027);wrapper.add(rig);
-    const box=new T.Box3().setFromObject(wrapper),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
+    const box=S.bounds(wrapper),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
     rig.position.set(-center.x,-center.y+.03,-center.z+.25-size.z/2);
     wrapper.userData.valorantItem=item.id;wrapper.userData.valorantRig=true;wrapper.userData.sourceCubes=item.cubes;
     return wrapper;
@@ -123,7 +138,7 @@
         const geo=D.parse(new TextDecoder().decode(g))['minecraft:geometry'][0],animations=D.parse(new TextDecoder().decode(a)).animations;
         if(!geo?.bones||!animations)throw Error('잘못된 원본 모델');
         const material=new T.MeshStandardMaterial({map:texture,normalMap:normal,roughness:.45,metalness:.2,alphaTest:.05,side:T.DoubleSide});material.userData.kind='polymer';
-        S.items.set(spec.key==='knife'?spec.id:spec.key,{...spec,geo,animations,material,cubes:geo.bones.reduce((s,b)=>s+(b.cubes?.length||0),0)});
+        S.items.set(spec.key==='knife'?spec.id:spec.key,{...spec,geo,renderGeo:D.renderGeometry(geo),animations,material,cubes:geo.bones.reduce((s,b)=>s+(b.cubes?.length||0),0)});
       }));
       for(const spec of manifest.items){const key=spec.key==='knife'?spec.id:spec.key;if(spec.key==='knife')KNIVES.build['vp_'+spec.id]=()=>build(S.items.get(key));else{GUN_BUILD[spec.key]=()=>build(S.items.get(key));WEAPONS[spec.key].reload=S.items.get(key).animations.reload_tactical?.animation_length||2;}}
       S.status='ready';status.remove();window.refreshSkinAssets();

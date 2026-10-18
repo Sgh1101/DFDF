@@ -6,23 +6,25 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   return [...VALORANT_PACK.items.values()].map(item=>{
    const model=VALORANT_PACK.build(item.key==='knife'?item.id:item.key);model.updateMatrixWorld(true);
    let rig;model.traverse(n=>{if(n.childrenWithBones)rig=n;});
+   const assembled=VALORANT_PACK.bounds(model).getSize(new T.Vector3()).toArray();
    const rest=rig.childrenWithBones.map(n=>[...n.position.toArray(),...n.rotation.toArray().slice(0,3)]);
    const clip=item.key==='knife'?'inspect':'reload_tactical';VALORANT_PACK.pose(rig,item,clip,.8);
    const moving=rig.childrenWithBones.some((n,i)=>[...n.position.toArray(),...n.rotation.toArray().slice(0,3)].some((v,j)=>Math.abs(v-rest[i][j])>.01));
    const muzzle=rig.childrenWithBones.find(n=>/^(muzzle_default|muzzle_pos|muzzle_flash)$/.test(n.userData.sourceBone)),p=new T.Vector3();if(muzzle)muzzle.getWorldPosition(p);
    model.traverse(n=>n.geometry?.dispose());
-   return{id:item.id,key:item.key,cubes:item.cubes,moving,muzzleZ:muzzle?p.z:null,width:item.material.map.image.width,height:item.material.map.image.height,expected:[item.geo.description.texture_width,item.geo.description.texture_height]};
+   return{id:item.id,key:item.key,cubes:item.cubes,assembled,moving,muzzleZ:muzzle?p.z:null,width:item.material.map.image.width,height:item.material.map.image.height,expected:[item.geo.description.texture_width,item.geo.description.texture_height]};
   });
  });
  const root=path.join(__dirname,'../assets/valorant-packs/v1'),manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json')));
  assert.equal(models.length,15);for(const m of models){const png=fs.readFileSync(path.join(root,manifest.items.find(i=>i.id===m.id).texture));assert.ok(m.moving,m.id+' source animation moves');assert.deepEqual([m.width,m.height],[png.readUInt32BE(16),png.readUInt32BE(20)],m.id+' full source PNG resolution');if(m.key!=='knife')assert.ok(m.muzzleZ<0,m.id+' points forward');}
  console.log('original models',JSON.stringify(models));
+ const karambit=models.find(m=>m.id==='eternal_karambit');assert.ok(karambit.assembled[0]<.05&&karambit.assembled[1]>.4&&karambit.assembled[1]<.5&&karambit.assembled[2]<.35,'karambit ring, grip and blade stay assembled rather than exploding beyond their source silhouette');
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'pack-owner'});
  const skins=await page.evaluate(()=>VALORANT_DATA.knives.map(s=>({id:s.id,name:s.ko})));
  for(const s of skins)assert.equal((await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'knife|'+s.id})).status,200);
  await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'carbine|champions_atk'});
  await page.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;openShop();});
- assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),13);
+ assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),18);
  const shop=await page.locator('#shop-grid').innerText();for(const name of ['밴달','팬텀','클래식','오퍼레이터','아웃로','오딘'])assert.ok(shop.includes(name));
  assert.ok(!shop.includes('속사 SMG')&&!shop.includes('핸드캐논')&&!shop.includes('전투소총'));
  await page.locator('#shop-grid .sitem').filter({has:page.locator('b',{hasText:/^밴달$/})}).click();
@@ -33,6 +35,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   await page.getByText(s.name,{exact:true}).click();
   await page.waitForFunction(id=>GUN_SKINS.of('knife').id===id,s.id);
   assert.ok(await page.evaluate(id=>{let found=false;GUN_SKINS._pv().obj.traverse(n=>{if(n.userData.valorantItem===id.replace(/^vp_/,''))found=true;});return found;},s.id),'preview contains original '+s.id);
+  if(s.id==='vp_eternal_karambit')await page.screenshot({path:'test-results/karambit-fixed.png'});
  }
  await page.getByText('미래 나비칼',{exact:true}).click();
  await page.screenshot({path:'test-results/valorant-knife-preview.png'});

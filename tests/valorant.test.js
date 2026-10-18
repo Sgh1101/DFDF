@@ -15,8 +15,18 @@ test('JSON data comments and numeric source animation tracks stay data',()=>{
  assert.deepEqual(D.sample(0,1,[1,1,1]),[0,0,0]);assert.deepEqual(D.sample({'0':[0,0,0],'1':[2,4,6]},.5,[0,0,0]),[1,2,3]);
  assert.deepEqual(D.sample('globalThis.bad = true',.1,[0,0,0]),[0,0,0]);assert.equal(globalThis.bad,undefined);
 });
-test('13 distinct weapons and six new knife-only skins share the server catalog',async()=>{
- const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,13);assert.equal(c.items,421);
+test('source pivot rotations cross the Y-down frame without rewriting original model data',()=>{
+ const source={description:{texture_width:2048,texture_height:2048},bones:[{name:'weapon',rotation:[30,25,-15],pivot:[0,3,2],cubes:[{origin:[0,-2,1],size:[1,4,2],pivot:[0,1,0],rotation:[-15,0,0]}]}]};
+ const before=JSON.stringify(source),render=D.renderGeometry(source);
+ assert.equal(JSON.stringify(source),before);assert.notEqual(render.bones[0],source.bones[0]);
+ // In the Y-up frame a -15 degree source hinge turns its top toward +Z.
+ const angle=render.bones[0].cubes[0].rotation[0]*Math.PI/180;
+ assert.ok(Math.abs(Math.sin(angle)-0.25881904510252074)<1e-12);
+ assert.deepEqual(render.bones[0].rotation,[-30,25,15]);
+ assert.deepEqual(render.bones[0].cubes[0].origin,[0,-2,1]);assert.equal(render.description.texture_width,2048);
+});
+test('17 firearms plus a knife and six new knife-only skins share the server catalog',async()=>{
+ const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,18);assert.equal(c.items,576);
  for(const k of Object.keys(D.aliases))assert.ok(!c.guns.includes(k));
  for(const s of D.knives){assert.equal(c.only[s.id],'knife');assert.equal(c.tiers[s.id],4);}
  assert.equal(c.only.champions_atk,'carbine');
@@ -30,13 +40,16 @@ test('consolidation preserves owned skins and equipped choices; duplicate compen
  assert.deepEqual(after.own.smg,['lava','snow','dragon']);assert.ok(!after.own.vector);assert.deepEqual(after.weaponArchive.vector,['dragon','lava']);assert.equal(after.skins.m.smg,'snow');assert.equal(after.skins.m.carbine,'champions_atk');assert.ok(!after.skins.m.vector);assert.deepEqual(after.wish,['smg|dragon']);assert.equal(after.gold,gold+900);
  await h.api('skins',{token:p.token});assert.equal(h.user('collector').gold,after.gold);
 });
-test('further consolidation keeps supplied-gun skins and carbine selections, with once-only compensation',async()=>{
+test('restoring five firearms returns archived skins once and preserves current equipment and compensation',async()=>{
  const h=harness(),p=await h.api('auth',{id:'oldbuyer',pw:'password',device:'oldbuyer-packs'}),u=h.user('oldbuyer');
- u.own={pistol:['lava'],machpist:['lava','snow'],stinger:['dragon'],shotgun:['gold'],autoshot:['snow'],burst:['gold'],rifle:['lava'],carbine:['champions_def']};
- u.skins={m:{machpist:'snow',shotgun:'gold',autoshot:'snow',burst:'gold',rifle:'lava',carbine:'champions_def'},t:1};const gold=u.gold;h.db.set('user:oldbuyer',JSON.stringify(u));
- await h.api('skins',{token:p.token});const next=h.user('oldbuyer');
- assert.deepEqual(next.own.pistol,['lava','snow','dragon']);assert.deepEqual(next.own.autoshot,['snow','gold']);assert.deepEqual(next.own.rifle,['lava','gold']);
- assert.equal(next.skins.m.autoshot,'snow');assert.equal(next.skins.m.rifle,'lava');assert.equal(next.skins.m.carbine,'champions_def');assert.equal(next.skins.m.pistol,'snow');
- assert.equal(next.gold,gold+900);for(const key of ['machpist','stinger','shotgun','burst'])assert.ok(!next.own[key]&&next.weaponArchive[key]);
- await h.api('skins',{token:p.token});assert.equal(h.user('oldbuyer').gold,next.gold);
+ u.own={pistol:['lava','snow','dragon'],autoshot:['snow','gold'],rifle:['lava','gold'],carbine:['champions_def'],machpist:['gold']};
+ u.weaponArchive={machpist:['lava','snow'],whisper:['dragon'],shotgun:['gold'],burst:['gold'],scout:['snow']};
+ u.skins={m:{pistol:'snow',autoshot:'snow',rifle:'lava',carbine:'champions_def'},t:1};u.refunded=900;const gold=u.gold;h.db.set('user:oldbuyer',JSON.stringify(u));
+ await Promise.all([h.api('skins',{token:p.token}),h.api('skins',{token:p.token})]);const next=h.user('oldbuyer');
+ assert.deepEqual(next.own.machpist,['gold','lava','snow']);assert.deepEqual(next.own.whisper,['dragon']);assert.deepEqual(next.own.shotgun,['gold']);assert.deepEqual(next.own.burst,['gold']);assert.deepEqual(next.own.scout,['snow']);
+ assert.deepEqual(next.skins.m,u.skins.m);assert.deepEqual(next.own.carbine,['champions_def']);assert.equal(next.gold,gold);assert.equal(next.refunded,900);
+ for(const key of D.restored)assert.equal(next.weaponRestored[key],true);
+ // Later deliberate removals must not be undone by replaying the archive.
+ next.own.machpist=['gold'];h.db.set('user:oldbuyer',JSON.stringify(next));
+ await h.api('skins',{token:p.token});assert.deepEqual(h.user('oldbuyer').own.machpist,['gold']);assert.equal(h.user('oldbuyer').gold,gold);
 });

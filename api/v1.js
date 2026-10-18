@@ -383,6 +383,15 @@ function ensureWallet(u, c) {
   if (!Number.isSafeInteger(u.championCoins) || u.championCoins < 0) { u.championCoins = 0; changed = true; }
   if ("number" != typeof u.gold || !isFinite(u.gold)) ((u.gold = c.gold.signup), (changed = !0));
   if (!isObj(u.own)) ((u.own = {}), (changed = !0));
+  // Restore archived copies once when a consolidated weapon returns. Leave
+  // current equipment, migrated copies and previous compensation intact.
+  for (const key of VALORANT.restored) {
+    if (!Array.isArray(u.weaponArchive?.[key]) || u.weaponRestored?.[key]) continue;
+    const archived = u.weaponArchive[key].filter(s => SKIN_TIER[s] && fits(s, key) && !RETIRED[s]);
+    u.own[key] = [...new Set([...(Array.isArray(u.own[key]) ? u.own[key] : []), ...archived])];
+    if (!isObj(u.weaponRestored)) u.weaponRestored = {};
+    u.weaponRestored[key] = true; changed = true;
+  }
   // Move the previously sold rifle copies without charging again or replacing other skins.
   const phantom = (s) => s === "champions_atk" || s === "champions_def";
   const moved = Array.isArray(u.own.rifle) ? u.own.rifle.filter(phantom) : [];
@@ -1001,6 +1010,9 @@ const nextKstMidnight = (t) => {
 };
 const shopPrice = (c, g, s) => Math.max(0, Math.round((+c.shop.price[TIER_KEYS[SKIN_TIER[s] - 1]] || 0) * (SKIN_ONLY[s] === "knife" ? Math.max(1, +c.shop.knife || 1) : 1)));
 function shopOf(c, day) {
+  // Exclude weekly deals before selecting each tier, so a collision does not
+  // reduce the configured number of daily offers after weapon-pool changes.
+  const weeklyKeys = new Set(weeklyOf(c, kstWeek(Date.parse(day + "T12:00:00+09:00"))).map(x => x.g + "|" + x.s));
   const out = [],
     usedGun = new Set(),
     usedSkin = {};
@@ -1011,7 +1023,7 @@ function shopOf(c, day) {
     let st = h.readUInt32LE(0) >>> 0 || 1;
     const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0), st / 4294967296);
     const pool = [];
-    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1 && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && pool.push([g, s]);
+    for (const s of SKIN_IDS) if (SKIN_TIER[s] === ti + 1 && !EXCLUSIVE[s]) for (const g of GUNS) fits(s, g) && !weeklyKeys.has(g + "|" + s) && pool.push([g, s]);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(rnd() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];

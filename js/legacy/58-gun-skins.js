@@ -1750,7 +1750,7 @@
       o.receiveShadow = !1;
       n++;
     });
-    const b = new T.Box3().setFromObject(w);
+    const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w));
     w.userData.muzzle = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z - 0.01];
     TPL.set(id, w);
     return w;
@@ -3083,7 +3083,7 @@
     } catch (e) {}
     if (!g) return void pvRender();
     applySkin(g, shown);
-    const b = new T.Box3().setFromObject(g),
+    const b = (window.VALORANT_PACK?.bounds(g) || new T.Box3().setFromObject(g)),
       c = b.getCenter(new T.Vector3()),
       s = b.getSize(new T.Vector3());
     g.position.sub(c);
@@ -3408,11 +3408,11 @@
         applySkin(gun, skin);
         const w = new T.Group();
         w.add(gun);
-        gun.position.sub(new T.Box3().setFromObject(gun).getCenter(new T.Vector3()));
+        gun.position.sub((window.VALORANT_PACK?.bounds(gun) || new T.Box3().setFromObject(gun)).getCenter(new T.Vector3()));
         w.rotation.y = Math.PI / 2 + 0.3;
         TH.sc.add(w);
         w.updateMatrixWorld(!0);
-        const b = new T.Box3().setFromObject(w),
+        const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w)),
           s = b.getSize(new T.Vector3());
         w.position.sub(b.getCenter(new T.Vector3()));
         const tan = Math.tan((TH.cam.fov * Math.PI) / 360),
