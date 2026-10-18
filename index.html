@@ -140,6 +140,19 @@ background:linear-gradient(180deg,#ff5b6b,#e0303f);border:1px solid rgba(255,140
   .hint{font-size:11px}
   section{padding-top:24px}
 }
+/* a desktop window: the title on the left, the profile card with the way in on the right (the column of 440 px
+   left the button below the fold at 1280 x 720); phones and short landscape windows keep their own rules */
+@media(min-width:1000px) and (min-height:600px){
+  .wrap{max-width:1160px;padding:0 32px}
+  .top{padding:20px 0}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:72px;align-items:center;min-height:calc(100vh - 140px);padding-bottom:24px}
+  .hero{text-align:left;padding:0}
+  .hero h1{font-size:clamp(120px,15vw,200px);letter-spacing:.04em}
+  .hero .sub{margin-top:18px;font-size:13px;letter-spacing:.5em}
+  .hero p{margin:24px 0 0;max-width:38ch;font-size:16px;line-height:1.9}
+  .auth,.card{margin:0;max-width:none}
+  .views .hist{max-width:none;margin:24px 0 0}
+}
 [hidden]{display:none!important}
 h2{font-family:var(--fd);font-size:12px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin:0 0 12px}
 section{padding:36px 0;border-top:1px solid var(--line)}
@@ -256,7 +269,7 @@ const T = {
     offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
     about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
     ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
-    feat: ["<b>11 modes</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch, Knife Fight, Gun Game, Infection, Conquest, Capture the Flag, Shrinking Zone", "<b>42 agents</b> — 168 abilities, no two alike", "<b>20 maps</b> — 9 for 5v5, 8 small 3v3, 3 duels: 포구 with real second floors, a harbor at night, a city of rooftops", "<b>31 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 26 skins × 31 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
+    feat: ["<b>11 modes</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch, Knife Fight, Gun Game, Infection, Conquest, Capture the Flag, Shrinking Zone", "<b>42 agents</b> — 168 abilities, no two alike", "<b>21 maps</b> — 10 for 5v5, 8 small 3v3, 3 duels: 포구 with real second floors, a harbor at night, a city of rooftops, a three-floor abandoned hospital maze", "<b>31 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 26 skins × 31 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
   },
 };
 let L = localStorage.getItem("lgp_lang") || ((navigator.language || "ko").startsWith("ko") ? "ko" : "en");

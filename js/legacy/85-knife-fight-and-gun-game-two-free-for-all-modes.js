@@ -11,7 +11,7 @@
   const MODES = window.GAME_MODES;
   if (!MODES.knife || !MODES.gun) return;
   // the ladder: mixed classes so it never feels the same twice, ending on the knife
-  const LADDER = ["rifle", "vector", "shotgun", "sniper", "lmg", "bullpup", "smg", "autoshot", "marksman", "burst", "revolver", "handcan", "knife"].filter((k) => WEAPONS[k]);
+  const LADDER = [...new Set(["rifle", "vector", "shotgun", "sniper", "lmg", "bullpup", "smg", "autoshot", "marksman", "burst", "revolver", "handcan", "knife"].map(k => window.VALORANT_DATA ? VALORANT_DATA.canonical(k) : k))].filter((k) => WEAPONS[k]);
   MODES.gun.kills = LADDER.length;
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko),

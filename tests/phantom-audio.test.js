@@ -2,23 +2,23 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const { schedule } = require("../js/phantom-audio");
 const base = "assets/champions-phantom/2026-0.1.0/audio/";
 const recipe = JSON.parse(fs.readFileSync(base + "kill-sequences.json"));
-test("actual kill hook plays original Phantom ladders on carbine and excludes rifle and abilities", () => {
+test("actual kill hook plays original Phantom ladders on scout and excludes rifle and abilities", () => {
   const vm = require("node:vm"), source = fs.readFileSync("js/phantom-audio.js", "utf8"), actor = {}, played = [];
   let generic = 0;
   const ctx = { SFX: { kill() { generic++; return "generic"; } }, world: { round: 1 }, counts: new WeakMap(),
     myActor: () => actor, play: count => played.push(count), phantom: id => ["champions_atk", "champions_def"].includes(id) };
-  ctx.root = ctx; vm.createContext(ctx);
+  ctx.VALORANT_DATA = require("../js/valorant-data"); ctx.root = ctx; vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf("  const kill = SFX.kill;"), source.indexOf("  const clear = clearStatus;")), ctx);
   for (let i = 1; i <= 5; i++) {
-    ctx.KILL_EVENT = { gun: "carbine", skin: i % 2 ? "champions_atk" : "champions_def", kind: i % 2 ? "gun" : "head" };
+    ctx.KILL_EVENT = { gun: "scout", skin: i % 2 ? "champions_atk" : "champions_def", kind: i % 2 ? "gun" : "head" };
     assert.equal(ctx.SFX.kill(), false);
   }
   assert.deepEqual(played, [1, 2, 3, 4, 5]); assert.equal(generic, 0);
-  for (const event of [{ gun: "rifle", skin: "champions_atk", kind: "gun" }, { gun: "carbine", skin: "champions_atk", kind: "ability" }, { gun: "carbine", skin: "default", kind: "gun" }]) {
+  for (const event of [{ gun: "rifle", skin: "champions_atk", kind: "gun" }, { gun: "scout", skin: "champions_atk", kind: "ability" }, { gun: "scout", skin: "default", kind: "gun" }]) {
     ctx.KILL_EVENT = event; assert.equal(ctx.SFX.kill(), "generic");
   }
   assert.equal(generic, 3); assert.equal(played.length, 5);
-  ctx.world.round++; ctx.KILL_EVENT = { gun: "carbine", skin: "champions_def", kind: "gun" }; ctx.SFX.kill();
+  ctx.world.round++; ctx.KILL_EVENT = { gun: "scout", skin: "champions_def", kind: "gun" }; ctx.SFX.kill();
   assert.equal(played.at(-1), 1);
 });
 test("all five original kill arrangements reference byte-verified note-block recordings", () => {

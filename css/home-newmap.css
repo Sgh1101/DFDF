@@ -1,0 +1,24 @@
+/* the newest-map card and the folding play guide in the home screen's right column */
+#home-newmap{margin:0 0 12px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,rgba(18,24,34,.9),rgba(9,12,18,.9));box-shadow:0 8px 26px rgba(0,0,0,.35)}
+#home-newmap .nm-top{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:7px}
+#home-newmap .nm-top b{font-size:14px;color:var(--ink)}
+#home-newmap .nm-top small{font-size:10.5px;color:var(--steel)}
+#home-newmap .nm-badge{font-family:var(--f-display);font-size:9px;letter-spacing:.16em;padding:2px 6px;border-radius:6px;background:var(--red);color:#fff;align-self:center}
+#home-newmap canvas{display:block;width:100%;height:auto;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:#0b0f15}
+#home-newmap .nm-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px}
+#home-newmap .nm-tabs{display:flex;gap:4px}
+#home-newmap .nm-tabs button{min-height:30px;min-width:40px;padding:0 8px;white-space:nowrap;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:var(--steel);font-size:11px;font-weight:700;cursor:pointer}
+#home-newmap .nm-tabs button[aria-pressed="true"]{border-color:#67d4ff;color:#d8f4ff;background:rgba(103,212,255,.12)}
+#home-newmap .nm-go{flex:1 1 110px;padding:7px 10px;min-height:32px;font-size:11px;white-space:nowrap}
+#home-newmap .nm-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--steel);word-break:keep-all}
+/* the guide shows its three newest items until asked */
+#s-title .tt-news.nm-fold:not(.nm-open) ul li:nth-child(n+4){display:none}
+#s-title .tt-news .nm-more{margin-top:8px;width:100%;min-height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--steel);font-size:10.5px;cursor:pointer}
+#s-title .tt-news .nm-more:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+/* with the card above it the column needs the room: it sits at the right edge, top to bottom, under the nav */
+@media(min-width:1181px) and (min-height:701px){
+  #s-title.home-original .tt-news{top:calc(96px + var(--nav-safe-top,0px));bottom:auto;right:28px;width:272px;max-height:calc(100dvh - 96px - 24px - var(--nav-safe-top,0px));opacity:1;overflow-y:auto;scrollbar-width:thin}
+  /* the agent art leaves the right column to the card instead of sliding under it */
+  #s-title.home-original .tt-right{padding-right:316px;box-sizing:border-box}
+}
+@media(max-height:760px){#home-newmap .nm-note{display:none}}

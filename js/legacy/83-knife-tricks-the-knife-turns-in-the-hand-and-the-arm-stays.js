@@ -465,6 +465,7 @@
     } catch (e) {}
   };
   function trick(dt) {
+    if (window.GUN_SKINS && GUN_SKINS.of('knife')?.pack) return;
     const a = VM.current,
       pv = pivotOf(a),
       M = window.SKIN_PERKS && SKIN_PERKS.state;

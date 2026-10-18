@@ -1,0 +1,137 @@
+{
+  "state_machine": "valorant:classic_state_machine",
+  "state_machine_param": {
+    "salvo_interval": 300, //右键开火间隔毫秒数
+    "draw_time": 750, //取出毫秒数
+    "reload_time": 1750 //换弹毫秒数
+  },
+  "model": "valorant:gun/classic_geo",
+  "texture": "valorant:gun/uv/classic",
+  "uv": [
+    "valorant:gun/uv/classic",
+    "valorant:gun/uv/classic_n",
+    "valorant:gun/uv/classic_s"
+  ],
+  "iron_zoom": 1,
+  "zoom_model_fov": 70,
+  "ammo_count_style": "normal",
+  "damage_style": "per_projectile",
+  "show_crosshair": true,
+  "transform": {
+    "scale": {
+      "thirdperson": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "ground": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "fixed": [
+        1.2,
+        1.2,
+        1.2
+      ]
+    }
+  },
+  "sounds": {
+    "shoot": "valorant:classic/classic_shoot",
+    "shoot_3p": "valorant:classic/classic_shoot_3p",
+    "reload_empty": "valorant:classic/classic_reload",
+    "reload_tactical": "valorant:classic/classic_reload",
+    "draw": "valorant:classic/classic_draw",
+    "put_away": "valorant:classic/classic_put_away",
+    "inspect": "valorant:classic/classic_inspect",
+    "head_hit": "valorant:head_hit",
+    "flesh_hit": "valorant:hit",
+    "shoot_salvo":""
+  },
+  "animation": "valorant:classic",
+  "use_default_animation": "rifle",
+  "third_person_animation": "default",
+  "player_animator_3rd": "tacz:rifle_default.player_animation",
+  "hud": "valorant:gun/hud/classic_hud",
+  "slot": "valorant:gun/slot/classic_slot",
+  "lod": {
+    "model": "valorant:gun/lod/classic",
+    "texture": "valorant:gun/lod/classic"
+  },
+  "muzzle_flash": {
+    "texture": "tacz:flash/common_muzzle_flash",
+    "scale": 0.75
+  },
+  "ammo": {
+    "tracer_color": "#FFFFFF"
+  },
+  "shell": {
+    "initial_velocity": [
+      5,
+      2,
+      1
+    ],
+    "random_velocity": [
+      1,
+      1,
+      0.25
+    ],
+    "acceleration": [
+      0,
+      -10,
+      0
+    ],
+    "angular_velocity": [
+      360,
+      -1200,
+      90
+    ],
+    "living_time": 1
+  },
+  "text_show": {
+    "ammo_count_text_show_pos": {
+      "scale": 1,
+      "align": "center",
+      "shadow": false,
+      "color": "#FFFFFF",
+      "light": 15,
+      "text": "text_show.tacz.ak47.ammo_count"
+    }
+  },
+  "hotbar_show": {
+    "0": {
+      "pos": [
+        -1,
+        20,
+        3
+      ],
+      "rotate": [
+        -180,
+        0,
+        120
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "controllable": {
+    "semi": {
+      "low_frequency": 0.25,
+      "high_frequency": 0.5,
+      "time": 100
+    },
+    "auto": {
+      "low_frequency": 0.15,
+      "high_frequency": 0.25,
+      "time": 80
+    },
+    "burst": {
+      "low_frequency": 0.25,
+      "high_frequency": 0.5,
+      "time": 100
+    }
+  }
+}

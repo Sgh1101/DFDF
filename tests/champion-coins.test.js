@@ -3,19 +3,19 @@ const tiers = require("../js/skin-tiers"), { harness } = require("./api-harness"
 const login = (h, id = "coiner") => h.api("auth", { id, pw: "password", device: "coin-device" });
 const seed = (h, id, values) => h.db.set("user:" + id, JSON.stringify({ ...h.user(id), ...values }));
 
-test("existing Phantom ownership and equipment migrate to carbine once without charging or replacing another chosen skin", async () => {
+test("old rifle and carbine Champions copies migrate to the renamed Phantom once without charging or replacing another chosen skin", async () => {
   const h = harness(), p = await login(h);
-  seed(h, "coiner", { championCoins: 123, gold: 456, own: { rifle: ["champions_atk", "champions_def", "dragon"], carbine: ["champions_atk", "gold"] }, skins: { m: { rifle: "champions_def", pistol: "default" }, t: 12 } });
+  seed(h, "coiner", { championCoins: 123, gold: 456, own: { rifle: ["champions_atk", "dragon"], carbine: ["champions_atk", "champions_def", "gold"], scout: ["snow"] }, skins: { m: { carbine: "champions_def", rifle: "champions_atk", pistol: "default" }, t: 12 } });
   await h.api("me", { token: p.token });
   const first = h.user("coiner");
-  assert.deepEqual(first.own.rifle, ["dragon"]); assert.deepEqual(first.own.carbine, ["champions_atk", "gold", "champions_def"]);
-  assert.equal(first.skins.m.carbine, "champions_def"); assert.equal(first.skins.m.rifle, undefined); assert.ok(first.skins.t > 12);
+  assert.deepEqual(first.own.rifle, ["dragon"]); assert.deepEqual(first.own.carbine, ["gold"]); assert.deepEqual(first.own.scout, ["snow", "champions_atk", "champions_def"]);
+  assert.equal(first.skins.m.scout, "champions_def"); assert.equal(first.skins.m.rifle, undefined); assert.equal(first.skins.m.carbine, undefined); assert.ok(first.skins.t > 12);
   assert.equal(first.championCoins, 123); assert.equal(first.gold, 456);
   await h.api("me", { token: p.token }); assert.deepEqual(h.user("coiner").skins, first.skins);
-  seed(h, "coiner", { own: { rifle: ["champions_atk"], carbine: ["gold"] }, skins: { m: { rifle: "champions_atk", carbine: "gold" }, t: 20 } });
-  await h.api("me", { token: p.token }); assert.equal(h.user("coiner").skins.m.carbine, "gold");
+  seed(h, "coiner", { own: { rifle: ["champions_atk"], scout: ["gold"] }, skins: { m: { rifle: "champions_atk", scout: "gold" }, t: 20 } });
+  await h.api("me", { token: p.token }); assert.equal(h.user("coiner").skins.m.scout, "gold");
   seed(h, "coiner", { own: {}, skins: { m: { rifle: "champions_def" }, t: 30 } });
-  await h.api("me", { token: p.token }); assert.equal(h.user("coiner").skins.m.carbine, undefined, "an invalid saved skin cannot grant ownership");
+  await h.api("me", { token: p.token }); assert.equal(h.user("coiner").skins.m.scout, undefined, "an invalid saved skin cannot grant ownership");
 });
 test("the requested decimal chance is exactly one in 10^19, with unbiased 64-bit rejection", () => {
   assert.equal(tiers.transcendentPercent, "0.00000000000000001"); assert.equal(tiers.chanceDenominator, "10000000000000000000");
@@ -55,22 +55,23 @@ test("coin award and match ticket commit atomically and can retry a failed commi
   assert.equal((await h.api("progress", body)).user.championCoins, 1);
 });
 test("700 coins buy one variant, never gold; insufficient, duplicate and parallel purchases cannot overdraw", async () => {
-  const h = harness(), p = await login(h), body = { token: p.token, g: "carbine", s: "champions_atk", price: 0, championCoins: 700 };
+  const h = harness(), p = await login(h), body = { token: p.token, g: "scout", s: "champions_atk", price: 0, championCoins: 700 };
   assert.equal((await h.api("champion_buy", { ...body, token: "" })).status, 401);
   seed(h, "coiner", { championCoins: 699, gold: 100000 });
   assert.equal((await h.api("champion_buy", body)).status, 402);
   assert.equal(h.user("coiner").championCoins, 699);
   seed(h, "coiner", { championCoins: 700 });
   assert.equal((await h.api("champion_buy", { ...body, g: "rifle" })).status, 400);
+  assert.equal((await h.api("champion_buy", { ...body, g: "carbine" })).status, 400);
   assert.equal(h.user("coiner").championCoins, 700, "the old gun target cannot spend coins");
   const results = await Promise.all([h.api("champion_buy", body), h.api("champion_buy", { ...body, s: "champions_def" })]);
   assert.deepEqual(results.map((r) => r.status).sort(), [200, 402]);
-  const user = h.user("coiner"), bought = user.own.carbine[0];
-  assert.equal(user.championCoins, 0); assert.equal(user.gold, 100000); assert.equal(user.own.carbine.length, 1);
+  const user = h.user("coiner"), bought = user.own.scout[0];
+  assert.equal(user.championCoins, 0); assert.equal(user.gold, 100000); assert.equal(user.own.scout.length, 1);
   assert.equal((await h.api("champion_buy", { ...body, s: bought })).status, 409);
   assert.equal((await h.api("champion_buy", { ...body, s: "dragon" })).status, 400);
   const shop = await h.api("champion_shop", { token: p.token });
-  assert.equal(shop.championCoins, 0); assert.ok(shop.offers.every((item) => item.g === "carbine" && item.price === 700 && item.r === 5));
+  assert.equal(shop.championCoins, 0); assert.ok(shop.offers.every((item) => item.g === "scout" && item.price === 700 && item.r === 5));
   assert.equal((await h.api("me", { token: p.token })).user.championCoins, 0);
 });
 test("an old reward receipt returns the current coin balance after a purchase", async () => {
@@ -78,23 +79,24 @@ test("an old reward receipt returns the current coin balance after a purchase", 
   const mt = await h.api("match_start", { token: p.token }); h.advance(61000);
   const body = { token: p.token, mt: mt.ticket, win: true };
   assert.equal((await h.api("progress", body)).user.championCoins, 700);
-  assert.equal((await h.api("champion_buy", { token: p.token, g: "carbine", s: "champions_atk" })).status, 200);
+  assert.equal((await h.api("champion_buy", { token: p.token, g: "scout", s: "champions_atk" })).status, 200);
   assert.equal((await h.api("progress", body)).user.championCoins, 0);
   assert.equal(h.user("coiner").championCoins, 0);
 });
 test("a concurrent completed match and purchase preserve the earned coin", async () => {
   const h = harness(), p = await login(h); seed(h, "coiner", { championCoins: 700 });
   const mt = await h.api("match_start", { token: p.token }); h.advance(61000);
-  const results = await Promise.all([h.api("progress", { token: p.token, mt: mt.ticket, win: false }), h.api("champion_buy", { token: p.token, g: "carbine", s: "champions_atk" })]);
+  const results = await Promise.all([h.api("progress", { token: p.token, mt: mt.ticket, win: false }), h.api("champion_buy", { token: p.token, g: "scout", s: "champions_atk" })]);
   assert.deepEqual(results.map((r) => r.status), [200, 200]);
   assert.equal(h.user("coiner").championCoins, 1); assert.equal(h.user("coiner").matches, 1);
-  assert.deepEqual(h.user("coiner").own.carbine, ["champions_atk"]);
+  assert.deepEqual(h.user("coiner").own.scout, ["champions_atk"]);
 });
 test("a winning exact draw grants tier five; owning both variants returns to ordinary drops", async () => {
   const h = harness({ randomBytes: (n) => n === 8 ? Buffer.alloc(8) : crypto.randomBytes(n) }), p = await login(h);
   seed(h, "coiner", { gold: 10000 });
   const first = await h.api("gacha", { token: p.token }), second = await h.api("gacha", { token: p.token });
   assert.equal(first.results[0].r, 5); assert.equal(second.results[0].r, 5); assert.notEqual(first.results[0].s, second.results[0].s);
+  assert.equal(first.results[0].g, "scout"); assert.equal(second.results[0].g, "scout");
   assert.ok((await h.api("gacha", { token: p.token })).results[0].r <= 4);
   assert.equal(h.user("coiner").championCoins, 0, "a pull does not consume or award match coins");
 });
@@ -110,6 +112,6 @@ test("ordinary completion cannot upgrade to Transcendent; gold shop cannot sell 
   assert.deepEqual(fallback.results, [{ g: "pistol", s: "snow", r: 1 }], "a completed Legendary tier falls back to ordinary skins, never guaranteed Transcendent");
   assert.equal((await h.api("gacha", { token: p.token })).status, 409);
   assert.equal(h.user("coiner").gold, 9700);
-  assert.equal((await h.api("shop_buy", { token: p.token, g: "carbine", s: "champions_atk" })).status, 404);
-  assert.equal((await h.api("wish", { token: p.token, item: "carbine|champions_atk", on: true })).status, 400);
+  assert.equal((await h.api("shop_buy", { token: p.token, g: "scout", s: "champions_atk" })).status, 404);
+  assert.equal((await h.api("wish", { token: p.token, item: "scout|champions_atk", on: true })).status, 400);
 });

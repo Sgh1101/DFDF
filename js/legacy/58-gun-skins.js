@@ -95,9 +95,10 @@
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
-    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
-    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
+    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
+    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
+  if (window.VALORANT_DATA) SKINS.push(...VALORANT_DATA.knives.map(s => ({...s})));
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
   // (shown by tier: the second set sits after the knives in the list)
@@ -1549,6 +1550,7 @@
       k.traverse((o) => o.geometry && o.geometry.dispose());
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
+    if (window.VALORANT_PACK && skin.pack) return VALORANT_PACK.dress(root, skin);
     if ("default" !== skin.id)
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
@@ -1663,11 +1665,11 @@
     if (m && "object" == typeof m) for (const k in m) WEAPONS[k] && BY[m[k]] && "default" !== m[k] && fits(BY[m[k]], k) && (o[k] = m[k]);
     return o;
   };
-  // Preserve a newer local choice while the account moves Phantom back to carbine.
-  if (["champions_atk", "champions_def"].includes(SK.mine.rifle)) {
-    if (!SK.mine.carbine || SK.mine.carbine === "default") SK.mine.carbine = SK.mine.rifle;
-    delete SK.mine.rifle;
-    save();
+  // Preserve newer local picks while old Champions copies move to Phantom.
+  for (const old of ["carbine", "rifle"]) if (["champions_atk", "champions_def"].includes(SK.mine[old])) {
+    const target = VALORANT_DATA.championsWeapon;
+    if (!SK.mine[target] || SK.mine[target] === "default") SK.mine[target] = SK.mine[old];
+    delete SK.mine[old]; save();
   }
   SK.mine = clean(SK.mine);
   // picks of skins not owned fall back to stock (once the account has answered)
@@ -1702,7 +1704,15 @@
   function refreshVM() {
     try {
       // every gun built so far goes (the grenade in hand has no key and stays)
-      for (const c of VM.root.children.slice()) c.userData && c.userData.key && VM.root.remove(c);
+      for (const c of VM.root.children.slice()) if (c.userData && c.userData.key) {
+        VM.root.remove(c);
+        let imported = false;
+        c.traverse(n => { if (n.userData.valorantRig) imported = true; });
+        if (imported) {
+          const disposed = new Set();
+          c.traverse(n => { if (n.geometry && !n.geometry.userData.shared && !disposed.has(n.geometry)) { disposed.add(n.geometry); n.geometry.dispose(); } });
+        }
+      }
       VM.cache = {};
       VM.current = null;
       "undefined" != typeof player && player && player.alive && updateViewmodel(!0);
@@ -1740,7 +1750,7 @@
       o.receiveShadow = !1;
       n++;
     });
-    const b = new T.Box3().setFromObject(w);
+    const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w));
     w.userData.muzzle = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z - 0.01];
     TPL.set(id, w);
     return w;
@@ -2193,17 +2203,19 @@
       takeInv(await AC().api("skins", { token: t, set: SK.mine, t: SK.t }));
     } catch (e) {}
   }
-  let syncing = !1, syncError = !1;
-  async function sync(force) {
+  let syncing = !1, syncError = !1, syncFlight = null, syncAgain = null;
+  function sync(force) {
     const t = token();
-    if (!t || !isOnline() || syncing || (!force && pulled === t)) return;
+    if (syncing) return force ? (syncAgain ||= syncFlight.then(() => { syncAgain = null; return sync(!0); })) : syncFlight;
+    if (!t || !isOnline() || (!force && pulled === t)) return Promise.resolve();
     pulled = t;
     syncing = !0;
     syncError = !1;
     paintGacha();
-    try {
+    syncFlight = (async () => { try {
       const j = await AC().api("skins", { token: t }),
         srv = j && j.skins;
+      if (t !== token()) return;
       if (srv && srv.m && (+srv.t || 0) > SK.t) {
         SK.mine = clean(srv.m);
         SK.t = +srv.t || Date.now();
@@ -2216,9 +2228,8 @@
     } catch (e) {
       pulled = "";
       syncError = !0;
-    }
-    syncing = !1;
-    paintGacha();
+    } finally { syncing = !1; paintGacha(); } })();
+    return syncFlight;
   }
   GAME_BOOT.ready.then(() => sync(!1));
   setInterval(() => sync(!1), 2500);
@@ -2606,7 +2617,7 @@
       <div class="ar-body"><div class="ar-guns" id="ar-guns"></div><div class="ar-slot" id="slot-gun"><div class="ar-view"><canvas id="ar-cv"></canvas><div class="ar-cap" id="ar-cap"></div><div class="ar-hint">${L("끌어서 돌리기", "Drag to turn")}</div></div></div><div class="ar-skins" id="ar-skins"></div></div>
     </section>
     <section class="ar-pane" id="ar-p-champions" hidden>
-      <div class="champions-layout"><div class="ar-slot" id="slot-champions"></div><div id="champions-content"><h2>${L("챔피언스", "Champions")}</h2><p class="champions-intro">${L("초월 등급 팬텀 · 경기 완료로 모은 코인으로 원하는 스킨을 구매하세요. 뽑기는 기존 뽑기 탭에서 함께 진행합니다.", "Transcendent Phantom · Buy your skin with coins earned by completing matches. Champions drops remain in the regular Pull tab.")}</p></div></div>
+      <div class="champions-layout"><div class="ar-slot" id="slot-champions"></div><div id="champions-content"><div class="ch-head"><span class="ch-kicker">${L("초월 등급 · 팬텀 전용", "TRANSCENDENT · PHANTOM")}</span><h2>${L("챔피언스", "Champions")}</h2></div><p class="champions-intro">${L("초월 등급 팬텀 · 경기 완료로 모은 코인으로 원하는 스킨을 구매하세요. 뽑기는 기존 뽑기 탭에서 함께 진행합니다.", "Transcendent Phantom · Buy your skin with coins earned by completing matches. Champions drops remain in the regular Pull tab.")}</p></div></div>
     </section>
     <div id="ar-reveal" hidden><div class="rv-bg"><i class="rv-rays"></i></div><div class="rv-flash"></div><div class="rv-fx" id="rv-fx"></div>
       <div class="rv-box"><div class="rv-hd"><div class="lbl">${L("뽑기", "Pull")}</div><h3 id="rv-title"></h3></div>
@@ -2716,7 +2727,7 @@
     try {
       const j = JSON.parse(localStorage.getItem(HK) || "null"),
         me = session() && session().user;
-      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => r.g === "rifle" && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: "carbine" } : r) : [];
+      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => ["rifle", "carbine"].includes(r.g) && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: VALORANT_DATA.championsWeapon } : r) : [];
     } catch (e) {
       return [];
     }
@@ -3065,6 +3076,7 @@
     const tg = pvTarget();
     if (!tg || !WEAPONS[tg.g]) return void pvRender();
     const shown = skinById(tg.s);
+    if (shown.pack && window.VALORANT_PACK?.status !== 'ready') return void pvRender();
     if (window.CHAMPIONS_PHANTOM?.isSkin(shown.id) && !CHAMPIONS_PHANTOM.loaded()) return void pvRender();
     let g = null;
     try {
@@ -3072,7 +3084,7 @@
     } catch (e) {}
     if (!g) return void pvRender();
     applySkin(g, shown);
-    const b = new T.Box3().setFromObject(g),
+    const b = (window.VALORANT_PACK?.bounds(g) || new T.Box3().setFromObject(g)),
       c = b.getCenter(new T.Vector3()),
       s = b.getSize(new T.Vector3());
     g.position.sub(c);
@@ -3397,11 +3409,11 @@
         applySkin(gun, skin);
         const w = new T.Group();
         w.add(gun);
-        gun.position.sub(new T.Box3().setFromObject(gun).getCenter(new T.Vector3()));
+        gun.position.sub((window.VALORANT_PACK?.bounds(gun) || new T.Box3().setFromObject(gun)).getCenter(new T.Vector3()));
         w.rotation.y = Math.PI / 2 + 0.3;
         TH.sc.add(w);
         w.updateMatrixWorld(!0);
-        const b = new T.Box3().setFromObject(w),
+        const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w)),
           s = b.getSize(new T.Vector3());
         w.position.sub(b.getCenter(new T.Vector3()));
         const tan = Math.tan((TH.cam.fov * Math.PI) / 360),
@@ -3777,6 +3789,7 @@
   // ── the tabs ──
   let previewFrame = 0;
   function setTab(t) {
+    AR.pickRevision = (AR.pickRevision || 0) + 1;
     ["pull", "shop", "champions", "mine", "gun"].includes(t) || (t = "pull");
     AR.tab = t;
     if (t !== "champions") AR.peek = null;
@@ -3793,6 +3806,7 @@
     "pull" === t && (AR.feat ? paintFeat() : nextFeat());
     placeView();
     if (!AR.open) return;
+    if (t === "gun" || t === "mine") void sync(!0);
     armoryPaint();
     if (AR.pv) pvShow();
     else {
@@ -4225,6 +4239,7 @@
         b.className = "ar-gun" + (k === AR.key ? " on" : "") + ("default" !== s.id ? " skinned" : "");
         b.innerHTML = `<b>${WEAPONS[k].name}</b><span>${nameOf(s)}${gated() ? ` · ${ownedOf(k)}/${totalOf(k)}` : ""}</span>`;
         b.onclick = () => {
+          AR.pickRevision = (AR.pickRevision || 0) + 1;
           AR.key = k;
           AR.peek = null;
           armoryPaint();
@@ -4255,10 +4270,13 @@
       rr.textContent = EN ? RAR[s.rar].en : RAR[s.rar].ko;
       rr.style.color = RAR[s.rar].c;
       b.append(nm, rr);
-      b.onclick = () => {
-        // a locked skin is only looked at
-        AR.peek = has ? null : s.id;
-        has && setSkin(AR.key, s.id);
+      b.onclick = async () => {
+        const key = AR.key, captured = token(), pick = AR.pickRevision = (AR.pickRevision || 0) + 1;
+        if (!owns(key, s.id) && captured) { b.setAttribute("aria-busy", "true"); await sync(!0); }
+        if (!AR.open || AR.tab !== "gun" || AR.key !== key || captured !== token() || pick !== AR.pickRevision) return;
+        const owned = owns(key, s.id);
+        AR.peek = owned ? null : s.id;
+        owned && setSkin(key, s.id);
         armoryPaint();
         pvShow();
       };
@@ -4298,7 +4316,7 @@
     for (const drop of scene.children.slice()) {
       const old = drop.userData.spin, skin = old && BY[old.userData.skin];
       if (!skin || !window.CHAMPIONS_PHANTOM || !CHAMPIONS_PHANTOM.isSkin(skin.id)) continue;
-      const fresh = buildFor("carbine", skin);
+      const fresh = buildFor(VALORANT_DATA.championsWeapon, skin);
       applySkin(fresh, skin);
       fresh.position.copy(old.position); fresh.rotation.copy(old.rotation); fresh.scale.copy(old.scale);
       const parent = old.parent;

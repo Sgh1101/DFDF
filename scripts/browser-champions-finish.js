@@ -6,7 +6,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     const p = await f.page("finish8", { width: 1280, height: 800 });
     await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded());
     const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "finish-owner" });
-    for (const skin of ["champions_atk", "champions_def"]) await f.h.api("a_user_set", { atoken: owner.atoken, id: "finish8", op: "grant", item: "carbine|" + skin });
+    for (const skin of ["champions_atk", "champions_def"]) await f.h.api("a_user_set", { atoken: owner.atoken, id: "finish8", op: "grant", item: "scout|" + skin });
     await p.evaluate(() => GUN_SKINS.sync());
     await p.clock.install({ time: new Date("2030-01-01T00:00:00Z") }); await p.clock.pauseAt(new Date("2030-01-01T00:00:10Z"));
     await p.locator("#go-armory").click(); await p.locator('#ar-tabs [data-tab="champions"]').click();
@@ -38,11 +38,11 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
         startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live";
         const me = myActor(), foes = world.actors.filter(a => a.team !== me.team), victim = foes[0];
         for (const a of world.actors) { a.fireCd = 999; if (a.team !== me.team) a.alive = a === victim; }
-        me.weapons.primary = "carbine"; me.slot = "primary"; GUN_SKINS.set("carbine", skin);
+        me.weapons.primary = "scout"; me.slot = "primary"; GUN_SKINS.set("scout", skin);
         victim.hp = 1; victim.armor = victim.invuln = victim.shielded = 0;
         victim.pos.set(me.pos.x + 8, 0, me.pos.z); victim.y = 0;
         const at = performance.now();
-        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "carbine", "gun", world.round, skin), () => dealDamage(victim, 999, false, me));
+        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "scout", "gun", world.round, skin), () => dealDamage(victim, 999, false, me));
         checkRoundEnd(); updateHUD();
         followCamera = () => {}; camera.position.set(victim.pos.x + 18, 8, victim.pos.z + 25); camera.lookAt(victim.pos.x, 6, victim.pos.z);
         window.__finishRender = window.__finishRender || render; render = () => {};
