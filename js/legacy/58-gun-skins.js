@@ -2203,10 +2203,10 @@
       takeInv(await AC().api("skins", { token: t, set: SK.mine, t: SK.t }));
     } catch (e) {}
   }
-  let syncing = !1, syncError = !1, syncFlight = null;
+  let syncing = !1, syncError = !1, syncFlight = null, syncAgain = null;
   function sync(force) {
     const t = token();
-    if (syncing) return syncFlight;
+    if (syncing) return force ? (syncAgain ||= syncFlight.then(() => { syncAgain = null; return sync(!0); })) : syncFlight;
     if (!t || !isOnline() || (!force && pulled === t)) return Promise.resolve();
     pulled = t;
     syncing = !0;

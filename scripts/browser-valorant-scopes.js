@@ -11,7 +11,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   const scope=root.getObjectByName('valorant-attachment-scope');if(!scope)return null;
   const hidden=[];let vertices=0,texture;
   scope.traverse(n=>{if(n.isMesh){vertices+=n.geometry.attributes.position.count;texture=n.material.map;}if(n.userData.attachmentBone&&!n.visible)hidden.push(n.userData.attachmentBone);});
-  const box=VALORANT_PACK.bounds(scope);scope.visible=false;const body=VALORANT_PACK.bounds(root);scope.visible=true;
+  let bodyRig=scope.parent;while(bodyRig.parent&&!bodyRig.userData.item)bodyRig=bodyRig.parent;
+  const box=VALORANT_PACK.bounds(scope);scope.visible=false;const body=VALORANT_PACK.bounds(bodyRig);scope.visible=true;
   return {id:scope.userData.sourceAttachment,cubes:scope.userData.sourceCubes,vertices,socket:scope.parent.userData.sourceBone,position:scope.position.toArray(),texture:[texture.image.width,texture.image.height],hidden,scopeTop:box.max.y,bodyTop:body.max.y,above:box.max.y>body.max.y+.02};
  };});
  const check=async(where,spec)=>{

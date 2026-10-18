@@ -27,7 +27,7 @@ async function fixture() {
     }, session);
     if (options.beforeLoad) await options.beforeLoad(page);
     await page.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + (options.path || "/play.html"), { waitUntil: "domcontentloaded", timeout: 120000 });
-    await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading, null, { timeout: options.bootTimeout || 30000 }).catch(async error => {
+    await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading, null, { timeout: options.bootTimeout || Number(process.env.DFDF_BOOT_TIMEOUT) || 30000 }).catch(async error => {
       error.message += "\nBoot diagnostics: " + JSON.stringify({ errors, state: await page.evaluate(() => ({ boot: !!window.GAME_BOOT, loading: document.documentElement.dataset.gameLoading, alerts: [...document.querySelectorAll('.game-load-error')].map(n => n.textContent) })) });
       throw error;
     });

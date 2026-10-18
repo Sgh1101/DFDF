@@ -45,6 +45,6 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return { scout: check("scout"), carbine: check("carbine"), rifle: check("rifle") };
     });
     assert.deepEqual(models, { scout: true, carbine: false, rifle: false }); assert.deepEqual(f.errors, []);
-    console.log("Phantom target: old rifle/carbine ownership and newer local cache preserved without charge, old pull history relabelled, names swapped, shop equips Phantom, original model only on scout passed");
+    console.log("Phantom target: old rifle/carbine ownership and newer local cache preserved without charge, old pull history relabelled, names swapped, shop and by-gun equip Phantom, late ownership unlocks on the same click, original model only on scout passed");
   } finally { await f.browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

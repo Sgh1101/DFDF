@@ -170,8 +170,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(tiers.visual.bankMs < 6000, "the textures of the strongest preset are made quickly (" + tiers.visual.bankMs + " ms; reading a GPU canvas back used to take 14 s)");
 
     // ── taking it down ──
-    const gone = await page.evaluate(() => { loadMap("glacier"); return { key: CUR_MAP_KEY, lights: HOSPITAL.lights.length, meshes: HOSPITAL.meshes.length, y0: COLLIDERS.filter((c) => c.y0 > 0).length, built: HOSPITAL.key }; });
-    assert.deepEqual(gone, { key: "glacier", lights: 0, meshes: 0, y0: 0, built: null }, "nothing of the hospital is left on the next map");
+    const gone = await page.evaluate(() => { const previous=new Set(COLLIDERS);loadMap("glacier"); return { key: CUR_MAP_KEY, lights: HOSPITAL.lights.length, meshes: HOSPITAL.meshes.length, retained: COLLIDERS.filter(c=>previous.has(c)).length, built: HOSPITAL.key }; });
+    assert.deepEqual(gone, { key: "glacier", lights: 0, meshes: 0, retained: 0, built: null }, "hospital meshes, lights and collider objects leave the next map; its own building floors remain valid");
     assert.deepEqual(f.errors, []);
     console.log("hospital: listed, 4 stairs, " + walk.edges + " doorways, every cell reachable, bots reach both sites, entrances shut while buying, cleaned up");
   } finally { await f.browser.close(); }
