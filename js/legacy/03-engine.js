@@ -19632,6 +19632,38 @@ addEventListener("resize", () => {
 const tac = $("tac"),
   tctx = tac && tac.getContext("2d"),
   TAC_RANGE = 52;
+// the map's walls on the tactical view are painted once into a picture (3 px a metre) and drawn as one image: a few hundred
+// rectangles every other frame were the largest cost of the view. The picture is made again when a collider appears, goes or
+// changes its height (a gate, a rising wall), which the signature below notices.
+const TACW = { cv: null, sig: "", minX: 0, minZ: 0, w: 0, h: 0, k: 3 };
+function drawTacWalls(r, s) {
+  let sum = 0;
+  for (let i = 0; i < COLLIDERS.length; i++) {
+    const c = COLLIDERS[i];
+    sum += (c.h > STEP_H ? (i % 97) + 1 : 0) + 0.01 * (c.minX + c.maxZ);
+  }
+  const B = MAP.bounds,
+    sig = CUR_MAP_KEY + ":" + COLLIDERS.length + ":" + Math.round(sum * 10);
+  if (!TACW.cv || TACW.sig !== sig) {
+    const k = TACW.k,
+      w = Math.ceil((B.maxX - B.minX + 8) * k),
+      h = Math.ceil((B.maxZ - B.minZ + 8) * k);
+    TACW.cv || (TACW.cv = document.createElement("canvas"));
+    TACW.cv.width = w;
+    TACW.cv.height = h;
+    TACW.minX = B.minX - 4;
+    TACW.minZ = B.minZ - 4;
+    TACW.w = w / k;
+    TACW.h = h / k;
+    TACW.sig = sig;
+    const g = TACW.cv.getContext("2d");
+    for (const c of COLLIDERS) {
+      g.fillStyle = c.h > STEP_H ? "rgba(86,100,120,.85)" : "rgba(70,82,98,.5)";
+      g.fillRect((c.minX - TACW.minX) * k, (c.minZ - TACW.minZ) * k, (c.maxX - c.minX) * k, (c.maxZ - c.minZ) * k);
+    }
+  }
+  tctx.drawImage(TACW.cv, r(TACW.minX), s(TACW.minZ), r(TACW.w), s(TACW.h));
+}
 function drawTac() {
   if (!tctx) return;
   const e = tac.width,
@@ -19648,16 +19680,7 @@ function drawTac() {
     tctx.translate(-player.pos.x * n, -player.pos.z * n));
   const r = (e) => e * n,
     s = (e) => e * n;
-  for (const e of COLLIDERS) {
-    const t = e.h > STEP_H;
-    ((tctx.fillStyle = t ? "rgba(86,100,120,.85)" : "rgba(70,82,98,.5)"),
-      tctx.fillRect(
-        r(e.minX),
-        s(e.minZ),
-        r(e.maxX - e.minX),
-        s(e.maxZ - e.minZ),
-      ));
-  }
+  drawTacWalls(r, s);
   (MAP.sites.forEach((e) => {
     ((tctx.strokeStyle = "rgba(255,59,78,.6)"),
       (tctx.lineWidth = 2.5),
