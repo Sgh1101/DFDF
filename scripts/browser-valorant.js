@@ -22,7 +22,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'pack-owner'});
  const skins=await page.evaluate(()=>VALORANT_DATA.knives.map(s=>({id:s.id,name:s.ko})));
  for(const s of skins)assert.equal((await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'knife|'+s.id})).status,200);
- await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'carbine|champions_atk'});
+ await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'scout|champions_atk'});
  await page.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;openShop();});
  assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),18);
  const shop=await page.locator('#shop-grid').innerText();for(const name of ['밴달','팬텀','클래식','오퍼레이터','아웃로','오딘'])assert.ok(shop.includes(name));
@@ -61,6 +61,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  await page.evaluate(()=>{world.phase='buy';world.roundTime=999;});
  await settle();
  await page.screenshot({path:'test-results/valorant-gun-equipped.png'});
- const champions=await page.evaluate(()=>{GUN_SKINS.set('carbine','champions_atk');const a=myActor();a.weapons.primary='carbine';a.slot='primary';updateViewmodel(true);return!!VM.current.getObjectByName('phantom-rig');});assert.ok(champions,'existing Champions carbine still uses the original special model');
+ const champions=await page.evaluate(()=>{GUN_SKINS.set('scout','champions_atk');const a=myActor();a.weapons.primary='scout';a.slot='primary';updateViewmodel(true);return!!VM.current.getObjectByName('phantom-rig');});assert.ok(champions,'existing Champions scout still uses the original special model');
  assert.deepEqual(f.errors,[]);console.log('Valorant: 9 guns, 6 knife skins, source textures and motion, real equip/purchase UI, unchanged knife damage, original shot audio, Champions compatibility passed. Purchases used an in-memory fixture.');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

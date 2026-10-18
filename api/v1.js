@@ -356,7 +356,7 @@ SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
-SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = "carbine";
+SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = VALORANT.championsWeapon;
 for (const skin of VALORANT.knives) SKIN_ONLY[skin.id] = 'knife';
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
@@ -392,18 +392,22 @@ function ensureWallet(u, c) {
     if (!isObj(u.weaponRestored)) u.weaponRestored = {};
     u.weaponRestored[key] = true; changed = true;
   }
-  // Move the previously sold rifle copies without charging again or replacing other skins.
+  // Move all previously sold Champions copies to the renamed Phantom. Preserve
+  // ordinary skins, the target's current choice and both currency balances.
   const phantom = (s) => s === "champions_atk" || s === "champions_def";
-  const moved = Array.isArray(u.own.rifle) ? u.own.rifle.filter(phantom) : [];
-  if (moved.length) {
-    u.own.carbine = [...new Set([...(Array.isArray(u.own.carbine) ? u.own.carbine : []), ...moved])];
-    u.own.rifle = u.own.rifle.filter((s) => !phantom(s)); changed = true;
-  }
-  if (isObj(u.skins?.m) && phantom(u.skins.m.rifle)) {
-    const previous = u.skins.m.rifle;
-    if ((!u.skins.m.carbine || u.skins.m.carbine === "default") && hasItem(u, "carbine", previous)) u.skins.m.carbine = previous;
-    delete u.skins.m.rifle;
-    u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
+  const championGun = VALORANT.championsWeapon;
+  for (const old of ["carbine", "rifle"]) {
+    const moved = Array.isArray(u.own[old]) ? u.own[old].filter(phantom) : [];
+    if (moved.length) {
+      u.own[championGun] = [...new Set([...(Array.isArray(u.own[championGun]) ? u.own[championGun] : []), ...moved])];
+      u.own[old] = u.own[old].filter(s => !phantom(s)); changed = true;
+    }
+    if (isObj(u.skins?.m) && phantom(u.skins.m[old])) {
+      const previous = u.skins.m[old];
+      if ((!u.skins.m[championGun] || u.skins.m[championGun] === "default") && hasItem(u, championGun, previous)) u.skins.m[championGun] = previous;
+      delete u.skins.m[old];
+      u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
+    }
   }
   let back = 0;
   // Preserve retired copies in an archive and move skins without charging.

@@ -29,25 +29,25 @@ test('17 firearms plus a knife and six new knife-only skins share the server cat
  const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,18);assert.equal(c.items,576);
  for(const k of Object.keys(D.aliases))assert.ok(!c.guns.includes(k));
  for(const s of D.knives){assert.equal(c.only[s.id],'knife');assert.equal(c.tiers[s.id],4);}
- assert.equal(c.only.champions_atk,'carbine');
+ assert.equal(c.only.champions_atk,'scout');
  for(const key of Object.keys(D.names))assert.equal(D.canonical(key),key,'supplied weapons and carbine stay active');
  for(const target of Object.values(D.aliases))assert.ok(c.guns.includes(target),'every retired weapon maps directly to an active weapon');
 });
 test('consolidation preserves owned skins and equipped choices; duplicate compensation is once only',async()=>{
  const h=harness(),p=await h.api('auth',{id:'collector',pw:'password',device:'test-packs'}),u=h.user('collector');
- u.own={vector:['dragon','lava'],smg:['lava','snow'],carbine:['champions_atk']};u.skins={m:{vector:'dragon',smg:'snow',carbine:'champions_atk'},t:1};u.wish=['vector|dragon','smg|dragon'];const gold=u.gold;h.db.set('user:collector',JSON.stringify(u));
+ u.own={vector:['dragon','lava'],smg:['lava','snow'],scout:['champions_atk']};u.skins={m:{vector:'dragon',smg:'snow',scout:'champions_atk'},t:1};u.wish=['vector|dragon','smg|dragon'];const gold=u.gold;h.db.set('user:collector',JSON.stringify(u));
  const reads=await Promise.all([h.api('skins',{token:p.token}),h.api('skins',{token:p.token})]);for(const first of reads)assert.equal(first.status,200);const after=h.user('collector');
- assert.deepEqual(after.own.smg,['lava','snow','dragon']);assert.ok(!after.own.vector);assert.deepEqual(after.weaponArchive.vector,['dragon','lava']);assert.equal(after.skins.m.smg,'snow');assert.equal(after.skins.m.carbine,'champions_atk');assert.ok(!after.skins.m.vector);assert.deepEqual(after.wish,['smg|dragon']);assert.equal(after.gold,gold+900);
+ assert.deepEqual(after.own.smg,['lava','snow','dragon']);assert.ok(!after.own.vector);assert.deepEqual(after.weaponArchive.vector,['dragon','lava']);assert.equal(after.skins.m.smg,'snow');assert.equal(after.skins.m.scout,'champions_atk');assert.ok(!after.skins.m.vector);assert.deepEqual(after.wish,['smg|dragon']);assert.equal(after.gold,gold+900);
  await h.api('skins',{token:p.token});assert.equal(h.user('collector').gold,after.gold);
 });
 test('restoring five firearms returns archived skins once and preserves current equipment and compensation',async()=>{
  const h=harness(),p=await h.api('auth',{id:'oldbuyer',pw:'password',device:'oldbuyer-packs'}),u=h.user('oldbuyer');
- u.own={pistol:['lava','snow','dragon'],autoshot:['snow','gold'],rifle:['lava','gold'],carbine:['champions_def'],machpist:['gold']};
+ u.own={pistol:['lava','snow','dragon'],autoshot:['snow','gold'],rifle:['lava','gold'],scout:['champions_def'],machpist:['gold']};
  u.weaponArchive={machpist:['lava','snow'],whisper:['dragon'],shotgun:['gold'],burst:['gold'],scout:['snow']};
- u.skins={m:{pistol:'snow',autoshot:'snow',rifle:'lava',carbine:'champions_def'},t:1};u.refunded=900;const gold=u.gold;h.db.set('user:oldbuyer',JSON.stringify(u));
+ u.skins={m:{pistol:'snow',autoshot:'snow',rifle:'lava',scout:'champions_def'},t:1};u.refunded=900;const gold=u.gold;h.db.set('user:oldbuyer',JSON.stringify(u));
  await Promise.all([h.api('skins',{token:p.token}),h.api('skins',{token:p.token})]);const next=h.user('oldbuyer');
- assert.deepEqual(next.own.machpist,['gold','lava','snow']);assert.deepEqual(next.own.whisper,['dragon']);assert.deepEqual(next.own.shotgun,['gold']);assert.deepEqual(next.own.burst,['gold']);assert.deepEqual(next.own.scout,['snow']);
- assert.deepEqual(next.skins.m,u.skins.m);assert.deepEqual(next.own.carbine,['champions_def']);assert.equal(next.gold,gold);assert.equal(next.refunded,900);
+ assert.deepEqual(next.own.machpist,['gold','lava','snow']);assert.deepEqual(next.own.whisper,['dragon']);assert.deepEqual(next.own.shotgun,['gold']);assert.deepEqual(next.own.burst,['gold']);assert.deepEqual(next.own.scout,['champions_def','snow']);
+ assert.deepEqual(next.skins.m,u.skins.m);assert.deepEqual(next.own.scout,['champions_def','snow']);assert.equal(next.gold,gold);assert.equal(next.refunded,900);
  for(const key of D.restored)assert.equal(next.weaponRestored[key],true);
  // Later deliberate removals must not be undone by replaying the archive.
  next.own.machpist=['gold'];h.db.set('user:oldbuyer',JSON.stringify(next));

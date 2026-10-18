@@ -7,7 +7,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
   try {
     const host = await f.page("finishhost"), guest = await f.page("finishguest");
     const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "finish-online-owner" });
-    await f.h.api("a_user_set", { atoken: owner.atoken, id: "finishhost", op: "grant", item: "carbine|champions_def" });
+    await f.h.api("a_user_set", { atoken: owner.atoken, id: "finishhost", op: "grant", item: "scout|champions_def" });
     await host.evaluate(() => GUN_SKINS.sync());
     for (const p of [host, guest]) {
       await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded());
@@ -16,7 +16,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
         await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port: 9000, path: "/", secure: false, config: { iceServers: [] } });
       });
     }
-    const code = await host.evaluate(async () => { GUN_SKINS.set("carbine", "champions_def"); await createRoom(); return NET.room; });
+    const code = await host.evaluate(async () => { GUN_SKINS.set("scout", "champions_def"); await createRoom(); return NET.room; });
     await guest.evaluate(code => joinRoom(code), code);
     await host.waitForFunction(() => room.members.size === 2 && NET.conns.size === 1);
     await host.evaluate(() => { room.mode = "std"; room.map = "field"; hostStartMatch(); });
@@ -29,9 +29,9 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     const round = await host.evaluate(() => {
       const me = myActor(), foes = world.actors.filter(a => a.team !== me.team), victim = foes[0];
       for (const a of foes) a.alive = a === victim;
-      me.weapons.primary = "carbine"; me.slot = "primary"; GUN_SKINS.set("carbine", "champions_def");
+      me.weapons.primary = "scout"; me.slot = "primary"; GUN_SKINS.set("scout", "champions_def");
       victim.hp = 1; victim.armor = victim.invuln = victim.shielded = 0;
-      DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "carbine", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
+      DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "scout", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
       checkRoundEnd(); return world.round;
     });
     await guest.waitForFunction(() => world.phase === "end" && world.championsFinishUntil > performance.now());

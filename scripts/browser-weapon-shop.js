@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  const p=await f.page('equipmentbuyer',{width:1440,height:900},{},{bootTimeout:120000});
  await p.waitForFunction(()=>VALORANT_PACK.status==='ready',null,{timeout:120000});
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'equipment-owner'});
- await f.h.api('a_user_set',{atoken:owner.atoken,id:'equipmentbuyer',op:'grant',item:'carbine|champions_atk'});
+ await f.h.api('a_user_set',{atoken:owner.atoken,id:'equipmentbuyer',op:'grant',item:'scout|champions_atk'});
  await p.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;const a=myActor();a.credits=10000;a.abilities[0].charges=0;openShop();});
  await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===17,null,{timeout:120000});
  assert.equal(await p.locator('#shop-grid [data-kind="weapon"]').count(),17);
@@ -15,14 +15,14 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  const filled=async()=>p.evaluate(()=>[...document.querySelectorAll('#shop-grid .shop-col')].map(c=>{const r=c.getBoundingClientRect(),last=c.lastElementChild.getBoundingClientRect();return Math.abs(r.bottom-last.bottom)<2;}));
  assert.ok((await filled()).every(Boolean),'desktop categories fill the available column height');
  const carbine=p.locator('#shop-grid [data-kind="weapon"][data-key="carbine"]');
- await carbine.hover();await p.waitForFunction(()=>document.getElementById('buy-name').textContent==='팬텀');
+ await carbine.hover();await p.waitForFunction(()=>document.getElementById('buy-name').textContent==='정찰 소총');
  assert.ok(await p.evaluate(()=>{let found=false;WEAPON_SHOP.preview().obj.traverse(n=>{if(n.userData.valorantItem==='phantom')found=true;});return found;}),'detail uses the actual supplied Phantom');
  const cost=await p.evaluate(()=>WEAPONS.carbine.cost);await carbine.click();
  assert.deepEqual(await p.evaluate(()=>({key:myActor().weapons.primary,credits:myActor().credits})),{key:'carbine',credits:10000-cost});
  await p.locator('#shop-grid [data-key="carbine"]').click({force:true});assert.equal(await p.evaluate(()=>myActor().credits),10000-cost,'owned gun cannot be charged twice');
- await p.evaluate(()=>{GUN_SKINS.set('carbine','champions_atk');renderShop();});await carbine.hover();
+ await p.evaluate(()=>{GUN_SKINS.set('scout','champions_atk');renderShop();});await p.locator('#shop-grid [data-key="scout"]').hover();
  await p.waitForFunction(()=>document.getElementById('buy-preview').dataset.skin==='champions_atk');
- assert.ok(await p.evaluate(()=>!!WEAPON_SHOP.preview().obj.getObjectByName('phantom-rig')),'Champions keeps its original carbine model');
+ assert.ok(await p.evaluate(()=>!!WEAPON_SHOP.preview().obj.getObjectByName('phantom-rig')),'Champions keeps its original model on Phantom');
  await p.screenshot({path:'test-results/weapon-shop-desktop.png'});
  await p.locator('#shop-grid [data-kind="armor"][data-key="heavy"]').click();assert.equal(await p.evaluate(()=>myActor().armor),50);
  const protectedCredits=await p.evaluate(()=>myActor().credits);await p.locator('#shop-grid [data-kind="armor"][data-key="light"]').click({force:true});assert.equal(await p.evaluate(()=>myActor().credits),protectedCredits,'lower armor cannot replace or charge over heavy armor');

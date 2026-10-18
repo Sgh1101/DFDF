@@ -95,8 +95,8 @@
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
-    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: "carbine", body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
-    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: "carbine", body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
+    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
+    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
   if (window.VALORANT_DATA) SKINS.push(...VALORANT_DATA.knives.map(s => ({...s})));
   // which skins a gun can wear
@@ -1665,11 +1665,11 @@
     if (m && "object" == typeof m) for (const k in m) WEAPONS[k] && BY[m[k]] && "default" !== m[k] && fits(BY[m[k]], k) && (o[k] = m[k]);
     return o;
   };
-  // Preserve a newer local choice while the account moves Phantom back to carbine.
-  if (["champions_atk", "champions_def"].includes(SK.mine.rifle)) {
-    if (!SK.mine.carbine || SK.mine.carbine === "default") SK.mine.carbine = SK.mine.rifle;
-    delete SK.mine.rifle;
-    save();
+  // Preserve newer local picks while old Champions copies move to Phantom.
+  for (const old of ["carbine", "rifle"]) if (["champions_atk", "champions_def"].includes(SK.mine[old])) {
+    const target = VALORANT_DATA.championsWeapon;
+    if (!SK.mine[target] || SK.mine[target] === "default") SK.mine[target] = SK.mine[old];
+    delete SK.mine[old]; save();
   }
   SK.mine = clean(SK.mine);
   // picks of skins not owned fall back to stock (once the account has answered)
@@ -2726,7 +2726,7 @@
     try {
       const j = JSON.parse(localStorage.getItem(HK) || "null"),
         me = session() && session().user;
-      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => r.g === "rifle" && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: "carbine" } : r) : [];
+      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => ["rifle", "carbine"].includes(r.g) && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: VALORANT_DATA.championsWeapon } : r) : [];
     } catch (e) {
       return [];
     }
@@ -4309,7 +4309,7 @@
     for (const drop of scene.children.slice()) {
       const old = drop.userData.spin, skin = old && BY[old.userData.skin];
       if (!skin || !window.CHAMPIONS_PHANTOM || !CHAMPIONS_PHANTOM.isSkin(skin.id)) continue;
-      const fresh = buildFor("carbine", skin);
+      const fresh = buildFor(VALORANT_DATA.championsWeapon, skin);
       applySkin(fresh, skin);
       fresh.position.copy(old.position); fresh.rotation.copy(old.rotation); fresh.scale.copy(old.scale);
       const parent = old.parent;
