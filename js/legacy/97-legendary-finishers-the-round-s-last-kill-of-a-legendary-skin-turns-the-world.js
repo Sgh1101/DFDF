@@ -6,7 +6,7 @@
   // Pure show: it never touches the fight, is cleaned up with the other finishers when the next round starts,
   // and runs for everyone in the room because the finisher event is itself shared.
   if ("undefined" == typeof addFx || "undefined" == typeof scene) return;
-  const q = () => ("fast" === SETTINGS.quality || "low" === SETTINGS.quality ? 0.5 : 1);
+  const q = () => Math.max(.35, Math.min(1, GFX.fx));
   const hex = (c) => new T.Color(c);
   const mat = (c, o, solid) => new T.MeshBasicMaterial({ color: c, transparent: !0, opacity: o == null ? 1 : o, depthWrite: !1, blending: solid ? T.NormalBlending : T.AdditiveBlending, side: T.DoubleSide });
   const ease = (k) => k * k * (3 - 2 * k);

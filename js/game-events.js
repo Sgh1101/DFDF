@@ -45,7 +45,7 @@
         ring.rotation.x = Math.PI / 2; ring.position.y = 0.1 + i * 0.3;
         group.add(ring);
       }
-      const count = SETTINGS.quality === "fast" || SETTINGS.quality === "low" ? 8 : 16;
+      const count = Math.max(6, Math.round(16 * Math.min(1, GFX.fx)));
       for (let i = 0; i < count; i++) {
         const crystal = pack === "crystal" || pack === "royal";
         const mesh = new T.Mesh(crystal ? new T.OctahedronGeometry(0.09) : new T.TetrahedronGeometry(0.08), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));

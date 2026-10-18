@@ -136,7 +136,7 @@
   const close = GUN_SKINS.close;
   GUN_SKINS.close = function () { SOUNDPACK.stop(); settle(); return close.apply(this, arguments); };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  function motion() { title.classList.toggle("home-reduced", reduced.matches || SETTINGS.motion === 0 || ["fast", "low"].includes(SETTINGS.quality)); }
+  function motion() { title.classList.toggle("home-reduced", reduced.matches || SETTINGS.motion === 0 || ["mobile", "perf"].includes(SETTINGS.quality)); }
   const orbit = titleCam;
   let staticMap = null;
   titleCam = function () {
