@@ -29,16 +29,17 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return res;
     });
     console.log(JSON.stringify(out));
-    const want = { rifle: "mag", smg: "mag", pistol: "pistol", shotgun: "shells", revolver: "revolver", handcan: "revolver", doublebarrel: "break", pocketshot: "break", sniper: "bolt", antimat: "bolt", scout: "bolt", lmg: "belt", hmg: "belt", minigun: "belt", rpg: "rocket" };
+    const want = { pistol: "pistol", silenced: "pistol", revolver: "revolver", machpist: "pistol", smg: "mag", shotgun: "shells", autoshot: "shells", rifle: "mag", carbine: "mag", burst: "mag", hmg: "belt", marksman: "mag", sniper: "bolt", pocketshot: "break", whisper: "mag", scout: "mag", bullpup: "mag", rpg: "rocket" };
+    assert.deepEqual(Object.keys(out).sort(), Object.keys(want).sort(), "every current firearm has an explicit reload expectation");
     for (const [k, s] of Object.entries(want)) assert.equal(out[k].style, s, k + " reloads as " + s);
     for (const [k, r] of Object.entries(out)) {
       assert.ok(r.moved > 0.05, k + ": the left hand works (" + r.moved + ")");
       assert.ok(r.back < 0.002, k + ": the hand is back after the reload (" + r.back + ")");
     }
-    for (const k of ["revolver", "handcan"]) assert.ok(out[k].loader && out[k].empties === 6, k + " has a speedloader and six empties");
-    for (const k of ["doublebarrel", "pocketshot"]) assert.ok(out[k].pair, k + " has two shells in the hand");
+    assert.ok(out.revolver.loader && out.revolver.empties === 6, "revolver has a speedloader and six empties");
+    assert.ok(out.pocketshot.pair, "pocketshot has two shells in the hand");
     assert.ok(out.rpg.cap, "the rocket has a nose cap");
-    for (const k of ["rifle", "sniper", "lmg"]) assert.ok(out[k].magOff > 0.05, k + ": the magazine comes out (" + out[k].magOff + ")");
+    for (const k of ["rifle", "sniper", "hmg", "scout"]) assert.ok(out[k].magOff > 0.05, k + ": the magazine comes out (" + out[k].magOff + ")");
     assert.deepEqual(f.errors, []);
     console.log("reloads: every gun's own style, hand back at rest, no errors");
   } finally { await f.browser.close(); }

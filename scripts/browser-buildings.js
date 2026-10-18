@@ -8,9 +8,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const dir = process.env.SHOT_DIR || "/tmp";
     const page = await f.page("bld", { width: 1280, height: 720 });
     const maps = await page.evaluate(() => MAP_LIST.map((m) => m.key));
-    const skip = ["field", "d01", "d03", "d04"];
+    // Hospital and the imported Ascent have their own geometry/stair suites;
+    // they do not use BUILDINGS.plan's procedural houses and towers.
+    const skip = ["field", "d01", "d03", "d04", "hospital", "ascent_trial"];
     const want = maps.filter((k) => !skip.includes(k));
-    assert.equal(maps.length, 20, "the map count stays the same");
+    assert.equal(maps.length, 22, "current map catalog includes Hospital and Ascent");
+    assert.ok(maps.includes("hospital") && maps.includes("ascent_trial"));
     const res = [];
     for (const key of want) {
       const r = await page.evaluate((key) => {

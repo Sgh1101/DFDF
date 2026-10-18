@@ -3094,10 +3094,11 @@
     if (RV.on || "pull" === AR.tab || "shop" === AR.tab) {
       const k = 0.95 / Math.max(s.x, s.y, s.z, 0.05);
       w.scale.setScalar(k);
-      P.fit = { L: k * Math.max(s.x, s.z), H: k * s.y, w: RV.on ? 0.48 : 0.6, h: RV.on ? 0.5 : 0.56 };
+      P.fit = { L: k * (RV.on ? Math.max(s.x, s.z) : Math.hypot(s.x, s.z)), H: k * s.y, w: RV.on ? 0.48 : 0.6, h: RV.on ? 0.5 : 0.56, tilt: !RV.on };
     } else {
-      P.fit = null;
-      P.dist = Math.max(s.z * 2.3, s.y * 2.8, s.x * 2.8, 0.45);
+      // Fit to the actual canvas aspect, including its caption-free height.
+      // A fixed distance left long guns tiny on a short landscape phone.
+      P.fit = { L: Math.hypot(s.x, s.z), H: s.y, w: .82, h: .72, tilt: true };
     }
     P.pivot.add(w);
     P.obj = w;
@@ -3119,19 +3120,20 @@
     (cv.width !== Math.round(w * P.r.getPixelRatio()) || cv.height !== Math.round(h * P.r.getPixelRatio())) && P.r.setSize(w, h, !1);
     P.cam.aspect = w / h;
     P.cam.updateProjectionMatrix();
+    const k = Math.min(1, (P.dt || 0.016) * 7);
+    P.pc = P.drag ? P.pitch : P.pc + (P.pitch - P.pc) * k;
     // a framed gun fills a share of the view, whatever its shape
     if (P.fit && !P.cine) {
       const tan = Math.tan((P.cam.fov * Math.PI) / 360);
-      P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), P.fit.H / (2 * tan * P.fit.h), 0.9);
+      const height = P.fit.tilt ? P.fit.H * Math.abs(Math.cos(P.pc)) + P.fit.L * Math.abs(Math.sin(P.pc)) : P.fit.H;
+      P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), height / (2 * tan * P.fit.h), 0.9);
     } else if (P.fit && P.cine && P.cine.bt) {
       const tan = Math.tan((P.cam.fov * Math.PI) / 360);
       P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), P.fit.H / (2 * tan * P.fit.h), 1.6);
     }
     // the camera eases to where it should be; a drag moves it at once
-    const k = Math.min(1, (P.dt || 0.016) * 7);
-    P.d += (P.dist - P.d) * k;
+    P.d = P.drag ? P.dist : P.d + (P.dist - P.d) * k;
     P.tyc += (P.ty - P.tyc) * k;
-    P.pc = P.drag ? P.pitch : P.pc + (P.pitch - P.pc) * k;
     // a new gun pops in
     if (!P.rise) {
       const pk = P.popT ? Math.min(1, (now - P.popT) / 420) : 1;

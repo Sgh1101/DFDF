@@ -104,7 +104,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForFunction(() => document.getElementById("mbe-bar").getAttribute("aria-label") === "Button layout");
     await page.locator("#mbe-x").dispatchEvent("click");
     await page.evaluate(() => togglePause(false));
-    const other = await page.context().newPage(); await other.goto("http://127.0.0.1:3000/privacy.html");
+    const other = await page.context().newPage(); await other.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + "/privacy.html");
     await other.evaluate(() => localStorage.clear());
     await page.waitForURL((url) => url.pathname === "/", { timeout: 30000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem("lgp_gate")), null);
