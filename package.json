@@ -10,6 +10,8 @@
     "test:champions-panel": "node scripts/browser-champions-panel.js",
     "test:killcam": "node scripts/browser-killcam.js",
     "test:spider-swing": "node scripts/browser-spider-swing.js",
+    "test:abilities": "node scripts/browser-ability-upgrade.js",
+    "test:abilities-online": "node scripts/browser-abilities-online.js",
     "test:phantom-carbine": "node scripts/browser-phantom-carbine.js",
     "test:champions-finish": "node scripts/browser-champions-finish.js",
     "test:champions-finish-online": "node scripts/browser-champions-finish-online.js",
