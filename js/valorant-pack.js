@@ -4,7 +4,7 @@
   const S=window.VALORANT_PACK={status:'loading',items:new Map(),files:new Map(),audioPlayed:[]};
   const status=document.createElement('div');status.id='valorant-status';status.setAttribute('role','status');status.textContent='원본 무기 리소스 불러오는 중…';
   status.style.cssText='position:fixed;bottom:6px;right:12px;z-index:10030;color:#b9e7ef;background:#101823e8;padding:5px 12px;border-radius:8px;font:12px sans-serif';document.body.append(status);
-  const blobs=new Map(),buffers=new Map();let manifest,clock=0,inspect=0,attack=0,draw=0,current=null,reloadStart=0,firingActor=null;
+  const blobs=new Map(),buffers=new Map(),handBindings=new WeakMap();let manifest,clock=0,inspect=-1,attack=0,draw=0,current=null,reloadStart=0,firingActor=null,clipRun=0;
   const canonical=D.canonical;
   const poseEuler=new T.Euler(0,0,0,'ZYX'),poseQuaternion=new T.Quaternion();
   S.bounds=root=>{
@@ -36,7 +36,7 @@
   function itemFor(key,skin){return S.items.get(key==='knife'?skin?.id?.replace(/^vp_/,''):canonical(key));}
   function pose(rig,item,clip,t){
     const anim=item.animations[clip];if(!anim)return;
-    if(anim.loop&&anim.animation_length)t%=anim.animation_length;else t=Math.min(t,anim.animation_length||t);
+    if(anim.loop===true&&anim.animation_length)t%=anim.animation_length;else t=Math.min(t,anim.animation_length||t);
     for(const node of rig.childrenWithBones||[]){
       const name=node.userData.sourceBone,idle=item.animations.static_idle?.bones?.[name]||{},track={...idle,...anim.bones?.[name]},rest=node.userData.rest;
       if(/camera/.test(name))continue;
@@ -74,7 +74,8 @@
       let node=rig.childrenWithBones.find(n=>/^(weapon|axe|hammer)$/.test(n.userData.sourceBone));
       for(;node&&node!==rig;node=node.parent)if(node.userData.rest){node.position.fromArray(node.userData.rest.p);node.rotation.set(...node.userData.rest.r.map(v=>v*Math.PI/180),'ZYX');}
     }
-    rig.rotation.y=0;rig.scale.setScalar(item.key==='knife'?.045:.027);wrapper.add(rig);
+    // Supplied knives are 1.6 times their original size, in previews and in play.
+    rig.rotation.y=0;rig.scale.setScalar(item.key==='knife'?.072:.027);wrapper.add(rig);
     const box=S.bounds(wrapper),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
     rig.position.set(-center.x,-center.y+.03,-center.z+.25-size.z/2);
     wrapper.userData.valorantItem=item.id;wrapper.userData.valorantRig=true;wrapper.userData.sourceCubes=item.cubes;wrapper.userData.sourceAttachmentCubes=item.attachments.reduce((n,a)=>n+a.cubes,0);
@@ -82,6 +83,48 @@
   }
   S.build=id=>{const item=S.items.get(id)||[...S.items.values()].find(item=>item.id===id);if(!item)throw Error('원본 무기가 아직 준비되지 않았어');return build(item);};
   S.pose=pose;
+  const handMatrix=new T.Matrix4(),handScale=new T.Vector3(),armUp=new T.Vector3(0,1,0);
+  function handTransform(root,hand,out){
+    const chain=[];for(let node=hand;node&&node!==root;node=node.parent)chain.push(node);
+    out.identity();
+    for(const node of chain.reverse()){
+      // Some packs hide TACZ's built-in arm with a zero-scale socket. Its
+      // position/rotation still describe the hand; do not invert a zero matrix.
+      handScale.copy(node.scale);for(const axis of ['x','y','z'])if(Math.abs(handScale[axis])<1e-8)handScale[axis]=1;
+      out.multiply(handMatrix.compose(node.position,node.quaternion,handScale));
+    }
+    return out;
+  }
+  // The source hand bones are sockets for the host game's hands. Bind DFDF's
+  // existing agent glove and sleeve to the animated grip rather than the
+  // model's preview bounds, which can be far from the actual held handle.
+  function bindHand(root,item){
+    let rig;root.traverse(n=>{if(n.childrenWithBones)rig=n;});
+    const hand=rig?.childrenWithBones.find(n=>n.userData.sourceBone==='righthand');
+    if(!hand)return;
+    pose(rig,item,'static_idle',0);
+    const idleHand=handTransform(root,hand,new T.Matrix4());
+    const parts=root.children.filter(n=>n.userData.armPart),sleeve=parts[0],cuff=parts[1],wrist=parts[2],fist=parts[3];
+    if(!sleeve||!fist)return;
+    const grip=fist.position.clone(),axis=sleeve.position.clone().sub(grip).normalize();
+    const inverseIdle=idleHand.invert();
+    const length=2*(sleeve.position.distanceTo(grip)-.03),elbow=grip.clone().addScaledVector(axis,length);
+    const group=new T.Group();group.name='valorant-agent-hand';group.matrixAutoUpdate=false;root.add(group);
+    for(const child of root.children.slice())if(![sleeve,cuff,wrist].includes(child)&&(child.userData.armPart||child===root.userData.fist||child===root.userData.fingers||child===root.userData.ringFinger))group.add(child);
+    const binding={hand,group,inverseIdle,sleeve,cuff,wrist,grip,elbow,length,matrix:new T.Matrix4(),target:new T.Vector3(),position:new T.Vector3(),rotation:new T.Quaternion(),scale:new T.Vector3(),axis:new T.Vector3()};handBindings.set(root,binding);return binding;
+  }
+  function followHand(root,binding){
+    handTransform(root,binding.hand,binding.matrix);binding.target.setFromMatrixPosition(binding.matrix);binding.matrix.multiply(binding.inverseIdle);
+    binding.matrix.decompose(binding.position,binding.rotation,binding.scale);
+    binding.position.copy(binding.grip).applyQuaternion(binding.rotation).negate().add(binding.target);
+    binding.group.matrix.compose(binding.position,binding.rotation,binding.scale.set(1,1,1));binding.group.matrixWorldNeedsUpdate=true;
+    // Keep the elbow below the view while the wrist follows the source socket.
+    // Rotating the entire arm with the wrist would swing the sleeve over the camera.
+    const wrist=binding.position.copy(binding.grip).applyMatrix4(binding.group.matrix),axis=binding.axis.subVectors(binding.elbow,wrist),length=Math.max(.05,axis.length());axis.normalize();
+    binding.sleeve.position.copy(wrist).addScaledVector(axis,length/2+.03);
+    binding.sleeve.quaternion.setFromUnitVectors(armUp,axis);binding.sleeve.scale.y=length/binding.length;
+    for(const [part,offset] of [[binding.cuff,.075],[binding.wrist,.045]]){part.position.copy(wrist).addScaledVector(axis,offset);part.quaternion.copy(binding.sleeve.quaternion);}
+  }
   S.dress=(root,skin)=>{
     if(root.userData.valorantItem!==skin.source){const item=S.items.get(skin.source);if(!item)return root;root.traverse(n=>{if(n.geometry&&!n.geometry.userData.shared)n.geometry.dispose();});root.clear();root.add(build(item));}
     root.userData.skin=skin.id;return root;
@@ -136,26 +179,39 @@
   const reloadSound=SFX.reload;
   SFX.reload=function(){const item=activeItem(curWeaponKey());if(item&&S.status==='ready'){sound(item.sounds.reload_tactical).catch(()=>{});return;}return reloadSound.apply(this,arguments);};
   const kick=viewmodelFireKick;
-  viewmodelFireKick=function(){const r=kick.apply(this,arguments);attack=clock;return r;};
+  viewmodelFireKick=function(){const r=kick.apply(this,arguments);inspect=-1;attack=clock;clipRun++;return r;};
+  S.inspect=()=>{
+    const item=activeItem(curWeaponKey());if(!item?.animations.inspect)return undefined;
+    if(player.ads||player.reloading>0||keys.fire)return false;
+    inspect=inspect>=0?-1:clock;clipRun++;
+    if(inspect>=0)sound(item.sounds.inspect).catch(()=>{});
+    return true;
+  };
   const tick=tickViewmodel;
   tickViewmodel=function(dt){
     const r=tick.apply(this,arguments);clock+=dt||.016;
-    if(VM.current!==current){current=VM.current;draw=clock;attack=-100;reloadStart=0;inspect=0;const item=activeItem(curWeaponKey());if(item)sound(item.sounds.draw).catch(()=>{});}
+    if(VM.current!==current){current=VM.current;draw=clock;attack=-100;reloadStart=0;inspect=-1;clipRun++;const item=activeItem(curWeaponKey());if(item)sound(item.sounds.draw).catch(()=>{});}
     const key=curWeaponKey(),skin=GS.of(key),item=itemFor(key,skin);if(!item||!current||player.ultW||CHAMPIONS_PHANTOM.isSkin(skin?.id))return r;
+    const binding=key==='knife'?(handBindings.get(current)||bindHand(current,item)):null;
+    if(!player.alive||!VM.root.visible||!current.visible||player.ads||player.reloading>0||keys.fire||window.ARMS?.hold?.state?.on||['menu','over','end'].includes(world.phase)||['shop','pause','armory'].some(id=>{const el=document.getElementById(id);return el&&!el.hidden;}))inspect=-1;
+    if(inspect>=0&&clock-inspect>=item.animations.inspect.animation_length)inspect=-1;
     let clip='static_idle',time=clock;
     if(player.reloading>0){if(!reloadStart)reloadStart=clock;clip=item.animations.reload_tactical?'reload_tactical':'reload_empty';time=clock-reloadStart;}
-    else{reloadStart=0;if(inspect){clip='inspect';time=clock-inspect;if(time>(item.animations[clip]?.animation_length||3))inspect=0;}
+    else{reloadStart=0;if(inspect>=0){clip='inspect';time=clock-inspect;}
       else if(clock-attack<(key==='knife'?60/WEAPONS.knife.rpm:(item.animations.shoot?.animation_length||.2))){clip=key==='knife'?'melee_1':'shoot';time=(clock-attack)*(key==='knife'?(item.animations.melee_1?.animation_length||1)/(60/WEAPONS.knife.rpm):1);}
       else if(clock-draw<(item.animations.draw?.animation_length||.5)){clip='draw';time=clock-draw;}}
     current.traverse(node=>{if(node.userData.valorantRig)pose(node,item,clip,time);});
+    if(binding)followHand(current,binding);
     if(key==='knife'){
-      const previous=S.clip===clip?S.clipTime:-1;
-      for(const [at,event] of Object.entries(item.animations[clip]?.sound_effects||{}))if(+at>previous&&+at<=time)sound(event.effect).catch(()=>{});
-      S.clip=clip;S.clipTime=time;
+      const previous=S.clip===clip&&S.clipItem===item.id&&S.clipRun===clipRun&&time>=S.clipTime?S.clipTime:-1;
+      for(const [at,event] of Object.entries(item.animations[clip]?.sound_effects||{}))if(+at>previous&&+at<=time){
+        const ref=event.effect.includes(':')?event.effect:`wtyj:melee/${item.id}/${event.effect}`;
+        sound(ref).catch(()=>{});
+      }
+      S.clip=clip;S.clipTime=time;S.clipItem=item.id;S.clipRun=clipRun;
     }
     return r;
   };
-  addEventListener('keydown',e=>{if(e.code==='KeyY'&&!e.repeat&&!e.target?.closest?.('input,textarea,[contenteditable="true"]')&&document.pointerLockElement&&world.phase!=='menu'){inspect=clock;const item=activeItem(curWeaponKey());if(item)sound(item.sounds.inspect).catch(()=>{});}});
   async function load(){
     try{
       const response=await fetch(base+'manifest.json');if(!response.ok)throw Error('무기 목록 로딩 실패');manifest=await response.json();

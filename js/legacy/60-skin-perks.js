@@ -226,7 +226,12 @@
   };
   // inspect: Y, or the touch button
   function inspect() {
-    if (!player.alive || holding() || player.ultW || (tier() < 2 && !typed()) || "menu" === world.phase) return !1;
+    if (!player.alive || holding() || player.ultW || ["menu", "over", "end"].includes(world.phase)) return !1;
+    for (const id of ["shop", "pause", "armory"]) if ($(id) && !$(id).hidden) return !1;
+    // Keyboard, touch and the public API share the supplied animation player.
+    const imported = window.VALORANT_PACK?.inspect?.();
+    if (imported !== undefined) { cancelAll(); return imported; }
+    if (tier() < 2 && !typed()) return !1;
     if (M.insp.t >= 0) {
       M.insp.t = -1;
       return !0;
@@ -238,7 +243,7 @@
   addEventListener("keydown", (e) => {
     if ("KeyY" !== e.code || e.repeat) return;
     const t = e.target;
-    if (t && ("INPUT" === t.tagName || "TEXTAREA" === t.tagName)) return;
+    if (t?.closest?.('input,textarea,[contenteditable="true"]')) return;
     for (const id of ["shop", "pause", "armory"]) {
       const s = $(id);
       if (s && !s.hidden) return;

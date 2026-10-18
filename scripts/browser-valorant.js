@@ -18,7 +18,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const root=path.join(__dirname,'../assets/valorant-packs/v1'),manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json')));
  assert.equal(models.length,15);for(const m of models){const png=fs.readFileSync(path.join(root,manifest.items.find(i=>i.id===m.id).texture));assert.ok(m.moving,m.id+' source animation moves');assert.deepEqual([m.width,m.height],[png.readUInt32BE(16),png.readUInt32BE(20)],m.id+' full source PNG resolution');if(m.key!=='knife')assert.ok(m.muzzleZ<0,m.id+' points forward');}
  console.log('original models',JSON.stringify(models));
- const karambit=models.find(m=>m.id==='eternal_karambit');assert.ok(karambit.assembled[0]<.05&&karambit.assembled[1]>.4&&karambit.assembled[1]<.5&&karambit.assembled[2]<.35,'karambit ring, grip and blade stay assembled rather than exploding beyond their source silhouette');
+ const karambit=models.find(m=>m.id==='eternal_karambit');assert.ok(karambit.assembled[0]<.08&&karambit.assembled[1]>.64&&karambit.assembled[1]<.8&&karambit.assembled[2]<.56,'the enlarged karambit ring, grip and blade stay assembled rather than exploding beyond their source silhouette');
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'pack-owner'});
  const skins=await page.evaluate(()=>VALORANT_DATA.knives.map(s=>({id:s.id,name:s.ko})));
  for(const s of skins)assert.equal((await f.h.api('a_user_set',{atoken:owner.atoken,id:'packtester',op:'grant',item:'knife|'+s.id})).status,200);
