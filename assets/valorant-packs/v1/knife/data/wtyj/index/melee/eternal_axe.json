@@ -1,0 +1,42 @@
+{
+  "name": "item.wtyj.eternal_axe",
+  "type": "lrtactical:normal",
+  "base_item": "lrtactical:melee",
+  "data": {
+    "attributes": {
+      "generic.attack_damage": 9,
+      "minecraft:generic.movement_speed": {
+        "amount": 0.05,
+        "operation": "percent"
+      }
+    },
+    "draw_time": 18,
+    "put_away_time": 1,
+    "attack": {
+      "attack_left": {
+        "factor": 1.0,
+        "knockback": 0.25,
+        "cooldown": 13,
+        "delay": 6,
+        "hitbox": {
+          "type": "cone",
+          "max_range": 3.2,
+          "max_angle": 80.0,
+          "exclude_self": true
+        }
+      },
+      "attack_right": {
+        "factor": 1.5,
+        "knockback": 0.3,
+        "cooldown": 21,
+        "delay": 6,
+        "hitbox": {
+          "type": "cone",
+          "max_range": 3.6,
+          "max_angle": 45.0,
+          "exclude_self": true
+        }
+      }
+    }
+  }
+}

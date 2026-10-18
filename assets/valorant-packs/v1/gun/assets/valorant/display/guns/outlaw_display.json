@@ -1,0 +1,44 @@
+{
+  "model": "valorant:gun/outlaw_geo",
+  "texture": "valorant:gun/uv/outlaw",
+  "iron_zoom": 1.33,
+  "zoom_model_fov": 45,
+  "ammo_count_style": "normal",
+  "damage_style": "per_projectile",
+  "show_crosshair": false,
+  "transform": {
+    "scale": {
+      "thirdperson": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "ground": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "fixed": [
+        1.2,
+        1.2,
+        1.2
+      ]
+    }
+  },
+  "sounds": {
+    "shoot": "valorant:outlaw/outlaw_shoot",
+    "shoot_3p": "valorant:outlaw/outlaw_shoot_3p",
+    "reload_tactical": "valorant:outlaw/outlaw_reload_tactical",
+    "reload_empty": "valorant:outlaw/outlaw_reload_empty",
+    "inspect": "valorant:outlaw/outlaw_inspect",
+    "inspect_empty": "valorant:outlaw/outlaw_inspect",
+    "draw": "valorant:outlaw/outlaw_draw",
+    "head_hit": "valorant:head_hit",
+    "flesh_hit": "valorant:hit"
+  },
+  "animation": "valorant:outlow",
+  "use_default_animation": "rifle",
+  "third_person_animation": "default",
+  "hud": "valorant:gun/hud/outlaw_hud",
+  "slot": "valorant:gun/slot/outlaw_slot"
+}

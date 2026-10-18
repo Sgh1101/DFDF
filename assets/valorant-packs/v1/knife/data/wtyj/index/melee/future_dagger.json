@@ -1,0 +1,42 @@
+{
+  "name": "item.wtyj.future_dagger",
+  "type": "lrtactical:normal",
+  "base_item": "lrtactical:melee",
+  "data": {
+    "attributes": {
+      "generic.attack_damage": 8,
+      "minecraft:generic.movement_speed": {
+        "amount": 0.05,
+        "operation": "percent"
+      }
+    },
+    "draw_time": 22,
+    "put_away_time": 1,
+    "attack": {
+      "attack_left": {
+        "factor": 1.0,
+        "knockback": 0.15,
+        "cooldown": 16,
+        "delay": 7,
+        "hitbox": {
+          "type": "cone",
+          "max_range": 3,
+          "max_angle": 60.0,
+          "exclude_self": true
+        }
+      },
+      "attack_right": {
+        "factor": 1.5,
+        "knockback": 0.1,
+        "cooldown": 25,
+        "delay": 4,
+        "hitbox": {
+          "type": "cone",
+          "max_range": 3,
+          "max_angle": 120.0,
+          "exclude_self": true
+        }
+      }
+    }
+  }
+}

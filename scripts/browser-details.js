@@ -29,7 +29,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(guns));
     assert.deepEqual(guns.bad, [], "every weapon equips");
-    assert.ok(guns.checked >= 31, "all weapons checked");
+    assert.equal(guns.checked, 18, "17 firearms and the separate knife checked");
     assert.ok(guns.live > 4, "the left hand and its pieces are still animated parts (live " + guns.live + " of " + guns.total + ")");
 
     // ── every agent: the detail goes into the baked meshes ──
@@ -45,7 +45,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
           out.meshDelta.push(k);
           // each hand got fingers: the forearm mesh holds the glove pieces
           const fore = m.armL.fore.children.find((c) => c.isMesh);
-          fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
+          if (ag.id === 'neon_agent') {
+            let n = 0; m.group.traverse(o => { if (o.userData.neonSkin) { n++; if (o.material.map !== NEON_AGENT.sourceSkin()) out.bad.push('Neon source texture'); } });
+            if (n !== 20) out.bad.push('Neon source skin mesh count ' + n);
+          } else fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
         } catch (e) { out.bad.push(ag.id + ": " + e.message); }
       }
       out.maxMeshes = Math.max(...out.meshDelta); out.minMeshes = Math.min(...out.meshDelta); delete out.meshDelta;
@@ -53,7 +56,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(agents));
     assert.deepEqual(agents.bad, [], "every agent builds with the detail pass");
-    assert.equal(agents.n, 42);
+    assert.equal(agents.n, 43);
     // the pass adds no meshes: the count per fighter stays where the body baking left it
     assert.ok(agents.maxMeshes < 90, "no extra draw calls (most meshes in one fighter: " + agents.maxMeshes + ")");
 

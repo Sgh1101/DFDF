@@ -52,6 +52,8 @@
   }
   // nearest wall hit along a ray (direction need not be unit; t is in its units)
   function wallT(ox, oy, oz, dx, dy, dz, maxT, skip) {
+    if (window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial')
+      return ASCENT_TRIAL.rayT(ox, oy, oz, dx, dy, dz, maxT, skip);
     let best = maxT;
     for (const c of COLLIDERS) {
       if (c === skip || !(c.h > 0.02)) continue;
@@ -170,15 +172,20 @@
     const y = a.y || 0;
     for (let pass = 0; pass < 3; pass++) {
       let moved = !1;
-      // the colliders in the grid cells the body touches (a margin for the push), not every one on the map
-      (!CHASH.dirty && CHASH.buckets) || chashBuild();
-      const m = PR + 0.1,
-        c0 = Math.max(0, Math.floor((a.pos.x - m - CHASH.minX) / CHASH.cell)),
-        c1 = Math.min(CHASH.cols - 1, Math.floor((a.pos.x + m - CHASH.minX) / CHASH.cell)),
-        r0 = Math.max(0, Math.floor((a.pos.z - m - CHASH.minZ) / CHASH.cell)),
-        r1 = Math.min(CHASH.rows - 1, Math.floor((a.pos.z + m - CHASH.minZ) / CHASH.cell)),
+      let near;
+      if (window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial') {
+        near = ASCENT_TRIAL.nearby(a.pos.x, a.pos.z, PR + 0.1);
+      } else {
+        // Preserve the regular maps' grid and Ascent's vertical spatial index.
+        (!CHASH.dirty && CHASH.buckets) || chashBuild();
+        const m = PR + 0.1,
+          c0 = Math.max(0, Math.floor((a.pos.x - m - CHASH.minX) / CHASH.cell)),
+          c1 = Math.min(CHASH.cols - 1, Math.floor((a.pos.x + m - CHASH.minX) / CHASH.cell)),
+          r0 = Math.max(0, Math.floor((a.pos.z - m - CHASH.minZ) / CHASH.cell)),
+          r1 = Math.min(CHASH.rows - 1, Math.floor((a.pos.z + m - CHASH.minZ) / CHASH.cell));
         near = [];
-      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const bk = CHASH.buckets[r * CHASH.cols + c]; if (bk) for (let i = 0; i < bk.length; i++) near.includes(bk[i]) || near.push(bk[i]); }
+        for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const bk = CHASH.buckets[r * CHASH.cols + c]; if (bk) for (let i = 0; i < bk.length; i++) near.includes(bk[i]) || near.push(bk[i]); }
+      }
       for (const c of near) {
         if (!(c.h > y + STEP_H) || c.h < 0.3 || (c.y0 && y + 2.3 <= c.y0)) continue; // things you can step onto are fine (and floors overhead)
         const px = a.pos.x,

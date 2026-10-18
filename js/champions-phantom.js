@@ -32,7 +32,7 @@
       materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
     }
     const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
-    // Source points down +X; DFDF points down -Z. Fit to the carbine's grip.
+    // Source points down +X; DFDF points down -Z. Fit to the Phantom's grip.
     // Preserve the larger Phantom fit and the shared 1.5x first-person gun sizing.
     rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.02); wrapper.add(rig);
     const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
@@ -249,7 +249,7 @@
       $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`원본 ${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Original kill ${killPreviewCount} · press again for next`); $("kf-streak").hidden = true;
       banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
     }
-    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, "carbine");
+    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, VALORANT_DATA.championsWeapon);
     else if (motion()) {
       const studio = GS._pv(); if (!studio) return;
       const obj = studio.obj;
@@ -270,12 +270,12 @@
   }
   function choose(id) {
     if (id !== selected) killPreviewCount = 0;
-    stop(); selected = id; GS.open("carbine", "champions");
-    if (GS.owns("carbine", id)) GS.set("carbine", id);
+    stop(); selected = id; GS.open(VALORANT_DATA.championsWeapon, "champions");
+    if (GS.owns(VALORANT_DATA.championsWeapon, id)) GS.set(VALORANT_DATA.championsWeapon, id);
     showSelected();
   }
   function showSelected() {
-    GS.preview("carbine", selected);
+    GS.preview(VALORANT_DATA.championsWeapon, selected);
     const studio = GS._pv();
     if (studio?.obj) {
       const size = new T.Box3().setFromObject(studio.obj).getSize(new T.Vector3());
@@ -302,12 +302,13 @@
   };
   const demoButton = ([k, v]) => `<button type="button" class="pp-btn" data-phantom-demo="${k}">${ICON[k]}<span>${v}</span><s class="pp-eq" aria-hidden="true"><i></i><i></i><i></i></s></button>`;
   panel.style.setProperty("--rc", (SKIN_TIERS.list.find((row) => row.id === 5) || {}).c || "#ff7bd5");
-  panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L("카빈 전용", "CARBINE ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
+  panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L("팬텀 전용", "PHANTOM ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
     <div class="pp-sides" role="group" aria-label="${L("진영", "Side")}"><button type="button" class="pp-side" data-phantom-skin="champions_atk" aria-pressed="true"><b></b>${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" class="pp-side" data-phantom-skin="champions_def" aria-pressed="false"><b></b>${L("수비 · 상아빛", "Defense · Ivory")}</button></div></div>
-    <p class="pp-desc">${L("전설보다 높은 최고 등급의 카빈 스킨. 원본 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the carbine: the original model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
+    <p class="pp-desc">${L("전설보다 높은 최고 등급의 팬텀 스킨. 원본 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the Phantom: the original model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
     <div class="pp-tags"><span class="pp-tag">${L("공격 / 수비", "Attack / Defense")}</span><span class="pp-tag">${L("처치 배너", "Kill banner")}</span><span class="pp-tag">${L("용 마무리", "Dragon finisher")}</span><span class="pp-tag">${L("전용 사운드", "Own sound")}</span></div>
     <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
     <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
+
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
     <div class="pp-source"><label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button></div>
     <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;

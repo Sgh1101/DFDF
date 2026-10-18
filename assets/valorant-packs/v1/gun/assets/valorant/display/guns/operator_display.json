@@ -1,0 +1,50 @@
+{
+  "state_machine": "valorant:operator_state_machine",
+  "model": "valorant:gun/operator_geo",
+  "texture": "valorant:gun/uv/operator",
+  "iron_zoom": 1.33,
+  "zoom_model_fov": 45,
+  "ammo_count_style": "normal",
+  "damage_style": "per_projectile",
+  "show_crosshair": false,
+  "transform": {
+    "scale": {
+      "thirdperson": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "ground": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "fixed": [
+        1.2,
+        1.2,
+        1.2
+      ]
+    }
+  },
+  "sounds": {
+    "shoot": "valorant:operator/operator_shoot",
+    "shoot_3p": "valorant:operator/operator_shoot_3p",
+    "reload_empty": "valorant:operator/operator_reload",
+    "reload_tactical": "valorant:operator/operator_reload",
+    "inspect": "valorant:operator/operator_inspect",
+    "inspect_empty": "valorant:operator/operator_inspect",
+    "draw": "valorant:operator/operator_draw",
+    "bolt": "valorant:operator/operator_bolt",
+    "head_hit": "valorant:head_hit",
+    "flesh_hit": "valorant:hit"
+  },
+  "animation": "valorant:operator",
+  "use_default_animation": "rifle",
+  "third_person_animation": "default",
+  "hud": "valorant:gun/hud/operator_hud",
+  "slot": "valorant:gun/slot/operator_slot",
+  "muzzle_flash": {
+    "texture": "tacz:flash/common_muzzle_flash",
+    "scale": 0.9
+  }
+}

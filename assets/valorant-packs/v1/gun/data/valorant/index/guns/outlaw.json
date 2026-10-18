@@ -1,0 +1,9 @@
+{
+  "name": "valorant.gun.outlaw.name",
+  "tooltip": "valorant.gun.outlaw.desc",
+  "data": "valorant:outlaw_data",
+  "display": "valorant:outlaw_display",
+  "type": "sniper",
+  "item_type": "modern_kinetic",
+  "sort": 1
+}

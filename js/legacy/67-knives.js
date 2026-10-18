@@ -500,6 +500,7 @@
   }
   const IDLE = { t: 0, next: 5, anim: -1 };
   function pose(dt) {
+    if (window.GUN_SKINS && GUN_SKINS.of('knife')?.pack) return;
     const a = VM.current,
       M = SP() && SP().state;
     if (!a || !M || !player.alive || !VM.root.visible || !a.visible) return;
