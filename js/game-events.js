@@ -12,6 +12,7 @@
     return true;
   };
   function clearFinishers() {
+    window.CHAMPIONS_AUDIO?.stopMusic();
     cancelAnimationFrame(previewFrame); previewFrame = 0;
     for (const mesh of active) if (mesh.userData.previewScene) {
       mesh.userData.previewRestore && mesh.userData.previewRestore();
@@ -28,6 +29,7 @@
   function visual(event, preview = false) {
     if (!preview && (!GAME_RULES.finisher(event) || finishedRound)) return false;
     const skin = GUN_SKINS.list.find((s) => s.id === event.skin);
+    if (skin && GAME_RULES.championsSkin(skin.id)) window.CHAMPIONS_AUDIO?.playMusic("finisher_music", preview, 8 - 3.03, 3.03);
     if (!skin || skin.id === "default" || SETTINGS.motion === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     const pack = SOUNDPACK.skins[skin.id], color = skin.glow || skin.edge || 0x80caff;
     const duration = GAME_RULES.championsSkin(skin.id) ? 8 : 1.8;

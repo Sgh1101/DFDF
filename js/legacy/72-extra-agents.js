@@ -101,7 +101,7 @@
   const ring = (x, z, r, col, op, w, y) => {
     const m = new T.Mesh(new T.RingGeometry(Math.max(0.01, r - (w || 0.3)), r, 64), mat(col, null == op ? 0.7 : op, !0));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, null == y ? 0.07 : y, z);
+    m.position.set(x, null == y ? abilityGroundY(x, z) + 0.07 : y, z);
     scene.add(m);
     return m;
   };
@@ -336,7 +336,7 @@
       if (!c.alive) return !1;
       tickClock(cm, t, 3);
       cm.position.set(c.pos.x, (c.y || 0) + 0.1, c.pos.z);
-      edge.position.set(c.pos.x, 0.07, c.pos.z);
+      edge.position.set(c.pos.x, (c.y || 0) + 0.07, c.pos.z);
       edge.material.opacity = 0.12 + 0.06 * Math.sin(t * 6);
     }, () => (drop(cm), drop(edge)));
     fxColumn(c.pos.x, c.pos.z, GOLD, 12, 1.2);
@@ -598,23 +598,24 @@
       r = Math.min(13, Math.max(7, Math.hypot(c.pos.x - e.pos.x, c.pos.z - e.pos.z) / 2 + 3));
     for (const D of DUELS) if (D.a === e || D.b === e || D.a === c || D.b === c) D.until = 0;
     const D = { a: c, b: e, x, z, r, until: CLK + 8 };
+    const groundY = abilityGroundY(x, z, c.y);
     DUELS.push(D);
     const wall = new T.Mesh(new T.CylinderGeometry(r, r, 3.2, 64, 1, !0), mat(ORG, 0.22)),
       edge = new T.Mesh(new T.RingGeometry(r - 0.45, r, 72), mat(0xff5a1f, 0.9));
     edge.rotation.x = -Math.PI / 2;
-    edge.position.set(x, 0.08, z);
+    edge.position.set(x, groundY + 0.08, z);
     scene.add(edge);
-    wall.position.set(x, 1.6, z);
+    wall.position.set(x, groundY + 1.6, z);
     scene.add(wall);
     const posts = [];
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      posts.push(dot(0xff7a2f, 1.1, x + Math.cos(a) * r, 0.5, z + Math.sin(a) * r));
+      posts.push(dot(0xff7a2f, 1.1, x + Math.cos(a) * r, groundY + 0.5, z + Math.sin(a) * r));
     }
     live(8, (t) => {
       if (!(D.until > CLK)) return !1;
       wall.material.opacity = 0.18 + 0.07 * Math.sin(t * 5);
-      posts.forEach((p, i) => (p.position.y = 0.5 + 0.25 * Math.sin(t * 4 + i)));
+      posts.forEach((p, i) => (p.position.y = groundY + 0.5 + 0.25 * Math.sin(t * 4 + i)));
     }, () => {
       drop(wall);
       drop(edge);
@@ -736,6 +737,7 @@
   // A spot I can stand on: the floor there, or the raised floor or heaven at
   // that spot, or the nearest free floor around it.
   function standAt(x, z) {
+    if (window.ASCENT_TRIAL?.active) return ASCENT_TRIAL.standAt(x, z);
     const B = MAP.bounds;
     const ok = (x, z, y) => x > B.minX + 1 && x < B.maxX - 1 && z > B.minZ + 1 && z < B.maxZ - 1 && !collideXZ(x, z, y, 0.45);
     for (let r = 0; r <= 8; r += 0.75)

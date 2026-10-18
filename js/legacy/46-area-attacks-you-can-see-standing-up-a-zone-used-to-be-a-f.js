@@ -74,7 +74,7 @@
       try {
         if (r > 0.5) {
           const c = curtain(r, 3, null != col ? col : 0xffab40);
-          c.position.set(x, 1.5, z);
+          c.position.set(x, abilityGroundY(x, z) + 1.5, z);
           addFx(c, 0.55, (m, t) => {
             const s = 0.55 + 0.45 * Math.min(1, t * 3);
             m.scale.set(s, 1 - 0.4 * t, s);
