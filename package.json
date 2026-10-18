@@ -29,6 +29,7 @@
     "test:followup": "node scripts/browser-followup.js",
     "test:maps": "node scripts/browser-map-cleanup.js",
     "test:ascent": "node scripts/browser-ascent.js",
+    "test:performance": "node scripts/browser-performance.js",
     "test:valorant": "node scripts/browser-valorant.js",
     "test:valorant-inspect": "node scripts/browser-valorant-inspect.js",
     "test:valorant-scopes": "node scripts/browser-valorant-scopes.js",

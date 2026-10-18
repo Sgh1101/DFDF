@@ -109,6 +109,7 @@ Node.js 20 이상에서 `npm run dev`로 정적 페이지와 `/api/v1`을 실행
 - `npm test`: 임시 메모리 저장소로 인증 경계, 동시 저장, 보상 재시도, 입력·능력·피니셔 조건 검사. 운영 Redis의 통합 검증은 별도로 필요합니다.
 - `npm run test:browser`: 실행 중인 개발 서버에서 작은 가로 화면의 홈·요원 선택·무기고·처치·결과·로그아웃을 검사합니다. Playwright와 Chromium이 필요합니다. 선택적으로 `DFDF_BASE_URL`, `CHROME_BIN`, `DFDF_PLAYWRIGHT_MODULE`, `DFDF_THREE_PATH`를 설정할 수 있습니다.
 - `npm run test:maps`: 문·순간이동 장치·집라인의 맵 재로딩 후 자원 해제, 중복 해제 방지, 공유 자산 유지, 문 조작 및 반복 렌더링 검사.
+- `npm run test:performance`: 일반 맵 선택으로 마크X발로를 실행해 미니맵 지형 캐시 재사용, 원래 지형 그림과 픽셀 일치, 실시간 스파이크 표시를 검사합니다. 120회 게임 처리 시간과 그리기 횟수를 `test-results/performance.json`에 기록합니다. 헤드리스 CPU 처리 시간이며 실제 기기 FPS는 아닙니다. 수정 전 엔진·폐병원 스크립트 파일을 `DFDF_PERF_BASELINE_ENGINE`, `DFDF_PERF_BASELINE_HOSPITAL`로 지정하면 같은 실행에서 전후를 비교합니다.
 - `npm run test:home-layout`: 상단 메뉴와 원래 플레이 버튼·로고·요원·계정 칩 스타일 유지, 5개 화면 크기의 경계·겹침·실제 메뉴 클릭 검사. [수정 화면](docs/HOME_LAYOUT.md).
 - `npm run test:startup`: 엔진 로딩 전 무기고 버튼 표시, 스킨 바로가기, 지연된 보유품 조회·뽑기 및 화면에 보이는 최종 요원 사진 검사.
 - `npm run test:followup`: 방 목록 갱신·정렬·실패 표시, 요원 전용 그래픽 자원 해제, Chromium CDP 멀티터치·취소, 배치 편집·복원, 계정 전환·다른 탭 로그아웃과 한국어/영어 화면 검사. API는 테스트 저장소로 대체하며 서비스 워커를 막아 요청을 정확히 대체합니다. 모바일 실기기나 운영 데이터 검증을 뜻하지 않습니다.
