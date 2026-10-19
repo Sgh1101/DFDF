@@ -29,7 +29,7 @@ const sourceOracle = require('./finisher-source-oracle');
       updateFx(0); updateHUD();
       const root = [...FINISHERS.active].find(g => g.getObjectByName("champions-original-finisher")), figure = root?.getObjectByName("champions-original-finisher");
       let vertices = 0, procedural = 0, map;
-      figure?.traverse(o => { if (o.isMesh) { vertices += o.geometry.attributes.position.count; if (["TubeGeometry", "ConeGeometry"].includes(o.geometry.type)) procedural++; } });
+      figure?.getObjectByName('champions-original-models')?.traverse(o => { if (o.isMesh) { vertices += o.geometry.attributes.position.count; if (["TubeGeometry", "ConeGeometry"].includes(o.geometry.type)) procedural++; } });
       figure?.getObjectByName("original-dragon_low")?.traverse(o => { if (o.material) map = o.material.map.name; });
       return { round: world.round, phase: world.phase, active: FINISHERS.active.size, visible: !!figure?.visible, height: figure ? new T.Box3().setFromObject(figure).getSize(new T.Vector3()).y : 0, min: figure?.userData.playerHeight * 5, snake: figure?.userData.serpent, map, vertices, procedural, timer: document.getElementById("tb-time").textContent };
     });

@@ -75,6 +75,11 @@
       "sha256": "f127602bedf400a6c88080dce9cfabec3060becf423eda60e28ec7b5bb5e808c"
     },
     {
+      "name": "textures/finisher/fx/sky_stars.png",
+      "size": 1063,
+      "sha256": "23d45a80d22930f3b28e08cb21104225ddbf7322481030a46a925e6d4ea373ac"
+    },
+    {
       "name": "textures/finisher/fx/star8.png",
       "size": 628,
       "sha256": "6481261728dc519cc104987723a673486b50872081251a1f2e336ecb592ac72d"
@@ -83,6 +88,11 @@
       "name": "textures/finisher/fx/swirl.png",
       "size": 574,
       "sha256": "ac204eeab75fb16635d31e78e8e3486951af8ded877b9d89df204ff375a0067c"
+    },
+    {
+      "name": "textures/finisher/fx/vignette.png",
+      "size": 1413,
+      "sha256": "f9500a9a468362fa64fccd2d46c04092b40013372ca0f011851d12315781a35b"
     },
     {
       "name": "textures/finisher/fx/white.png",
@@ -168,6 +178,26 @@
       "name": "textures/item/phantom_defender_glowmask.png",
       "size": 1973,
       "sha256": "abbac045ffc13584eec8d39f976cb6029d7064aa06ceaedb8f522675b2e45693"
+    },
+    {
+      "name": "textures/vfx/gunart_side.png",
+      "size": 13207,
+      "sha256": "88306a414915e380b84d22ee4b1bae785ddc6c9e7e821f88fc8be2aedc92a9ec"
+    },
+    {
+      "name": "textures/vfx/gunart_top.png",
+      "size": 2959,
+      "sha256": "8e339807359b5136f12ba6303047d6ac21f243775b2ade594d6cff7d0613c8c3"
+    },
+    {
+      "name": "textures/vfx/lick_attacker.png",
+      "size": 266,
+      "sha256": "91db971fddc7872ae8c9d312b7fe7b72bf2d27950e57969ee5dca79804d1f723"
+    },
+    {
+      "name": "textures/vfx/lick_defender.png",
+      "size": 267,
+      "sha256": "0e4f41c19028b4f34a04d11cc7fdec88377e1fc211aaf491889b02fe63d77c6a"
     }
   ]
 }

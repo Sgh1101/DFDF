@@ -23,7 +23,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // fonts, CDN scripts, PeerJS: browser as usual
-  if (url.pathname.startsWith("/assets/")) {
+  if (url.pathname.startsWith("/assets/") && !url.pathname.endsWith("/manifest.json")) {
     e.respondWith(
       caches.open(ASSETS).then((c) =>
         c.match(req).then(

@@ -2,11 +2,11 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const A = require("../js/phantom-assets"), root = path.resolve(__dirname, "../assets/champions-phantom/2026-0.1.0");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
-const fetcher = async (address) => new Response(fs.readFileSync(path.join(root, address.slice("bundle/".length))));
+const fetcher = async (address) => new Response(fs.readFileSync(path.join(root, address.split('?')[0].slice("bundle/".length))));
 test("bundled Phantom preserves all 878 source cubes and full-resolution textures with verified bytes", async () => {
   const assets = await A.bundled(fetcher, "bundle/"), { geo } = A.validate(assets);
   assert.equal(geo.bones.reduce((n, b) => n + (b.cubes?.length || 0), 0), 878);
-  assert.equal(manifest.files.length, 33);
+  assert.equal(manifest.files.length, 39);
   for (const [name, count] of [["dragon_low", 214], ["serpent_red", 256], ["serpent_cream", 259]]) {
     const original = JSON.parse(new TextDecoder().decode(assets[`geo/finisher/${name}.geo.json`]))["minecraft:geometry"][0];
     assert.equal(original.bones.reduce((n, b) => n + (b.cubes?.length || 0), 0), count, name + " keeps all source cubes");
@@ -29,7 +29,15 @@ test("bundled Phantom preserves all 878 source cubes and full-resolution texture
 });
 test("bundled loader rejects damaged, missing or unsafe assets instead of silently accepting substitutes", async () => {
   await assert.rejects(A.bundled(async (address) => address.endsWith("phantom_attacker.png") ? new Response("wrong texture") : fetcher(address), "bundle/"), /손상/);
-  await assert.rejects(A.bundled(async (address) => address.endsWith("manifest.json") ? fetcher(address) : new Response("", { status: 404 }), "bundle/"), /불러오지/);
+  await assert.rejects(A.bundled(async (address) => address.split('?')[0].endsWith("manifest.json") ? fetcher(address) : new Response("", { status: 404 }), "bundle/"), /불러오지/);
   const invalid = { ...manifest, files: [{ ...manifest.files[0], name: "../mod.class" }] };
   await assert.rejects(A.bundled(async () => new Response(JSON.stringify(invalid)), "bundle/"), /항목/);
+});
+test('the updated bundle bypasses an old worker cached manifest and includes every missing original effect',async()=>{
+  let requested='';const assets=await A.bundled(async(address,options)=>{
+    if(address.includes('manifest.json')){requested=address;assert.equal(options.cache,'no-cache');if(!address.includes('?revision='))return new Response(JSON.stringify({...manifest,files:manifest.files.filter(f=>!f.name.startsWith('textures/vfx/'))}));}
+    return fetcher(address);
+  },'bundle/');
+  assert.ok(requested.includes('?revision='));
+  for(const name of ['gunart_side','gunart_top','lick_attacker','lick_defender'])assert.ok(assets['textures/vfx/'+name+'.png']);
 });
