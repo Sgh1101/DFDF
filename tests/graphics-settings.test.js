@@ -12,7 +12,9 @@ test('four complete budgets migrate old saved choices without a hidden automatic
  assert.equal(C.defaultMode(true),'mobile');assert.equal(C.defaultMode(false),'perf');
  for(const key of C.order)assert.equal(C.normalize(key,true),key,'a phone may explicitly choose higher quality');
  for(const key of ['mobile','perf']){assert.equal(C.presets[key].post,false);assert.equal(C.presets[key].msaa,0);assert.equal(C.presets[key].shadow,false);}
- assert.ok(C.presets.mobile.pixel<C.presets.perf.pixel&&C.presets.perf.pixel<C.presets.visual.pixel&&C.presets.visual.pixel<C.presets.ultra.pixel);
+ assert.ok(C.presets.perf.pixel<C.presets.visual.pixel&&C.presets.visual.pixel<C.presets.ultra.pixel);
+ assert.ok(C.presets.mobile.pixel*C.presets.mobile.minScale>=1,'mobile keeps at least one game pixel per CSS pixel, including slow frames');
+ assert.equal(C.presets.mobile.textureSize,256,'save map material work instead of blurring the scene');
 });
 test('slow frames lower resolution only within the selected budget and sustained fast play recovers it',()=>{
  for(const key of C.order){
@@ -38,12 +40,12 @@ test('actual ultra to mobile transition clears expensive state and releases reta
  const sizes=[],ratios=[],c={GFX:{...C.presets.ultra},DYNRES:{scale:.9,cool:0},POST:{ok:true,w:2560,h:1440},sun:{shadow:{map:{dispose(){c.shadowDisposed++;}}}},shadowDisposed:0,
   matchMedia:()=>({matches:false}),navigator:{userAgent:'desktop'},devicePixelRatio:2,innerWidth:1280,innerHeight:720,
   renderer:{setPixelRatio:v=>ratios.push(v),setSize(){},shadowMap:{}},world:{actors:[]},MAPS:{ascent_trial:{graphicsStatic:true}},CUR_MAP_KEY:'ascent_trial',loadMap(){c.mapLoads++;},mapLoads:0,
-  scene:{traverse(){}},setShadowRes(){},rebuildActorModels(){c.rebuilds++;},rebuilds:0,updateGfxLabel(){}};
+  window:{},scene:{traverse(){}},setShadowRes(){},rebuildActorModels(){c.rebuilds++;},rebuilds:0,updateGfxLabel(){}};
  for(const key of ['rt','hA','hB','qA','qB'])c.POST[key]={setSize:(w,h)=>sizes.push([key,w,h])};
  vm.createContext(c);vm.runInContext(source,c);c.applyGfx(C.presets.mobile,false);
  assert.equal(c.GFX.msaa,0);assert.equal(c.GFX.shadowEvery,2);assert.equal(c.GFX.post,false);assert.equal(c.GFX.bloom,0);
  assert.equal(c.shadowDisposed,1);assert.equal(c.sun.shadow.map,null);assert.equal(sizes.length,5);assert.ok(sizes.every(s=>s[1]===4&&s[2]===4));
- assert.equal(c.POST.w,0);assert.equal(c.mapLoads,0,'original Ascent geometry is not rebuilt for lamp counts');assert.equal(c.rebuilds,1);assert.deepEqual(ratios,[.75]);
+ assert.equal(c.POST.w,0);assert.equal(c.mapLoads,0,'Ascent collision/nav is not rebuilt for lamp counts');assert.equal(c.rebuilds,1);assert.deepEqual(ratios,[1]);
  c.CUR_MAP_KEY='garden';c.MAPS.garden={};c.applyGfx(C.presets.visual,false);assert.equal(c.mapLoads,1,'regular maps rebuild their mode-specific lamps');
 });
 test('live resolution adjustment respects pauses, disabled settings and the chosen mode',()=>{
@@ -52,7 +54,8 @@ test('live resolution adjustment respects pauses, disabled settings and the chos
   GFX:{...C.presets.mobile},DYNRES:{scale:1,ema:1/60,cool:2,good:0},devicePixelRatio:3,renderer:{setPixelRatio:v=>ratios.push(v)},$:id=>id==='pause'?pause:admin};
  vm.createContext(c);vm.runInContext(source,c);
  pause.hidden=false;for(let i=0;i<60;i++)c.dynRes(.1);assert.equal(c.DYNRES.scale,1,'settings screen is excluded from samples');
- pause.hidden=true;for(let i=0;i<80;i++)c.dynRes(.1);assert.equal(c.DYNRES.scale,.8);assert.ok(Math.abs(ratios.at(-1)-.6)<1e-9);
+ pause.hidden=true;for(let i=0;i<80;i++)c.dynRes(.1);assert.equal(c.DYNRES.scale,1);assert.equal(ratios.length,0,'mobile never drops into the previous 60% blur');
+ c.GFX={...C.presets.perf};for(let i=0;i<80;i++)c.dynRes(.1);assert.equal(c.DYNRES.scale,.8);assert.ok(Math.abs(ratios.at(-1)-.72)<1e-9,'other modes retain bounded dynamic resolution');
  const before={...c.DYNRES};c.SETTINGS.dynRes=false;for(let i=0;i<100;i++)c.dynRes(1/120);assert.deepEqual(c.DYNRES,before,'off means no automatic resolution changes');
- assert.equal(c.GFX.name,'휴대폰','the selected preset does not change');
+ assert.equal(c.GFX.name,'성능','the selected preset does not change');
 });
