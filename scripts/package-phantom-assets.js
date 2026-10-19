@@ -9,6 +9,7 @@ const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex"
   const names = [...A.required, ...["attacker", "defender"].map((s) => `textures/item/phantom_${s}_glowmask.png`), "geo/finisher/dragon_low.geo.json", ...["cream", "red"].flatMap((s) => [`geo/finisher/serpent_${s}.geo.json`, `textures/finisher/serpent_${s}.png`]), ...["black", "white"].map((s) => `textures/finisher/dragon_low_${s}.png`), ...["1", "2", "3", "4", "5", "_fin"].map((n) => `textures/gui/banner/frame${n}.png`), ...["fin", "new"].flatMap((n) => ["attacker", "defender"].map((s) => `textures/gui/banner/emblem_${n}_${s}.png`))].sort();
   const root = path.resolve(__dirname, "../assets/champions-phantom/2026-0.1.0"), files = [];
   names.push(...require("../js/phantom-finisher-motion").textures.map(name => `textures/finisher/fx/${name}.png`)); names.sort();
+  names.push(...require('../js/phantom-gun-wave').textures.map(name => 'textures/vfx/' + name + '.png')); names.sort();
   for (const name of names) {
     const bytes = assets[name]; if (!bytes) throw Error("Missing original asset: " + name);
     const target = path.join(root, name); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, bytes);

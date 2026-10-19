@@ -7,7 +7,7 @@
   const length = a => Math.hypot(...a), unit = a => length(a) > 1e-10 ? mul(a, 1 / length(a)) : [1, 0, 0];
   const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const inversePivot = a => [a[0] / 1.25, (a[1] - 4.15 * (1 - 1.25)) / 1.25, a[2] / 1.25];
-  const textures = ["ribbon_white", "ribbon_red", "glow", "star8", "swirl", "ring", "ray", "ember", "diamond", "white"];
+  const textures = ["ribbon_white", "ribbon_red", "glow", "star8", "swirl", "ring", "ray", "ember", "diamond", "white", "sky_stars", "vignette"];
   function random(seed) {
     let n = BigInt.asUintN(64, (seed ^ 0x9e3779b97f4a7c15n) * -4658895280553007687n);
     n = BigInt.asUintN(64, (n ^ n >> 27n) * -7723592293110705685n); n ^= n >> 31n;
@@ -121,7 +121,7 @@
         const geo = new T.BufferGeometry();
         for (const [name, size] of [["position", 3], ["uv", 2], ["color", 4]]) geo.setAttribute(name, new T.BufferAttribute(new Float32Array(maxVertices * size), size).setUsage(T.DynamicDrawUsage));
         const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/fx/" + name + ".png"), vertexColors: true, transparent: true, depthWrite: false, side: T.DoubleSide, alphaTest: 0.004, blending: blend === "add" ? T.AdditiveBlending : T.NormalBlending });
-        const mesh = new T.Mesh(geo, material); mesh.frustumCulled = false; mesh.name = "source-fx-" + key; pivot.add(mesh);
+        const mesh = new T.Mesh(geo, material); mesh.frustumCulled = false; mesh.renderOrder = 851; mesh.name = "source-fx-" + key; pivot.add(mesh);
         batches.set(key, { mesh, count: 0 });
       }
       return batches.get(key);

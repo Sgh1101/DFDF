@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 (async () => {
-  const f = await fixture(), manifest = "**/assets/champions-phantom/**/manifest.json";
+  const f = await fixture(), manifest = "**/assets/champions-phantom/**/manifest.json*";
   try {
     const page = await f.page("phantomretry", { width: 1280, height: 800 }, {}, { beforeLoad: async (p) => p.route(manifest, (route) => route.fulfill({ status: 503, body: "unavailable" })) });
     await page.locator("#go-armory").click(); await page.locator('#ar-tabs [data-tab="champions"]').click();

@@ -57,7 +57,9 @@
     validate(out); return out;
   }
   async function bundled(fetcher = fetch, base = "./assets/champions-phantom/2026-0.1.0/") {
-    const response = await fetcher(base + "manifest.json");
+    // The previous service worker cached this unversioned list forever. The
+    // revision also bypasses that worker on the first visit after this update.
+    const response = await fetcher(base + "manifest.json?revision=kill-wave-1", {cache:"no-cache"});
     if (!response.ok) throw Error("원본 리소스 목록을 불러오지 못했습니다.");
     const manifest = await response.json(), files = manifest.files;
     if (!Array.isArray(files) || !files.length || files.length > 128) throw Error("원본 리소스 목록이 올바르지 않습니다.");

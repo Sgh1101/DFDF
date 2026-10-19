@@ -14,6 +14,7 @@
   function clearFinishers() {
     window.CHAMPIONS_AUDIO?.stopMusic();
     cancelAnimationFrame(previewFrame); previewFrame = 0;
+    for (const mesh of active) mesh.userData.finisherCleanup?.();
     for (const mesh of active) if (mesh.userData.previewScene) {
       mesh.userData.previewRestore && mesh.userData.previewRestore();
       mesh.userData.previewScene.remove(mesh);
@@ -220,7 +221,7 @@
         const previous = window.KILL_EVENT; window.KILL_EVENT = event;
         try { playKillFx(event.name, event.head); } finally { window.KILL_EVENT = previous; }
       }
-      visual(event); return;
+      visual(event); dispatchEvent(new CustomEvent('kill-confirmed', {detail:structuredClone(event)})); return;
     }
     return receive.apply(this, arguments);
   };
