@@ -29,6 +29,12 @@ module.exports.AUDIT_SRC = `(() => {
         L = Math.max(L, c.left); T = Math.max(T, c.top); R = Math.min(R, c.right); B = Math.min(B, c.bottom);
       }
     }
+    // On narrow phones the equipment list scrolls behind its sticky footer.
+    // Audit the exposed portion, as with a clipped scrolling ancestor above.
+    if (e.closest("#shop.weapon-shop") && !e.closest(".shop-ft")) {
+      const foot = document.querySelector("#shop.weapon-shop .shop-ft");
+      if (foot && getComputedStyle(foot).position === "sticky") B = Math.min(B, foot.getBoundingClientRect().top);
+    }
     return { L, T, R, B, w: Math.max(0, R - L), h: Math.max(0, B - T), scroller, r };
   };
   window.__audit = (where, o) => {
@@ -61,7 +67,17 @@ module.exports.AUDIT_SRC = `(() => {
       if (seenArea > 4 && (r.width < min - .5 || r.height < min - .5) && !/range|checkbox|radio/.test(e.type || "")) add("small", e, { size: Math.round(r.width) + "x" + Math.round(r.height) });
       // text running out of its box
       const cs = getComputedStyle(e);
-      if (/(button|summary)/i.test(e.tagName) && e.scrollWidth > e.clientWidth + 3 && cs.overflowX !== "visible" && cs.textOverflow !== "ellipsis") add("text-cut", e, { sw: e.scrollWidth, cw: e.clientWidth });
+      if (/(button|summary)/i.test(e.tagName) && cs.overflowX !== "visible" && cs.textOverflow !== "ellipsis") {
+        // Animated decorative ::after highlights can enlarge scrollWidth even
+        // when the label fits. Measure actual visible text, not that decoration.
+        const walker = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n, clipped = false;
+        while ((n = walker.nextNode())) {
+          if (!n.textContent.trim() || !vis(n.parentElement)) continue;
+          const range = document.createRange(); range.selectNodeContents(n);
+          for (const t of range.getClientRects()) if (t.left < r.left - 2 || t.right > r.right + 2 || t.top < r.top - 2 || t.bottom > r.bottom + 2) clipped = true;
+        }
+        if (clipped) add("text-cut", e, { sw: e.scrollWidth, cw: e.clientWidth });
+      }
     }
     // two controls on top of each other
     for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
