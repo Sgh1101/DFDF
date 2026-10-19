@@ -28,7 +28,7 @@ const only = (process.env.DFDF_UI_ONLY || "").split(",").filter(Boolean), viewOn
       const back = () => page.evaluate(() => { for (const id of ["armory", "pause", "shop", "lobby"]) { const e = document.getElementById(id); e && (e.hidden = true); } try { GUN_SKINS.close(); } catch (e) {} try { closeShop(); } catch (e) {} document.querySelector(".home-practice") && (document.querySelector(".home-practice").open = false); show("s-title"); });
       const click = (sel) => page.evaluate((s) => document.querySelector(s).click(), sel);
       await run("title", async () => { await back(); });
-      await run("title-practice", async () => { await back(); await click(".home-practice summary"); });
+      await run("title-practice", async () => { await back(); await click(".home-practice summary"); }, ["#s-title .tt-left"]);
       await run("select", async () => { await back(); await click("#go-play"); });
       await run("select-practice", async () => { await back(); await click("#go-range"); });
       for (const cat of ["full", "small", "1v1"]) await run("select-maps-" + cat, async () => { await back(); await click("#go-play"); await page.evaluate((c) => { const b = [...document.querySelectorAll("#s-select .lb-tab, #s-select [data-cat], #s-select .map-tabs button")].find((x) => (x.dataset.cat || x.dataset.c || x.textContent).includes(c) || false); b && b.click(); }, cat === "full" ? "5" : cat === "small" ? "3" : "1"); });

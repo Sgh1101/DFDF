@@ -22,6 +22,13 @@ const SIZES = [[1920, 1080, 1], [1366, 768, 1], [1280, 720, 1], [1024, 768, 1], 
         assert.ok(r.bottom <= r.winH - 8, width + "x" + height + ": the way in is in view (bottom " + r.bottom + " of " + r.winH + ")");
         assert.ok(r.heroRight < r.cardLeft, width + "x" + height + ": the title and the card stand side by side");
       }
+      if(touch){
+        const targets=await page.locator('.wallet a:visible').evaluateAll(a=>a.map(e=>({id:e.id,height:e.getBoundingClientRect().height})));
+        assert.ok(targets.length>=4&&targets.every(t=>t.height>=35.5),'homepage wallet links are tappable: '+JSON.stringify(targets));
+      }
+      const privacy=page.locator('footer a[href="./privacy.html"]');
+      await privacy.scrollIntoViewIfNeeded();
+      assert.ok((await privacy.boundingBox()).height>=35.5,'privacy link has a full target');
       await page.context().close();
     }
     assert.deepEqual(f.errors, []);
