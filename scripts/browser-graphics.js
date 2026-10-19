@@ -30,18 +30,18 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('../j
  await p.locator('#go-set').click();await p.locator('#pause .pz-tabs [data-tab="gfx"]').click();await p.locator('#st-quality [data-quality="mobile"]').click();await p.locator('#pz-close').click();
  await p.locator('#go-play').click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
  await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor(),null,{timeout:120000});
- await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;togglePause(true);window.gfxBefore={loads:ASCENT_TRIAL.loads,geometry:ASCENT_TRIAL.meshes[0].geometry.id,pos:myActor().pos.toArray(),hp:myActor().hp};});
+ await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;togglePause(true);window.gfxBefore={loads:ASCENT_TRIAL.loads,pos:myActor().pos.toArray(),hp:myActor().hp};window.gfxColliders=COLLIDERS.slice();window.gfxNav=ASCENT_TRIAL.nav;});
  await p.locator('#pause .pz-tabs [data-tab="gfx"]').click();
- for(const mode of ['perf','mobile'])await p.locator('#st-quality [data-quality="'+mode+'"]').click();
- ascent=await p.evaluate(()=>({before:gfxBefore,after:{loads:ASCENT_TRIAL.loads,geometry:ASCENT_TRIAL.meshes[0].geometry.id,pos:myActor().pos.toArray(),hp:myActor().hp},textures:ASCENT_TRIAL.textureCount,colliders:COLLIDERS.length}));
- assert.deepEqual(ascent.after,ascent.before,'changing modes does not rebuild the original map or move the player');assert.equal(ascent.textures,239);assert.equal(ascent.colliders,44380);
+ for(const mode of ['perf','mobile']){await p.locator('#st-quality [data-quality="'+mode+'"]').click();await p.waitForFunction(()=>ASCENT_TRIAL.graphicsStatus==='ready');}
+ ascent=await p.evaluate(()=>({before:gfxBefore,after:{loads:ASCENT_TRIAL.loads,pos:myActor().pos.toArray(),hp:myActor().hp},sameCollision:gfxColliders.every((c,i)=>COLLIDERS[i]===c),sameNav:gfxNav===ASCENT_TRIAL.nav,profile:ASCENT_TRIAL.renderStats.profile,textures:ASCENT_TRIAL.textureCount,colliders:COLLIDERS.length}));
+ assert.deepEqual(ascent.after,ascent.before,'changing rendering does not reload gameplay or move the player');assert.ok(ascent.sameCollision&&ascent.sameNav);assert.equal(ascent.profile,'mobile');assert.equal(ascent.textures,239);assert.equal(ascent.colliders,44380);
  await p.context().close();
  }
  const phone=await f.page('graphicsphone',{width:393,height:852},{isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36'},{quality:false,bootTimeout:120000,beforeLoad:async page=>{
   await page.addInitScript(()=>{if(!sessionStorage.getItem('graphics_old_seed')){localStorage.setItem('lgp_set',JSON.stringify({quality:'auto',sens:1.7,sfx:false}));sessionStorage.setItem('graphics_old_seed','1');}});
  }});
  phone.setDefaultTimeout(90000);
- assert.deepEqual(await phone.evaluate(()=>({mode:SETTINGS.quality,sens:SETTINGS.sens,sfx:SETTINGS.sfx,ratio:renderer.getPixelRatio()})),{mode:'mobile',sens:1.7,sfx:false,ratio:.75});
+ assert.deepEqual(await phone.evaluate(()=>({mode:SETTINGS.quality,sens:SETTINGS.sens,sfx:SETTINGS.sfx,ratio:renderer.getPixelRatio()})),{mode:'mobile',sens:1.7,sfx:false,ratio:1});
  assert.equal(await phone.evaluate(()=>LANDSCAPE.shown()),true,'portrait phone follows the existing rotation screen');
  await phone.screenshot({path:'test-results/graphics-phone-rotate.png'});
  await phone.setViewportSize({width:852,height:393});await phone.waitForFunction(()=>!LANDSCAPE.shown());

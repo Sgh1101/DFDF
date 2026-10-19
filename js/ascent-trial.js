@@ -16,6 +16,8 @@
   if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push(entry);
   let pending=null,startRevision=0,loadRevision=0;
   let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
+  const renderAssets=new Map(),assetLoads=new Map();let graphicsRevision=0,renderProfile=null;
+  const profileFor=mode=>mode==='mobile'?'mobile':'original';
   const flows=new Map();
   const on=()=>S.active&&CUR_MAP_KEY===KEY;
   const sourcePoint=(x,z)=>({x:(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*S.meta.scale,z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*S.meta.scale});
@@ -96,34 +98,43 @@
     }
     return false;
   };
-  function clear() {
+  function clearMeshes() {
     for(const m of S.meshes){scene.remove(m);m.geometry.dispose();}
     S.meshes.length=0;
     if(material){material.dispose();material=null;}
     if(glassMaterial){glassMaterial.dispose();glassMaterial=null;}
+    if(atlasTexture)atlasTexture.dispose(); // Retain decoded pixels, release the inactive GPU upload.
+    renderProfile=null;
+  }
+  function clear() {
+    graphicsRevision++;clearMeshes();S.graphicsMessage='';S.graphicsStatus='idle';
     if(S.active)floor.visible=true;
     S.active=false;navHeight=null;navEdges=null;S.nav=null;flows.clear();
     if(previousNav){NAV.length=0;NAV.push(...previousNav);GRID.cell=previousCell;previousNav=null;}
   }
   const oldClear=clearMapGeometry;
   clearMapGeometry=function(){clear();return oldClear.apply(this,arguments);};
-  function geometry() {
+  function geometry(asset,collisions=false) {
+    buffer=asset.buffer;palette=asset.palette;atlasTexture=asset.texture;atlasTexture.needsUpdate=true;
+    const mobile=asset.profile==='mobile',chunkSize=mobile?64:40;
     const d=new DataView(buffer),n=d.getUint32(4,true),count=d.getUint32(8,true),s=S.meta.scale/16,dim=S.meta.dimensions;
     const origin=[-dim[0]*S.meta.scale/2,0,-dim[2]*S.meta.scale/2],chunks=new Map();
     function atlasMaterial(transparent){
+      const width=palette.width,height=palette.height;
       const m=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide,map:atlasTexture,alphaTest:.05,transparent,depthWrite:!transparent});
+      m.customProgramCacheKey=()=>`ascent-atlas-rect-v1:${width}:${height}`;
       m.onBeforeCompile=shader=>{
-        shader.vertexShader='attribute vec2 atlasOffset; varying vec2 vAtlasOffset;\n'+shader.vertexShader;
-        shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\nvAtlasOffset = atlasOffset;');
-        shader.fragmentShader='varying vec2 vAtlasOffset;\n'+shader.fragmentShader;
-        shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`vec4 sampledDiffuseColor = texture2D(map, (vAtlasOffset + vec2(2.0) + fract(vMapUv) * 16.0) / vec2(${palette.width.toFixed(1)}, ${palette.height.toFixed(1)})); diffuseColor *= sampledDiffuseColor;`);
+        shader.vertexShader='attribute vec4 atlasRect; varying vec4 vAtlasRect;\n'+shader.vertexShader;
+        shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\nvAtlasRect = atlasRect;');
+        shader.fragmentShader='varying vec4 vAtlasRect;\n'+shader.fragmentShader;
+        shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`vec4 sampledDiffuseColor = texture2D(map, (vAtlasRect.xy + fract(vMapUv) * vAtlasRect.zw) / vec2(${width.toFixed(1)}, ${height.toFixed(1)})); diffuseColor *= sampledDiffuseColor;`);
       };
       return m;
     }
     material=palette?atlasMaterial(false):new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
     glassMaterial=palette?atlasMaterial(true):null;
     for(let i=0;i<n;i++) {
-      const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*s),tile=palette?d.getUint16(p+21,true):0,transparent=!!palette?.tiles[tile]?.transparent,k=Math.floor(q[0]/40)+','+Math.floor(q[2]/40)+','+Math.floor(q[1]/40)+','+transparent;
+      const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*s),tile=palette?d.getUint16(p+21,true):0,info=palette?.tiles[tile],transparent=!!info?.transparent,k=Math.floor(q[0]/chunkSize)+','+Math.floor(q[2]/chunkSize)+','+Math.floor(q[1]/chunkSize)+','+transparent;
       if(!chunks.has(k))chunks.set(k,{pos:[],normal:[],color:[],uv:[],atlas:[],indices:[],transparent});
       const c=chunks.get(k),base=c.pos.length/3,u=q.slice(3,6),v=q.slice(6,9),normal=new T.Vector3(...u).cross(new T.Vector3(...v)).normalize();
       const color=new T.Color((d.getUint8(p+18)<<16)|(d.getUint8(p+19)<<8)|d.getUint8(p+20));
@@ -134,16 +145,20 @@
           const pos=q.slice(0,3).map((x,j)=>(x+a*u[j]+b*v[j])/S.meta.scale),n=normal;
           let uv=Math.abs(n.y)>.9?[pos[0],n.y>0?-pos[2]:pos[2]]:Math.abs(n.x)>.9?[n.x>0?-pos[2]:pos[2],pos[1]]:[n.z>0?pos[0]:-pos[0],pos[1]];
           if(Math.abs(n.x)>.1&&Math.abs(n.z)>.1)uv=[a,b];
-          c.uv.push(...uv);c.atlas.push((tile%palette.columns)*palette.cell,palette.height-(Math.floor(tile/palette.columns)+1)*palette.cell);
+          c.uv.push(...uv);
+          const size=info.size||palette.tileSize,pad=info.padding??palette.padding,x=info.x??(tile%palette.columns)*palette.cell,y=info.y??Math.floor(tile/palette.columns)*palette.cell;
+          c.atlas.push(x+pad,palette.height-y-pad-size,size,size);
         }
       }
       c.indices.push(base,base+1,base+2,base,base+2,base+3);
     }
     for(const c of chunks.values()) {
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(c.pos,3));g.setAttribute('normal',new T.Float32BufferAttribute(c.normal,3));g.setAttribute('color',new T.Float32BufferAttribute(c.color,3));g.setIndex(c.indices);g.computeBoundingSphere();
-      if(palette){g.setAttribute('uv',new T.Float32BufferAttribute(c.uv,2));g.setAttribute('atlasOffset',new T.Float32BufferAttribute(c.atlas,2));}
+      if(palette){g.setAttribute('uv',new T.Float32BufferAttribute(c.uv,2));g.setAttribute('atlasRect',new T.Uint16BufferAttribute(c.atlas,4));}
       const mesh=new T.Mesh(g,c.transparent?glassMaterial:material);mesh.userData.ascent=true;scene.add(mesh);S.meshes.push(mesh);
     }
+    renderProfile=asset.profile;S.renderStats={profile:renderProfile,quads:n,meshes:S.meshes.length,atlasWidth:palette?.width,atlasHeight:palette?.height,geometryBytes:S.meshes.reduce((sum,m)=>sum+m.geometry.index.array.byteLength+Object.values(m.geometry.attributes).reduce((a,b)=>a+b.array.byteLength,0),0)};
+    if(!collisions)return;
     let p=16+n*24;
     for(let i=0;i<count;i++,p+=12) {
       const b=Array.from({length:6},(_,a)=>d.getUint16(p+a*2,true)*s+origin[a%3]);
@@ -269,7 +284,8 @@
     POST.tint=[1,1,1];POST.lift=[0,0,0];POST.sat=1;POST.contrast=1;POST.vignette=.12;
     hemi.color.setHex(0xffffff);hemi.groundColor.setHex(0xbcbcbc);hemi.intensity=.9;
     sun.color.setHex(0xfff4df);sun.intensity=1.1;renderer.toneMappingExposure=1;
-    geometry();floor.visible=false;buildNav();
+    geometry(renderAssets.get(profileFor(SETTINGS.quality))||renderAssets.values().next().value,true);floor.visible=false;buildNav();
+    S.applyGraphics(SETTINGS.quality);
     NAV.length=0;NAV.push(...Object.values(MAP.nodes));
     if(VM.root&&!VM.root.parent)scene.add(VM.root);
     if(world.spike.mesh&&!world.spike.mesh.parent)scene.add(world.spike.mesh);
@@ -286,25 +302,61 @@
     if(on()&&a.alive&&a.y<.1&&!Number.isFinite(surface(a.pos.x,a.pos.z,.8,.1))){const p=spawnPointFor(a.team,0);a.pos.set(p.x,p.y,p.z);a.y=p.y;a.vy=0;}
     return r;
   };
-  async function load() {
-    start.disabled=true;S.status='loading';msg.textContent='원본 지형을 준비하는 중…';
-    try {
-      // The service worker caches assets by URL. Keep the textured ASC2 map
-      // separate from any previously visited flat-color ASC1 trial.
-      const [mr,br]=await Promise.all([fetch('./assets/maps/ascent/manifest.json?v=vanilla2'),fetch('./assets/maps/ascent/geometry.bin?v=vanilla2')]);
-      if(!mr.ok||!br.ok)throw Error('지형 파일을 불러오지 못했어');
-      const meta=await mr.json(),bytes=await br.arrayBuffer(),v=new DataView(bytes);
+  const sha=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+  async function loadAsset(profile){
+    if(renderAssets.has(profile))return renderAssets.get(profile);
+    if(assetLoads.has(profile))return assetLoads.get(profile);
+    const promise=(async()=>{
+      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version=profile==='mobile'?'mobile1':'vanilla2';
+      const mr=profile==='mobile'?await fetch(base+'manifest.json?v='+version):null;
+      if(mr&&!mr.ok)throw Error('휴대폰용 맵 목록을 불러오지 못했어');
+      const meta=mr?await mr.json():S.meta;
+      if(profile==='mobile'&&(meta.sourceGeometrySha256!==S.meta.geometrySha256||meta.colliders!==S.meta.colliders||meta.scale!==S.meta.scale||JSON.stringify(meta.dimensions)!==JSON.stringify(S.meta.dimensions)))throw Error('휴대폰용 맵 버전이 맞지 않아');
+      const br=await fetch(base+'geometry.bin?v='+version);if(!br.ok)throw Error('지형 파일을 불러오지 못했어');
+      const bytes=await br.arrayBuffer(),v=new DataView(bytes);
       if(bytes.byteLength<16||bytes.byteLength>64000000||![0x41534331,0x41534332].includes(v.getUint32(0,false))||![1,2].includes(meta.version)||meta.quads!==v.getUint32(4,true)||meta.colliders!==v.getUint32(8,true)||bytes.byteLength!==16+meta.quads*24+meta.colliders*12)throw Error('지형 데이터가 맞지 않아');
-      const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
-      if(digest!==meta.geometrySha256)throw Error('지형 파일 검증에 실패했어');
-      S.meta=meta;buffer=bytes;
+      if(await sha(bytes)!==meta.geometrySha256)throw Error('지형 파일 검증에 실패했어');
+      let palette=null,texture=null;
       if(meta.textures){
-        const r=await fetch('./assets/maps/ascent/'+meta.textures);if(!r.ok)throw Error('원본 블록 재질 목록 로딩 실패');palette=await r.json();
-        const ar=await fetch('./assets/maps/ascent/'+meta.atlas);if(!ar.ok)throw Error('원본 블록 텍스처 로딩 실패');const ab=await ar.arrayBuffer();
-        const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',ab)),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==meta.atlasSha256)throw Error('원본 블록 텍스처 검증 실패');
-        const url=URL.createObjectURL(new Blob([ab],{type:'image/png'}));atlasTexture=await new T.TextureLoader().loadAsync(url);URL.revokeObjectURL(url);atlasTexture.colorSpace=T.SRGBColorSpace;atlasTexture.magFilter=T.NearestFilter;atlasTexture.minFilter=T.NearestMipmapNearestFilter;
+        const r=await fetch(base+meta.textures+'?v='+version);if(!r.ok)throw Error('블록 재질 목록 로딩 실패');palette=await r.json();
+        const ar=await fetch(base+meta.atlas+'?v='+version);if(!ar.ok)throw Error('블록 텍스처 로딩 실패');const ab=await ar.arrayBuffer();
+        if(await sha(ab)!==meta.atlasSha256)throw Error('블록 텍스처 검증 실패');
+        const url=URL.createObjectURL(new Blob([ab],{type:'image/png'}));
+        try{texture=await new T.TextureLoader().loadAsync(url);}finally{URL.revokeObjectURL(url);}
+        texture.colorSpace=T.SRGBColorSpace;texture.magFilter=T.NearestFilter;
+        // Atlas-wide mip levels blend unrelated tiles across seams. Keep
+        // source pixels in detailed modes and use padded bilinear minification;
+        // the light pack additionally reduces only opaque texture patterns.
+        texture.minFilter=T.LinearFilter;texture.generateMipmaps=false;
         S.textureCount=palette.tiles.length;
       }
+      const asset={profile,buffer:bytes,palette,texture};renderAssets.set(profile,asset);return asset;
+    })().finally(()=>assetLoads.delete(profile));
+    assetLoads.set(profile,promise);return promise;
+  }
+  S.applyGraphics=mode=>{
+    const revision=++graphicsRevision,profile=profileFor(mode);
+    if(!on())return Promise.resolve(false);
+    if(profile===renderProfile){S.graphicsStatus='ready';S.graphicsMessage=profile==='mobile'?'휴대폰용 맵 · 선명도 유지':'';updateGfxLabel();return S.graphicsReady=Promise.resolve(true);}
+    S.graphicsStatus='loading';S.graphicsMessage='맵 재질을 바꾸는 중…';updateGfxLabel();
+    return S.graphicsReady=loadAsset(profile).then(asset=>{
+      if(revision!==graphicsRevision||!on())return false;
+      // Replace rendering only: keep collision hash, navigation, temporary
+      // ability walls, actors and round state untouched during live switches.
+      clearMeshes();geometry(asset);S.graphicsStatus='ready';S.graphicsMessage=profile==='mobile'?'휴대폰용 맵 · 선명도 유지':'';updateGfxLabel();return true;
+    }).catch(()=>{
+      if(revision===graphicsRevision&&on()){S.graphicsStatus='error';S.graphicsMessage='맵 재질 로딩 실패 · 모드를 다시 눌러 재시도';updateGfxLabel();}
+      return false;
+    });
+  };
+  async function load() {
+    start.disabled=true;S.status='loading';msg.textContent='지형을 준비하는 중…';
+    try {
+      // Full-quality files keep their existing URLs; the separate mobile pack
+      // is fetched only for mobile, and never replaces cached original assets.
+      const mr=await fetch('./assets/maps/ascent/manifest.json?v=vanilla2');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
+      const meta=S.meta=await mr.json();
+      await loadAsset(profileFor(SETTINGS.quality));
       MAPS[KEY]={graphicsStatic:true,
         key:KEY,name:'마크X발로',size:5,theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},

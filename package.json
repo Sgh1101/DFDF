@@ -34,6 +34,7 @@
     "test:ascent-abilities": "node scripts/browser-ascent-abilities.js",
     "test:performance": "node scripts/browser-performance.js",
     "test:graphics": "node scripts/browser-graphics.js",
+    "test:mobile-map": "node scripts/browser-mobile-map.js",
     "test:mobile-preview": "node scripts/browser-mobile-skin-preview.js",
     "test:valorant": "node scripts/browser-valorant.js",
     "test:valorant-inspect": "node scripts/browser-valorant-inspect.js",

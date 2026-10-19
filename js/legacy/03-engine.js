@@ -20024,6 +20024,7 @@ function applyGfx(e, t) {
     try {
       loadMap(CUR_MAP_KEY);
     } catch (e) {}
+  if (window.ASCENT_TRIAL?.active) window.ASCENT_TRIAL.applyGraphics(SETTINGS.quality);
   (scene.traverse((e) => {
     e.material && (e.material.needsUpdate = !0);
   }),
@@ -20067,7 +20068,7 @@ function setQuality(e) {
 }
 function updateGfxLabel() {
   const e = $("st-q-now");
-  if (e) e.textContent = "";
+  if (e) e.textContent = window.ASCENT_TRIAL?.active ? window.ASCENT_TRIAL.graphicsMessage || "" : "";
 }
 const DYNRES = { scale: 1, ema: 1 / 60, cool: 2, good: 0 };
 function dynRes(e) {
