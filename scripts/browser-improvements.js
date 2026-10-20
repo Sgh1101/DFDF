@@ -39,8 +39,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   const me=myActor(),enemy=world.actors.find(a=>a.team!==me.team);Object.assign(me,{hp:10,armor:20,invuln:0,shielded:0,vuln:0,y:0});enemy.pos.x=me.pos.x;enemy.pos.z=me.pos.z;enemy.y=4;
   let detail;const observe=e=>{if(e.detail.victim===me.id)detail=e.detail;};addEventListener('kill-confirmed',observe);
   DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(enemy,'rifle','gun',world.round,'default'),()=>dealDamage(me,100,false,enemy));removeEventListener('kill-confirmed',observe);
-  return {armor:detail.armorAbsorbed,distance:detail.distance,text:document.getElementById('death-detail').textContent};
- });assert.equal(death.armor,20);assert.equal(death.distance,4);assert.match(death.text,/방어구 흡수 20/);
+  return {armor:detail.armorAbsorbed,cleared:me._lastArmorBlocked,distance:detail.distance,text:document.getElementById('death-detail').textContent};
+ });assert.equal(death.armor,20);assert.equal(death.cleared,0);assert.equal(death.distance,4);assert.match(death.text,/방어구 흡수 20/);
  // Actual cached preview resources, after repeated open/close (warm-up excluded).
  await p.evaluate(()=>{world.phase='menu';document.getElementById('s-title').hidden=false;document.getElementById('hud').hidden=true;});
  await p.setViewportSize({width:852,height:393});const memory=[];

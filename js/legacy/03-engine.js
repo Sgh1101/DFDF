@@ -16794,6 +16794,8 @@ function dealDamage(e, t, o, a) {
       } catch (e) {}
       "me" === e.ctrl && bannerMe("불사 발동 — 되살아난다", "#ff1744");
     } else e.hp <= 0 && killActor(e, a);
+    // Only the death committed by this hit may use its absorbed armor amount.
+    e._lastArmorBlocked = 0;
   }
 }
 let killStreak = 0,
