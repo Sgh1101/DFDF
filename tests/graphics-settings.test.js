@@ -59,3 +59,19 @@ test('live resolution adjustment respects pauses, disabled settings and the chos
  const before={...c.DYNRES};c.SETTINGS.dynRes=false;for(let i=0;i<100;i++)c.dynRes(1/120);assert.deepEqual(c.DYNRES,before,'off means no automatic resolution changes');
  assert.equal(c.GFX.name,'성능','the selected preset does not change');
 });
+test('shadow cache invalidates casters, visibility, lights and projection without reducing resolution',()=>{
+ const source=engine.slice(engine.indexOf('let _shadowInputs ='),engine.indexOf('function render() {',engine.indexOf('let _shadowInputs =')));
+ const matrix=()=>({elements:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]});
+ const caster={castShadow:true,matrixWorld:matrix(),layers:{mask:1},geometry:{id:1,attributes:{position:{version:0}}},material:{id:1,version:0,visible:true}};
+ const light={castShadow:true,isLight:true,matrixWorld:matrix(),layers:{mask:1},shadow:{camera:{projectionMatrix:matrix()},mapSize:{x:4096,y:4096},map:{}},target:{matrixWorld:matrix(),updateWorldMatrix(){}}};
+ let objects=[caster,light];const c={camera:{layers:{mask:1}},renderer:{shadowMap:{type:2}},scene:{updateMatrixWorld(){},traverseVisible(fn){objects.forEach(fn);}}};
+ vm.createContext(c);vm.runInContext(source,c);
+ assert.equal(c.shadowInputsChanged(),true);assert.equal(c.shadowInputsChanged(),false);
+ for(const change of [()=>caster.matrixWorld.elements[12]++,()=>caster.geometry.attributes.position.version++,()=>caster.material.visible=false,()=>light.target.matrixWorld.elements[12]++,()=>light.shadow.camera.projectionMatrix.elements[0]++,()=>light.shadow.map=null]){
+  change();assert.equal(c.shadowInputsChanged(),true);assert.equal(c.shadowInputsChanged(),false);
+ }
+ objects=[light];assert.equal(c.shadowInputsChanged(),true);assert.equal(c.shadowInputsChanged(),false);
+ objects=[caster,light];assert.equal(c.shadowInputsChanged(),true);
+ caster.isSkinnedMesh=true;assert.equal(c.shadowInputsChanged(),true);assert.equal(c.shadowInputsChanged(),true);
+ assert.equal(C.presets.ultra.shadowRes,4096);
+});

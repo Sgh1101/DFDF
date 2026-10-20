@@ -20701,6 +20701,37 @@ function postInit() {
         depthWrite: !1,
         toneMapped: !1,
       })),
+      // Fuse the quarter-size copy with its horizontal blur. Reconstruct the
+      // copied texels before filtering (including the old RGBA16F rounding).
+      (_pq.downBlur = new T.ShaderMaterial({
+        uniforms: { tSrc: { value: null }, uSize: { value: new T.Vector2() } },
+        vertexShader: a,
+        fragmentShader: `
+          uniform sampler2D tSrc; uniform vec2 uSize; varying vec2 vUv;
+          vec3 halfStore(vec3 c) {
+            vec3 stepSize = exp2(max(floor(log2(max(c, vec3(1e-20)))) - 10.0, vec3(-24.0)));
+            vec3 n = c / stepSize, lo = floor(n), f = n - lo;
+            return (lo + step(vec3(0.5), f) * (vec3(1.0) - step(f, vec3(0.5)) * (vec3(1.0) - mod(lo, 2.0)))) * stepSize;
+          }
+          vec3 copied(vec2 pixel) {
+            pixel = clamp(pixel, vec2(0.0), uSize - 1.0);
+            return halfStore(texture2D(tSrc, (pixel + 0.5) / uSize).rgb);
+          }
+          vec3 sampleCopy(float offset) {
+            vec2 p = vUv * uSize - 0.5 + vec2(offset, 0.0);
+            vec2 base = vec2(floor(p.x), floor(vUv.y * uSize.y));
+            return mix(copied(base), copied(base + vec2(1.0, 0.0)), fract(p.x));
+          }
+          void main() {
+            vec3 c = sampleCopy(0.0) * 0.2270270270;
+            c += sampleCopy(1.6 * 1.3846153846) * 0.3162162162;
+            c += sampleCopy(-1.6 * 1.3846153846) * 0.3162162162;
+            c += sampleCopy(1.6 * 3.2307692308) * 0.0702702703;
+            c += sampleCopy(-1.6 * 3.2307692308) * 0.0702702703;
+            gl_FragColor = vec4(c, 1.0);
+          }`,
+        depthTest: !1, depthWrite: !1, toneMapped: !1,
+      })),
       (_pq.copy = new T.ShaderMaterial({
         uniforms: { tSrc: { value: null } },
         vertexShader: a,
@@ -20800,11 +20831,9 @@ function postRender() {
     (t.tSrc.value = POST.hB.texture),
     t.uDir.value.set(0, POST._hs[1]),
     _pass(_pq.blur, POST.hA),
-    (_pq.copy.uniforms.tSrc.value = POST.hA.texture),
-    _pass(_pq.copy, POST.qA),
-    (t.tSrc.value = POST.qA.texture),
-    t.uDir.value.set(1.6 * POST._qs[0], 0),
-    _pass(_pq.blur, POST.qB),
+    (_pq.downBlur.uniforms.tSrc.value = POST.hA.texture),
+    _pq.downBlur.uniforms.uSize.value.set(POST.qA.width, POST.qA.height),
+    _pass(_pq.downBlur, POST.qB),
     (t.tSrc.value = POST.qB.texture),
     t.uDir.value.set(0, 1.6 * POST._qs[1]),
     _pass(_pq.blur, POST.qA));
@@ -20828,22 +20857,50 @@ function postRender() {
 function postActive() {
   return !!POST.on && (void 0 === GFX || !1 !== GFX.post) && postInit();
 }
-let _shFrame = 0,
-  _shLast = null;
+// Keep the existing shadow texture until a shadow-producing input changes.
+let _shadowInputs = new Map();
+function shadowInputsChanged() {
+  scene.updateMatrixWorld();
+  const next = new Map();
+  let changed = false;
+  scene.traverseVisible((object) => {
+    if (!object.castShadow) return;
+    const values = [...object.matrixWorld.elements, object.layers.mask, camera.layers.mask, renderer.shadowMap.type];
+    if (object.isLight && object.shadow) {
+      const sh = object.shadow;
+      object.target?.updateWorldMatrix(true, false);
+      values.push(...(object.target?.matrixWorld.elements || []),
+        ...sh.camera.projectionMatrix.elements, sh.mapSize.x, sh.mapSize.y,
+        sh.bias, sh.normalBias, sh.radius, object.distance, object.angle,
+        !!sh.map);
+    } else {
+      const geometry = object.geometry;
+      values.push(geometry?.id, geometry?.index?.version,
+        ...Object.values(geometry?.attributes || {}).map(a => a.version),
+        object.instanceMatrix?.version, ...(object.morphTargetInfluences || []));
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const m of materials) if (m) values.push(m.id, m.version, m.visible, m.side,
+        m.alphaTest, m.opacity, m.map?.version, m.alphaMap?.version, m.displacementMap?.version,
+        m.displacementScale, m.displacementBias);
+      // Bones and custom vertex shaders may deform without changing matrixWorld.
+      if (object.isSkinnedMesh || object.customDepthMaterial || object.customDistanceMaterial ||
+          materials.some(m => m?.isShaderMaterial || m?.displacementMap)) changed = true;
+    }
+    const previous = _shadowInputs.get(object);
+    if (!previous || previous.length !== values.length || values.some((v, i) => v !== previous[i])) changed = true;
+    next.set(object, values);
+  });
+  if (next.size !== _shadowInputs.size) changed = true;
+  _shadowInputs = next;
+  return changed;
+}
 function render() {
   renderer.shadowMap.autoUpdate = !1;
-  const e =
-    !_shLast ||
-    Math.abs(camera.position.x - _shLast.x) +
-      Math.abs(camera.position.z - _shLast.z) >
-      6;
-  if (
-    ((1 & ++_shFrame && !e && (void 0 === GFX || 1 !== GFX.shadowEvery)) ||
-      (followSun(),
-      (renderer.shadowMap.needsUpdate = !0),
-      (_shLast = { x: camera.position.x, z: camera.position.z })),
-    postActive())
-  )
+  if (renderer.shadowMap.enabled) {
+    followSun();
+    if (shadowInputsChanged()) renderer.shadowMap.needsUpdate = !0;
+  } else _shadowInputs.clear();
+  if (postActive())
     try {
       return void postRender();
     } catch (e) {
