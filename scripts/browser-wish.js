@@ -6,9 +6,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   try {
     const page = await f.page("wisher", { width: 1280, height: 800 });
     // by gun: a skin not owned, looked at, wished
-    await page.evaluate(() => GUN_SKINS.open("smg", "gun"));
+    await page.evaluate(async () => { await GUN_SKINS.loadShop(); GUN_SKINS.open("smg", "gun"); });
     await page.waitForSelector("#ar-skins .ar-sk.locked");
-    const sid = await page.evaluate(() => document.querySelector("#ar-skins .ar-sk.locked").dataset.s);
+    // Daily/weekly offers change with the date. Keep the first wish outside
+    // both lists so the later shop count has an explicit, stable meaning.
+    const sid = await page.evaluate(() => [...document.querySelectorAll("#ar-skins .ar-sk.locked")].find(card =>
+      !GUN_SKINS.shop().items.some(item => item.g === "smg" && item.s === card.dataset.s))?.dataset.s);
+    assert.ok(sid, "an unowned SMG skin outside the current offers is available");
     await page.click(`#ar-skins .ar-sk[data-s="${sid}"]`);
     await page.waitForSelector("#ar-wish");
     await page.click("#ar-wish");
@@ -18,12 +22,23 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // a skin in today's shop, wished from the shop tab
     await page.evaluate(() => GUN_SKINS.tab("shop"));
     await page.waitForFunction(() => document.querySelectorAll("#sh-list .it:not(.wk)").length === 20, null, { timeout: 30000 });
-    const it = await page.evaluate(() => GUN_SKINS.shop().items.find((x) => !x.w && !GUN_SKINS.owns(x.g, x.s)));
+    const it = await page.evaluate(() => GUN_SKINS.shop().items.find((x) => !x.w && !GUN_SKINS.owns(x.g, x.s) &&
+      !GUN_SKINS.wish().includes(x.g + "|" + x.s) && GUN_SKINS.shop().items.filter(y => y.g === x.g && y.s === x.s).length === 1));
+    assert.ok(it, "an unowned daily offer with one card is available");
     await page.click(`#sh-list .it[data-g="${it.g}"][data-s="${it.s}"]`);
     await page.click("#sh-wish");
     await page.waitForFunction(([g, s]) => document.querySelector(`#sh-list .it[data-g="${g}"][data-s="${s}"]`).classList.contains("wish"), [it.g, it.s]);
     const head = await page.evaluate(() => document.getElementById("sh-f").textContent);
     assert.match(head, /찜한 스킨 1개/);
+    // Two distinct offered wishes count as two; the off-shop wish does not.
+    const second = await page.evaluate(() => GUN_SKINS.shop().items.find((x) => !x.w && !GUN_SKINS.owns(x.g, x.s) &&
+      !GUN_SKINS.wish().includes(x.g + "|" + x.s) && GUN_SKINS.shop().items.filter(y => y.g === x.g && y.s === x.s).length === 1));
+    assert.ok(second);
+    await page.click(`#sh-list .it[data-g="${second.g}"][data-s="${second.s}"]`);
+    await page.click("#sh-wish");
+    await page.waitForFunction(() => document.querySelector("#sh-f .sh-wn")?.textContent === "★ 찜한 스킨 2개");
+    await page.click("#sh-wish");
+    await page.waitForFunction(() => document.querySelector("#sh-f .sh-wn")?.textContent === "★ 찜한 스킨 1개");
     // back on the title screen: the note, once a day, opens the shop
     await page.evaluate(() => { GUN_SKINS.close(); localStorage.removeItem("lgp_wish_seen"); GUN_SKINS.wishNotice(); });
     await page.waitForSelector("#wish-note:not([hidden])", { timeout: 10000 });
