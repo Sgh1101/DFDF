@@ -4,7 +4,7 @@
   function samples(limit=1800){
     const values=[];let total=0,long=0;
     return {add(ms){if(!Number.isFinite(ms)||ms<=0||ms>1000)return;total++;if(ms>50)long++;values.push(ms);if(values.length>limit)values.shift();},
-      read(){const v=values.slice().sort((a,b)=>a-b),at=p=>v.length?v[Math.min(v.length-1,Math.floor((v.length-1)*p))]:0;return {samples:v.length,total,long,median:at(.5),p95:at(.95)};},
+      read(){const v=values.slice().sort((a,b)=>a-b),at=p=>{if(!v.length)return 0;const x=(v.length-1)*p,lo=Math.floor(x);return v[lo]+(v[Math.ceil(x)]-v[lo])*(x-lo);};return {samples:v.length,total,long,median:at(.5),p95:at(.95)};},
       reset(){values.length=0;total=long=0;}};
   }
   function scope(schedule=setTimeout,cancel=clearTimeout){
@@ -22,5 +22,11 @@
     else if(good>=15&&level>0){level--;bad=good=0;cool=12;}
     return old!==level;},reset(){bad=good=cool=level=0;},get level(){return level;},get fraction(){return [1,.75,.5][level];}};}
   function ring(limit=80){const rows=[];return {add(kind,data={}){rows.push({at:Date.now(),kind,...data});if(rows.length>limit)rows.shift();},read(){return rows.map(r=>({...r}));}};}
-  return Object.freeze({samples,scope,budget,ring});
+  function connectionPath(stats){
+    const rows=[...stats.values()],transport=rows.find(r=>r.type==='transport'&&r.selectedCandidatePairId);
+    const pair=transport?stats.get(transport.selectedCandidatePairId):rows.find(r=>r.type==='candidate-pair'&&r.state==='succeeded'&&(r.nominated||r.selected));
+    if(!pair)return null;const local=stats.get(pair.localCandidateId),remote=stats.get(pair.remoteCandidateId),types=new Set(['host','srflx','prflx','relay']);
+    return {local:types.has(local?.candidateType)?local.candidateType:'unknown',remote:types.has(remote?.candidateType)?remote.candidateType:'unknown',protocol:['udp','tcp'].includes(local?.protocol)?local.protocol:'unknown',relay:local?.candidateType==='relay'||remote?.candidateType==='relay'};
+  }
+  return Object.freeze({samples,scope,budget,ring,connectionPath});
 });

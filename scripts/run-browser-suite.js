@@ -1,7 +1,7 @@
 // Same runner for a workstation and CI. Tests use disposable API accounts.
 const fs=require('node:fs'),path=require('node:path'),{spawn,execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..'),pkg=require('../package.json');
-const smoke=['test:startup','test:browser','test:legacy-models','test:improvements','test:mobile-preview','test:network-recovery','test:ascent-abilities'];
+const smoke=['test:startup','test:browser','test:legacy-models','test:improvements','test:mobile-preview','test:network-recovery','test:ascent-abilities','test:ability-floors'];
 const all=Object.keys(pkg.scripts).filter(k=>/^(test:|audit:)/.test(k)&&/^node scripts\/browser-/.test(pkg.scripts[k]));
 const only=process.argv.find(a=>a.startsWith('--only='));
 const jobs=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;

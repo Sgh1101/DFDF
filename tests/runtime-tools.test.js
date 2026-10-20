@@ -1,5 +1,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),R=require('../js/runtime-tools');
-test('measurements bound their sample window and reject background gaps',()=>{const s=R.samples(3);[10,20,30,60,NaN,2000,-1].forEach(n=>s.add(n));assert.deepEqual(s.read(),{samples:3,total:4,long:1,median:30,p95:30});s.reset();assert.equal(s.read().total,0);});
+test('measurements bound their sample window and reject background gaps',()=>{const s=R.samples(3);[10,20,30,60,NaN,2000,-1].forEach(n=>s.add(n));assert.deepEqual(s.read(),{samples:3,total:4,long:1,median:30,p95:57});s.reset();assert.equal(s.read().total,0);});
 test('a stale scheduled callback cannot end a new match, even if cancellation races',()=>{let fn;const s=R.scope(f=>{fn=f;return 1;},()=>{});let calls=0;s.after(5,()=>calls++);s.reset();fn();assert.equal(calls,0);s.after(5,()=>calls++);fn();assert.equal(calls,1);assert.equal(s.pending,0);});
 test('optional budget has asymmetric hysteresis and never changes resolution',()=>{const b=R.budget();for(let i=0;i<31;i++)b.tick(35,.1);assert.equal(b.level,1);for(let i=0;i<20;i++)b.tick(16,.1);assert.equal(b.level,1);for(let i=0;i<140;i++)b.tick(16,.1);assert.equal(b.level,0);assert.equal(b.fraction,1);b.tick(2000,3);assert.equal(b.level,0);});
 test('diagnostic ring retains only its bounded recent history',()=>{const r=R.ring(2);r.add('a');r.add('b');r.add('c');assert.deepEqual(r.read().map(x=>x.kind),['b','c']);});
+test('TURN path diagnostics whitelist candidate types without exporting addresses, ports or IDs',()=>{
+ const stats=new Map([['t',{type:'transport',selectedCandidatePairId:'p'}],['p',{type:'candidate-pair',localCandidateId:'l',remoteCandidateId:'r'}],['l',{candidateType:'relay',protocol:'udp',address:'private-address',port:123}],['r',{candidateType:'srflx',address:'another-address'}]]);
+ assert.deepEqual(R.connectionPath(stats),{local:'relay',remote:'srflx',protocol:'udp',relay:true});assert.equal(R.connectionPath(new Map()),null);
+});

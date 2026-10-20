@@ -2,11 +2,11 @@
   'use strict';
   const R=RUNTIME_TOOLS,$=id=>document.getElementById(id),L=(ko,en)=>GAME_LANG==='en'?en:ko;
   const frames=R.samples(),input=R.samples(200),events=R.ring(),optional=R.budget(),lifetime=R.scope();
-  const weapons=Object.create(null),bots=new Map();let activeSince=0,quality=SETTINGS.quality,lastNet='',botClock=0,deathUntil=0,tutorial=null;
+  const weapons=Object.create(null),bots=new Map();let networkPaths=[],activeSince=0,quality=SETTINGS.quality,lastNet='',botClock=0,deathUntil=0,tutorial=null;
   const metric=key=>{key=Object.hasOwn(WEAPONS,key)?key:'ability';return weapons[key]||(weapons[key]={shots:0,hits:0,damage:0,kills:0,heldSeconds:0});};
-  const report=()=>({schema:1,release:release,platform:{mobile:matchMedia('(pointer:coarse)').matches,viewport:[innerWidth,innerHeight],pixelRatio:devicePixelRatio,standalone:matchMedia('(display-mode: standalone)').matches},
+  const report=()=>({schema:1,release:release,platform:{browser:navigator.userAgent.slice(0,240),mobile:matchMedia('(pointer:coarse)').matches,viewport:[innerWidth,innerHeight],pixelRatio:devicePixelRatio,standalone:matchMedia('(display-mode: standalone)').matches},
     measurement:{frameWindowMax:1800,inputMeaning:"pointerdown-to-fire-processing; not display latency"},game:{map:CUR_MAP_KEY,mode:room.mode,quality:SETTINGS.quality,optionalBudget:optional.level,seconds:activeSince?Math.round((performance.now()-activeSince)/1000):0},
-    frameMs:frames.read(),inputMs:input.read(),gpu:{...renderer.info.memory},network:{mode:NET.mode,state:NET.status,latency:Math.round(NET.latency||0),connections:NET.conns.size},weapons:JSON.parse(JSON.stringify(weapons)),events:events.read()});
+    frameMs:frames.read(),inputMs:input.read(),gpu:{...renderer.info.memory},network:{mode:NET.mode,state:NET.status,latency:Math.round(NET.latency||0),connections:NET.conns.size,paths:networkPaths},weapons:JSON.parse(JSON.stringify(weapons)),events:events.read()});
   let release={version:'2026.10.21',commit:'local'};
   window.addEventListener('api-diagnostic',({detail:d})=>{events.add('api-error',{action:d.action,status:d.status,requestId:/^[a-f0-9-]{36}$/.test(d.requestId)?d.requestId:''});});
   fetch('./api/release',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&/^[a-f0-9]{7,40}$/.test(j.commit))release={version:String(j.version).slice(0,30),commit:j.commit};}).catch(()=>{});
@@ -25,6 +25,11 @@
       if(j.commit!=='local'&&release.commit!=='local'&&j.commit!==release.commit){note.textContent=L('새 버전이 있습니다. 경기 종료 후 다시 열어 주세요.','An update is ready. Reopen after the match.');if((world.phase==='menu'||world.phase==='over')&&!$('diagnostic-reload'))button('diagnostic-reload',L('새 버전 열기','Open new version'),()=>location.reload(),diag.querySelector('footer'));}
       else note.textContent=L('현재 공개 버전과 같습니다.','You have the current release.');
     }catch{note.textContent=L('연결을 확인하고 다시 시도해 주세요.','Check your connection and retry.');}
+  },diag.querySelector('footer'));
+  button('diagnostic-path',L('연결 경로 확인','Check network path'),async()=>{
+    const pcs=[...new Set([NET.up,...NET.conns.values()].map(c=>c?.peerConnection).filter(Boolean))].slice(0,12);networkPaths=[];
+    for(const pc of pcs)try{const path=R.connectionPath(await pc.getStats());if(path)networkPaths.push(path);}catch{}
+    paintReport();$('diagnostic-note').textContent=networkPaths.length?L('연결 경로를 기록했습니다. relay는 TURN 중계를 뜻합니다.','Paths recorded. Relay means TURN.') : L('확인할 연결이 없습니다. 온라인 경기에서 다시 확인하세요.','No active path. Retry in an online match.');
   },diag.querySelector('footer'));
   $('diagnostic-export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(report(),null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='13-diagnostics-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   button('go-diagnostics',L('성능 진단','Diagnostics'),open,document.querySelector('#s-title .tt-sub'));

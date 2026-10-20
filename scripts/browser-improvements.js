@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const dir=process.env.SHOT_DIR||'test-results/improvements';fs.mkdirSync(dir,{recursive:true});
  await p.locator('#go-diagnostics').click();await p.locator('#game-diagnostics').waitFor({state:'visible'});
  assert.equal(await p.locator('#game-diagnostics').getAttribute('role'),'dialog');
- const d=JSON.parse(await p.locator('#diagnostic-values').innerText());assert.deepEqual(Object.keys(d.platform),['mobile','viewport','pixelRatio','standalone']);
+ const d=JSON.parse(await p.locator('#diagnostic-values').innerText());assert.deepEqual(Object.keys(d.platform),['browser','mobile','viewport','pixelRatio','standalone']);
  assert.ok(!JSON.stringify(d).includes('improvements'));assert.equal(d.schema,1);
  await p.locator('#diagnostic-reset').click();await p.locator('#diagnostic-export').click();
  await p.screenshot({path:path.join(dir,'diagnostics.png')});

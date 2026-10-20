@@ -9,3 +9,5 @@
 @media(max-height:450px){.improve-card{max-height:96dvh;padding:10px}.improve-card h2{font-size:16px}.improve-card pre{max-height:36dvh}#training-task{top:15%;font-size:12px}#death-detail{font-size:12px}}
 
 #go-mark-valo{display:flex;align-items:center;justify-content:center;gap:10px}#go-mark-valo img{object-fit:cover;border-radius:4px;flex:none}
+
+.improve-card footer{flex-wrap:wrap;justify-content:flex-start}

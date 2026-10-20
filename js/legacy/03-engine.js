@@ -1158,13 +1158,13 @@ function moveWithSlide(e, t, o, a, n) {
     s
   );
 }
-// Legacy abilities use a flat zero floor; imported block terrain supplies the
-// actual supporting surface, including steps and stacked floors.
+// All maps use the same supporting surface as movement. Hospital floors and
+// procedural rooftops must not silently fall back to the ground floor.
 function abilityGroundY(x, z, reference = player.y || 0) {
-  return window.ASCENT_TRIAL?.active && CUR_MAP_KEY === "ascent_trial" ? ASCENT_TRIAL.groundY(x, z, reference) : 0;
+  return groundAt(x, z, Number.isFinite(reference) ? reference : 0);
 }
 function abilityOnFloor(actor, y, height = 2.4) {
-  return !window.ASCENT_TRIAL?.active || ((actor.y || 0) + 1.8 > y && (actor.y || 0) < y + height);
+  return (actor.y || 0) + 1.8 > y && (actor.y || 0) < y + height;
 }
 function groundAt(e, t, o) {
   let a = 0;

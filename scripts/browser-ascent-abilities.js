@@ -55,6 +55,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  assert.ok(result.groundSamples.every(e=>e<.01));assert.ok(result.turret.length>0&&result.turret.every(y=>y>=result.floor-.1));
  const resume=p.getByRole('button',{name:'계속하기',exact:true});if(await resume.isVisible())await resume.click();
  fs.mkdirSync('test-results',{recursive:true});await p.screenshot({path:'test-results/ascent-ability-after.png'});
- const normal=await p.evaluate(()=>{loadMap('pogu');return{ground:abilityGroundY(10,10,30),active:ASCENT_TRIAL.active};});assert.deepEqual(normal,{ground:0,active:false});
+ const normal=await p.evaluate(()=>{loadMap('pogu');return{ground:abilityGroundY(10,10,30),physical:groundAt(10,10,30),active:ASCENT_TRIAL.active};});assert.equal(normal.ground,normal.physical);assert.equal(normal.active,false);
  assert.deepEqual(f.errors,[]);assert.deepEqual(warnings,[]);console.log('Ascent abilities:',JSON.stringify({...result,casts:result.casts.length,groundSamples:result.groundSamples.length}));
 }finally{await f.browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
