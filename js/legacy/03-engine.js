@@ -16710,8 +16710,10 @@ function dealDamage(e, t, o, a) {
     (ADMIN.oneShot && a && "me" === a.ctrl && (t = 9999),
     e.alive && !(e.invuln > 0) && "end" !== world.phase)
   ) {
+    e._lastArmorBlocked = 0;
     if ((e.shielded > 0 && (t *= 0.4), e.vuln > 0 && (t *= 1.5), e.armor > 0)) {
       const o = Math.min(e.armor, 0.5 * t);
+      e._lastArmorBlocked = o;
       ((e.armor -= o), (t -= o));
     }
     if (

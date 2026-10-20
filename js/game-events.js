@@ -145,7 +145,8 @@
       const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
       event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, finisherYaw: Math.atan2(killer.pos.x - victim.pos.x, killer.pos.z - victim.pos.z), kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
       event.finisherTick = Math.floor(performance.now() / 50);
-      event.distance = Math.round(Math.hypot(killer.pos.x-victim.pos.x,killer.pos.z-victim.pos.z));
+      event.distance = Math.round(Math.hypot(killer.pos.x-victim.pos.x,(killer.y||0)-(victim.y||0),killer.pos.z-victim.pos.z));
+      event.armorAbsorbed = victim._lastArmorBlocked || 0;
       event.finisher = !claimedRound && GAME_RULES.finisher(event);
     }
     const previous = window.KILL_EVENT, previousDeadline = world.championsFinishUntil;

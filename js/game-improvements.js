@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const R=RUNTIME_TOOLS,$=id=>document.getElementById(id),L=(ko,en)=>GAME_LANG==='en'?en:ko;
+  const channels=()=>[NET.up,...NET.conns.values()].filter(Boolean).flatMap(c=>[c.state,c.event].filter(Boolean));
   const frames=R.samples(),input=R.samples(200),events=R.ring(),optional=R.budget(),lifetime=R.scope();
   const weapons=Object.create(null),bots=new Map();let networkPaths=[],activeSince=0,quality=SETTINGS.quality,lastNet='',botClock=0,deathUntil=0,tutorial=null;
   const metric=key=>{key=Object.hasOwn(WEAPONS,key)?key:'ability';return weapons[key]||(weapons[key]={shots:0,hits:0,damage:0,kills:0,heldSeconds:0});};
@@ -27,7 +28,7 @@
     }catch{note.textContent=L('연결을 확인하고 다시 시도해 주세요.','Check your connection and retry.');}
   },diag.querySelector('footer'));
   button('diagnostic-path',L('연결 경로 확인','Check network path'),async()=>{
-    const pcs=[...new Set([NET.up,...NET.conns.values()].map(c=>c?.peerConnection).filter(Boolean))].slice(0,12);networkPaths=[];
+    const pcs=[...new Set(channels().map(c=>c?.peerConnection).filter(Boolean))].slice(0,12);networkPaths=[];
     for(const pc of pcs)try{const path=R.connectionPath(await pc.getStats());if(path)networkPaths.push(path);}catch{}
     paintReport();$('diagnostic-note').textContent=networkPaths.length?L('연결 경로를 기록했습니다. relay는 TURN 중계를 뜻합니다.','Paths recorded. Relay means TURN.') : L('확인할 연결이 없습니다. 온라인 경기에서 다시 확인하세요.','No active path. Retry in an online match.');
   },diag.querySelector('footer'));
@@ -45,7 +46,7 @@
   const reload=actorReload;actorReload=function(a){const before=a?.reloading,r=reload.apply(this,arguments);if(tutorial&&a?.ctrl==='me'&&!before&&a.reloading)tutorial.reload=true;return r;};
   const death=document.createElement('div');death.id='death-detail';death.hidden=true;death.setAttribute('role','status');document.body.append(death);
   window.addEventListener('kill-confirmed',({detail:e})=>{const me=myActor();if(e.killer===me?.id)metric(e.kind==='ability'?'ability':e.gun).kills++;
-    if(e.victim===me?.id){const skin=GUN_SKINS.list.find(s=>s.id===e.skin);death.textContent=[WEAPONS[e.gun]?.name||L('능력','Ability'),skin&&e.skin!=='default'?(GAME_LANG==='en'?skin.en:skin.ko):'',Number.isFinite(e.distance)?Math.round(e.distance)+'m':'',e.head?L('헤드샷','Headshot'):e.kind==='ability'?L('능력 처치','Ability kill'):''].filter(Boolean).join(' · ');death.hidden=false;deathUntil=performance.now()+4000;}});
+    if(e.victim===me?.id){const skin=GUN_SKINS.list.find(s=>s.id===e.skin);death.textContent=[WEAPONS[e.gun]?.name||L('능력','Ability'),skin&&e.skin!=='default'?(GAME_LANG==='en'?skin.en:skin.ko):'',Number.isFinite(e.distance)?Math.round(e.distance)+'m':'',Number.isFinite(e.armorAbsorbed)&&e.armorAbsorbed>0?L('방어구 흡수 ','Armor absorbed ')+Math.round(e.armorAbsorbed):'',e.head?L('헤드샷','Headshot'):e.kind==='ability'?L('능력 처치','Ability kill'):''].filter(Boolean).join(' · ');death.hidden=false;deathUntil=performance.now()+4000;}});
   const guide=document.createElement('section');guide.id='quick-guide';guide.hidden=true;
   guide.innerHTML=`<div class="improve-card"><header><h2>${L('빠른 훈련','Quick training')}</h2><button data-close aria-label="닫기">✕</button></header><p>${L('표적장: 이동 → 장전 → 표적 3회 명중. 능력·스파이크는 별도 연습에서 배웁니다. 연습에서는 경기 보상을 지급하지 않습니다.','Range: move, reload, hit three targets. Practice abilities and the spike separately. Practice gives no match rewards.')}</p><div id="mode-guides"></div><footer><button id="guide-start">${L('표적장에서 배우기','Learn in the range')}</button></footer></div>`;
   document.body.append(guide);guide.querySelector('[data-close]').onclick=()=>guide.hidden=true;
@@ -71,7 +72,7 @@
       task.querySelector('span').textContent=[L('4m 이동하세요','Move 4m'),L('발사 후 R 또는 장전 버튼','Fire, then reload'),L(`표적 명중 ${Math.max(0,hits)}/3`,`Target hits ${Math.max(0,hits)}/3`),L('훈련 완료! 모드를 골라 시작하세요.','Training complete! Choose a mode.')][stage];
     }}
     if(botClock>=1){const elapsed=botClock;botClock=0;
-      const connections=[NET.up,...NET.conns.values()].filter(Boolean),states=connections.map(c=>c.peerConnection?.iceConnectionState||c.open&&'open'||'connecting').sort();
+      const connections=channels(),states=connections.map(c=>c.peerConnection?.iceConnectionState||c.open&&'open'||'connecting').sort();
       const signature=JSON.stringify([NET.mode,NET.status,states]);if(signature!==lastNet){events.add('connection',{mode:NET.mode,phase:NET.status,ice:states.slice(0,12)});lastNet=signature;}
       if(world.phase==='live')for(const a of world.actors||[])if(a.alive&&isAI(a)){const b=bots.get(a.id);if(b){b.still=Math.hypot(a.pos.x-b.x,a.pos.z-b.z)<.1?b.still+elapsed:0;if(b.still>=10&&!b.warned){events.add('bot-stall',{mode:room.mode,map:CUR_MAP_KEY});b.warned=true;}if(!b.still)b.warned=false;}bots.set(a.id,{x:a.pos.x,z:a.pos.z,still:b?.still||0,warned:b?.warned||false});}
       if(!diag.hidden)paintReport();

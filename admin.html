@@ -642,9 +642,10 @@ function fbCard(r) {
   if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${esc(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
   if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
   const c = r.ctx || {};
+  const diagnostic=c.diagnostic?`<div class="kv"><span>진단 요약</span><span>${esc(c.diagnostic.quality)} · p95 ${esc(c.diagnostic.p95Ms)}ms · GPU ${esc(c.diagnostic.geometries)}/${esc(c.diagnostic.textures)}<br>${esc(c.diagnostic.version)} · ${esc(c.diagnostic.commit)}</span></div>`:'';
   const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
   return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span><b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
-    <div class="in">${extra}<div class="txt">${esc(r.text)}</div>
+    <div class="in">${extra}${diagnostic}<div class="txt">${esc(r.text)}</div>
     <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
     <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
     <label class="muted">운영자 메모 (보낸 사람에겐 안 보임)<textarea data-note maxlength="500">${esc(r.note)}</textarea></label>

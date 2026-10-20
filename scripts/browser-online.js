@@ -32,6 +32,9 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     // Recover the living guest before the independent last-kill scenario.
     await host.evaluate(() => { world.phase = "live"; world.roundTime = 999; });
     await guest.waitForFunction(id => myActor()?.id === id && myActor().alive && world.phase === "live", first.id, {timeout:30000});
+    const paths=await guest.evaluate(async()=>{const out=[];for(const c of [NET.up.state,NET.up.event]){if(c?.peerConnection){const p=RUNTIME_TOOLS.connectionPath(await c.peerConnection.getStats());if(p)out.push(p);}}return out;});
+    assert.ok(paths.length>0,'actual WebRTC path can be diagnosed');assert.ok(paths.every(p=>!p.relay&&p.local==='host'&&p.remote==='host'));
+    assert.ok(paths.every(p=>Object.keys(p).every(k=>['local','remote','protocol','relay'].includes(k))));
     // Transport destruction already triggers automatic recovery. Starting a second
     // manual netJoin here raced that recovery and cancelled its connection.
     const redials = await guest.evaluate(() => window.NET_REDIALS || 0);
