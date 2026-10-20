@@ -11463,6 +11463,7 @@ function vmWithHands(e, t) {
     l = s("#262a31", { roughness: 0.5, metalness: 0.1 }),
     c = chGlow("#" + r.getHexString(), 0.7);
   e.updateMatrixWorld(!0);
+  const anchors = e.userData.anchors;
   const d = new T.Box3().setFromObject(e),
     h = d.min,
     p = d.max,
@@ -11487,6 +11488,7 @@ function vmWithHands(e, t) {
       h.y + m * ("knife" === t ? 0.45 : 0.34),
       x + 0.006,
     );
+  if (anchors?.right) b.fromArray(anchors.right).applyMatrix4(e.matrixWorld);
   vmArm(o, b, new T.Vector3(b.x + 0.1, b.y - 0.3, b.z + 0.44), i, l, c, !1);
   if (!["보조", "근접"].includes(a.cls)) {
     const e = new T.Vector3(
@@ -11494,6 +11496,7 @@ function vmWithHands(e, t) {
       (isFinite(M) ? M : h.y + 0.45 * m) - 0.012,
       h.z + 0.33 * u,
     );
+    if (anchors?.left) e.fromArray(anchors.left);
     vmArm(o, e, new T.Vector3(e.x - 0.22, e.y - 0.3, e.z + 0.4), i, l, c, !0);
   } else if ("knife" !== t) {
     const e = b.clone().add(new T.Vector3(-0.03, -0.018, -0.006));
@@ -15627,6 +15630,14 @@ let roundEndTimer = null;
 function cancelRoundEnd() {
   if (roundEndTimer !== null) clearTimeout(roundEndTimer);
   roundEndTimer = null;
+}
+function scheduleMatchFinish(ms = 2600) {
+  cancelRoundEnd();
+  const actors = world.actors, round = world.round, map = CUR_MAP_KEY, mode = room.mode;
+  roundEndTimer = setTimeout(() => {
+    roundEndTimer = null;
+    if (NET.mode !== 'client' && world.actors === actors && world.round === round && CUR_MAP_KEY === map && room.mode === mode && world.over && world.phase === 'end') gameOver();
+  }, ms);
 }
 function startRound() {
   cancelRoundEnd();
@@ -21055,7 +21066,7 @@ function renderSelect() {
   const t = $("sel-detail");
   GAME_PORTRAITS.clear(t);
   (t.style.setProperty("--ac", picked.color),
-    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}</div>\n        </div>\n      </div>`).join("")}\n  `));
+    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}${e.counterplay ? '<br><strong>대응</strong> '+e.counterplay : ''}</div>\n        </div>\n      </div>`).join("")}\n  `));
   GAME_PORTRAITS.set(t.querySelector(".det-img"), picked, 420, 520, true);
 }
 function startGame(e, t) {

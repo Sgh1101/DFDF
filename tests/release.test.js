@@ -1,0 +1,2 @@
+const test=require('node:test'),assert=require('node:assert/strict'),handler=require('../api/release');
+test('public release metadata excludes private environment and rejects malformed SHA',()=>{const headers={};let data;handler({}, {setHeader(k,v){headers[k]=v;},end(v){data=JSON.parse(v);}});assert.deepEqual(Object.keys(data),['version','commit','environment']);assert.equal(headers['Cache-Control'],'no-store');assert.match(data.commit,/^(local|[a-f0-9]{40})$/);});

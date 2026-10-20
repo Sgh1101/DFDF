@@ -1,5 +1,6 @@
 (() => {
   const specs = [
+    ['game-diagnostics','성능 진단','Diagnostics'], ['quick-guide','빠른 훈련','Quick training'],
     ["pause", "설정", "Settings"], ["shop", "무기 구매", "Buy weapons"],
     ["admin", "관리자", "Admin"], ["armory", "무기고", "Armory"],
     ["mis", "미션", "Missions"], ["board", "점수판과 전투 기록", "Scoreboard and combat log"],

@@ -110,7 +110,8 @@ test("ordinary completion cannot upgrade to Transcendent; gold shop cannot sell 
   seed(h, "coiner", { gold: 10000, own });
   const fallback = await h.api("gacha", { token: p.token });
   assert.deepEqual(fallback.results, [{ g: "pistol", s: "snow", r: 1 }], "a completed Legendary tier falls back to ordinary skins, never guaranteed Transcendent");
-  assert.equal((await h.api("gacha", { token: p.token })).status, 409);
+  const collector = await h.api('gacha', {token:p.token});
+  assert.equal(collector.status, 200); assert.deepEqual(collector.results, []); assert.equal(collector.refunded, 300);
   assert.equal(h.user("coiner").gold, 9700);
   assert.equal((await h.api("shop_buy", { token: p.token, g: "scout", s: "champions_atk" })).status, 404);
   assert.equal((await h.api("wish", { token: p.token, item: "scout|champions_atk", on: true })).status, 400);

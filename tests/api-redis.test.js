@@ -1,7 +1,10 @@
 const test = require("node:test"), assert = require("node:assert/strict"), { execFileSync } = require("node:child_process");
 const { harness } = require("./api-harness");
-test("actual Redis Lua commits preserve parallel pulls and replayable rewards", { skip: !process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET }, async () => {
-  const command = (cmd) => JSON.parse(execFileSync(process.env.DFDF_REDIS_CLI, ["--json", "-s", process.env.DFDF_REDIS_SOCKET, ...cmd.map(String)], { encoding: "utf8" }));
+test("actual Redis Lua commits preserve parallel pulls and replayable rewards", { skip: !process.env.DFDF_REDIS_TEST_PORT && (!process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET) }, async (t) => {
+  const prefix = 'dfdf-test-' + require('node:crypto').randomUUID() + ':';
+  const raw = cmd => process.env.DFDF_REDIS_TEST_PORT ? JSON.parse(execFileSync(process.execPath, [require.resolve('../scripts/redis-test-client'), JSON.stringify(cmd)], {encoding:'utf8'})) : JSON.parse(execFileSync(process.env.DFDF_REDIS_CLI, ["--json", "-s", process.env.DFDF_REDIS_SOCKET, ...cmd.map(String)], { encoding: "utf8" }));
+  const command = cmd => {const c=cmd.slice();if(c[0]==='EVAL'){for(let i=3;i<3+Number(c[2]);i++)if(c[i])c[i]=prefix+c[i];}else if(c[0]==='MGET'){for(let i=1;i<c.length;i++)c[i]=prefix+c[i];}else if(c[1])c[1]=prefix+c[1];return raw(c);};
+  t.after(()=>{const keys=raw(['KEYS',prefix+'*']);if(keys.length)raw(['DEL',...keys]);});
   const h = harness({ redisCommand: command });
   const id = "r" + Math.random().toString(36).slice(2, 9);
   const p = await h.api("auth", { id, pw: "password", device: "redis-test-device" });

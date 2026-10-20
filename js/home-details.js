@@ -60,7 +60,14 @@
     const mode = GAME_MODES[room.mode] || GAME_MODES.std, n = MAP_SIZE(room.map);
     const target = room.mode === "tdm" ? Math.round(100 * n / 5) : room.mode === "dm" ? n === 1 ? 15 : n < 5 ? 25 : 40 : mode.win || 13;
     const team = mode.ffa ? L(`개인전 · 최대 ${n * 2}명`, `Free for all · up to ${n * 2} players`) : `${n} ${L("대", "vs")} ${n}`;
-    const goal = mode.respawn ? L(`${target}킬 먼저 달성 또는 제한 시간 내 최다 처치. 사망 후 부활.`, `Reach ${target} kills first or lead when time expires. Respawn after death.`) : L(`${target}라운드 선승. 스파이크 설치·해제 또는 적 전멸. 라운드 내 자동 부활 없음.`, `First to ${target} rounds. Plant/defuse the spike or eliminate the enemy. No automatic respawn within a round.`);
+    const objectives = {
+      ctf: L('적 깃발을 우리 깃발 자리로 가져오세요. 3점 먼저. 운반자는 조금 느려지고 사망하면 깃발을 떨어뜨립니다.', 'Carry their flag to your base, first to 3. Carriers move slower and drop the flag on death.'),
+      hill: L('거점을 차지해 120점을 먼저 모으세요. 양 팀이 안에 있으면 점수가 멈추고 거점은 90초마다 이동합니다.', 'Hold the hill to reach 120. Both teams inside contest it; the hill moves every 90 seconds.'),
+      zone: L('줄어드는 안전 구역 안에서 마지막 한 명까지 생존하세요. 한 번뿐인 목숨입니다.', 'Be the last survivor inside the shrinking safe zone. One life.'),
+      inf: L('감염자는 생존자를 추적합니다. 잡힌 생존자는 감염팀이 됩니다. 제한 시간까지 살아남으세요.', 'Infected hunt survivors; caught players join them. Survive until time runs out.'),
+      gun: L('처치할 때마다 다음 무기로 넘어갑니다. 마지막 칼 단계까지 완료하세요.', 'A kill advances your weapon. Finish the final knife stage.'),
+    };
+    const goal = objectives[room.mode] || (mode.respawn ? L(`${target}킬 먼저 달성 또는 제한 시간 내 최다 처치. 사망 후 부활.`, `Reach ${target} kills first or lead when time expires. Respawn after death.`) : L(`${target}라운드 선승. 스파이크 설치·해제 또는 적 전멸. 라운드 내 자동 부활 없음.`, `First to ${target} rounds. Plant/defuse the spike or eliminate the enemy. No automatic respawn within a round.`));
     const extra = mode.noAbil ? L(" 요원 능력 사용 불가.", " Agent abilities disabled.") : mode.rush ? L(" 전원 스파이크·무작위 무기.", " Everyone carries a spike; weapons are random.") : L(" 요원 능력 사용 가능.", " Agent abilities enabled.");
     modeText.textContent = `${mode.name} · ${team}. ${goal}${extra}`;
   }

@@ -367,7 +367,7 @@
     world.over = !0;
     world.phase = "end";
     announce("경기 종료", "#ffc849");
-    setTimeout(() => gameOver(), 2600);
+    scheduleMatchFinish();
   }
 
   // ── results (also shown on clients, which never got a result screen) ──

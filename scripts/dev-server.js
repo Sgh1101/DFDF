@@ -5,6 +5,7 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/api/v1") return api(req, res);
+  if (url.pathname === '/api/release') return require('../api/release')(req,res);
   let name;
   try { name = decodeURIComponent(url.pathname); } catch (e) { res.writeHead(400); return res.end(); }
   if (name === "/") name = "/index.html";

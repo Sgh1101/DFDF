@@ -10,6 +10,10 @@
     root.name = 'dfdf-' + key;
     root.userData.weaponModel = 'dfdf-' + key;
     root.userData.modelRevision = 1;
+    root.userData.anchors = {
+      right: key === 'machpist' ? [.004,-.08,.035] : [.004,-.09,.11],
+      left: ({smg:[-.006,-.065,-.19],whisper:[-.006,-.06,-.25],shotgun:[-.006,-.055,-.28],burst:[-.006,-.05,-.27]})[key] || null,
+    };
     // A bevelled side profile extruded across X. Barrel forward is -Z,
     // matching the existing first-person, pickup and third-person builders.
     function profile(name, mat, width, points) {
@@ -24,6 +28,7 @@
       const mesh = b.box(mat, w, h, d, x, y, z, rx); mesh.name = name; return mesh;
     };
     function bore(z, y, r, x = 0) {
+      root.userData.anchors.muzzle = [x,y,z-.006];
       b.barrel(m.dark, r, .008, x, y, z + .004).name = 'muzzle-bore';
       b.torus(m.metal, r + .004, .003, 12, x, y, z).name = 'muzzle-crown';
     }

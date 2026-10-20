@@ -28,3 +28,9 @@ test("cancelled or obsolete round callbacks cannot restart a menu, new round or 
     const f = fixture(); f.ctx.endRound("atk", "end"); change(f); f.advance(9000); assert.equal(f.starts, 0); assert.equal(f.results, 0);
   }
 });
+test('respawn modes cannot show a stale result over a menu, new map, new match or guest',()=>{
+  for(const change of [()=>{},f=>f.world.phase='menu',f=>f.world.round++,f=>f.ctx.CUR_MAP_KEY='hospital',f=>f.ctx.room.mode='dm',f=>f.world.actors=[],f=>f.ctx.NET.mode='client',f=>f.ctx.cancelRoundEnd()]){
+    const f=fixture();f.world.actors=[];f.world.phase='end';f.world.over=true;f.ctx.CUR_MAP_KEY='glacier';f.ctx.room={mode:'ctf'};
+    f.ctx.scheduleMatchFinish();change(f);f.advance(2600);assert.equal(f.results,change.toString()==='()=>{}'?1:0);
+  }
+});

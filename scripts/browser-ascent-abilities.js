@@ -14,7 +14,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await p.waitForFunction(()=>document.pointerLockElement===document.getElementById('cv'));
  await p.keyboard.down('q');try{await p.waitForFunction(n=>myActor().abilities[0].charges===n-1,actual.q);}finally{await p.keyboard.up('q');}
  await p.waitForFunction(()=>myActor().onGround&&Math.abs(myActor().y-groundAt(myActor().pos.x,myActor().pos.z,myActor().y))<.01);
- const result=await p.evaluate(()=>{
+ const result=await p.evaluate(async()=>{
   render=()=>{};titleCam=()=>{};const me=myActor(),base={x:me.pos.x,z:me.pos.z,y:me.y},enemy=world.actors.find(a=>a.team!==me.team),out={};
   const reset=()=>{window.AGENTS3?.pick(null);NET.mode='solo';startRound();closeShop();world.phase='live';world.phaseT=999;me.pos.set(base.x,base.y,base.z);me.y=base.y;me.alive=true;me.invuln=999;me.pitch=-.55;me.ultW=null;me.yaw=0;me.hp=100;CAST_REFUND=false;
    for(const [i,a]of world.actors.filter(a=>a!==me).entries()){a.pos.x=base.x+50+i*2;a.pos.z=base.z;a.y=base.y;a.alive=true;a.hp=100;a.invuln=999;}
@@ -34,9 +34,20 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   const street=ASCENT_TRIAL.nav.main.slice(0,200).map(i=>{const p=cellCenter(i%GRID.cols,Math.floor(i/GRID.cols));return{...p,y:ASCENT_TRIAL.nav.height[i]};});
   out.groundSamples=street.map(p=>Math.abs(ASCENT_TRIAL.groundY(p.x,p.z,p.y)-groundAt(p.x,p.z,p.y)));
   reset();me.agent=AGENTS.find(a=>a.abilities.some(d=>d.type==='x_laser_turret'));const def=me.agent.abilities.find(d=>d.type==='x_laser_turret');const before=new Set(scene.children);castAbility(def.type,def);abilTick(.1);out.turret=scene.children.filter(m=>!before.has(m)&&m.isGroup&&m.children.some(c=>c.geometry?.type==='CylinderGeometry')).map(m=>m.position.y);
+  out.qualityGround=[];
+  for(const mode of GRAPHICS_SETTINGS.order){
+    setQuality(mode);await ASCENT_TRIAL.graphicsReady;
+    const heights=new Map();for(const i of ASCENT_TRIAL.nav.main){const y=ASCENT_TRIAL.nav.height[i],bucket=Math.round(y*2);if(!heights.has(bucket))heights.set(bucket,i);if(heights.size>=12)break;}
+    for(const i of heights.values()){reset();const p=cellCenter(i%GRID.cols,Math.floor(i/GRID.cols));me.pos.x=p.x;me.pos.z=p.z;me.y=ASCENT_TRIAL.nav.height[i];
+      const ground=groundAt(p.x,p.z,me.y),z=makeZone(p.x,p.z,1,1,2,0xff5500,{dps:20});
+      enemy.pos.x=p.x;enemy.pos.z=p.z;enemy.y=ground+6;enemy.hp=100;enemy.invuln=0;enemy.armor=0;updateZones(.1);
+      out.qualityGround.push({mode,ground,zone:z.y,mesh:z.mesh.position.y,upper:enemy.hp});
+    }
+  }
   reset();makeZone(base.x,base.z,3,1.2,8,0xff3333,{dps:0});makeTrap(base.x+1,base.z,2,0xffcc00,()=>{},false);camera.position.set(base.x+5,base.y+6,base.z+8);camera.lookAt(base.x,base.y,base.z);renderer.render(scene,camera);
   out.floor=base.y;return out;
  });
+ assert.ok(result.qualityGround.length>=4);assert.equal(new Set(result.qualityGround.map(r=>r.mode)).size,4);for(const r of result.qualityGround){assert.equal(r.zone,r.ground);assert.equal(r.mesh,r.ground);assert.equal(r.upper,100);}
  assert.equal(result.casts.length,172);assert.equal(result.zone.y,result.floor);assert.equal(result.zone.mesh,result.floor);assert.equal(result.zone.upper,100);assert.ok(result.zone.same<100);
  assert.equal(result.trap.y,result.floor);assert.ok(Math.abs(result.trap.mesh-result.floor-.25)<.001);assert.ok(Math.abs(result.trap.ring-result.floor-.07)<.001);assert.equal(result.trap.upper,0);assert.equal(result.trap.same,1);
  assert.equal(result.smoke.y,result.smoke.ground);assert.equal(result.smoke.mesh,result.smoke.y);assert.equal(result.wall.y,result.floor);assert.equal(result.wall.h,result.floor+3);assert.equal(result.wall.mesh,result.floor+1.5);
