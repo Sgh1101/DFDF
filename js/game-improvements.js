@@ -34,7 +34,9 @@
   },diag.querySelector('footer'));
   $('diagnostic-export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(report(),null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='13-diagnostics-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   button('go-diagnostics',L('성능 진단','Diagnostics'),open,document.querySelector('#s-title .tt-sub'));
-  button('pause-diagnostics',L('성능 · 연결 진단','Diagnostics'),open,$('pause')?.querySelector('.panel')||$('pause'));
+  const diagnosticRow=document.createElement('div');diagnosticRow.className='pz-row';
+  $('pause').querySelector('.pz-pane[data-pane="gfx"]').append(diagnosticRow);
+  button('pause-diagnostics',L('성능 · 연결 진단','Diagnostics'),open,diagnosticRow);
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&(!diag.hidden||!guide.hidden)){e.stopImmediatePropagation();diag.hidden=true;guide.hidden=true;}},true);
   let pressAt=0;document.addEventListener('pointerdown',e=>{if(e.target.closest('#touch,canvas')&&world.phase==='live')pressAt=performance.now();},{passive:true});
   const fire=actorFire;actorFire=function(a){const key=a&&actorWeaponKey(a),before=a?.ammo?.[key];const r=fire.apply(this,arguments);
