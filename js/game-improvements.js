@@ -3,9 +3,9 @@
   const R=RUNTIME_TOOLS,$=id=>document.getElementById(id),L=(ko,en)=>GAME_LANG==='en'?en:ko;
   const frames=R.samples(),input=R.samples(200),events=R.ring(),optional=R.budget(),lifetime=R.scope();
   const weapons=Object.create(null),bots=new Map();let activeSince=0,quality=SETTINGS.quality,lastNet='',botClock=0,deathUntil=0,tutorial=null;
-  const metric=key=>{key=Object.hasOwn(WEAPONS,key)?key:'ability';return weapons[key]||(weapons[key]={shots:0,hits:0,damage:0,kills:0});};
+  const metric=key=>{key=Object.hasOwn(WEAPONS,key)?key:'ability';return weapons[key]||(weapons[key]={shots:0,hits:0,damage:0,kills:0,heldSeconds:0});};
   const report=()=>({schema:1,release:release,platform:{mobile:matchMedia('(pointer:coarse)').matches,viewport:[innerWidth,innerHeight],pixelRatio:devicePixelRatio,standalone:matchMedia('(display-mode: standalone)').matches},
-    game:{map:CUR_MAP_KEY,mode:room.mode,quality:SETTINGS.quality,optionalBudget:optional.level,seconds:activeSince?Math.round((performance.now()-activeSince)/1000):0},
+    measurement:{frameWindowMax:1800,inputMeaning:"pointerdown-to-fire-processing; not display latency"},game:{map:CUR_MAP_KEY,mode:room.mode,quality:SETTINGS.quality,optionalBudget:optional.level,seconds:activeSince?Math.round((performance.now()-activeSince)/1000):0},
     frameMs:frames.read(),inputMs:input.read(),gpu:{...renderer.info.memory},network:{mode:NET.mode,state:NET.status,latency:Math.round(NET.latency||0),connections:NET.conns.size},weapons:JSON.parse(JSON.stringify(weapons)),events:events.read()});
   let release={version:'2026.10.21',commit:'local'};
   window.addEventListener('api-diagnostic',({detail:d})=>{events.add('api-error',{action:d.action,status:d.status,requestId:/^[a-f0-9-]{36}$/.test(d.requestId)?d.requestId:''});});
@@ -39,7 +39,7 @@
   const cast=castAbility;castAbility=function(){const r=cast.apply(this,arguments);if(tutorial&&world.phase==='live'&&!GAME_MODES[room.mode]?.noAbil&&!CAST_REFUND)tutorial.cast=true;return r;};
   const reload=actorReload;actorReload=function(a){const before=a?.reloading,r=reload.apply(this,arguments);if(tutorial&&a?.ctrl==='me'&&!before&&a.reloading)tutorial.reload=true;return r;};
   const death=document.createElement('div');death.id='death-detail';death.hidden=true;death.setAttribute('role','status');document.body.append(death);
-  window.addEventListener('kill-confirmed',({detail:e})=>{const me=myActor();if(e.killer===me?.id)metric(e.gun).kills++;
+  window.addEventListener('kill-confirmed',({detail:e})=>{const me=myActor();if(e.killer===me?.id)metric(e.kind==='ability'?'ability':e.gun).kills++;
     if(e.victim===me?.id){const skin=GUN_SKINS.list.find(s=>s.id===e.skin);death.textContent=[WEAPONS[e.gun]?.name||L('능력','Ability'),skin&&e.skin!=='default'?(GAME_LANG==='en'?skin.en:skin.ko):'',Number.isFinite(e.distance)?Math.round(e.distance)+'m':'',e.head?L('헤드샷','Headshot'):e.kind==='ability'?L('능력 처치','Ability kill'):''].filter(Boolean).join(' · ');death.hidden=false;deathUntil=performance.now()+4000;}});
   const guide=document.createElement('section');guide.id='quick-guide';guide.hidden=true;
   guide.innerHTML=`<div class="improve-card"><header><h2>${L('빠른 훈련','Quick training')}</h2><button data-close aria-label="닫기">✕</button></header><p>${L('표적장: 이동 → 장전 → 표적 3회 명중. 능력·스파이크는 별도 연습에서 배웁니다. 연습에서는 경기 보상을 지급하지 않습니다.','Range: move, reload, hit three targets. Practice abilities and the spike separately. Practice gives no match rewards.')}</p><div id="mode-guides"></div><footer><button id="guide-start">${L('표적장에서 배우기','Learn in the range')}</button></footer></div>`;
@@ -51,14 +51,14 @@
   task.querySelector('button').onclick=()=>{tutorial=null;task.hidden=true;};
   $('guide-start').onclick=()=>{guide.hidden=true;TARGET_RANGE.enter();tutorial={kind:'range',start:null,reload:false,cast:false,hits:TARGET_RANGE.RANGE.hits||0};task.hidden=false;};
   button('guide-ability',L('능력 · 스파이크 연습','Ability & spike practice'),()=>{guide.hidden=true;room.mode='std';room.map='glacier';startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();tutorial={kind:'ability',cast:false,planted:false};task.hidden=false;},guide.querySelector('footer'));
-  const begin=startGame;startGame=function(){lifetime.reset();bots.clear();tutorial=null;task.hidden=true;death.hidden=true;events.add('match-start',{map:room.map,mode:room.mode});reset();return begin.apply(this,arguments);};
+  const begin=startGame;startGame=function(){lifetime.reset();bots.clear();for(const k of Object.keys(weapons))delete weapons[k];tutorial=null;task.hidden=true;death.hidden=true;events.add('match-start',{map:room.map,mode:room.mode});reset();return begin.apply(this,arguments);};
   const qualitySet=setQuality;setQuality=function(){const r=qualitySet.apply(this,arguments);optional.reset();quality=SETTINGS.quality;return r;};
   const baseAuto=autoQuality;autoQuality=function(dt,raw){const r=baseAuto.apply(this,arguments),ms=(raw??dt)*1000;
     if(SETTINGS.dynRes===false&&optional.level){const p=GRAPHICS_SETTINGS.presets[quality];optional.reset();GFX.bloom=p.bloom;GFX.shells=p.shells;GFX.shadowEvery=p.shadowEvery;}
     const running=world.phase==='live'&&!document.hidden&&!shopOpen&&$('pause').hidden&&diag.hidden;
     if(running){frames.add(ms);if(!navigator.webdriver&&SETTINGS.dynRes!==false&&optional.tick(ms,Math.min(raw??dt,.5))){const p=GRAPHICS_SETTINGS.presets[quality];GFX.bloom=p.bloom*optional.fraction;GFX.shells=p.shells&&optional.level<2;GFX.shadowEvery=Math.max(p.shadowEvery,optional.level?4:1);events.add('optional-budget',{level:optional.level});}}
     if(deathUntil&&(performance.now()>deathUntil||myActor()?.alive)){death.hidden=true;deathUntil=0;}return r;};
-  const tick=step;step=function(dt){const r=tick.apply(this,arguments);botClock+=dt;
+  const tick=step;step=function(dt){const r=tick.apply(this,arguments);botClock+=dt;const held=myActor();if(world.phase==='live'&&held?.alive&&Number.isFinite(dt)&&dt>0&&dt<1)metric(actorWeaponKey(held)).heldSeconds+=dt;
     if(tutorial&&['menu','over'].includes(world.phase)){tutorial=null;task.hidden=true;}
     if(tutorial?.kind==='ability'){const planted=world.spike?.state==='planted';tutorial.planted ||= planted;task.querySelector('span').textContent=!tutorial.cast?L('Q/E/C 능력을 사용하세요','Use Q, E or C'):!tutorial.planted?L('공격팀으로 사이트에 가서 4초 머물러 스파이크 설치','As attacker, stay on a site for 4 seconds to plant'):L('설치 완료! 수비팀은 F로 7초 해제합니다. 절반 진행은 저장됩니다.','Planted! Defenders hold F for 7s; half progress is saved.');}
     if(tutorial?.kind==='range'){const me=myActor();if(me?.pos){tutorial.start||={x:me.pos.x,z:me.pos.z};const moved=tutorial.moved ||= Math.hypot(me.pos.x-tutorial.start.x,me.pos.z-tutorial.start.z)>4;
@@ -72,7 +72,8 @@
       if(!diag.hidden)paintReport();
     }return r;};
   // A visible direct entry; the selected map still loads lazily via ASCENT_TRIAL.
-  button('go-mark-valo','마크X발로 · '+L('원본 맵','Original map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
+  const mapEntry=button('go-mark-valo','마크X발로 · '+L('원본 맵','Original map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
+  const thumb=document.createElement('img');thumb.src='./assets/ui/ascent-preview-v1.png';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title='Minecraft 기본 텍스처 · 5대5 · A/B 거점';
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){
     const preset=document.createElement('div');preset.className='pz-row';preset.textContent=L('주 사격 손 · 적용 후 버튼 배치에서 더 조절할 수 있습니다.','Fire hand · refine the layout in Edit layout.');controls.append(preset);
