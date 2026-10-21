@@ -96,10 +96,14 @@
       root.querySelector("#od-go").onclick = submit;
       document.addEventListener("keydown", (e) => { "Escape" === e.key && root && !root.hidden && (e.stopPropagation(), close()); }, !0);
     }
+    const item = (k) => (info && info.items.find((x) => x.k === k)) || {};
+    // the cheats are priced by length, gold is paid once
+    const cheatKeys = () => [...st.items].filter((k) => !item(k).gold);
     const total = () => {
       if (!info) return 0;
-      const d = info.durations.find((x) => x.days === st.days);
-      return Math.round(([...st.items].reduce((n, k) => n + ((info.items.find((x) => x.k === k) || {}).price || 0), 0) * (d ? d.mult : 0)) / 100) * 100;
+      const d = info.durations.find((x) => x.days === st.days),
+        sum = (ks) => ks.reduce((n, k) => n + (item(k).price || 0), 0);
+      return Math.round((sum(cheatKeys()) * (d ? d.mult : 0)) / 100) * 100 + sum([...st.items].filter((k) => item(k).gold));
     };
     const paintTotal = () => { root.querySelector("#od-total").innerHTML = `<small>${L("결제할 금액", "To pay")}</small>${won(total())}`; root.querySelector("#od-go").disabled = !st.items.size || !total(); };
     async function paint() {
@@ -115,10 +119,13 @@
       if (!info) { body.innerHTML = `<div class="od-empty">${L("불러오는 중…", "Loading…")}</div>`; try { info = await call("order_info", {}); } catch (e) { body.innerHTML = `<div class="od-empty">${esc(e.message === "offline" ? L("서버에 연결할 수 없습니다", "Cannot reach the server") : e.message)}</div>`; return; } }
       if (!info.on) { foot.hidden = !0; body.innerHTML = `<div class="od-empty">${L("지금은 판매하지 않습니다.", "Not on sale right now.")}</div>`; return; }
       body.innerHTML = `<div class="od-warn">${L("랭크전에서는 치트가 꺼집니다. 결제는 게임 밖에서 계좌이체로 하며, 입금을 확인한 운영자가 직접 열어 드립니다.", "Cheats are always off in ranked matches. You pay by bank transfer outside the game; the owner opens the cheats by hand once the money arrives.")}</div>
-        <div class="od-grid" role="group">${info.items.map((x) => `<button type="button" class="od-it ${st.items.has(x.k) ? "on" : ""}" data-k="${x.k}" aria-pressed="${st.items.has(x.k)}"><i>${st.items.has(x.k) ? "✓" : ""}</i><div><b>${esc(x.name)}</b><span>${esc(x.desc)}</span></div><em>${won(x.price)}<br><small style="color:#6e7b8e;font-weight:600">${L("7일", "7 days")}</small></em></button>`).join("")}</div>
-        <div class="od-dur" role="group" aria-label="${L("기간", "Length")}">${info.durations.map((d) => `<button type="button" data-d="${d.days}" class="${st.days === d.days ? "on" : ""}">${esc(d.label)}<small>× ${d.mult}</small></button>`).join("")}</div>
+        <div class="od-grid" role="group">${info.items.map((x) => { return `<button type="button" class="od-it ${st.items.has(x.k) ? "on" : ""}" data-k="${x.k}" aria-pressed="${st.items.has(x.k)}"><i>${st.items.has(x.k) ? "✓" : ""}</i><div><b>${esc(x.name)}</b><span>${esc(x.desc)}</span></div><em>${won(x.price)}<br><small style="color:#6e7b8e;font-weight:600">${x.gold ? L("한 번", "once") : L("7일", "7 days")}</small></em></button>`; }).join("")}</div>
+        ${cheatKeys().length || !st.items.size ? `<div class="od-dur" role="group" aria-label="${L("기간", "Length")}">${info.durations.map((d) => `<button type="button" data-d="${d.days}" class="${st.days === d.days ? "on" : ""}">${esc(d.label)}<small>× ${d.mult}</small></button>`).join("")}</div>` : ""}
         <label>${L("입금자명 (통장에 찍히는 이름)", "Name on the transfer")}<input id="od-dep" maxlength="20" value="${esc(st.dep || "")}" placeholder="${L("비워 두면 계정 이름", "Blank: your account name")}"></label>`;
-      body.querySelectorAll(".od-it").forEach((b) => (b.onclick = () => { st.items.has(b.dataset.k) ? st.items.delete(b.dataset.k) : st.items.add(b.dataset.k); paint(); }));
+      body.querySelectorAll(".od-it").forEach((b) => (b.onclick = () => {
+        st.items.has(b.dataset.k) ? st.items.delete(b.dataset.k) : st.items.add(b.dataset.k);
+        paint();
+      }));
       body.querySelectorAll(".od-dur button").forEach((b) => (b.onclick = () => { st.days = +b.dataset.d; paint(); }));
       body.querySelector("#od-dep").oninput = (e) => (st.dep = e.target.value);
       paintTotal();
@@ -138,10 +145,11 @@
       try {
         if (!info) info = await call("order_info", {});
         const j = await call("order_mine", { token: s.token }),
-          names = Object.fromEntries((info.items || []).map((x) => [x.k, x.name]));
+          names = Object.assign({}, info.legacy || {}, Object.fromEntries((info.items || []).map((x) => [x.k, x.name]))),
+          lasting = (o) => o.items.some((k) => !((info.items || []).find((x) => x.k === k) || {}).gold);
         const day = (d) => (d ? L(`${d}일`, `${d} days`) : L("영구", "permanent"));
         body.innerHTML = (j.perm ? `<div class="od-warn" style="border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08);color:#b6f2c8">${L("지금 쓸 수 있는 치트가 있습니다", "You have cheats on")}${j.perm.until ? " · " + L("기한 ", "until ") + new Date(j.perm.until).toLocaleDateString(EN ? "en" : "ko-KR") : " · " + L("영구", "permanent")}</div>` : "") +
-          (j.orders.length ? j.orders.map((o) => { const t = STATUS[o.status] || STATUS.pending; return `<div class="od-item"><div class="t"><b>${esc(o.items.map((k) => names[k] || k).join(" · "))}</b><em style="color:${t[1]}">${esc(t[0])}</em></div><small>${esc(o.id)} · ${day(o.days)} · ${won(o.total)} · ${L("입금자", "from")} ${esc(o.depositor)} · ${new Date(o.t).toLocaleString(EN ? "en" : "ko-KR", { dateStyle: "medium", timeStyle: "short" })}${o.reason ? `<br>${esc(o.reason)}` : ""}</small>${"pending" === o.status ? `<button type="button" data-cancel="${esc(o.id)}">${L("주문 취소", "Cancel order")}</button>` : ""}</div>`; }).join("") : `<div class="od-empty">${L("아직 주문이 없습니다", "No orders yet")}</div>`) +
+          (j.orders.length ? j.orders.map((o) => { const t = STATUS[o.status] || STATUS.pending; return `<div class="od-item"><div class="t"><b>${esc(o.items.map((k) => names[k] || k).join(" · "))}</b><em style="color:${t[1]}">${esc(t[0])}</em></div><small>${esc(o.id)} · ${lasting(o) ? day(o.days) + " · " : ""}${won(o.total)} · ${L("입금자", "from")} ${esc(o.depositor)} · ${new Date(o.t).toLocaleString(EN ? "en" : "ko-KR", { dateStyle: "medium", timeStyle: "short" })}${o.reason ? `<br>${esc(o.reason)}` : ""}</small>${"pending" === o.status ? `<button type="button" data-cancel="${esc(o.id)}">${L("주문 취소", "Cancel order")}</button>` : ""}</div>`; }).join("") : `<div class="od-empty">${L("아직 주문이 없습니다", "No orders yet")}</div>`) +
           (j.pay ? `<div class="od-pay"><h3>${L("입금 계좌", "Pay to")}</h3><div class="od-kv"><span>${L("은행·계좌", "Account")}</span><b>${esc(j.pay.bank)}</b><i></i><span>${L("예금주", "Holder")}</span><b>${esc(j.pay.holder)}</b><i></i></div></div>` : "");
         body.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = async () => { try { await call("order_cancel", { token: s.token, id: b.dataset.cancel }); mine(body); } catch (e) { b.textContent = e.message; } }));
       } catch (e) {

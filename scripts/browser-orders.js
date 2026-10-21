@@ -25,9 +25,17 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForFunction(() => document.getElementById("orderOpen") && !document.getElementById("orderOpen").hidden, null, { timeout: 15000 });
     await page.click("#orderOpen");
     await page.waitForSelector("#od-back:not([hidden]) .od-it");
-    assert.equal(await page.locator("#od .od-it").count(), 10);
+    assert.equal(await page.locator("#od .od-it").count(), 12);
+    assert.equal(await page.locator('#od .od-it[data-k="admin"]').count(), 0, "admin mode is not on sale");
+    assert.equal(await page.locator('#od .od-it[data-k="god"]').count(), 0, "invincibility is not on sale");
     assert.equal(await page.locator("#od-go").isDisabled(), true, "nothing picked, nothing to order");
     await page.screenshot({ path: dir + "/order-form.png" });
+    // gold is one price and takes the length away
+    await page.click('#od .od-it[data-k="gold5k"]');
+    assert.equal(await page.locator("#od .od-dur").count(), 0, "gold has no length");
+    assert.match(await page.textContent("#od-total"), /9,000원/);
+    await page.click('#od .od-it[data-k="gold5k"]');
+    assert.equal(await page.locator("#od .od-dur").count(), 1);
     await page.click('#od .od-it[data-k="radar"]');
     await page.click('#od .od-it[data-k="wall"]');
     assert.match(await page.textContent("#od-total"), /8,000원/, "seven days");
@@ -54,7 +62,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await ph.waitForFunction(() => document.getElementById("orderOpen") && !document.getElementById("orderOpen").hidden, null, { timeout: 15000 });
     await ph.tap("#orderOpen");
     await ph.waitForSelector("#od .od-it");
-    await ph.tap('#od .od-it[data-k="god"]');
+    await ph.tap('#od .od-it[data-k="radar"]');
     const fit = await ph.evaluate(() => { const r = (e) => e.getBoundingClientRect(), box = r(document.getElementById("od")), go = r(document.getElementById("od-go")), hit = document.elementFromPoint(go.left + go.width / 2, go.top + go.height / 2); return { inside: box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth, go: go.bottom <= innerHeight && go.top >= 0, hit: hit === document.getElementById("od-go"), enabled: !document.getElementById("od-go").disabled }; });
     assert.deepEqual(fit, { inside: true, go: true, hit: true, enabled: true });
     await ph.screenshot({ path: dir + "/order-phone.png" });
