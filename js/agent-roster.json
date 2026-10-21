@@ -10,11 +10,6 @@
   "role": "감시자"
  },
  {
-  "id": "muyeong",
-  "name": "무영",
-  "role": "척후대"
- },
- {
   "id": "gangcheol",
   "name": "강철",
   "role": "타격대"
@@ -33,16 +28,6 @@
   "id": "baekho",
   "name": "백호",
   "role": "감시자"
- },
- {
-  "id": "noeha",
-  "name": "뇌하",
-  "role": "타격대"
- },
- {
-  "id": "gyeongyeon",
-  "name": "경연",
-  "role": "척후대"
  },
  {
   "id": "heuksa",
@@ -95,29 +80,9 @@
   "role": "전략가"
  },
  {
-  "id": "neupji",
-  "name": "늪지",
-  "role": "전략가"
- },
- {
-  "id": "deungbul",
-  "name": "등불",
-  "role": "감시자"
- },
- {
   "id": "hwanyeong",
   "name": "환영",
   "role": "척후대"
- },
- {
-  "id": "ullim",
-  "name": "울림",
-  "role": "척후대"
- },
- {
-  "id": "hwasan",
-  "name": "화산",
-  "role": "타격대"
  },
  {
   "id": "suho",
@@ -125,39 +90,9 @@
   "role": "감시자"
  },
  {
-  "id": "hyeollang",
-  "name": "혈랑",
-  "role": "타격대"
- },
- {
-  "id": "songgol",
-  "name": "송골",
-  "role": "척후대"
- },
- {
-  "id": "haerang",
-  "name": "해랑",
-  "role": "전략가"
- },
- {
-  "id": "mukhyang",
-  "name": "묵향",
-  "role": "전략가"
- },
- {
-  "id": "yeongwol",
-  "name": "영월",
-  "role": "전략가"
- },
- {
   "id": "danbi",
   "name": "단비",
   "role": "전략가"
- },
- {
-  "id": "cheolhyeol",
-  "name": "철혈",
-  "role": "타격대"
  },
  {
   "id": "chujeok",
@@ -165,18 +100,8 @@
   "role": "척후대"
  },
  {
-  "id": "hoero",
-  "name": "회로",
-  "role": "감시자"
- },
- {
   "id": "yakcho",
   "name": "약초",
-  "role": "감시자"
- },
- {
-  "id": "cheolbyeok",
-  "name": "철벽",
   "role": "감시자"
  },
  {

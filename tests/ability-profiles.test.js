@@ -28,6 +28,6 @@ test('every authored gesture has finite phases, smooth recovery and no leftover 
 test('roster mismatches and shared types cannot silently inherit a generic profile',()=>{
   const result=P.build([{id:'unknown',abilities:[]}]);assert.ok(result.errors.includes('Unprofiled agent unknown'));
   const roster=P.rows.map(([id])=>({id,abilities:['Q','E','C','X'].map(key=>({key,type:id+key,ult:key==='X'?6:0}))}));
-  const valid=P.build(roster);assert.deepEqual(valid.errors,[]);assert.equal(Object.keys(valid.profiles).length,172);
+  const valid=P.build(roster);assert.deepEqual(valid.errors,[]);assert.equal(Object.keys(valid.profiles).length,P.rows.length*4);assert.equal(P.rows.length,28);
   roster[1].abilities[0].type=roster[0].abilities[0].type;assert.ok(P.build(roster).errors.some(e=>e.startsWith('Repeated type')));
 });

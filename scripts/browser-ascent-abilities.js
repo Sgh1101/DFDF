@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
 (async()=>{const f=await fixture();try{
  const p=await f.page('ascentabilities',{width:1280,height:720});
  const warnings=[];p.on('console',m=>{if(m.type()==='warning'&&/^(abil |ability |cast )/.test(m.text()))warnings.push(m.text());});
- await p.locator('#go-play').click();await p.locator('#sel-grid .acard').filter({hasText:'뇌하'}).click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
+ await p.locator('#go-play').click();await p.locator('#sel-grid .acard').filter({hasText:'단비'}).click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
  await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready',null,{timeout:120000});await p.locator('#sel-go').click({timeout:120000});
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  const actual=await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.phaseT=999;const me=myActor();me.invuln=999;return{floor:me.y,ground:abilityGroundY(me.pos.x,me.pos.z),q:me.abilities[0].charges};});
@@ -33,7 +33,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   // Ground effects share the movement solver's support footprint at slab seams.
   const street=ASCENT_TRIAL.nav.main.slice(0,200).map(i=>{const p=cellCenter(i%GRID.cols,Math.floor(i/GRID.cols));return{...p,y:ASCENT_TRIAL.nav.height[i]};});
   out.groundSamples=street.map(p=>Math.abs(ASCENT_TRIAL.groundY(p.x,p.z,p.y)-groundAt(p.x,p.z,p.y)));
-  reset();me.agent=AGENTS.find(a=>a.abilities.some(d=>d.type==='x_laser_turret'));const def=me.agent.abilities.find(d=>d.type==='x_laser_turret');const before=new Set(scene.children);castAbility(def.type,def);abilTick(.1);out.turret=scene.children.filter(m=>!before.has(m)&&m.isGroup&&m.children.some(c=>c.geometry?.type==='CylinderGeometry')).map(m=>m.position.y);
+  reset();const def={key:'E',name:'레이저 포탑',type:'x_laser_turret',cost:0,charges:1,cd:30};const before=new Set(scene.children);castAbility(def.type,def);abilTick(.1);out.turret=scene.children.filter(m=>!before.has(m)&&m.isGroup&&m.children.some(c=>c.geometry?.type==='CylinderGeometry')).map(m=>m.position.y);
   out.qualityGround=[];
   for(const mode of GRAPHICS_SETTINGS.order){
     setQuality(mode);await ASCENT_TRIAL.graphicsReady;
@@ -48,7 +48,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   out.floor=base.y;return out;
  });
  assert.ok(result.qualityGround.length>=4);assert.equal(new Set(result.qualityGround.map(r=>r.mode)).size,4);for(const r of result.qualityGround){assert.equal(r.zone,r.ground);assert.equal(r.mesh,r.ground);assert.equal(r.upper,100);}
- assert.equal(result.casts.length,172);assert.equal(result.zone.y,result.floor);assert.equal(result.zone.mesh,result.floor);assert.equal(result.zone.upper,100);assert.ok(result.zone.same<100);
+ assert.equal(result.casts.length,112);assert.equal(result.zone.y,result.floor);assert.equal(result.zone.mesh,result.floor);assert.equal(result.zone.upper,100);assert.ok(result.zone.same<100);
  assert.equal(result.trap.y,result.floor);assert.ok(Math.abs(result.trap.mesh-result.floor-.25)<.001);assert.ok(Math.abs(result.trap.ring-result.floor-.07)<.001);assert.equal(result.trap.upper,0);assert.equal(result.trap.same,1);
  assert.equal(result.smoke.y,result.smoke.ground);assert.equal(result.smoke.mesh,result.smoke.y);assert.equal(result.wall.y,result.floor);assert.equal(result.wall.h,result.floor+3);assert.equal(result.wall.mesh,result.floor+1.5);
  assert.ok(result.warp.y>0&&Math.abs(result.warp.y-result.floor)<.7);

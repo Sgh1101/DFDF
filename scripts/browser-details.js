@@ -53,7 +53,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(agents));
     assert.deepEqual(agents.bad, [], "every agent builds with the detail pass");
-    assert.equal(agents.n, 43);
+    assert.equal(agents.n, 28);
     // the pass adds no meshes: the count per fighter stays where the body baking left it
     assert.ok(agents.maxMeshes < 90, "no extra draw calls (most meshes in one fighter: " + agents.maxMeshes + ")");
 

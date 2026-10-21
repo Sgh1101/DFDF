@@ -5,15 +5,15 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   const warnings=[];p.on('console',m=>{if(m.type()==='warning'&&/abil|cast|detail/.test(m.text()))warnings.push(m.text());});
   // This path was explored before this test was authored: real select -> card -> deploy.
   await p.locator('#go-play').click();
-  await p.locator('#sel-grid .acard').filter({hasText:'뇌하'}).click();
-  assert.match(await p.locator('#sel-detail').innerText(),/연쇄 뇌격/);
+  await p.locator('#sel-grid .acard').filter({hasText:'단비'}).click();
+  assert.match(await p.locator('#sel-detail').innerText(),/벼락 사슬/);
   await p.locator('#sel-go').click();
   await p.waitForFunction(()=>!!myActor()&&world.actors.length>=4);
   await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.phaseT=999;myActor().invuln=999;});
   // Real Q input consumes a charge and takes the new authored gesture.
-  const q=await p.evaluate(()=>myActor().abilities[0].charges);await p.keyboard.press('q');
+  const q=await p.evaluate(()=>{const ab=myActor().abilities[0];ab.charges=Math.max(1,ab.charges|0);ab.cd=0;return ab.charges;});await p.keyboard.press('q');
   await p.waitForFunction(n=>myActor().abilities[0].charges===n-1,q);
-  assert.equal(await p.evaluate(()=>myActor()._castS),'detail:bolt_jump');
+  assert.equal(await p.evaluate(()=>myActor()._castS),'detail:x_water_cannon');
   const result=await p.evaluate(()=>{
     // Isolated open arena for rule assertions. Existing map/LOS suites exercise real
     // colliders; explicit blocked-sight checks below exercise the new chain rule.
@@ -72,9 +72,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
       mate.pos.x=30;statusOn(mate,'revealed',8);out.mechanics.moonOutside=mate.revealed===8;
       out.mechanics.moonNoInvulnerability=!(me.undying>0)&&!(mate.invuln>0);
       // Falcon dives at a warned position: moving out avoids the hit.
-      reset();foes[0].pos.x=0;foes[0].pos.z=-12;cast('x_ult_skyhunter');tick(17);foes[0].pos.x=10;tick(18);out.mechanics.falconDodge=foes[0].hp===100;
-      reset();foes[0].pos.x=0;foes[0].pos.z=-12;cast('x_ult_skyhunter');tick(36);out.mechanics.falconHit=foes[0].hp;
-      reset();foes[0].pos.x=0;foes[0].pos.z=-12;cast('x_ult_skyhunter');tick(17);rayBlocked=()=>true;tick(18);out.mechanics.falconCover=foes[0].hp===100;rayBlocked=()=>false;
       // Garden has a finite shared pool, cleanses and never grants undying.
       reset();me.hp=40;mate.hp=40;mate.pos.x=2;mate.pos.z=0;mate.blind=3;mate.concuss=3;cast('x_ult_garden_heal');tick(11);
       out.mechanics.garden={hp:[me.hp,mate.hp],pool:ABILITY_ULTIMATES.objects()[0].pool,clean:mate.blind===0&&mate.concuss===0,immortal:!!(me.undying||mate.undying)};
@@ -96,8 +93,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
     }finally{rayBlocked=oldRay;collideXZ=oldCollision;NET.mode='solo';abilClear();}
     return out;
   });
-  assert.equal(result.catalog.agents,43);assert.equal(result.catalog.count,172);assert.deepEqual(result.catalog.errors,[]);
-  assert.equal(new Set(result.catalog.contracts).size,43);assert.equal(result.cast.length,172);
+  assert.equal(result.catalog.agents,28);assert.equal(result.catalog.count,112);assert.deepEqual(result.catalog.errors,[]);
+  assert.equal(new Set(result.catalog.contracts).size,28);assert.equal(result.cast.length,112);
   for(const r of result.cast)if(!r.native){assert.match(r.style,/^detail:/);assert.ok(r.vertices>40,r.type);assert.ok(r.meshes<=6,r.type+' '+r.meshes);}
   const m=result.mechanics;console.log(JSON.stringify(m,null,2));
   assert.deepEqual(m.chainBefore,[100,100,100]);assert.equal(m.chainWindup,100);assert.equal(m.noBeam,true);
@@ -105,7 +102,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   assert.equal(m.queenObjects,1);assert.equal(m.queenDamage,true);assert.equal(m.queenGone,true);
   assert.equal(m.vineSeed,true);assert.ok(m.vineGap<=8.1);assert.equal(m.vineReleased,true);
   assert.equal(m.soundBullet,90);assert.equal(m.soundAbility,80);assert.equal(m.soundInside,80);assert.equal(m.soundNoReflect,true);
-  assert.ok(m.moonHidden&&m.moonOutside&&m.moonNoInvulnerability);assert.equal(m.falconDodge,true);assert.equal(m.falconHit,65);assert.equal(m.falconCover,true);
+  assert.ok(m.moonHidden&&m.moonOutside&&m.moonNoInvulnerability);
   assert.deepEqual(m.garden,{hp:[52,52],pool:156,clean:true,immortal:false});assert.equal(m.gardenEmpty,true);
   assert.deepEqual(m.bow,{kind:'bow',ammo:3,globalReveal:false});assert.equal(m.clientHP,100);assert.equal(m.replayBreak,true);assert.match(m.replayId,/:977$/);
   assert.ok(m.deathCleanup&&m.roundCleanup);assert.deepEqual(warnings,[]);assert.deepEqual(f.errors,[]);
@@ -131,6 +128,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   for(const row of framing)assert.deepEqual(row.bad,[],row.width+'x'+row.height+' readable cast tools');
   result.framing=framing;assert.deepEqual(f.errors,[]);assert.deepEqual(warnings,[]);
   fs.mkdirSync('test-results/abilities',{recursive:true});fs.writeFileSync('test-results/abilities/upgrade.json',JSON.stringify(result,null,2));
-  console.log('43 agents / 172 live casts; distinct ultimate mechanics, client authority, bounded detail effects and cleanup passed.');
+  console.log('28 agents / 112 live casts; distinct ultimate mechanics, client authority, bounded detail effects and cleanup passed.');
  }finally{await f.browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -18,10 +18,11 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       await page.reload({ waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading);
       await page.waitForFunction((n) => window.SERVER_CFG && SERVER_CFG.game && SERVER_CFG.game.disabledAgents.split(",").filter(Boolean).length === n, ids.length, { timeout: 20000 });
-      await page.waitForTimeout(1000);
+      // the switch is made on the title screen once the page has loaded
+      await page.waitForFunction((n) => AGENTS.length === AGENT_SWITCH.all().length - n, ids.length, { timeout: 20000 });
     };
     // 1. two off, one of them the one picked
-    const off = ["hwaryeong", "muyeong", "geomi"];
+    const off = ["hwaryeong", "chujeok", "geomi"];
     await page.evaluate(() => { titleCam = () => {}; picked = AGENTS.find((a) => a.id === "hwaryeong"); });
     await setOff(off);
     const a = await page.evaluate((off) => {

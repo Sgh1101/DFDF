@@ -8,7 +8,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^네온$/ }) });
     await card.click();
     await p.waitForFunction(() => picked.id === "neon_agent");
-    assert.equal(await p.locator("#title-roster .tr-chip").count(), 43);
+    assert.equal(await p.locator("#title-roster .tr-chip").count(), 28);
     // our own look: line icons like every other agent's, no outside image
     assert.equal(await p.locator('img.ab-ic').count(), 0);
     assert.ok(await p.locator('svg.ab-ic').count() >= 4);
