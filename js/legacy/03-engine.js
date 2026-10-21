@@ -16355,14 +16355,14 @@ function gatherInput() {
     keys.ads && (o |= BTN.ADS),
     keys.r && (o |= BTN.RELOAD),
     keys.space && (o |= BTN.JUMP),
-    keys.control && (o |= BTN.CROUCH));
+    (keys.control || keys.shift) && (o |= BTN.CROUCH));
   {
     const e = world.spike;
     (((player.planting || 0) > 0 && player.hasSpike && "carried" === e.state) ||
       ((player.defusing || 0) > 0 && "planted" === e.state)) &&
       (o |= BTN.CROUCH);
   }
-  (keys.shift && (o |= BTN.WALK), keys.use && (o |= BTN.USE));
+  keys.use && (o |= BTN.USE);
   const a = ("function" == typeof myActor && myActor()) || player;
   return { mv: [e, t], yaw: a.yaw, pitch: a.pitch, btn: o };
 }
@@ -20306,8 +20306,7 @@ function tickDmgNums(e) {
 }
 function movePlayer(e) {
   player.crouch;
-  player.crouch = !!keys.control;
-  const t = !!keys.shift;
+  player.crouch = !!(keys.control || keys.shift);
   let o = 0,
     a = 0;
   (keys.w && (a -= 1),
@@ -20316,8 +20315,7 @@ function movePlayer(e) {
     keys.d && (o += 1),
     touch.on && ((o += touch.move.x), (a += touch.move.y)));
   let n = ADMIN.run;
-  (t && (n = ADMIN.walk),
-    player.crouch && (n = ADMIN.crouch),
+  (player.crouch && (n = ADMIN.crouch),
     player.ads && (n *= ADMIN.adsMul),
     (n *= player.slow * (player.speedBuff || 1)),
     player.root > 0 && (n = 0));

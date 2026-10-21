@@ -106,5 +106,6 @@
   "js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js",
   "js/legacy/103-spider-web-swing-two-hands-a-rope-that-sways-and-a-real-pull.js",
   "js/legacy/104-death-shows-who-killed-you-for-two-seconds-with-their-name-and-title.js",
-  "js/legacy/105-the-operator-kills-with-any-hit.js"
+  "js/legacy/105-the-operator-kills-with-any-hit.js",
+  "js/legacy/106-browser-shortcuts-no-longer-stick-keys-ctrl-is-not-a-game-key.js"
 ]
