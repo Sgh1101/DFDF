@@ -128,7 +128,7 @@ const DEFAULT_CONFIG = {
     bank: "",
     holder: "",
     note: "입금이 확인되면 운영자가 직접 열어 드립니다. 보통 하루 안에 열립니다.",
-    price: { radar: 3000, wall: 5000, cheat: 4000, god: 8000, oneShot: 8000, infAmmo: 2000, noRecoil: 2000, speed: 3000, fastFire: 3000, buff: 4000 },
+    price: { radar: 3000, wall: 5000, cheat: 4000, oneShot: 8000, infAmmo: 2000, noRecoil: 2000, speed: 3000, fastFire: 3000, buff: 4000, gold1k: 2000, gold5k: 9000, gold20k: 30000 },
     dur: { d1: 0.3, d7: 1, d30: 3, d0: 10 },
   },
   // seasons: every `weeks` weeks from startDay (a date in Korea, YYYYMMDD) a season ends.
@@ -813,22 +813,36 @@ const ORDER_ITEMS = [
   { k: "radar", name: "레이더", desc: "작은 지도에 적이 보입니다", sw: 1 },
   { k: "wall", name: "벽 투시", desc: "벽 너머의 적이 보입니다", sw: 1 },
   { k: "cheat", name: "치트 모드", desc: "능력이 다시 차고 다른 요원의 능력 세트를 씁니다", sw: 1 },
-  { k: "god", name: "무적", desc: "죽지 않습니다", sw: 1 },
   { k: "oneShot", name: "한 방 처치", desc: "총 한 발에 쓰러뜨립니다", sw: 1 },
   { k: "infAmmo", name: "탄약 무한", desc: "재장전 없이 쏩니다", sw: 1 },
   { k: "noRecoil", name: "반동 없음", desc: "총이 튀지 않습니다", sw: 1 },
   { k: "speed", name: "이동 속도 ×1.5", desc: "더 빨리 달립니다" },
   { k: "fastFire", name: "연사 ×2", desc: "총을 두 배 빨리 쏩니다" },
   { k: "buff", name: "능력 재충전 10초", desc: "궁극기 말고는 10초마다 다시 찹니다" },
+  // gold: paid once, no length, added to the account when the owner opens the order
+  { k: "gold1k", name: "골드 1,000", desc: "상점과 뽑기에 쓰는 골드", gold: 1000 },
+  { k: "gold5k", name: "골드 5,000", desc: "상점과 뽑기에 쓰는 골드", gold: 5000 },
+  { k: "gold20k", name: "골드 20,000", desc: "상점과 뽑기에 쓰는 골드", gold: 20000 },
 ];
+// no longer sold, still named in the orders already made
+const ORDER_LEGACY = { god: "무적" };
+const orderNames = () => Object.assign({}, ORDER_LEGACY, Object.fromEntries(ORDER_ITEMS.map((x) => [x.k, x.name])));
+const goldOf = (k) => (ORDER_ITEMS.find((x) => x.k === k) || {}).gold || 0;
+// admin mode is never sold: the owner gives it to an account by hand (and with it every cheat)
+const orderPick = (list) => {
+  const known = new Set(ORDER_ITEMS.map((x) => x.k));
+  return [...new Set((Array.isArray(list) ? list : []).map(String))].filter((k) => known.has(k));
+};
 const ORDER_DUR = [{ id: "d1", days: 1, label: "1일" }, { id: "d7", days: 7, label: "7일" }, { id: "d30", days: 30, label: "30일" }, { id: "d0", days: 0, label: "영구" }];
 const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded"];
 const orderTotal = (c, items, days) => {
   const dur = ORDER_DUR.find((d) => d.days === days);
   if (!dur) return 0;
-  return Math.round((items.reduce((n, k) => n + (c.order.price[k] || 0), 0) * (c.order.dur[dur.id] || 0)) / 100) * 100;
+  const sum = (ks) => ks.reduce((n, k) => n + (c.order.price[k] || 0), 0);
+  // the cheats are priced by length; gold is paid once
+  return Math.round((sum(items.filter((k) => !goldOf(k))) * (c.order.dur[dur.id] || 0)) / 100) * 100 + sum(items.filter(goldOf));
 };
-const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.name, desc: x.desc, price: c.order.price[x.k] || 0 })), durations: ORDER_DUR.map((d) => ({ days: d.days, label: d.label, mult: c.order.dur[d.id] || 0 })) });
+const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.name, desc: x.desc, price: c.order.price[x.k] || 0, gold: x.gold || 0 })), legacy: ORDER_LEGACY, durations: ORDER_DUR.map((d) => ({ days: d.days, label: d.label, mult: c.order.dur[d.id] || 0 })) });
 const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
 const orderMe = (u) => "u:" + u.id.toLowerCase();
 const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
@@ -843,9 +857,8 @@ A.order_create = async (q, b) => {
   if (u.guest) throw fail(403, "게스트는 구매할 수 없습니다. 계정을 만들어 주세요");
   if (!c.order.on) throw fail(403, "지금은 판매하지 않습니다");
   if (!c.order.bank) throw fail(503, "입금 계좌가 아직 정해지지 않았습니다");
-  const known = new Set(ORDER_ITEMS.map((x) => x.k)),
-    items = [...new Set((Array.isArray(b.items) ? b.items : []).map(String))].filter((k) => known.has(k));
-  if (!items.length) throw fail(400, "원하는 치트를 하나 이상 골라 주세요");
+  const items = orderPick(b.items);
+  if (!items.length) throw fail(400, "원하는 상품을 하나 이상 골라 주세요");
   const days = +b.days;
   if (!ORDER_DUR.some((d) => d.days === days)) throw fail(400, "기간을 골라 주세요");
   const depositor = cleanDeposit(b.depositor) || u.id;
@@ -889,23 +902,29 @@ A.order_cancel = async (q, b) => {
   await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
   return { ok: !0 };
 };
-// opening what was paid for: merged into the cheats the account already has, the length added on
+// opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
-  const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null,
-    p = Object.assign({}, cur || {});
-  for (const k of o.items) {
-    const it = ORDER_ITEMS.find((x) => x.k === k);
-    if (!it) continue;
-    if (it.sw) p[k] = !0;
-    else if ("speed" === k) p.speed = Math.max(+p.speed || 1, 1.5);
-    else if ("fastFire" === k) p.fastFire = Math.max(+p.fastFire || 1, 2);
-    else if ("buff" === k) p.buff = Math.max(+p.buff || 0, 10);
+  const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
+    cheats = o.items.filter((k) => !goldOf(k));
+  let out = u.perm || null;
+  if (cheats.length) {
+    const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null,
+      p = Object.assign({}, cur || {});
+    for (const k of cheats) {
+      const it = ORDER_ITEMS.find((x) => x.k === k);
+      if (!it) continue;
+      if (it.sw) p[k] = !0;
+      else if ("speed" === k) p.speed = Math.max(+p.speed || 1, 1.5);
+      else if ("fastFire" === k) p.fastFire = Math.max(+p.fastFire || 1, 2);
+      else if ("buff" === k) p.buff = Math.max(+p.buff || 0, 10);
+    }
+    p.on = !0;
+    out = cleanPerm(p, 0);
+    // permanent stays permanent; else from now, or from the end of what is running
+    out.until = o.days === 0 || (cur && !cur.until) ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5;
+    u.perm = out;
   }
-  p.on = !0;
-  const out = cleanPerm(p, 0);
-  // permanent stays permanent; else from now, or from the end of what is running
-  out.until = o.days === 0 || (cur && !cur.until) ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5;
-  u.perm = out;
+  if (gold) u.gold = Math.min(9e6, (+u.gold || 0) + gold);
   return out;
 }
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
@@ -1595,6 +1614,25 @@ ADMIN.users = async (q, b) => {
     }),
   };
 };
+// An account the owner makes an admin gets every cheat too (the invincibility among them), for as long as it is an admin;
+// when the admin mode is taken away, the account's own cheats from before come back (permBefore).
+function adminCheats(u) {
+  const t = now();
+  if (u.adminUntil && u.adminUntil > t) {
+    const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < t) ? u.perm : null,
+      full = Object.assign({ on: !0, speed: 3, fastFire: 10, buff: Math.max(10, (cur && cur.buff) || 0) }, Object.fromEntries(PERM_SW.map((k) => [k, !0])));
+    const out = cleanPerm(full, 0);
+    // whatever the account already had keeps its own end if that is later (or none)
+    out.until = cur && (!cur.until || cur.until > u.adminUntil) ? cur.until : u.adminUntil;
+    if (!u.permAdmin) u.permBefore = cur || null;
+    u.perm = out;
+    u.permAdmin = !0;
+  } else if (u.permAdmin) {
+    u.perm = u.permBefore || Object.assign({}, u.perm || {}, { on: !1 });
+    delete u.permAdmin;
+    delete u.permBefore;
+  }
+}
 ADMIN.user_set = async (q, b) => {
   const id = cleanId(b.id),
     u = await getJ(userKey(id));
@@ -1614,6 +1652,7 @@ ADMIN.user_set = async (q, b) => {
         u.adminUntil = b.days > 0 ? now() + b.days * 864e5 : 0;
         u.adminAllow = cleanAllow(b.allow);
       } else u.adminUntil = b.days > 0 ? Math.max(now(), u.adminUntil || 0) + b.days * 864e5 : 0;
+      adminCheats(u);
       break;
     case "xp":
       u.xp = Math.max(0, b.xp | 0);
@@ -1778,7 +1817,7 @@ ADMIN.orders = async (q, b) => {
   const counts = { total: rows.length, pending: rows.filter((r) => "pending" === r.status).length, sum: rows.filter((r) => "granted" === r.status).reduce((n, r) => n + r.total, 0) };
   const items = rows.filter((r) => (!st || r.status === st) && (!s || JSON.stringify(r).toLowerCase().includes(s))).slice(0, 300);
   const c = await loadConfig();
-  return { orders: items, counts, names: Object.fromEntries(ORDER_ITEMS.map((x) => [x.k, x.name])), on: !!c.order.on, bank: !!c.order.bank };
+  return { orders: items, counts, names: orderNames(), on: !!c.order.on, bank: !!c.order.bank };
 };
 ADMIN.order_set = async (q, b) => {
   const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
@@ -1793,15 +1832,22 @@ ADMIN.order_set = async (q, b) => {
     if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
     if ("grant" === op) {
       if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
+      ensureWallet(u, await loadConfig());
       const perm = applyOrder(u, o);
       await saveUser(u);
       o.status = "granted";
       o.grantedAt = now();
-      o.until = perm.until;
+      o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
       await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
     } else {
       if ("granted" !== o.status && "pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
-      if (b.revoke && u.perm) { u.perm = Object.assign({}, u.perm, { on: !1 }); await saveUser(u); }
+      if (b.revoke && "granted" === o.status) {
+        // what the order gave is taken back: the cheats, the gold (never below nothing)
+        if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
+        const g = o.items.reduce((n, k) => n + goldOf(k), 0);
+        g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+        await saveUser(u);
+      }
       o.status = "refunded";
       o.reason = fbStr(b.reason, 200);
       await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
