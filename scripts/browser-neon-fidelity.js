@@ -10,6 +10,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await card.locator('img').waitFor({state:'visible'});await p.waitForFunction(()=>[...document.querySelectorAll('#sel-grid .acard')].find(n=>n.textContent.includes('전광석화'))?.querySelector('img')?.naturalWidth>0);
  assert.ok(await p.evaluate(()=>agentPortrait(NEON_AGENT.agent,420,520)===document.querySelector('#sel-detail .det-img').src),'selected portrait uses the actual source skin model');
  await p.screenshot({path:'test-results/neon-review/source-selection.png'});
+ // the source skin is checked as the round body (its own pictures on the parts); the cube body that replaces it is checked by test:blocky
+ await p.evaluate(()=>{window.BLOCKY_OFF=true;});
  await p.evaluate(()=>{room.map='pogu';room.mode='std';});await p.locator('#sel-go').click();
  await p.waitForFunction(()=>myActor()?.agent.id==='neon_agent');
  await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;for(const a of world.actors){a.invuln=999;a.fireCd=999;}const a=myActor();a.yaw=0;a.pitch=0;followCamera(a,.1);requestAnimationFrame=()=>0;});

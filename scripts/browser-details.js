@@ -33,7 +33,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(guns.live > 4, "the left hand and its pieces are still animated parts (live " + guns.live + " of " + guns.total + ")");
 
     // ── every agent: the detail goes into the baked meshes ──
+    // the round-body detail pass (vertex counts of the smooth forearms and the neon source skin); the cube body that
+    // replaces it is checked by test:blocky
     const agents = await page.evaluate(() => {
+      window.BLOCKY_OFF = true;
       const out = { n: 0, bad: [], grew: 0, meshDelta: [] };
       const verts = (m) => { let n = 0, meshes = 0; m.group.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.attributes.position) { n += o.geometry.attributes.position.count; meshes++; } }); return [n, meshes]; };
       for (const ag of AGENTS) {
@@ -51,6 +54,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
           } else fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
         } catch (e) { out.bad.push(ag.id + ": " + e.message); }
       }
+      window.BLOCKY_OFF = false;
       out.maxMeshes = Math.max(...out.meshDelta); out.minMeshes = Math.min(...out.meshDelta); delete out.meshDelta;
       return out;
     });
