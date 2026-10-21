@@ -1,5 +1,5 @@
 // Same runner for a workstation and CI. Tests use disposable API accounts.
-const fs=require('node:fs'),path=require('node:path'),{spawn,execFileSync}=require('node:child_process');
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawn,execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..'),pkg=require('../package.json');
 const smoke=['test:startup','test:browser','test:legacy-models','test:improvements','test:mobile-preview','test:network-recovery','test:ascent-abilities','test:ability-floors'];
 const all=Object.keys(pkg.scripts).filter(k=>/^(test:|audit:)/.test(k)&&/^node scripts\/browser-/.test(pkg.scripts[k]));
@@ -12,17 +12,26 @@ env.DFDF_THREE_PATH ||= path.join(path.dirname(require.resolve('three')), 'three
 env.DFDF_PEERJS_PATH ||= path.join(path.dirname(require.resolve('peerjs')), 'peerjs.min.js');
 if(!env.DFDF_PEER_SERVER_MODULE)env.DFDF_PEER_SERVER_MODULE=require.resolve('peer');
 let server;
+function gameHash(){const hash=crypto.createHash('sha256');function add(file){hash.update(path.relative(root,file).replaceAll('\\','/')+'\0');hash.update(fs.readFileSync(file));}function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){const p=path.join(dir,e.name);e.isDirectory()?walk(p):add(p);}}for(const name of ['js','css','api'])walk(path.join(root,name));for(const name of ['play.html','index.html','admin.html','sw.js','vercel.json','package.json','package-lock.json'])add(path.join(root,name));return hash.digest('hex');}
+const testHash=name=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,pkg.scripts[name].slice(5)))).update(fs.readFileSync(path.join(root,'tests/api-harness.js'))).update(fs.readFileSync(path.join(root,'scripts/browser-fixture.js'))).digest('hex');
 async function main(){
  if(!env.DFDF_BASE_URL){env.DFDF_BASE_URL='http://127.0.0.1:3017';server=spawn(process.execPath,['scripts/dev-server.js'],{cwd:root,env:{...env,PORT:'3017'},stdio:'ignore'});
   let ready=false;for(let i=0;i<60;i++){try{ready=(await fetch(env.DFDF_BASE_URL)).ok;if(ready)break;}catch{}await new Promise(r=>setTimeout(r,250));}if(!ready)throw Error('Test server did not start');}
- const rows=[],sha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
- for(const name of jobs){const dir=path.join(out,name.replaceAll(':','-'));fs.mkdirSync(dir,{recursive:true});const fd=fs.openSync(path.join(dir,'output.log'),'w'),started=Date.now();
+ const report=path.join(out,'summary.json'),resume=process.argv.includes('--resume'),reuse=process.argv.includes('--reuse-passed');
+ const rows=resume&&fs.existsSync(report)?JSON.parse(fs.readFileSync(report)):[],hash=gameHash();
+ fs.writeFileSync(path.join(out,'scope.json'),JSON.stringify({resume,reusePassedAcrossSource:reuse,gameTreeSha256:hash,started:new Date().toISOString()},null,2));
+ for(const name of jobs){const old=rows.find(r=>r.name===name),testSha256=testHash(name);
+  if(resume&&old?.passed&&(reuse||old.gameTreeSha256===hash&&old.testSha256===testSha256)){if(old.gameTreeSha256!==hash||old.testSha256!==testSha256)old.reusedAcrossSource=true;continue;}
+  const dir=path.join(out,name.replaceAll(':','-'));fs.mkdirSync(dir,{recursive:true});const log=path.join(dir,'output.log');if(old&&fs.existsSync(log))fs.copyFileSync(log,path.join(dir,'output.previous-'+Date.now()+'.log'));
+  const fd=fs.openSync(log,'w'),started=Date.now(),sha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   console.log('START',name);const child=spawn(process.execPath,[pkg.scripts[name].slice(5)],{cwd:root,env:{...env,SHOT_DIR:dir,DFDF_SCREENSHOT_DIR:dir,DFDF_UI_SHOTS:dir,DFDF_UI_OUT:path.join(dir,'audit.json')},stdio:['ignore',fd,fd]});
   const timer=setTimeout(()=>{if(process.platform==='win32')spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{stdio:'ignore'});else child.kill('SIGKILL');},20*60000);
   const code=await new Promise(r=>{child.once('error',()=>r(-1));child.once('exit',r);});clearTimeout(timer);fs.closeSync(fd);
   const auditFile=path.join(dir,'audit.json');const signals=name.startsWith('audit:')?(fs.existsSync(auditFile)?JSON.parse(fs.readFileSync(auditFile)).length:-1):0;
-  const row={name,sha,code,signals,seconds:Math.round((Date.now()-started)/1000),passed:code===0&&signals===0};rows.push(row);
-  fs.writeFileSync(path.join(out,'summary.json'),JSON.stringify(rows,null,2));console.log(row.passed?'PASS':'FAIL',name,row.seconds+'s');
+  const sourceChanged=gameHash()!==hash||testHash(name)!==testSha256;
+  const row={name,sha,gameTreeSha256:hash,testSha256,code,signals,sourceChanged,seconds:Math.round((Date.now()-started)/1000),passed:code===0&&signals===0&&!sourceChanged};
+  if(old){row.previousAttempts=[...(old.previousAttempts||[]),{sha:old.sha,code:old.code,passed:old.passed,seconds:old.seconds}];rows[rows.indexOf(old)]=row;}else rows.push(row);
+  fs.writeFileSync(report,JSON.stringify(rows,null,2));console.log(row.passed?'PASS':'FAIL',name,row.seconds+'s');
   if(!row.passed){console.error(fs.readFileSync(path.join(dir,'output.log'),'utf8').slice(-3500));throw Error(name+' failed');}
  }
 }
