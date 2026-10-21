@@ -12,5 +12,5 @@
 
 .improve-card footer{flex-wrap:wrap;justify-content:flex-start}
 
-/* Keep the rank action tappable when the landscape header runs out of room. */
-#s-title.home-original .home-header #home-account #rank-chip{min-width:36px}
+/* Keep account actions tappable when the landscape header runs out of room. */
+#s-title.home-original .home-header #home-account :is(#rank-chip,#gold-chip,#mis-chip,#acct-chip){min-width:36px}
