@@ -5,6 +5,8 @@
 // repository: it is the ADMIN_MASTER_PASS environment variable.
 const crypto = require("crypto");
 const SKIN_TIERS = require("../js/skin-tiers");
+// every agent of the game (id, name, role): the owner page lists it, the settings keep only these ids
+const ROSTER = require("../js/agent-roster.json");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -80,6 +82,8 @@ const DEFAULT_CONFIG = {
     roomListOpen: !0,
     // maps out of the pool (7 · 5 · 3) the owner brings back: keys, comma separated, or "all"
     extraMaps: "",
+    // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
+    disabledAgents: "",
   },
   cheat: {
     enabled: !0,
@@ -1886,6 +1890,7 @@ ADMIN.config_reset = async () => {
   return { config: DEFAULT_CONFIG };
 };
 
+const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
   const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
@@ -1903,6 +1908,11 @@ function validateConfig(c) {
   walk(DEFAULT_CONFIG, c);
   if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
   if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
+  // agents switched off: only known ids, in roster order; enough must stay on, every role with at least one
+  const off = new Set(String(c.game.disabledAgents == null ? "" : c.game.disabledAgents).split(/[\s,]+/).filter(Boolean));
+  c.game.disabledAgents = ROSTER.filter((a) => off.has(a.id)).map((a) => a.id).join(",");
+  const on = ROSTER.filter((a) => !off.has(a.id));
+  if (on.length < MIN_AGENTS_ON || [...new Set(ROSTER.map((a) => a.role))].some((r) => !on.some((a) => a.role === r))) throw fail(400, `요원은 최소 ${MIN_AGENTS_ON}명을 켜 두어야 하고, 역할(타격대·척후대·전략가·감시자)마다 1명 이상 남아야 합니다`);
   const slots = Object.values(c.shop.mix).reduce((a, b) => a + b, 0);
   if (slots < 1 || slots > 40) throw fail(400, "상점 칸 수(등급별 개수의 합)는 1~40개여야 합니다");
 }

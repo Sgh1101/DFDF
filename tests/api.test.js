@@ -667,3 +667,26 @@ test("gold is sold once and added to the wallet; an account the owner makes an a
   // someone else cannot give it
   assert.equal((await h.api("a_user_set", { atoken: p.token, id: "player", op: "admin", days: 5 })).status, 401);
 });
+
+test("the owner can switch agents off: only known ids are kept (in roster order), enough must stay on and every role needs one, and the game reads it from the public settings", async () => {
+  const h = harness(), owner = await login(h, "owner");
+  const roster = require("../js/agent-roster.json");
+  assert.equal(roster.length, new Set(roster.map((a) => a.id)).size, "ids are unique");
+  const set = (ids) => { const c = JSON.parse(JSON.stringify(h.config)); c.game.disabledAgents = ids; return h.api("a_config_set", { atoken: owner.atoken, config: c }); };
+  assert.equal((await h.api("a_config_get", { atoken: owner.atoken })).config.game.disabledAgents, "", "none off by default");
+  // known ids are kept, in roster order; unknown ones and repeats drop out
+  const [a, b, c3] = [roster[5].id, roster[2].id, roster[9].id];
+  const r = await set(` ${a}, nobody ,${b},${a}\n${c3} `);
+  assert.equal(r.status, 200);
+  assert.equal(r.config.game.disabledAgents, roster.filter((x) => [a, b, c3].includes(x.id)).map((x) => x.id).join(","));
+  h.advance(30000);
+  assert.equal((await h.api("config", {})).config.game.disabledAgents, r.config.game.disabledAgents, "the game reads it from the public settings");
+  // everything back on
+  assert.equal((await set("")).config.game.disabledAgents, "");
+  // too few left on, or a whole role gone
+  assert.equal((await set(roster.slice(0, roster.length - 9).map((x) => x.id).join(","))).status, 400, "fewer than ten on");
+  const role = roster[0].role;
+  assert.equal((await set(roster.filter((x) => x.role === role).map((x) => x.id).join(","))).status, 400, "a whole role off");
+  // only the owner
+  assert.equal((await h.api("a_config_set", { atoken: "nope", config: h.config })).status, 401);
+});
