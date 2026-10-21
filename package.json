@@ -76,6 +76,7 @@
     "test:buildings": "node scripts/browser-buildings.js",
     "test:chest": "node scripts/browser-chest.js",
     "test:operator": "node scripts/browser-operator.js",
+    "test:crouch": "node scripts/browser-crouch.js",
     "test:raycast": "node scripts/browser-raycast.js",
     "test:touchlay": "node scripts/browser-touchlay.js",
     "test:finisher": "node scripts/browser-finisher.js",
