@@ -19,7 +19,7 @@
     "test:phantom-kill-wave": "node scripts/browser-phantom-kill-wave.js",
     "test:neon-online": "node scripts/browser-neon-online.js",
     "test:neon": "node scripts/browser-neon.js",
-    "test:neon-fidelity": "node scripts/browser-neon-fidelity.js",
+    "test:neon-look": "node scripts/browser-neon-look.js",
     "test:phantom-audio": "node scripts/browser-phantom-audio.js",
     "test:phantom-loading": "node scripts/browser-phantom-loading.js",
     "package:phantom": "node scripts/package-phantom-assets.js",
