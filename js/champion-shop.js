@@ -8,11 +8,12 @@
   box.innerHTML = `<div class="champion-heading"><h3>${L("챔피언스 구매", "Buy Champions")}</h3><b id="champion-coins" aria-live="polite"></b></div>
     <p>${L("장착 대상: 팬텀 · 경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "Equips on the Phantom · 1 Transcendent coin per completed match · 700 per skin")}</p>
     <div class="champion-offers">${ids.map((id, i) => `<button type="button" data-champion-buy="${id}" disabled><strong>${i ? L("수비 · 상아빛", "Defense · Ivory") : L("공격 · 붉은빛", "Attack · Crimson")}</strong><span></span></button>`).join("")}</div>
-    <p id="champion-shop-status" role="status"></p>`;
+    <progress id="champion-progress" max="700" value="0" aria-label="700코인 구매 진행"></progress><p id="champion-shop-status" role="status"></p>`;
   $("phantom-panel").before(box);
   function paint() {
     const same = state.token === token(), ready = same && state.ready;
     $("champion-coins").textContent = L("초월 코인 ", "Transcendent coins ") + (ready ? state.coins.toLocaleString() : "—");
+    $('champion-progress').value = ready ? Math.min(700, state.coins) : 0;
     for (const button of box.querySelectorAll("[data-champion-buy]")) {
       const id = button.dataset.championBuy, owned = ready && GS.owns(VALORANT_DATA.championsWeapon, id);
       button.disabled = state.busy || !ready || (!owned && state.coins < 700);

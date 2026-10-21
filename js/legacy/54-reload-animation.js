@@ -298,7 +298,7 @@
       rl.cap = cap;
     }
     // a pistol's magazine hides in the grip: a stand-in slides out of it
-    if ("pistol" === rl.style && rl.R) {
+    if ("pistol" === rl.style && rl.R && !rl.mag) {
       const g = new T.Group();
       g.name = "rl-mag";
       const mat = new T.MeshStandardMaterial({ color: 0x23262b, roughness: 0.55, metalness: 0.4 });
@@ -334,6 +334,10 @@
     if (rl.mag) rl.mag0 = rl.mag.position.clone();
     if (rl.rk) rl.rk0 = rl.rk.position.clone();
     if (rl.lh) rl.lh0 = rl.lh.position.clone();
+    rl.actions = [];
+    a.traverse((node) => {
+      if (node.userData.legacyAction) rl.actions.push({ node, kind: node.userData.legacyAction, position: node.position.clone(), rotation: node.rotation.clone() });
+    });
     a.userData.rl = rl;
     return rl;
   }
@@ -711,6 +715,10 @@
     return V((b.min.x + b.max.x) / 2 - 0.01, b.min.y - 0.012, b.max.z - 0.02);
   }
   function rest(rl) {
+    for (const action of rl.actions || []) {
+      action.node.position.copy(action.position);
+      action.node.rotation.copy(action.rotation);
+    }
     if (rl.lh && rl.lh0) rl.lh.position.copy(rl.lh0);
     if (rl.mag && rl.mag0) {
       rl.mag.position.copy(rl.mag0);
@@ -751,6 +759,12 @@
       if (!player.alive || !VM.root.visible || !a.visible) return r; // not posed this frame
       const k = Math.min(1, Math.max(0, 1 - player.reloading / RL.D));
       const o = pose(a, rl, k);
+      for (const action of rl.actions || []) {
+        action.node.position.copy(action.position);
+        action.node.rotation.copy(action.rotation);
+        if (action.kind === "break") action.node.rotation.x -= .55 * sm(seg(k, .1, .2)) * (1 - sm(seg(k, .63, .72)));
+        if (action.kind === "pump") action.node.position.z += .065 * Math.sin(Math.PI * seg(k, .78, .94));
+      }
       a.position.y -= o.dy;
       a.position.x += o.dx;
       a.position.z += o.dz;

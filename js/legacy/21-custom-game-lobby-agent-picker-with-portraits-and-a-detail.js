@@ -48,7 +48,7 @@
           <div class="lad-key">${abIcon(a.type)}<b>${a.key}</b></div>
           <div>
             <div class="lad-abn">${a.name}<span>${a.ult ? `궁극기 · 충전 ${a.ult}` : a.cost ? `최대 ${a.charges}회` : `재사용 ${a.cd}초`}</span></div>
-            <div class="lad-abd">${a.desc}</div>
+            <div class="lad-abd">${a.desc}${a.counterplay ? '<br><strong>대응</strong> '+a.counterplay : ''}</div>
           </div>
         </div>`
         )

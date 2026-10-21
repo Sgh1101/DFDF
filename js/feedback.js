@@ -136,6 +136,7 @@
     body.innerHTML = `<div class="fb-types" role="group" aria-label="${L("종류", "Kind")}">${TYPES.map(([k, ic, n, s]) => `<button type="button" data-k="${k}" class="${k === state.type ? "on" : ""}" aria-pressed="${k === state.type}"><b>${ic} ${esc(n)}</b><span>${esc(s)}</span></button>`).join("")}</div>${f("fb-title", L("제목 (선택)", "Title (optional)"), "", d.title, 60)}${extra}${f("fb-text", "agent" === state.type ? L("요원 소개와 콘셉트", "The agent in a few lines") : "report" === state.type ? L("무슨 일이 있었나요?", "What happened?") : L("내용", "Details"), t[3], d.text, 2000, "textarea")}<div class="fb-cnt" id="fb-cnt">0 / 2000</div>${f("fb-contact", L("답장 받을 곳 (선택)", "Where to answer (optional)"), L("디스코드·이메일 등. 비워 두면 '내 문의'에서 답을 확인합니다", "Discord, e-mail… or leave it and check “Mine”"), d.contact, 80)}<div class="fb-note">${L("보낸 분의 계정 이름과 레벨, 화면 크기, 지금 하던 모드·맵이 함께 전달됩니다. 비밀번호는 전달되지 않습니다.", "Your account name and level, screen size and the mode and map you were in go with it. Never your password.")}</div>`;
     const cnt = body.querySelector("#fb-cnt"),
       tx = body.querySelector("#fb-text");
+    if(window.GAME_DIAGNOSTICS){const label=document.createElement('label');label.style.cssText='display:flex;flex-direction:row;align-items:center;gap:8px';const check=document.createElement('input');check.id='fb-diagnostic';check.type='checkbox';check.style.cssText='width:18px;min-height:18px';label.append(check,document.createTextNode(L('진단 요약 함께 보내기 (버전·품질·프레임·자원 수)','Include diagnostic summary (version, quality, frames, resource counts)')));body.append(label);}
     const upd = () => (cnt.textContent = `${tx.value.length} / 2000`);
     tx.oninput = upd;
     upd();
@@ -169,7 +170,8 @@
     if ("agent" === d.type && !(d.agent.name || "").trim()) { msg.textContent = L("요원 이름을 적어 주세요", "Name the agent"); msg.className = "fb-msg err"; root.querySelector("#fb-an").focus(); return; }
     if ("agent" === d.type && !d.agent.abilities.some((a) => (a.name || a.desc || "").trim())) { msg.textContent = L("능력을 하나 이상 설명해 주세요", "Describe at least one ability"); msg.className = "fb-msg err"; return; }
     if ("report" === d.type && !(d.report.target || "").trim()) { msg.textContent = L("신고할 사용자의 이름을 적어 주세요", "Name the player"); msg.className = "fb-msg err"; root.querySelector("#fb-target").focus(); return; }
-    d.ctx = { ua: navigator.userAgent, view: `${innerWidth}x${innerHeight}`, page: /play\.html/.test(location.pathname) ? "play" : "home", mode: (window.room && room.mode) || "", map: (window.room && room.map) || "", lang: EN ? "en" : "ko" };
+    d.ctx = { ua: navigator.userAgent, view: `${innerWidth}x${innerHeight}`, page: /play\.html/.test(location.pathname) ? "play" : "home", mode: (typeof room!=='undefined' && room.mode) || "", map: (typeof room!=='undefined' && room.map) || "", lang: EN ? "en" : "ko" };
+    if(root.querySelector('#fb-diagnostic')?.checked&&window.GAME_DIAGNOSTICS){const r=GAME_DIAGNOSTICS.report();d.ctx.diagnostic={version:r.release.version,commit:r.release.commit,quality:r.game.quality,medianMs:r.frameMs.median,p95Ms:r.frameMs.p95,geometries:r.gpu.geometries,textures:r.gpu.textures};}
     state.busy = !0;
     go.disabled = !0;
     msg.textContent = L("보내는 중…", "Sending…");

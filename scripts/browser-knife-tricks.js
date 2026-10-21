@@ -4,13 +4,16 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
 (async () => {
   const f = await fixture();
   try {
+    await f.h.api('auth',{id:'knifer',pw:'password',device:'browser-test-knifer'});
+    const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'knife-owner'});
+    for(const id of ['tanto','kukri','flip','karambit','butterfly','bayonet','gut','bowie','kunai','stiletto'])await f.h.api('a_user_set',{atoken:owner.atoken,id:'knifer',op:'grant',item:'knife|'+id});
     const page = await f.page("knifer");
-    await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
-    await page.waitForTimeout(600);
+    await page.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
+    await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; player.ultW=null;player.slot=Object.keys(player.weapons).find(s=>player.weapons[s]==='knife');updateViewmodel(true); });
+    await page.waitForFunction(()=>myActor()?.alive&&curWeaponKey()==='knife'&&VM.current?.userData.key==='knife');
     const out = await page.evaluate(() => {
       render = () => {};
       const skins = GUN_SKINS, res = {};
-      skins.inv().own = skins.inv().own || {}; skins.inv().own.knife = ["tanto", "kukri", "flip", "karambit", "butterfly", "bayonet", "gut", "bowie", "kunai", "stiletto"];
       player.slot = Object.keys(player.weapons).find((s) => player.weapons[s] === "knife");
       const names = {};
       for (const id of ["", "butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
@@ -43,6 +46,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       // an inspect run on the karambit: the trails show while it spins fast, the pivot comes back at the end
       skins.set("knife", "karambit"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
       const M = SKIN_PERKS.state, pv = KNIFE_PIVOT.of(VM.current); let trail = 0, tossed = 0, maxY = 0;
+      if (!pv) throw new Error('Missing karambit pivot: '+JSON.stringify({weapon:curWeaponKey(),slot:player.slot,weapons:player.weapons,skin:skins.of('knife').id,model:KNIVES.model(),vm:VM.current?.userData?.key,rows:res}));
       M.insp.t = 0;
       for (let i = 0; i < 600; i++) { tickViewmodel(0.01); if (M.insp.t < 0) break; const gh = pv.userData.ghosts; trail = Math.max(trail, ...gh.map((g) => (g.g.visible ? g.mat.opacity : 0))); maxY = Math.max(maxY, pv.position.y - pv.userData.p0.y); }
       res.run = { trail: +trail.toFixed(2), maxY: +maxY.toFixed(3), ended: M.insp.t < 0, err: window.__knifeErr ? String(window.__knifeErr) : null };

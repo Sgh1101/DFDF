@@ -118,7 +118,7 @@
     world.phase = "end";
     banner(L("경기 종료", "Match over"), "#ffc849");
     "host" === NET.mode && sendEventAll({ t: "round", msg: L("경기 종료", "Match over"), color: "#ffc849" });
-    setTimeout(() => gameOver(), 2600);
+    scheduleMatchFinish();
   }
 
   const _sr = startRound;

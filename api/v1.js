@@ -770,6 +770,10 @@ function cleanFeedback(b) {
   f.title ||= "agent" === type ? "요원 제안: " + f.agent.name : "report" === type ? "신고: " + f.report.target : text.replace(/\s+/g, " ").slice(0, 40);
   const c = isObj(b.ctx) ? b.ctx : {};
   f.ctx = { ua: fbStr(c.ua, 160), view: fbStr(c.view, 20), page: fbStr(c.page, 20), mode: fbStr(c.mode, 20), map: fbStr(c.map, 24), lang: fbStr(c.lang, 4) };
+  if (isObj(c.diagnostic)) {
+    const d=c.diagnostic,number=(v,max)=>Number.isFinite(v)?Math.max(0,Math.min(max,Math.round(v*10)/10)):0;
+    f.ctx.diagnostic={version:fbStr(d.version,30),commit:/^[a-f0-9]{40}$/.test(d.commit)?d.commit:'local',quality:['mobile','perf','visual','ultra'].includes(d.quality)?d.quality:'unknown',medianMs:number(d.medianMs,1000),p95Ms:number(d.p95Ms,1000),geometries:number(d.geometries,1e6),textures:number(d.textures,1e6)};
+  }
   return f;
 }
 A.feedback_submit = async (q, b) => {
@@ -1179,19 +1183,23 @@ A.gacha = async (q, b) => {
   const n = 10 === (b.n | 0) ? 10 : 1,
     cost = Math.max(0, Math.round(10 === n ? c.gacha.cost10 : c.gacha.cost1)),
     left = TIER_KEYS.reduce((total, _, i) => total + poolOf(u, i + 1).length, 0);
-  if (left < n) throw fail(409, left > 0 ? `남은 스킨이 ${left}개뿐입니다` : "일반~전설 뽑기 스킨을 모두 모았습니다");
+  const collector = left === 0 && poolOf(u, 5, true).length > 0;
+  if (left < n && !collector) throw fail(409, left > 0 ? `남은 스킨이 ${left}개뿐입니다` : "모든 뽑기 스킨을 모았습니다");
   if (u.gold < cost) throw fail(402, `골드가 부족합니다 (${cost} 필요)`);
   const results = [];
   for (let i = 0; i < n; i++) {
     const r = rollOne(u, c.gacha.odds);
     r && results.push(r);
   }
-  u.gold -= cost;
+  // Once the ordinary collection is complete every requested pull still gets
+  // the exact ultra roll. Empty pulls are refunded; never manufacture a win.
+  const charged = collector ? Math.round(cost * results.length / n) : cost;
+  u.gold -= charged;
   u.pulls = (u.pulls || 0) + n;
   await saveUser(u);
   const leg = results.filter((r) => r.r >= 4);
   leg.length && (await log("gacha", `${u.id} 전설·초월 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
-  return { results, cost, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
+  return { results, cost: charged, refunded: cost - charged, collector, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // ── missions ──
 // [id, period, what is counted, config key]; the targets and gold are in config.mission
@@ -1900,6 +1908,8 @@ function validateConfig(c) {
 }
 
 module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipOf(req)]]), async () => {
+  const requestId = crypto.randomUUID();
+  res.setHeader('X-Request-Id', requestId);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   const url = new URL(req.url, "http://x");
@@ -1930,6 +1940,10 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
     res.end(JSON.stringify(Object.assign({ ok: !0 }, out)));
   } catch (e) {
     res.statusCode = e.code && e.code >= 400 && e.code < 600 ? e.code : 500;
+    if (res.statusCode >= 500) {
+      const action = new URL(req.url, 'http://localhost').searchParams.get('a') || '';
+      console.warn(JSON.stringify({kind:'api-error',requestId,status:res.statusCode,action:/^[a-z_]{1,40}$/.test(action)?action:'invalid'}));
+    }
     res.end(JSON.stringify({ ok: !1, error: e.message || String(e), ban: e.ban || undefined, retryable: e.retryUser || undefined }));
   }
 });

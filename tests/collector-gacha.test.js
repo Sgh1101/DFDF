@@ -1,0 +1,7 @@
+const test=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),{harness}=require('./api-harness');
+async function collector(hit=false){
+  const h=harness({randomBytes:n=>n===8?Buffer.alloc(8,hit?0:1):crypto.randomBytes(n)}),s=await h.api('auth',{id:'collector',pw:'password',device:'collector-device'}),c=await h.api('catalog');
+  const u=h.user('collector');u.gold=5000;u.own={};for(const g of c.guns)u.own[g]=Object.keys(c.tiers).filter(s=>c.tiers[s]<5&&(!c.only[s]||c.only[s]===g));h.db.set('user:collector',JSON.stringify(u));return {h,s};
+}
+test('complete ordinary collection still attempts the exact ultra lottery and refunds an empty pull',async()=>{const {h,s}=await collector();const r=await h.api('gacha',{token:s.token,n:10});assert.equal(r.status,200);assert.equal(r.collector,true);assert.equal(r.results.length,0);assert.equal(r.cost,0);assert.equal(r.refunded,2700);assert.equal(h.user('collector').gold,5000);assert.equal(h.user('collector').pulls,10);});
+test('collector ultra hit grants Phantom ownership and charges once; the remaining empty slots are refunded',async()=>{const {h,s}=await collector(true);const r=await h.api('gacha',{token:s.token,n:10});assert.equal(r.status,200);assert.equal(r.results.length,2);assert.ok(r.results.every(x=>x.g==='scout'&&x.r===5));assert.equal(new Set(r.results.map(x=>x.s)).size,2);assert.equal(r.cost,540);assert.equal(r.refunded,2160);const done=await h.api('gacha',{token:s.token});assert.equal(done.status,409);assert.equal(h.user('collector').gold,4460);});

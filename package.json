@@ -41,6 +41,7 @@
     "test:valorant-inspect": "node scripts/browser-valorant-inspect.js",
     "test:valorant-scopes": "node scripts/browser-valorant-scopes.js",
     "test:weapon-shop": "node scripts/browser-weapon-shop.js",
+    "test:legacy-models": "node scripts/browser-legacy-models.js",
     "test:rifle-identity": "node scripts/browser-rifle-identity.js",
     "test:public-map-online": "node scripts/browser-public-map-online.js",
     "test:map-loading": "node scripts/browser-map-loading.js",
@@ -78,9 +79,20 @@
     "test:crouch": "node scripts/browser-crouch.js",
     "test:raycast": "node scripts/browser-raycast.js",
     "test:touchlay": "node scripts/browser-touchlay.js",
-    "test:buildings": "node scripts/browser-buildings.js",
     "test:finisher": "node scripts/browser-finisher.js",
     "audit:ui": "node scripts/browser-ui-audit.js",
-    "audit:ui-home": "node scripts/browser-ui-audit-home.js"
+    "audit:ui-home": "node scripts/browser-ui-audit-home.js",
+    "test:suite": "node scripts/run-browser-suite.js",
+    "test:full": "node scripts/run-browser-suite.js --full",
+    "test:improvements": "node scripts/browser-improvements.js",
+    "check:assets": "node scripts/check-assets.js",
+    "test:pwa": "node scripts/browser-pwa.js",
+    "test:ability-floors": "node scripts/browser-ability-floors.js"
+  },
+  "devDependencies": {
+    "peer": "1.0.2",
+    "peerjs": "1.5.4",
+    "playwright": "1.62.1",
+    "three": "0.160.0"
   }
 }
