@@ -11,3 +11,6 @@
 #go-mark-valo{display:flex;align-items:center;justify-content:center;gap:10px}#go-mark-valo img{object-fit:cover;border-radius:4px;flex:none}
 
 .improve-card footer{flex-wrap:wrap;justify-content:flex-start}
+
+/* Keep the rank action tappable when the landscape header runs out of room. */
+#s-title.home-original .home-header #home-account #rank-chip{min-width:36px}
