@@ -14,7 +14,6 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const out = await page.evaluate(() => {
       render = () => {};
       const skins = GUN_SKINS, res = {};
-      skins.inv().own = skins.inv().own || {}; skins.inv().own.knife = ["tanto", "kukri", "flip", "karambit", "butterfly", "bayonet", "gut", "bowie", "kunai", "stiletto"];
       player.slot = Object.keys(player.weapons).find((s) => player.weapons[s] === "knife");
       const names = {};
       for (const id of ["", "butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {

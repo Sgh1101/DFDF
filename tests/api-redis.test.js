@@ -21,4 +21,17 @@ test("actual Redis Lua commits preserve parallel pulls and replayable rewards", 
   assert.equal(first.status, 200); assert.deepEqual(replay, first); assert.equal(user().matches, 1); assert.equal(user().gold, 120);
   const claims = await Promise.all([h.api("mission_claim", { token: p.token, id: "d_win" }), h.api("mission_claim", { token: p.token, id: "d_win" })]);
   assert.deepEqual(claims.map((x) => x.status).sort(), [200, 409]); assert.equal(user().gold, 270);
+  // The same real Lua CAS also protects coin purchases and legacy ownership.
+  const seeded=user();seeded.championCoins=700;seeded.own.scout=(seeded.own.scout||[]).filter(s=>!s.startsWith('champions_'));
+  command(['SET','user:'+id,JSON.stringify(seeded)]);
+  const buys=await Promise.all(['champions_atk','champions_def'].map(s=>h.api('champion_buy',{token:p.token,g:'scout',s})));
+  assert.deepEqual(buys.map(r=>r.status).sort(),[200,402]);assert.equal(user().championCoins,0);
+  const granted=user().own.scout.filter(s=>s.startsWith('champions_'));assert.equal(granted.length,1);
+  const missing=granted[0]==='champions_atk'?'champions_def':'champions_atk',legacy=user();
+  legacy.own.carbine=[...(legacy.own.carbine||[]),missing];legacy.skins={m:{carbine:missing},t:1};
+  command(['SET','user:'+id,JSON.stringify(legacy)]);
+  assert.equal((await h.api('me',{token:p.token})).status,200);const migrated=user();
+  assert.equal(migrated.skins.m.scout,missing);assert.equal(migrated.own.scout.filter(s=>s.startsWith('champions_')).length,2);assert.ok(!(migrated.own.carbine||[]).includes(missing));
+  await h.api('me',{token:p.token});await h.api('progress',report);
+  assert.deepEqual(user().own,migrated.own);assert.equal(user().championCoins,0);assert.equal(user().matches,1);assert.equal(user().gold,270);
 });

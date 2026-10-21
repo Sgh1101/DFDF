@@ -2,6 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 // Menu, diagnostics and both training entry points were explored before this test.
 (async()=>{const f=await fixture();try{
  const p=await f.page('improvements',{width:852,height:393},{isMobile:true,hasTouch:true});
+ await p.evaluate(()=>window.improvementDraw=render);
  const dir=process.env.SHOT_DIR||'test-results/improvements';fs.mkdirSync(dir,{recursive:true});
  await p.locator('#go-diagnostics').click();await p.locator('#game-diagnostics').waitFor({state:'visible'});
  assert.equal(await p.locator('#game-diagnostics').getAttribute('role'),'dialog');
@@ -34,6 +35,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  for(const m of model){assert.equal(m.anchors.right.length,3);assert.equal(m.anchors.muzzle.length,3);assert.deepEqual(m.muzzle,m.anchors.muzzle.map(n=>n*.88));}
  const before=await p.evaluate(()=>{world.phase='live';closeShop();document.getElementById('pause').hidden=true;GAME_DIAGNOSTICS.reset();for(let i=0;i<60;i++)autoQuality(.016,.016);return {r:GAME_DIAGNOSTICS.report(),pixel:renderer.getPixelRatio()};});
  assert.ok(before.r.frameMs.samples>=60);assert.ok(before.r.frameMs.p95<17);assert.equal(before.pixel,1);
+ const budget=await p.evaluate(()=>{
+  const descriptor=Object.getOwnPropertyDescriptor(navigator,'webdriver');Object.defineProperty(navigator,'webdriver',{get:()=>false,configurable:true});
+  const renderCalls=()=>{let count=0;const original=renderer.render;renderer.render=function(){count++;return original.apply(this,arguments);};try{improvementDraw();}finally{renderer.render=original;}return count;};
+  try{setQuality('visual');SETTINGS.dynRes=true;document.getElementById('pause').hidden=true;world.phase='live';closeShop();
+   const ratio=renderer.getPixelRatio(),colliders=COLLIDERS.length,normal=renderCalls();for(let i=0;i<600;i++)autoQuality(.035,.035);
+   const reduced={level:GAME_DIAGNOSTICS.optional.level,post:GFX.post,calls:renderCalls(),ratio:renderer.getPixelRatio(),target:POST.rt.width};
+   for(let i=0;i<2400;i++)autoQuality(.016,.016);
+   const restored={level:GAME_DIAGNOSTICS.optional.level,post:GFX.post,calls:renderCalls(),ratio:renderer.getPixelRatio()};
+   return {simulatedFrameTimes:true,normal,reduced,restored,ratio,sameCollision:COLLIDERS.length===colliders};
+  }finally{descriptor?Object.defineProperty(navigator,'webdriver',descriptor):delete navigator.webdriver;setQuality('mobile');GAME_DIAGNOSTICS.reset();}
+ });assert.equal(budget.reduced.level,2);assert.equal(budget.reduced.post,false);assert.ok(budget.reduced.calls<budget.normal);assert.equal(budget.reduced.target,4);assert.equal(budget.restored.level,0);assert.equal(budget.restored.post,true);assert.equal(budget.reduced.ratio,budget.ratio);assert.equal(budget.restored.ratio,budget.ratio);assert.equal(budget.sameCollision,true);
  const death=await p.evaluate(()=>{
   room.map='glacier';room.mode='std';startGame(AGENTS[0],false);closeShop();world.phase='live';ADMIN.freezeAI=true;
   const me=myActor(),enemy=world.actors.find(a=>a.team!==me.team);Object.assign(me,{hp:10,armor:20,invuln:0,shielded:0,vuln:0,y:0});enemy.pos.x=me.pos.x;enemy.pos.z=me.pos.z;enemy.y=4;
@@ -54,7 +66,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  await p.locator('#ar-close').click();
  const definitions=await p.evaluate(()=>AGENTS.map(a=>({id:a.id,name:a.name,abilities:a.abilities.map(d=>({key:d.key,type:d.type,name:d.name,desc:d.desc,ult:!!d.ult,counterplay:d.counterplay||''}))})));
  fs.writeFileSync(path.join(dir,'ability-definitions.json'),JSON.stringify(definitions,null,2));
- fs.writeFileSync(path.join(dir,'measurements.json'),JSON.stringify({range,model,memory,death,diagnostics:before.r},null,2));
+ fs.writeFileSync(path.join(dir,'measurements.json'),JSON.stringify({range,model,memory,budget,death,diagnostics:before.r},null,2));
  await p.locator('#go-mark-valo').click();await p.waitForFunction(()=>room.map==='ascent_trial');assert.equal(await p.evaluate(()=>room.map),'ascent_trial');
  assert.deepEqual(f.errors,[]);console.log('Diagnostics privacy/focus, 568x320 guide, reward-free training, six explicit anchors, bounded preview resources and direct map entry passed');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});
