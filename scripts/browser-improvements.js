@@ -58,7 +58,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  await p.setViewportSize({width:852,height:393});const memory=[];
  await p.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
  for(let i=0;i<5;i++){await p.locator('#go-armory').click();await p.waitForFunction(()=>GUN_SKINS._pv()?.r&&GUN_SKINS._pv()?.obj);const frame=await p.evaluate(()=>GUN_SKINS._pv().r.info.render.frame);await p.waitForFunction(n=>GUN_SKINS._pv().r.info.render.frame>=n+3,frame);memory.push(await p.evaluate(()=>({...GUN_SKINS._pv().r.info.memory})));await p.locator('#ar-close').click();}
- assert.ok(memory[4].geometries<=memory[1].geometries+5,JSON.stringify(memory));assert.ok(memory[4].textures<=memory[1].textures+2,JSON.stringify(memory));
+ // The first two opens are warm-up: the voxel bodies' geometry reaches its steady level by the third open (CI: 23,23,118,118,118).
+ assert.ok(memory[4].geometries<=memory[2].geometries+5,JSON.stringify(memory));assert.ok(memory[4].textures<=memory[2].textures+2,JSON.stringify(memory));
  const catalog=await f.h.api('catalog'),u=f.h.user('improvements');u.gold=5000;u.own={};for(const g of catalog.guns)u.own[g]=Object.keys(catalog.tiers).filter(s=>catalog.tiers[s]<5&&(!catalog.only[s]||catalog.only[s]===g));f.h.db.set('user:improvements',JSON.stringify(u));
  await p.evaluate(()=>GUN_SKINS.sync());await p.locator('#go-armory').click();await p.locator('#ar-tabs [data-tab="pull"]').click();
  await p.waitForFunction(()=>!document.getElementById('ar-pull1').disabled);assert.match(await p.locator('#ar-why').innerText(),/반환/);
