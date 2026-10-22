@@ -40,6 +40,8 @@
     red: () => mat("red", 0x8f352e, 0.55, 0.2),
     redLite: () => mat("redLite", 0xc65a4e, 0.5, 0.18),
     lens: () => mat("lens", 0x5a2a48, 0.15, 0.4, { emissive: 0x2a0c22 }),
+    wood: () => mat("wood", 0x7c4a26, 0.72, 0.04),
+    woodLite: () => mat("woodLite", 0x9c6233, 0.68, 0.04),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -1495,6 +1497,102 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper };
+  // a round rod along the gun (three crossed blocks so it reads round from the front): side-view px a..b, py
+  // top..bot, at x
+  const roundRod = (k, m, a, b, top, bot, name, x, S) => {
+    const c = (top + bot) / 2, r = (bot - top) / 2, s = S || 1000;
+    k.side(m, a, b, c - r, c + r, (r * 0.55) / s, { name, x: x || 0 });
+    k.side(m, a, b, c - r * 0.55, c + r * 0.55, r / s, { x: x || 0 });
+    k.side(m, a, b, c - r * 0.85, c + r * 0.85, (r * 0.85) / s, { x: x || 0 });
+  };
+
+  // ── 산탄총 (shotgun): our own pump gun, kept to the old size (0.09 × 0.19 × 0.99 m) and its wood. A wood stock
+  // with a rubber pad and spacer, checkering at the wrist and a sling stud; a steel receiver with an ejection port
+  // showing a red shell, a loading port, safety and slide release, a ghost-ring sight; a round barrel with a vented
+  // rib and a brass bead; the magazine tube with a clamp and cap; a grooved wood pump on its action bars; a side
+  // saddle on the left holding four shells. Units: px = mm from the butt, py = mm down from the bead. ──
+  function shotgun() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.387, y0: 0.073 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), A = M.accent(), BR = M.brass(), SI = M.silver(), SH = M.shell(), GD = M.gold(), W = M.wood(), WL = M.woodLite();
+
+    // stock: rubber pad with a pale spacer, wood slabs whose top climbs to the comb and whose underside rises to the
+    // wrist, checkering, a sling stud
+    side(R, 0, 16, 78, 188, 0.021, { name: "butt-pad" });
+    for (let i = 0; i < 5; i++) side(D, -1, 1, 88 + i * 20, 96 + i * 20, 0.019);
+    side(PA, 16, 20, 78, 188, 0.0212, { name: "pad-spacer" });
+    // the wood is a core and three long bevelled edges (top, underside, wrist), so it runs smooth with no seams
+    side(W, 20, 200, 90, 160, 0.02, { name: "stock" });
+    side(W, 198, 272, 64, 120, 0.02);
+    side(W, 196, 244, 100, 142, 0.02);
+    bar(W, 20, 92, 272, 62, 0.026, 0.02, "stock-top");
+    bar(W, 20, 172, 200, 145, 0.028, 0.02, "stock-belly");
+    bar(W, 198, 144, 272, 106, 0.028, 0.02, "stock-wrist");
+    bar(WL, 22, 82, 270, 53, 0.005, 0.0205, "stock-comb");
+    for (let i = 0; i < 5; i++) side(WL, 206 + i * 12, 212 + i * 12, 84, 112, 0.0204, { name: "checkering" });
+    side(D, 204, 266, 82, 84, 0.0204);
+    side(D, 204, 266, 112, 114, 0.0204);
+    side(ME, 120, 130, 170, 178, 0.008, { name: "sling-stud" });
+
+    // receiver: body, a pale engraved line, ejection port with a red shell, loading port under, safety, slide
+    // release, pins, ghost-ring sight on top
+    side(ST, 266, 532, 20, 112, 0.022, { name: "receiver" });
+    bar(ST, 262, 40, 280, 22, 0.02, 0.021, "receiver-back");
+    side(PA, 272, 528, 46, 48, 0.0222, { name: "receiver-line" });
+    side(D, 300, 520, 96, 98, 0.0222);
+    side(D, 384, 470, 54, 84, 0.003, { x: 0.0202, name: "ejection-port" });
+    side(SH, 396, 444, 62, 78, 0.0014, { x: 0.0226, name: "port-shell" });
+    side(GD, 444, 456, 62, 78, 0.0014, { x: 0.0226 });
+    side(D, 330, 470, 110, 114, 0.014, { name: "loading-port" });
+    side(A, 300, 316, 22, 28, 0.006, { name: "safety" });
+    side(ST, 322, 334, 112, 120, 0.004, { name: "slide-release" });
+    for (const px of [318, 470]) side(ST, px, px + 6, 86, 92, 0.0224, { name: "pin" });
+    side(ME, 286, 318, 10, 20, 0.012, { name: "ghost-ring" });
+    side(ME, 294, 310, 2, 10, 0.009);
+    side(D, 299, 305, 4, 8, 0.0095);
+
+    // trigger guard and trigger
+    side(ME, 292, 372, 152, 160, 0.008, { name: "guard-bottom" });
+    bar(ME, 292, 112, 296, 156, 0.008, 0.008, "guard-rear");
+    side(ME, 364, 372, 112, 160, 0.008, { name: "guard-front" });
+    bar(ST, 330, 112, 336, 146, 0.007, 0.004, "trigger");
+
+    // barrel: round, a vented rib on top with posts, a brass bead
+    roundRod(k, ST, 532, 986, 24, 58, "barrel");
+    side(SI, 532, 986, 23, 28, 0.009, { name: "barrel-shine" });
+    side(ME, 534, 980, 14, 18, 0.006, { name: "vent-rib" });
+    for (let i = 0; i < 12; i++) side(ME, 540 + i * 38, 546 + i * 38, 18, 24, 0.004, { name: "rib-post" });
+    side(BR, 970, 980, 6, 14, 0.004, { name: "bead" });
+    side(D, 984, 988, 32, 50, 0.008, { name: "muzzle-bore" });
+
+    // magazine tube, barrel clamp, end cap
+    roundRod(k, ME, 532, 930, 66, 102, "magazine-tube");
+    roundRod(k, ST, 878, 900, 22, 104, "barrel-clamp");
+    side(D, 878, 900, 60, 66, 0.0172);
+    roundRod(k, ST, 928, 944, 68, 100, "tube-cap");
+    side(ME, 936, 944, 80, 88, 0.0172, { name: "cap-stud" });
+
+    // pump: wood with dark grooves, its action bars running back to the receiver
+    roundRod(k, W, 604, 804, 56, 118, "pump");
+    for (let i = 0; i < 8; i++) roundRod(k, D, 620 + i * 22, 626 + i * 22, 55, 119, "pump-groove");
+    roundRod(k, WL, 604, 612, 58, 116, "pump-lip");
+    roundRod(k, WL, 796, 804, 58, 116);
+    for (const x of [-0.016, 0.016]) side(ST, 532, 604, 96, 100, 0.002, { x, name: "action-bar" });
+
+    // side saddle on the left: a plate with four shells, brass ends toward the back
+    side(P, 300, 500, 30, 82, 0.004, { x: -0.025, name: "side-saddle" });
+    for (let i = 0; i < 4; i++) {
+      const py = 38 + i * 11;
+      side(SH, 340, 470, py, py + 9, 0.005, { x: -0.032, name: "saddle-shell" });
+      side(GD, 326, 340, py, py + 9, 0.005, { x: -0.032 });
+    }
+
+    g.name = "dfdf-shotgun";
+    g.userData.weaponModel = "dfdf-shotgun";
+    g.userData.design = { key: "shotgun", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(41), Z(988)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
