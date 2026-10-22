@@ -1057,6 +1057,123 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw };
+  // ── 오퍼레이터 (sniper): the tall butt plate, a pale cheek rest with a sloped nose, the open triangle under the
+  // stock, the long flat body with a pale facet and a top rail, the bolt on the left, a raked grip, trigger guard,
+  // box magazine, the long barrel with a thick end and a slotted brake, and the big scope with its turrets ──
+  function operator() {
+    const SC = 664, k = kit({ S: SC, px0: 44, py0: 279, z0: 0.25, y0: 0.03 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), SI = M.silver(), BL = M.blue(), LE = M.lens();
+    const tube = (m, pa, pb, top, bot, name, x) => {
+      const c = (top + bot) / 2, r = (bot - top) / 2, o = { name, x: x || 0 };
+      side(m, pa, pb, c - r, c + r, (r * 0.55) / SC, o);
+      side(m, pa, pb, c - r * 0.55, c + r * 0.55, r / SC, { x: o.x });
+      side(m, pa, pb, c - r * 0.85, c + r * 0.85, (r * 0.85) / SC, { x: o.x });
+    };
+
+    // butt: a tall plate with a rubber back and pale cap, ribs, a sling slot with a screw
+    side(R, 44, 54, 210, 380, 0.04, { name: "butt-pad" });
+    for (let i = 0; i < 7; i++) side(D, 43, 45, 222 + i * 22, 230 + i * 22, 0.036);
+    side(P, 54, 92, 210, 380, 0.04, { name: "butt-plate" });
+    side(SI, 44, 92, 203, 212, 0.039, { name: "butt-cap" });
+    side(D, 96, 124, 326, 344, 0.0405, { name: "sling-slot" });
+    side(ST, 104, 112, 330, 338, 0.041);
+
+    // cheek rest: pale top with a sloped nose; stock beam under it
+    side(SI, 88, 262, 198, 212, 0.036, { name: "cheek-rest" });
+    bar(SI, 258, 203, 292, 214, 0.012, 0.035, "cheek-nose");
+    side(PL, 88, 262, 212, 228, 0.037);
+    side(P, 88, 410, 228, 266, 0.04, { name: "stock" });
+    side(D, 100, 400, 246, 248, 0.0405);
+
+    // the open triangle under the stock: top bar, upright, slanted brace, an inset panel and a pale diamond
+    side(P, 92, 244, 266, 290, 0.036, { name: "stock-lower" });
+    side(P, 92, 128, 290, 378, 0.038, { name: "stock-upright" });
+    bar(P, 248, 282, 124, 372, 0.04, 0.036, "stock-brace");
+    side(D, 128, 200, 290, 316, 0.03, { name: "stock-web" });
+    side(PA, 138, 146, 300, 308, 0.0365, { name: "stock-diamond" });
+
+    // body: long upper with a pale facet, lower section, sloped front, screws; top rail with slots and dots
+    side(P, 300, 868, 228, 266, 0.04, { name: "body" });
+    side(P, 300, 870, 266, 292, 0.038, { name: "body-lower" });
+    bar(PL, 400, 246, 632, 258, 0.01, 0.0405, "body-facet");
+    side(PL, 632, 860, 250, 258, 0.0405, { name: "forend-line" });
+    side(D, 300, 860, 266, 268, 0.0405);
+    const nose = side(P, 852, 880, 232, 292, 0.036, { name: "body-nose" });
+    nose.rotation.x = 0.4;
+    side(PA, 650, 657, 252, 259, 0.041, { name: "diamond" });
+    for (const [px, py] of [[316, 238], [612, 276]]) side(ST, px, px + 5, py, py + 5, 0.0408, { name: "screw" });
+    side(ME, 392, 842, 212, 228, 0.03, { name: "top-rail" });
+    side(D, 392, 842, 226, 228, 0.0305);
+    for (let i = 0; i < 22; i++) side(D, 400 + i * 20, 408 + i * 20, 212, 215, 0.0305, { name: "rail-slot" });
+    for (let i = 0; i < 5; i++) side(BL, 600 + i * 18, 606 + i * 18, 206, 211, 0.012, { name: "rail-dot" });
+    side(ME, 420, 830, 206, 212, 0.022);
+
+    // bolt on the left: body, a lever reaching out and a round knob
+    side(ME, 446, 496, 226, 246, 0.008, { x: -0.046, name: "bolt" });
+    bar(ST, 470, 236, 482, 262, 0.01, 0.008, "bolt-lever").position.x = -0.064;
+    side(SI, 474, 494, 256, 276, 0.012, { x: -0.07, name: "bolt-knob" });
+
+    // grip: raked, finger bumps on the front, ribs, cap
+    bar(P, 344, 294, 318, 404, 0.086, 0.023, "grip");
+    for (let i = 0; i < 3; i++) bar(PL, 366 - i * 7, 318 + i * 26, 362 - i * 7, 332 + i * 26, 0.014, 0.022, "finger-bump");
+    for (let i = 0; i < 5; i++) bar(D, 322 - i * 5.5, 322 + i * 16, 338 - i * 5.5, 322 + i * 16, 0.002, 0.0232, "grip-rib");
+    bar(D, 284, 406, 350, 414, 0.012, 0.024, "grip-cap");
+
+    // trigger guard and trigger
+    bar(ST, 382, 292, 390, 334, 0.008, 0.008, "guard-rear");
+    side(ST, 388, 446, 330, 340, 0.008, { name: "guard-bottom" });
+    side(ST, 440, 448, 292, 340, 0.008, { name: "guard-front" });
+    bar(ST, 404, 294, 410, 318, 0.006, 0.004, "trigger");
+
+    // box magazine with ribs and a pale base plate
+    side(P, 476, 590, 292, 348, 0.03, { name: "magazine" });
+    for (let i = 0; i < 2; i++) side(D, 484, 582, 308 + i * 18, 310 + i * 18, 0.0305, { name: "mag-rib" });
+    side(PL, 472, 594, 346, 356, 0.032, { name: "mag-base" });
+
+    // barrel: pale top, a thick end section, and the brake with three slots and a dark bore
+    side(ME, 820, 1236, 220, 232, 0.013, { name: "barrel" });
+    side(SI, 820, 1236, 212, 222, 0.013);
+    side(SI, 840, 1236, 211, 221, 0.0115, { name: "barrel-top" });
+    side(D, 880, 1150, 223, 225, 0.0132);
+    side(ME, 1160, 1236, 208, 236, 0.017, { name: "barrel-end" });
+    side(SI, 1160, 1236, 207, 211, 0.015);
+    side(ST, 1232, 1352, 204, 240, 0.024, { name: "muzzle-brake" });
+    side(SI, 1232, 1352, 203, 207, 0.022);
+    for (let i = 0; i < 3; i++) side(D, 1290 + i * 18, 1302 + i * 18, 210, 234, 0.0245, { name: "brake-slot" });
+    side(D, 1350, 1354, 212, 232, 0.012, { name: "muzzle-bore" });
+
+    // scope: two mounts, eyepiece with a pale ring, tube with rings, top and left turrets, objective cone,
+    // bell, lens
+    for (const px of [484, 694]) {
+      side(ME, px, px + 18, 192, 208, 0.016, { name: "scope-mount" });
+      side(ST, px - 2, px + 20, 190, 196, 0.03, { name: "scope-ring" });
+    }
+    tube(ME, 462, 546, 155, 200, "eyepiece");
+    tube(SI, 460, 474, 153, 202);
+    tube(D, 458, 461, 164, 192);
+    tube(D, 540, 548, 160, 196);
+    tube(ME, 546, 702, 165, 193, "scope-tube");
+    for (const px of [560, 650]) tube(D, px, px + 16, 163, 195, "tube-ring");
+    tube(ME, 598, 632, 158, 199, "turret");
+    tube(ST, 604, 626, 162, 195);
+    side(ST, 606, 626, 146, 158, 0.014, { name: "turret-knob" });
+    side(D, 606, 626, 150, 152, 0.0145);
+    side(ST, 604, 628, 168, 190, 0.012, { x: -0.034, name: "side-turret" });
+    side(D, 604, 628, 176, 182, 0.0125, { x: -0.04 });
+    tube(ST, 702, 718, 161, 197, "objective-cone");
+    tube(SI, 716, 800, 155, 201, "objective");
+    tube(D, 760, 766, 154, 202);
+    const bell = side(SI, 796, 812, 155, 201, 0.019, { name: "objective-bell" });
+    bell.rotation.x = -0.2;
+    tube(LE, 810, 813, 160, 196, "lens");
+
+    g.name = "dfdf-operator";
+    g.userData.weaponModel = "dfdf-operator";
+    g.userData.design = { key: "sniper", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(222), Z(1354)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
