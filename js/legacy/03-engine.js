@@ -19637,8 +19637,7 @@ function drawTacWalls(r, s) {
   tctx.drawImage(TACW.cv, r(TACW.minX), s(TACW.minZ), r(TACW.w), s(TACW.h));
 }
 function drawTac() {
-  // the second map (top left) is no longer shown: one map on screen, the one at the top right
-  if (!tctx || !tac.offsetWidth) return;
+  if (!tctx) return;
   const e = tac.width,
     t = tac.height,
     o = e / 2,
