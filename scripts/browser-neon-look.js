@@ -77,7 +77,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
       const a = myActor(); abilClear(); a.yaw = 0; CAST_EXT.neon_lane(); abilTick(0.2);
       const preview = !!scene.getObjectByName("neon-lane-preview"); abilTick(0.21); abilTick(0.6);
       const walls = scene.children.filter((n) => n.name === "neon-fastlane").length;
-      render(); abilClear(); a.pitch = -0.35; CAST_EXT.neon_relay(); abilTick(0.45);
+      render(); abilClear(); a.pitch = -0.35; CAST_EXT.neon_relay(); abilTick(0.36); // just launched: a wall beside the lane can end the flight within a few frames
       const bolt = !!scene.getObjectByName("neon-relaybolt");
       for (let i = 0; i < 30 && !scene.getObjectByName("neon-relay-charge"); i++) abilTick(0.01);
       const charge = !!scene.getObjectByName("neon-relay-charge"); abilTick(0.9); render();
