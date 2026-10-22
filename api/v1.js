@@ -217,6 +217,8 @@ const levelOf = (xp, per) => {
 };
 const cleanId = (s) => String(s || "").trim();
 const ID_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
+// names a new account may not take: they read as a guest or a nameless player in a room
+const RESERVED_ID = /^(게스트|guest)|^(플레이어|player)\d+$/i;
 async function log(type, msg, extra) {
   try {
     await pipe([
@@ -585,10 +587,12 @@ A.auth = async (q, b, req) => {
   if (u) {
     if (!checkPw(pw, u.pass)) {
       await log("auth", "비밀번호 틀림: " + id, { ip });
-      throw fail(401, "비밀번호가 틀렸습니다");
+      // the same sign-in box also signs up: a taken name must say so, not just "wrong password"
+      throw fail(401, "이미 있는 아이디입니다. 내 계정이면 비밀번호를 확인하고, 새로 가입하려면 다른 아이디를 쓰세요");
     }
   } else {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
+    if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
     u = { id, pass: hashPw(pw), created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -605,6 +609,23 @@ A.auth = async (q, b, req) => {
   await log(created ? "join" : "login", (created ? "가입: " : "로그인: ") + id, { ip, user: id });
   return { token: sign({ k: "p", id, v: u.sessionVersion, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
 };
+// Each guest name belongs to one device. Two devices used to land on the same "게스트NNNN" (9000 numbers); a
+// name already held by another device, or by an account, moves to a free one.
+const guestNameKey = (name) => "gname:" + String(name).toLowerCase();
+async function guestName(want, dev) {
+  const free = async (name) => {
+    if (await getJ(userKey(name))) return !1;
+    const held = await redis(["GET", guestNameKey(name)]);
+    if (held === dev) return !0;
+    return !held && "OK" === (await redis(["SET", guestNameKey(name), dev, "NX"]));
+  };
+  if (await free(want)) return want;
+  for (let i = 0; i < 12; i++) {
+    const name = "게스트" + (i < 8 ? crypto.randomInt(1000, 10000) : crypto.randomInt(10000, 100000));
+    if (await free(name)) return name;
+  }
+  return "게스트" + crypto.randomBytes(3).toString("hex");
+}
 A.guest = async (q, b, req) => {
   const c = await loadConfig(),
     ip = ipOf(req),
@@ -614,6 +635,7 @@ A.guest = async (q, b, req) => {
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
   let u = await getJ(guestKey(dev));
   if (!u) u = { id: "게스트" + (parseInt(crypto.createHash("md5").update(dev).digest("hex").slice(0, 6), 16) % 9000 + 1000), guest: !0, dev, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
+  u.id = await guestName(u.id, dev);
   ensureWallet(u, c);
   u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
   const ban = await banOf(u, dev, ip);
