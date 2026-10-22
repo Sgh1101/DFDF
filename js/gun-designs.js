@@ -36,6 +36,9 @@
     chrome: () => mat("chrome", 0xe9edf3, 0.26, 0.38),
     shell: () => mat("shell", 0xa3262b, 0.55, 0.08),
     gold: () => mat("gold", 0xe9c45c, 0.4, 0.3),
+    copper: () => mat("copper", 0xe0874a, 0.4, 0.3),
+    red: () => mat("red", 0x8f352e, 0.55, 0.2),
+    redLite: () => mat("redLite", 0xc65a4e, 0.5, 0.18),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -784,6 +787,146 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge };
+  // ── 오딘 (hmg): the open loop stock with a blue stripe, a deep butt block, the long receiver with a pale top
+  // cover and a short rail, an open belt window on the right showing five rounds on their links, a side cover on
+  // the left, the slanted lever reaching out and down on the right, a big ammo box under it, the long handguard
+  // with slanted ribs in its top channel and a row of slots under, the gas tube and post, and the red brake ──
+  function odin() {
+    const k = kit({ S: 952, px0: 78, py0: 285, z0: 0.25, y0: 0.03 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), BL = M.blue(), SI = M.silver(), GD = M.gold(), CU = M.copper(), RE = M.red(), RL = M.redLite();
+    // a block from one 3D point to another
+    const bar3 = (m, a, b, sx, sy, name) => {
+      const A = new T.Vector3(...a), B = new T.Vector3(...b), d = B.clone().sub(A), mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(sx, sy, d.length());
+      mesh.position.copy(A).add(B).multiplyScalar(0.5);
+      mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d.normalize());
+      name && (mesh.name = name);
+      mesh.castShadow = !0;
+      g.add(mesh);
+      return mesh;
+    };
+
+    // stock: an open loop (top bar, slanted back, upright, slanted foot, bottom bar) with a blue stripe, then a
+    // deep butt block whose underside slopes down to the receiver, with a pale inset and a screw
+    bar(P, 150, 174, 226, 174, 0.02, 0.0175, "stock-top");
+    bar(P, 158, 172, 86, 206, 0.022, 0.0175, "stock-back");
+    side(P, 78, 100, 198, 250, 0.0175, { name: "stock-upright" });
+    bar(P, 88, 244, 156, 274, 0.02, 0.0175, "stock-foot");
+    side(P, 148, 232, 264, 283, 0.0175, { name: "stock-bottom" });
+    side(BL, 98, 104, 212, 244, 0.018, { name: "stock-stripe" });
+    side(D, 78, 80, 204, 246, 0.016);
+    side(P, 222, 336, 160, 262, 0.037, { name: "butt-block" });
+    for (let i = 0; i < 4; i++) {
+      const a = 226 + i * 27, bot = 266 + (a + 13.5 - 226) * (42 / 108);
+      side(P, a, a + 27, 250, bot, 0.035, { name: "butt-slope" });
+    }
+    side(PL, 246, 304, 180, 195, 0.0375, { name: "butt-inset" });
+    side(D, 236, 326, 226, 229, 0.0375);
+    side(ST, 302, 309, 165, 171, 0.0375, { name: "screw" });
+
+    // receiver: body, pale top cover with its sloped back, rail and sight block, panel lines, chamfered nose,
+    // pale front plate, screws
+    side(P, 332, 692, 150, 292, 0.045, { name: "receiver" });
+    side(PL, 340, 600, 172, 252, 0.0455, { name: "receiver-panel" });
+    side(SI, 380, 612, 141, 158, 0.043, { name: "top-cover" });
+    side(ME, 384, 608, 158, 162, 0.0435);
+    bar(SI, 336, 160, 384, 146, 0.016, 0.042, "cover-slope");
+    side(D, 332, 692, 258, 261, 0.0455);
+    side(ST, 426, 524, 130, 141, 0.012, { name: "rail" });
+    for (let i = 0; i < 6; i++) side(D, 432 + i * 15, 438 + i * 15, 130, 134, 0.0125, { name: "rail-slot" });
+    side(D, 432, 476, 118, 130, 0.014, { name: "sight-block" });
+    side(PA, 498, 520, 126, 131, 0.008, { name: "sight-mark" });
+    side(P, 612, 692, 178, 292, 0.0445, { name: "receiver-nose" });
+    bar(SI, 612, 156, 692, 192, 0.03, 0.044, "nose-slope");
+    bar(ME, 618, 168, 690, 200, 0.012, 0.0448);
+    side(PL, 620, 684, 206, 282, 0.0452);
+    side(PA, 690, 703, 194, 284, 0.041, { name: "front-plate" });
+    side(D, 694, 699, 206, 272, 0.0415);
+    for (const [px, py] of [[346, 206], [370, 262], [556, 262], [664, 270]]) side(ST, px, px + 6, py, py + 6, 0.046, { name: "screw" });
+
+    // left side cover with ribs and a round knob
+    side(P, 398, 584, 166, 270, 0.028, { x: -0.068, name: "side-cover" });
+    for (let i = 0; i < 5; i++) side(D, 412 + i * 30, 424 + i * 30, 182, 254, 0.0285, { x: -0.068, name: "cover-rib" });
+    side(ST, 532, 556, 150, 172, 0.012, { x: -0.1, name: "knob" });
+    side(ME, 538, 550, 172, 182, 0.008, { x: -0.096 });
+
+    // right belt window: a housing with a frame and five rounds on their links, cases out of the window and
+    // bullets pointing at the muzzle
+    side(D, 396, 566, 162, 300, 0.012, { x: 0.057, name: "feed-back" });
+    side(P, 396, 566, 160, 171, 0.035, { x: 0.08, name: "feed-frame" });
+    side(P, 396, 566, 293, 302, 0.035, { x: 0.08 });
+    side(P, 396, 406, 160, 302, 0.035, { x: 0.08 });
+    side(P, 558, 568, 160, 302, 0.035, { x: 0.08 });
+    for (let r = 0; r < 5; r++) {
+      const py = 183 + r * 25, xc = 0.092, rr = 0.0105;
+      side(GD, 408, 500, py - 7, py + 7, rr, { x: xc, name: "round-case" });
+      side(GD, 408, 500, py - 10, py + 10, rr * 0.7, { x: xc });
+      side(GD, 500, 510, py - 7, py + 7, rr * 0.7, { x: xc });
+      side(CU, 510, 548, py - 6, py + 6, rr * 0.6, { x: xc, name: "round-bullet" });
+      side(CU, 548, 556, py - 3, py + 3, rr * 0.3, { x: xc });
+      side(ME, 424, 436, py - 11, py + 11, rr * 1.05, { x: xc, name: "belt-link" });
+      side(ME, 466, 478, py - 11, py + 11, rr * 1.05, { x: xc });
+      side(PA, 440, 498, py - 8, py - 6, 0.003, { x: xc + rr - 0.001, name: "round-shine" });
+    }
+
+    // right lever: from a hinge on the receiver reaching forward, out and down, with a blue edge and a foot
+    side(ME, 566, 592, 170, 194, 0.012, { x: 0.052, name: "lever-hinge" });
+    const a = [0.058, Y(180), Z(578)], b = [0.16, Y(316), Z(644)];
+    const lv = bar3(PL, a, b, 0.016, 0.034, "lever");
+    lv.rotateZ(Math.PI / 2);
+    bar3(BL, [a[0] + 0.004, a[1], a[2] - 0.016], [b[0] + 0.004, b[1], b[2] - 0.016], 0.012, 0.006, "lever-stripe");
+    const ft = [b[0] + (b[0] - a[0]) * 0.18, b[1] + (b[1] - a[1]) * 0.18, b[2] + (b[2] - a[2]) * 0.18];
+    bar3(D, b, ft, 0.03, 0.036, "lever-cap");
+
+    // ammo box: lid with a lip, inset side panel framed by corner plates, chamfered dark bottom, front latch
+    side(P, 368, 582, 280, 292, 0.108, { name: "box-lid" });
+    side(ME, 368, 582, 288, 292, 0.1085);
+    side(PL, 372, 578, 292, 420, 0.105, { name: "ammo-box" });
+    side(P, 386, 564, 304, 408, 0.1055, { name: "box-panel" });
+    for (const [px, py] of [[386, 304], [552, 304], [386, 396], [552, 396]]) side(ME, px, px + 12, py, py + 12, 0.1062, { name: "box-corner" });
+    side(D, 372, 578, 420, 436, 0.095, { name: "box-bottom" });
+    side(D, 378, 572, 436, 450, 0.08);
+    side(ME, 578, 588, 316, 384, 0.04, { name: "box-latch" });
+    side(ST, 580, 588, 340, 360, 0.02);
+
+    // handguard: rear collar with a slanted plate, body, a dark top channel with slanted ribs, a panel line,
+    // a row of slots underneath, slanted nose
+    side(P, 700, 792, 174, 292, 0.04, { name: "handguard-collar" });
+    bar(ME, 744, 194, 802, 216, 0.012, 0.0405, "collar-plate");
+    side(P, 700, 1040, 183, 272, 0.036, { name: "handguard" });
+    side(D, 800, 1024, 186, 214, 0.0365, { name: "handguard-channel" });
+    for (let i = 0; i < 4; i++) bar(ME, 816 + i * 58, 214, 838 + i * 58, 186, 0.006, 0.0367, "channel-rib");
+    side(ME, 800, 1024, 183, 186, 0.034);
+    side(D, 792, 1030, 240, 243, 0.0365);
+    for (let i = 0; i < 8; i++) side(D, 808 + i * 20, 818 + i * 20, 254, 266, 0.0365, { name: "handguard-slot" });
+    const nose = side(P, 1030, 1058, 192, 266, 0.032, { name: "handguard-nose" });
+    nose.rotation.x = -0.42;
+
+    // barrel, gas tube with joints, gas block and the front post
+    side(ME, 1046, 1182, 196, 216, 0.011, { name: "barrel" });
+    side(ST, 1046, 1168, 240, 262, 0.012, { name: "gas-tube" });
+    for (const px of [1064, 1142]) side(ST, px, px + 8, 238, 264, 0.0135, { name: "tube-joint" });
+    side(ME, 1092, 1128, 196, 262, 0.016, { name: "gas-block" });
+    side(ME, 1096, 1126, 172, 196, 0.012, { name: "front-sight" });
+    side(ST, 1104, 1118, 152, 172, 0.005);
+
+    // red brake: a narrow neck, a tapered collar, the wide flat brake with two side slots and a dark crown
+    side(RE, 1128, 1216, 198, 214, 0.009, { name: "brake-neck" });
+    side(RE, 1180, 1214, 194, 222, 0.016, { name: "brake-collar" });
+    side(RE, 1214, 1248, 191, 225, 0.026);
+    side(RE, 1246, 1330, 188, 228, 0.035, { name: "muzzle-brake" });
+    side(RL, 1250, 1330, 187, 192, 0.033, { name: "brake-top" });
+    for (const px of [1258, 1292]) side(D, px, px + 22, 198, 220, 0.0355, { name: "brake-slot" });
+    side(RE, 1246, 1252, 188, 228, 0.0356);
+    side(D, 1328, 1333, 200, 216, 0.012, { name: "muzzle-bore" });
+
+    g.name = "dfdf-odin";
+    g.userData.weaponModel = "dfdf-odin";
+    g.userData.design = { key: "hmg", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(208), Z(1333)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
