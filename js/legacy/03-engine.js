@@ -7956,7 +7956,7 @@ function tickVmCast(e) {
     h = VM_CAST.hand;
   _VMM.m || ((_VMM.m = new T.Matrix4()), (_VMM.v = new T.Vector3()));
   // pivot the tilt around the hand so it turns the wrist instead of swinging the whole arm
-  g.rotation.set(p[3], 0, p[4]);
+  g.rotation.set(p[3], p[5] || 0, p[4]);
   _VMM.v.copy(h).applyEuler(g.rotation);
   g.position.set(
     p[0] + h.x - _VMM.v.x,
