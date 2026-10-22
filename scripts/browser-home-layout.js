@@ -4,6 +4,16 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
   fs.mkdirSync(shots, { recursive: true });
   try {
     const page = await f.page("homelayout", { width: 1440, height: 900 });
+    // Map counts: the home footer and the solo button are counted once at load, but the map list grows afterwards (the Ascent trial map),
+    // while the agent-select map filter counts live. All three must agree with MAP_LIST after boot and after any later change.
+    const mapCounts = () => page.evaluate(() => {
+      const num = (text) => Number((/맵 (\d+)종/.exec(text) || [])[1]), tabs = document.querySelector("#sel-maps").previousElementSibling, all = tabs && tabs.querySelector('button[data-cat=""] em');
+      return { list: MAP_LIST.length, footer: num(document.querySelector(".title-foot").textContent), play: num(document.querySelector("#go-play small").textContent), filter: all ? Number(all.textContent) : null };
+    });
+    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"));
+    const booted = await mapCounts();
+    assert.ok(booted.list > 0, "map list is empty");
+    assert.deepEqual([booted.footer, booted.play], [booted.list, booted.list], "home footer and solo button match MAP_LIST after boot");
     for (const [name, width, height] of [["desktop", 1440, 900], ["tablet", 1024, 768], ["mobile", 852, 393], ["small", 568, 320], ["portrait", 390, 844]]) {
       await page.setViewportSize({ width, height }); await page.mouse.move(0, 0);
       await page.waitForFunction(() => ["acct-chip", "rank-chip", "gold-chip", "mis-chip"].every((id) => document.getElementById(id)));
@@ -46,6 +56,20 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
       await page.locator("#go-multi").click(); assert.equal(await page.locator("#s-multi").isVisible(), true); await page.locator("#mu-back").click();
       console.log(name, "original styles, top navigation, bounds and menu clicks passed");
     }
+    // Same counts on the agent-select map filter, then a map added and removed after boot (the select screen is opened here, after the
+    // layout checks, because returning from it re-lays out the account chips for a moment).
+    await page.locator("#go-play").click(); await page.locator("#s-select").waitFor({ state: "visible" });
+    const opened = await mapCounts();
+    assert.deepEqual(opened, { list: booted.list, footer: booted.list, play: booted.list, filter: booted.list }, "home footer, solo button and select filter all match MAP_LIST");
+    await page.locator("#sel-back").click(); await page.locator("#s-title").waitFor({ state: "visible" });
+    await page.evaluate(() => { MAPS.zz_count = { ...MAPS.glacier, key: "zz_count", name: "count-check" }; (window.MAP_EXTRA ||= []).push({ key: "zz_count", name: "count-check" }); POGU.pool.push("zz_count"); POGU.setPool(); });
+    const added = await mapCounts();
+    assert.equal(added.list, booted.list + 1, "setPool added the temporary map");
+    assert.deepEqual([added.footer, added.play], [added.list, added.list], "home counts follow a map added after boot");
+    await page.evaluate(() => { POGU.pool.splice(POGU.pool.indexOf("zz_count"), 1); MAP_EXTRA.splice(MAP_EXTRA.findIndex((m) => m.key === "zz_count"), 1); delete MAPS.zz_count; POGU.setPool(); });
+    const removed = await mapCounts();
+    assert.deepEqual([removed.list, removed.footer, removed.play], [booted.list, booted.list, booted.list], "home counts follow a map removed after boot");
+    console.log("map count", booted.list, "matched on home footer, solo button and select filter; follows a later add and remove");
     assert.deepEqual(f.errors, []);
   } finally { await f.browser.close(); }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -298,6 +298,8 @@
     list.forEach((m) => MAP_LIST.push(m));
     window.MAP_COUNT = MAP_LIST.length;
     MAP_LIST.some((m) => m.key === room.map) || (room.map = "pogu");
+    // the home screen counts maps once at load: tell it (and anything else that counts) the list changed
+    dispatchEvent(new CustomEvent("maps-changed", { detail: { count: MAP_LIST.length } }));
     // agent select opened while the page was still loading: redraw its chips
     try {
       const box = document.getElementById("sel-maps");
