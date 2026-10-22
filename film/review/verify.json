@@ -1,0 +1,126 @@
+{
+  "determinism": {
+    "t": 19.5,
+    "twoBrowsers": [
+      "ca3b7c61d56162b35812481c648fd7f0fe4061b445485e77eff2ddac2d4bf105",
+      "ca3b7c61d56162b35812481c648fd7f0fe4061b445485e77eff2ddac2d4bf105"
+    ],
+    "identical": true,
+    "seekAwayAndBack": true
+  },
+  "textFits": [
+    {
+      "format": "16x9",
+      "checked": 11,
+      "overflow": []
+    },
+    {
+      "format": "9x16",
+      "checked": 11,
+      "overflow": []
+    },
+    {
+      "format": "1x1",
+      "checked": 11,
+      "overflow": []
+    },
+    {
+      "format": "16x9",
+      "checked": 11,
+      "overflow": [],
+      "reduced": true
+    }
+  ],
+  "stills": {
+    "16x9": [
+      "review/beats/16x9/16x9-01.50.png",
+      "review/beats/16x9/16x9-03.90.png",
+      "review/beats/16x9/16x9-04.90.png",
+      "review/beats/16x9/16x9-06.60.png",
+      "review/beats/16x9/16x9-08.40.png",
+      "review/beats/16x9/16x9-10.00.png",
+      "review/beats/16x9/16x9-11.60.png",
+      "review/beats/16x9/16x9-13.60.png",
+      "review/beats/16x9/16x9-15.60.png",
+      "review/beats/16x9/16x9-18.10.png",
+      "review/beats/16x9/16x9-19.50.png",
+      "review/beats/16x9/16x9-21.90.png",
+      "review/beats/16x9/16x9-23.90.png",
+      "review/beats/16x9/16x9-26.20.png",
+      "review/beats/16x9/16x9-29.40.png"
+    ],
+    "9x16": [
+      "review/beats/9x16/9x16-01.50.png",
+      "review/beats/9x16/9x16-03.90.png",
+      "review/beats/9x16/9x16-04.90.png",
+      "review/beats/9x16/9x16-06.60.png",
+      "review/beats/9x16/9x16-08.40.png",
+      "review/beats/9x16/9x16-10.00.png",
+      "review/beats/9x16/9x16-11.60.png",
+      "review/beats/9x16/9x16-13.60.png",
+      "review/beats/9x16/9x16-15.60.png",
+      "review/beats/9x16/9x16-18.10.png",
+      "review/beats/9x16/9x16-19.50.png",
+      "review/beats/9x16/9x16-21.90.png",
+      "review/beats/9x16/9x16-23.90.png",
+      "review/beats/9x16/9x16-26.20.png",
+      "review/beats/9x16/9x16-29.40.png"
+    ],
+    "1x1": [
+      "review/beats/1x1/1x1-01.50.png",
+      "review/beats/1x1/1x1-03.90.png",
+      "review/beats/1x1/1x1-04.90.png",
+      "review/beats/1x1/1x1-06.60.png",
+      "review/beats/1x1/1x1-08.40.png",
+      "review/beats/1x1/1x1-10.00.png",
+      "review/beats/1x1/1x1-11.60.png",
+      "review/beats/1x1/1x1-13.60.png",
+      "review/beats/1x1/1x1-15.60.png",
+      "review/beats/1x1/1x1-18.10.png",
+      "review/beats/1x1/1x1-19.50.png",
+      "review/beats/1x1/1x1-21.90.png",
+      "review/beats/1x1/1x1-23.90.png",
+      "review/beats/1x1/1x1-26.20.png",
+      "review/beats/1x1/1x1-29.40.png"
+    ]
+  },
+  "media": {
+    "out/master_16x9.mp4": {
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "60/1"
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "5387531"
+        }
+      },
+      "loudness": {
+        "I": -16,
+        "TP": -2,
+        "LRA": 1.3
+      },
+      "flashes": {
+        "frames": 1800,
+        "bigLumaJumps": [],
+        "maxJumpsPerSecond": 0
+      }
+    },
+    "out/cut_9x16.mp4": "missing",
+    "out/cut_1x1.mp4": "missing",
+    "out/cut_reduced_16x9.mp4": "missing"
+  }
+}

@@ -1,0 +1,16 @@
+// captions.srt from TIMELINE: the same words, at the same times, as the burned-in copy
+// and the click counter. The film has no voice; the copy is the narration.
+const fs = require("node:fs"), path = require("node:path");
+const T = require("../timeline.js");
+const ts = (s) => { const ms = Math.round(s * 1000), h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60; return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")},${String(ms % 1000).padStart(3, "0")}`; };
+const cues = [];
+for (const c of T.copy) {
+  if (c.l2 && c.l2at > c.t0) { cues.push([c.t0, c.l2at, c.l1]); cues.push([c.l2at, c.t1, c.l1 + "\n" + c.l2]); }
+  else cues.push([c.t0, c.t1, c.l2 ? c.l1 + "\n" + c.l2 : c.l1]);
+}
+cues.push([T.moves.type[0], T.copy[1].t0, T.url]); // typed into the bar on screen
+T.clicks.forEach((k, i) => cues.push([k.t, i + 1 < T.clicks.length ? T.clicks[i + 1].t : T.counter.t1, `${T.counter.kicker}\n${k.n} ${k.label}`]));
+cues.sort((a, b) => a[0] - b[0]);
+const srt = cues.map(([a, b, text], i) => `${i + 1}\n${ts(a)} --> ${ts(b)}\n${text}\n`).join("\n");
+fs.writeFileSync(path.join(__dirname, "../captions.srt"), srt);
+console.log(srt);

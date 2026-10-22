@@ -1,0 +1,134 @@
+{
+  "capturedAt": "2026-10-22T12:34:59.356Z",
+  "base": "http://127.0.0.1:3000",
+  "chromium": "141.0.7390.37",
+  "viewport": {
+    "width": 1600,
+    "height": 900,
+    "deviceScaleFactor": 1.25
+  },
+  "clicks": [
+    {
+      "step": 1,
+      "page": "/",
+      "selector": "#doGuest",
+      "label": "게스트로 시작",
+      "box": {
+        "x": 909,
+        "y": 548.6875,
+        "width": 418,
+        "height": 44
+      }
+    },
+    {
+      "step": 2,
+      "page": "/",
+      "selector": "#enter",
+      "label": "게임 들어가기",
+      "box": {
+        "x": 911,
+        "y": 538.5,
+        "width": 414,
+        "height": 61
+      }
+    },
+    {
+      "step": 3,
+      "page": "/play.html",
+      "selector": "#go-play",
+      "label": "혼자 하기",
+      "box": {
+        "x": 96,
+        "y": 397.15625,
+        "width": 440,
+        "height": 72
+      }
+    },
+    {
+      "step": 4,
+      "page": "/play.html",
+      "selector": "#sel-go",
+      "label": "전투 투입",
+      "box": {
+        "x": 1432.8125,
+        "y": 770.40625,
+        "width": 139.1875,
+        "height": 52
+      }
+    }
+  ],
+  "home": {
+    "solo": "혼자 하기 AI 대전 · 모드 11종 · 맵 21종 ›"
+  },
+  "roster": {
+    "agents": 28,
+    "abilitySlots": [
+      4
+    ],
+    "keysShown": [
+      "Q",
+      "E",
+      "C",
+      "X"
+    ]
+  },
+  "teams": {
+    "total": 10,
+    "myTeam": "atk",
+    "mine": 5,
+    "theirs": 5,
+    "mode": "std",
+    "phase": "buy"
+  },
+  "plant": {
+    "site": "A",
+    "team": "atk",
+    "state": "planted",
+    "fuse": 45
+  },
+  "hud": {
+    "roster": {
+      "x": 600.3671875,
+      "y": 64,
+      "width": 399.265625,
+      "height": 39
+    },
+    "faces": [
+      {
+        "x": 613.3671875,
+        "y": 70,
+        "width": 155,
+        "height": 27
+      },
+      {
+        "x": 778.3671875,
+        "y": 74,
+        "width": 43.265625,
+        "height": 19
+      },
+      {
+        "x": 831.6328125,
+        "y": 70,
+        "width": 155,
+        "height": 27
+      }
+    ],
+    "clock": {
+      "x": 764.2265625,
+      "y": 8,
+      "width": 71.546875,
+      "height": 27
+    },
+    "abilities": []
+  },
+  "spikeOnScreen": {
+    "x": 800,
+    "y": 442.2717945345659
+  },
+  "touchControlsVisible": 2,
+  "staged": [
+    "05→06: ADMIN.freezeAI=true and closeShop() (solo pauses the clock while the shop is open), buy timer set to 0.01 s, so the game's own step() opens the round (clock 1:40, shop closes)",
+    "06→07: player moved to the first site centre, then plantSpike() — the game's own plant routine"
+  ],
+  "errors": []
+}
