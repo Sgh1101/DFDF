@@ -29,3 +29,20 @@ test("the eight-second presentation is reserved for Champions last-enemy finishe
   for (const skin of ["champion", "champions_atk", "champions_def"]) assert.equal(rules.championsFinisher({ ...event, skin }), true);
   for (const patch of [{ skin: "dragon" }, { skin: "champions_atk", mode: "tdm" }, { skin: "champions_atk", last: false }, { skin: "champions_atk", kind: "ability" }, { skin: "champions_def", finisher: false }]) assert.equal(rules.championsFinisher({ ...event, ...patch }), false);
 });
+
+test("a player's round-ending kill finishes in a Champions skin whatever the gun wears; a bot's never finishes", () => {
+  const base = { mode: "std", last: true, kind: "gun", killer: 1, victim: 2, skin: "default" };
+  assert.equal(rules.finisher(base), false, "a plain gun has none by itself");
+  assert.equal(rules.playerFinisherSkin("atk"), "champions_atk");
+  assert.equal(rules.playerFinisherSkin("def"), "champions_def");
+  for (const team of ["atk", "def"]) {
+    const event = { ...base, finisherSkin: rules.playerFinisherSkin(team) };
+    assert.equal(rules.finisher(event), true);
+    assert.equal(rules.championsFinisher(event), true, "the eight-second Champions presentation");
+    assert.equal(rules.finisherSkin(event), event.finisherSkin);
+    assert.equal(rules.finisher({ ...event, byBot: true }), false);
+    assert.equal(rules.championsFinisher({ ...event, byBot: true }), false);
+    for (const patch of [{ mode: "tdm" }, { last: false }, { kind: "ability" }, { finisher: false }]) assert.equal(rules.finisher({ ...event, ...patch }), false);
+  }
+  assert.equal(rules.finisher({ ...base, skin: "dragon", byBot: true }), false, "a legendary bot gun never finishes");
+});

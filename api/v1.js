@@ -107,7 +107,7 @@ const DEFAULT_CONFIG = {
   gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
-  gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
+  gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
   // the daily shop: every day (midnight in Korea) twenty skins, the same for everyone, sold
   // for gold at a fixed price by tier, dearer than a pull but the skin you choose. mix: how
   // many of each tier; knife: the knives that are other knives cost this many times more;

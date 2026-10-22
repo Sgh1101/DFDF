@@ -1760,13 +1760,15 @@
   }
   const PEER = new Map(); // host: what each guest wears, by peer id
   let seed = (Math.random() * 1e9) >>> 0;
-  // bots wear a skin on some of their guns: the same ones all match long, and
-  // never above the tier the owner allows them (so the rare ones stay rare)
+  // bots wear a random skin on every gun: the same ones all match long, and
+  // never above the tier the owner allows them
+  // bots wear any tier but the top one (Transcendent): the owner may lower the tier, never raise it past Legendary
+  const BOT_TOP = (v) => Math.max(0, Math.min(SKIN_TIERS.max - 1, null != v && isFinite(+v) ? +v : SKIN_TIERS.max - 1));
   function botSkins(a) {
     if (a._botSk) return a._botSk;
     const t = {},
       v = GC().botMaxTier,
-      cap = null != v && isFinite(+v) ? Math.max(0, Math.min(SKIN_TIERS.max, +v)) : 2,
+      cap = BOT_TOP(v),
       pool = SKINS.filter((s) => !s.gone && !s.excl && s.rar >= 1 && s.rar <= cap);
     let h = (((a.id | 0) + 1) * 2654435761 + seed) >>> 0;
     for (const k of Object.keys(WEAPONS)) {
@@ -1776,7 +1778,8 @@
       h ^= h << 5;
       h >>>= 0;
       const fit = pool.filter((s) => fits(s, k));
-      if (fit.length && h % 100 < 38) t[k] = fit[h % fit.length].id;
+      // every gun comes in a random skin of the allowed tiers
+      if (fit.length) t[k] = fit[h % fit.length].id;
     }
     return (a._botSk = t);
   }
@@ -1929,10 +1932,7 @@
     }
     return CHK.get(k);
   }
-  const botCap = () => {
-    const v = GC().botMaxTier;
-    return null != v && isFinite(+v) ? Math.max(0, Math.min(SKIN_TIERS.max, +v)) : 2;
-  };
+  const botCap = () => BOT_TOP(GC().botMaxTier);
   // guest: my table and its ticket to the host; the newest call wins, and a
   // ticket the server did not give is asked for again a little later
   let tellN = 0;

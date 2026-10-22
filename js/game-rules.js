@@ -12,12 +12,18 @@
     if (mode === "dm") return rank === 1 ? "win" : "loss";
     return score[0] === score[1] ? "draw" : score[0] > score[1] ? "win" : "loss";
   }
+  // The skin a finisher is played in: a player's round-ending kill always gets the Champions finisher
+  // (finisherSkin, set where the kill is made); otherwise the skin the killer's gun wore. A bot's kill has none.
+  const finisherSkin = (event) => (event && (event.finisherSkin || event.skin));
   function finisher(event) {
-    return !!event && event.finisher !== false && event.mode === "std" && event.last === true && ["gun", "head", "melee"].includes(event.kind) && event.killer !== event.victim && typeof event.skin === "string" && event.skin !== "default";
+    const skin = finisherSkin(event);
+    return !!event && event.finisher !== false && !event.byBot && event.mode === "std" && event.last === true && ["gun", "head", "melee"].includes(event.kind) && event.killer !== event.victim && typeof skin === "string" && skin !== "default";
   }
   const championsSkin = (id) => ["champion", "champions_atk", "champions_def"].includes(id);
-  const championsFinisher = (event) => finisher(event) && championsSkin(event.skin);
-  const rules = { validInput, abilityReady, outcome, finisher, championsSkin, championsFinisher };
+  const championsFinisher = (event) => finisher(event) && championsSkin(finisherSkin(event));
+  // the Champions skin a player's finisher uses: the attackers' dragon pair or the defenders'
+  const playerFinisherSkin = (team) => ("atk" === team ? "champions_atk" : "champions_def");
+  const rules = { validInput, abilityReady, outcome, finisher, finisherSkin, playerFinisherSkin, championsSkin, championsFinisher };
   if (typeof module === "object" && module.exports) module.exports = rules;
   else root.GAME_RULES = rules;
 })(typeof window === "object" ? window : globalThis);
