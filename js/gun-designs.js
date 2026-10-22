@@ -53,7 +53,19 @@
       const cx = o.x || 0;
       return add(m, cx - w, cx + w, Y(bot), Y(top), Z(b), Z(a), o.rx, o.name);
     };
-    return { g, Z, Y, add, side };
+    // a bar from one side-view point to another (a slanted stock bar, a strut), its long axis along the line
+    const bar = (m, pxA, pyA, pxB, pyB, thick, w, name) => {
+      const zA = Z(pxA), yA = Y(pyA), zB = Z(pxB), yB = Y(pyB), dy = yB - yA, dz = zB - zA;
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, thick, Math.hypot(dy, dz));
+      mesh.position.set(0, (yA + yB) / 2, (zA + zB) / 2);
+      mesh.rotation.x = Math.atan2(dy, -dz);
+      name && (mesh.name = name);
+      mesh.castShadow = !0;
+      g.add(mesh);
+      return mesh;
+    };
+    return { g, Z, Y, add, side, bar };
   }
 
   // ── 밴달 (rifle): the long block stock with its brace, the stepped top cover with four vents, the slanted
@@ -204,6 +216,127 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal };
+  // ── 팬텀 (scout): the tall butt with a skeleton stock (top beam, slanted lower bar, pale toe strip), the long
+  // top rail with a pale stripe under it, a wide pale charging handle, a vented block up front, the rounded
+  // handguard with its bottom rail, and the long suppressor with a collar, two rings and a pale crown ──
+  function phantom() {
+    const k = kit({ S: 549, px0: 700, py0: 280, z0: -0.3615, y0: 0.03 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), BR = M.brass();
+
+    // stock
+    side(R, 362, 372, 228, 318, 0.029, { name: "butt-pad" });
+    for (let i = 0; i < 7; i++) side(D, 361, 363, 236 + i * 11, 240 + i * 11, 0.025);
+    side(P, 372, 396, 228, 318, 0.026, { name: "stock-rear" });
+    side(PA, 376, 390, 232, 239, 0.0265, { name: "cheek-mark" });
+    side(P, 372, 562, 228, 247, 0.025, { name: "stock-beam" });
+    side(PL, 372, 560, 228, 233, 0.0255);
+    bar(P, 384, 316, 482, 262, 0.02, 0.022, "stock-bar");
+    bar(PA, 400, 308, 456, 280, 0.012, 0.0232, "toe-panel");
+    // the wedge between the beam and the lower bar is solid, its underside following the bar
+    for (let i = 0; i < 10; i++) {
+      const a = 396 + i * 8.6, bot = 316 - (a + 4.3 - 384) * 0.551 - 4;
+      side(P, a, a + 8.6, 247, bot, 0.0235, { name: "stock-fill" });
+    }
+    // the top steps up from the stock to the receiver
+    for (let i = 0; i < 3; i++) side(P, 546 + i * 5, 551 + i * 5, 223 - i * 5, 228, 0.025, { name: "cover-step" });
+    side(P, 470, 562, 247, 262, 0.024, { name: "stock-lower" });
+    side(D, 474, 558, 252, 254, 0.0245);
+    side(ME, 540, 556, 262, 268, 0.016, { name: "sling-loop" });
+
+    // receiver: body, rail base and teeth, pale stripe, ejection port, wide charging handle, selector, screws
+    side(P, 560, 726, 212, 262, 0.026, { name: "receiver" });
+    side(ME, 566, 858, 205, 213, 0.021, { name: "top-rail-base" });
+    for (let i = 0; i < 20; i++) side(ST, 572 + i * 14, 579 + i * 14, 200, 205, 0.015, { name: "rail-tooth" });
+    side(PA, 590, 772, 215, 222, 0.0265, { name: "side-stripe" });
+    side(D, 660, 706, 226, 240, 0.0265, { name: "ejection-port" });
+    side(ST, 652, 700, 234, 243, 0.034, { x: 0.014, name: "charging-handle" });
+    side(D, 656, 696, 236, 241, 0.004, { x: 0.046 });
+    side(ME, 598, 612, 240, 246, 0.004, { x: -0.028, name: "selector" });
+    for (const [px, py] of [[568, 222], [568, 250], [716, 222], [716, 250]]) side(ST, px, px + 5, py, py + 5, 0.0265, { name: "screw" });
+    side(D, 566, 720, 256, 258, 0.0265);
+    side(ME, 574, 600, 196, 205, 0.012, { name: "rear-sight" });
+    side(D, 582, 592, 198, 203, 0.013);
+    side(ME, 838, 856, 194, 205, 0.008, { name: "front-sight" });
+    side(ST, 845, 849, 188, 196, 0.003);
+    side(PL, 788, 832, 206, 215, 0.024, { name: "vent-block" });
+    for (let i = 0; i < 3; i++) side(D, 793 + i * 13, 800 + i * 13, 207, 214, 0.0245);
+
+    // grip: raked back, a lighter side panel, grooves, a dark cap
+    const grip = new T.Group();
+    grip.position.set(0, Y(262), Z(574));
+    grip.rotation.x = -0.36;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.03, 0.03, -0.175, 0, 0.0175).name = "grip";
+    gb(PL, -0.022, 0.022, -0.15, -0.03, 0.0178);
+    for (let i = 0; i < 5; i++) gb(D, -0.03, 0.03, -0.04 - i * 0.025, -0.036 - i * 0.025, 0.018);
+    gb(D, -0.031, 0.031, -0.18, -0.172, 0.018).name = "grip-cap";
+
+    // trigger and guard
+    side(BR, 626, 632, 254, 270, 0.004, { name: "trigger" });
+    side(ME, 598, 650, 270, 275, 0.008, { name: "trigger-guard" });
+    side(ME, 646, 651, 262, 275, 0.008);
+
+    // magazine: straight, a touch forward, a lighter inset panel, ribs at the top, a dark base plate
+    const mag = new T.Group();
+    mag.name = "magazine";
+    mag.position.set(0, Y(262), Z(670));
+    mag.rotation.x = 0.06;
+    g.add(mag);
+    const mb = (m, w, h, d, y, z, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(w, h, d);
+      mesh.position.set(0, y, z);
+      name && (mesh.name = name);
+      mag.add(mesh);
+      return mesh;
+    };
+    side(BR, 650, 690, 258, 263, 0.006, { name: "round" });
+    mb(P, 0.034, 0.175, 0.105, -0.0875, 0, "mag-body");
+    mb(PL, 0.0345, 0.065, 0.07, -0.105, 0, "mag-panel");
+    for (let i = 0; i < 3; i++) mb(D, 0.035, 0.004, 0.107, -0.012 - i * 0.012, 0);
+    mb(D, 0.037, 0.012, 0.11, -0.181, 0, "mag-base");
+    mb(D, 0.037, 0.008, 0.012, -0.177, -0.06);
+
+    // handguard: two stacked blocks for a rounded section, a pale stripe, side vents, a bottom rail
+    side(P, 722, 864, 226, 258, 0.029, { name: "handguard" });
+    side(P, 722, 864, 220, 264, 0.021);
+    side(PA, 728, 858, 221, 227, 0.0225, { name: "hg-stripe" });
+    for (let i = 0; i < 3; i++) side(D, 742 + i * 22, 756 + i * 22, 236, 248, 0.0295, { name: "hg-vent" });
+    for (const px of [764, 848]) side(ST, px, px + 5, 250, 255, 0.0295, { name: "screw" });
+    side(ME, 730, 850, 262, 268, 0.012, { name: "bottom-rail" });
+    for (let i = 0; i < 9; i++) side(ST, 736 + i * 13, 743 + i * 13, 268, 272, 0.011);
+    side(ST, 852, 862, 258, 266, 0.01, { name: "qd-socket" });
+
+    // barrel stub, suppressor collar, tube with two rings, cap and pale crown
+    side(D, 858, 876, 232, 250, 0.009, { name: "barrel" });
+    side(D, 872, 902, 222, 258, 0.033, { name: "sup-collar" });
+    side(D, 872, 902, 218, 262, 0.024);
+    side(PL, 900, 1012, 224, 256, 0.032, { name: "suppressor" });
+    side(PL, 900, 1012, 220, 260, 0.023);
+    for (const px of [940, 976]) {
+      side(D, px, px + 4, 222, 258, 0.0325, { name: "sup-ring" });
+      side(D, px, px + 4, 218, 262, 0.0235);
+    }
+    side(ST, 1010, 1036, 224, 256, 0.031, { name: "sup-cap" });
+    side(ST, 1010, 1036, 220, 260, 0.022);
+    side(PA, 1030, 1038, 226, 254, 0.03, { name: "crown" });
+    side(PA, 1030, 1038, 222, 258, 0.021);
+    side(D, 1036, 1039, 232, 248, 0.009, { name: "muzzle-bore" });
+
+    g.name = "dfdf-phantom";
+    g.userData.weaponModel = "dfdf-phantom";
+    g.userData.design = { key: "scout", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(240), Z(1039)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
