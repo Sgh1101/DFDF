@@ -33,6 +33,7 @@
     pink: () => mat("pink", 0xe8a3a3, 0.55, 0.1),
     blue: () => mat("blue", 0x4a7fd0, 0.45, 0.3),
     silver: () => mat("silver", 0x8f969f, 0.4, 0.55),
+    chrome: () => mat("chrome", 0xe9edf3, 0.26, 0.38),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -548,6 +549,107 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost };
+  // ── 셰리프 (revolver): the chrome fluted cylinder in a pale frame, the hammer and its hump at the back, the long
+  // barrel with a pale top rib, a dark band with the silver ejector rod, a slanted shroud and a toothed
+  // underlug, a gold front sight, the round trigger guard, and the fat rubber grip with a silver backstrap,
+  // finger bumps and a blue tip ──
+  function sheriff() {
+    const k = kit({ S: 942, px0: 362, py0: 112, z0: 0.25, y0: 0.209 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), SI = M.silver(), CH = M.chrome(), BR = M.brass(), BL = M.blue();
+
+    // frame around the cylinder, rear block, top strap with its pale line and rear notch
+    side(ME, 512, 690, 120, 262, 0.026, { name: "frame" });
+    side(SI, 462, 566, 128, 262, 0.026, { name: "frame-rear" });
+    // the rear frame sweeps down and back into the grip, with pale edges along the sweep
+    side(SI, 440, 566, 205, 292, 0.0275, { name: "frame-sweep" });
+    bar(PA, 420, 214, 530, 298, 0.007, 0.0282, "sweep-edge");
+    bar(PA, 430, 204, 470, 140, 0.007, 0.0272, "hump-edge");
+    side(D, 456, 548, 248, 252, 0.028);
+    side(D, 506, 566, 213, 248, 0.0279, { name: "frame-recess" });
+    side(ME, 512, 1036, 118, 130, 0.022, { name: "top-strap" });
+    side(PA, 518, 1030, 117, 120, 0.0225);
+    side(D, 518, 540, 113, 120, 0.008, { name: "rear-sight" });
+    side(D, 526, 532, 113, 117, 0.0085);
+    for (const [px, py] of [[478, 145], [478, 240], [540, 240], [668, 252]]) side(ST, px, px + 7, py, py + 7, 0.0265, { name: "frame-screw" });
+    side(D, 470, 560, 205, 210, 0.0265, { name: "side-line" });
+
+    // hammer: a hump behind the frame and the spur
+    side(SI, 448, 516, 138, 205, 0.022, { name: "hammer-hump" });
+    side(PA, 452, 512, 138, 144, 0.0225);
+    bar(ME, 470, 160, 424, 182, 0.026, 0.011, "hammer");
+    for (let i = 0; i < 4; i++) bar(D, 466 - i * 10, 158 + i * 5, 461 - i * 10, 162 + i * 5, 0.006, 0.0115);
+    side(D, 420, 446, 176, 196, 0.011, { name: "hammer-spur" });
+
+    // cylinder: chrome, stacked for a round section, two dark flute bands, dark rims, latch arrow
+    side(CH, 566, 686, 142, 250, 0.047, { name: "cylinder" });
+    side(CH, 566, 686, 134, 258, 0.033);
+    for (const [a, b] of [[174, 190], [227, 242]]) {
+      side(D, 568, 684, a, b, 0.0475, { name: "flute" });
+      side(D, 568, 684, a - 4, b + 4, 0.0335);
+    }
+    side(D, 566, 571, 136, 256, 0.0478, { name: "cyl-rim" });
+    side(D, 681, 686, 136, 256, 0.0478);
+    side(PA, 580, 670, 145, 150, 0.0477, { name: "cyl-shine" });
+    side(D, 588, 606, 176, 188, 0.0482, { name: "latch" });
+    side(CH, 592, 600, 179, 185, 0.0485);
+    side(ST, 686, 700, 186, 200, 0.012, { name: "crane" });
+
+    // barrel: upper with a pale rib and vent slots, dark band with the ejector rod, shroud, underlug, bore, sights
+    side(SI, 686, 1040, 128, 182, 0.024, { name: "barrel" });
+    side(PA, 686, 1040, 128, 141, 0.0245, { name: "top-rib" });
+    for (let i = 0; i < 7; i++) side(D, 712 + i * 40, 730 + i * 40, 125, 128, 0.012, { name: "rib-vent" });
+    side(D, 700, 936, 180, 210, 0.025, { name: "dark-band" });
+    side(CH, 700, 808, 189, 198, 0.026, { name: "ejector-rod" });
+    side(ST, 806, 818, 186, 200, 0.0262);
+    side(SI, 930, 1040, 140, 212, 0.026, { name: "shroud" });
+    bar(SI, 960, 146, 934, 210, 0.006, 0.0265, "shroud-bevel");
+    side(PA, 940, 1036, 141, 145, 0.0262);
+    side(D, 700, 1022, 210, 228, 0.022, { name: "underlug" });
+    for (let i = 0; i < 7; i++) side(ME, 808 + i * 30, 828 + i * 30, 228, 236, 0.02, { name: "lug-tooth" });
+    bar(PA, 700, 272, 745, 228, 0.008, 0.0255, "frame-edge");
+    side(ME, 690, 742, 228, 262, 0.024, { name: "frame-front" });
+    side(D, 1036, 1041, 148, 174, 0.012, { name: "muzzle-bore" });
+    side(ST, 1034, 1040, 142, 180, 0.02, { name: "crown" });
+    side(ME, 976, 1030, 115, 128, 0.008, { name: "front-sight" });
+    side(BR, 988, 1004, 111, 117, 0.0065);
+
+    // trigger guard and trigger
+    bar(SI, 548, 258, 556, 316, 0.012, 0.008, "guard-rear");
+    side(SI, 554, 640, 316, 328, 0.008, { name: "guard-bottom" });
+    bar(SI, 638, 326, 662, 262, 0.012, 0.008, "guard-front");
+    bar(CH, 594, 258, 604, 304, 0.009, 0.004, "trigger");
+    side(ST, 588, 600, 252, 260, 0.027);
+
+    // grip: fat rubber, silver backstrap, finger bumps, a stippled panel, a blue tip on the base
+    const grip = new T.Group();
+    grip.position.set(0, Y(256), Z(500));
+    grip.rotation.x = -0.47;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      name && (mesh.name = name);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.055, 0.05, -0.185, 0.01, 0.033, "grip");
+    gb(PA, -0.062, -0.052, -0.178, 0.01, 0.03, "backstrap");
+    for (let i = 0; i < 3; i++) gb(P, 0.048, 0.06, -0.06 - i * 0.045, -0.032 - i * 0.045, 0.031, "finger-bump");
+    gb(D, -0.042, 0.04, -0.158, -0.03, 0.0335, "panel-border");
+    gb(PL, -0.04, 0.038, -0.156, -0.032, 0.0338, "grip-panel");
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 4; c++) gb(D, -0.034 + c * 0.019 + (r % 2) * 0.009, -0.03 + c * 0.019 + (r % 2) * 0.009, -0.04 - r * 0.016, -0.036 - r * 0.016, 0.0342, "stipple");
+    gb(ST, -0.004, 0.006, -0.11, -0.1, 0.0345, "grip-screw");
+    gb(D, -0.062, 0.058, -0.2, -0.183, 0.034, "grip-base");
+    gb(BL, 0.04, 0.058, -0.196, -0.178, 0.02, "base-tip");
+
+    g.name = "dfdf-sheriff";
+    g.userData.weaponModel = "dfdf-sheriff";
+    g.userData.design = { key: "revolver", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(161), Z(1041)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
