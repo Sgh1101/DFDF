@@ -1174,6 +1174,110 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator };
+  // ── 기관권총 (machpist): our own compact machine pistol, kept to the old size (0.06 × 0.33 × 0.37 m). A steel
+  // slide with front and rear serrations, a vented top, an open ejection port with a round in it and three-dot
+  // sights; a compensator with top ports; a polymer frame with a rail under the dust cover, slide stop and an
+  // orange fire selector; a squared trigger guard; a raked, stippled grip with a beavertail; the long magazine
+  // with ribs, a witness window and an orange base. Units: px = millimetres from the back of the slide, py =
+  // millimetres down from the top of the sights. ──
+  function machpist() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.093, y0: 0.101 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), A = M.accent(), BR = M.brass(), SI = M.silver();
+
+    // slide: body with a chamfered back and nose, a pale line, rear and front serrations, vented top, port
+    side(ST, 14, 318, 8, 48, 0.0135, { name: "slide" });
+    bar(ST, 8, 14, 16, 46, 0.012, 0.013, "slide-back");
+    bar(ST, 316, 12, 326, 44, 0.012, 0.013, "slide-nose");
+    side(SI, 14, 318, 7, 10, 0.012, { name: "slide-top" });
+    side(PA, 20, 312, 34, 36, 0.0137, { name: "slide-line" });
+    for (let i = 0; i < 7; i++) side(D, 24 + i * 8, 28 + i * 8, 14, 44, 0.0138, { name: "slide-serration" });
+    for (let i = 0; i < 4; i++) side(D, 262 + i * 8, 266 + i * 8, 18, 44, 0.0138, { name: "slide-serration" });
+    for (let i = 0; i < 5; i++) side(D, 214 + i * 9, 220 + i * 9, 6.5, 9, 0.007, { name: "top-vent" });
+    side(D, 130, 196, 9, 26, 0.0025, { x: 0.0118, name: "ejection-port" });
+    side(BR, 140, 186, 13, 22, 0.0012, { x: 0.0138, name: "chamber-round" });
+    side(BR, 186, 192, 15, 20, 0.0008, { x: 0.0138 });
+    side(D, 18, 300, 46, 48, 0.0136);
+
+    // sights: rear with two ears and white dots, front post with an orange dot
+    side(D, 18, 40, 0, 8, 0.011, { name: "rear-sight" });
+    side(D, 26, 32, 0, 5, 0.0112);
+    for (const x of [-0.007, 0.007]) side(PA, 40, 41, 2, 5, 0.0015, { x, name: "sight-dot" });
+    side(D, 296, 308, 1, 8, 0.004, { name: "front-sight" });
+    side(A, 308, 309, 2.5, 5.5, 0.0018, { name: "sight-dot" });
+
+    // compensator: block on the nose with three top ports, side slots, a pale ring and the bore
+    side(ME, 318, 364, 12, 46, 0.0145, { name: "compensator" });
+    side(SI, 318, 324, 11, 47, 0.015, { name: "comp-ring" });
+    for (let i = 0; i < 3; i++) {
+      side(D, 330 + i * 10, 336 + i * 10, 11, 14, 0.008, { name: "comp-port" });
+      side(D, 330 + i * 10, 336 + i * 10, 18, 40, 0.0146);
+    }
+    side(D, 363, 366, 22, 36, 0.006, { name: "muzzle-bore" });
+
+    // frame: body under the slide, dust cover with a three-slot rail, slide stop, takedown pin, orange
+    // selector at the back, a pale panel line
+    side(P, 18, 318, 48, 76, 0.0125, { name: "frame" });
+    side(PL, 236, 318, 48, 70, 0.0128, { name: "dust-cover" });
+    side(P, 240, 316, 70, 80, 0.011, { name: "accessory-rail" });
+    for (let i = 0; i < 3; i++) side(D, 250 + i * 22, 262 + i * 22, 77, 80, 0.0112, { name: "rail-slot" });
+    side(D, 236, 318, 62, 63, 0.0129);
+    side(ME, 150, 206, 50, 55, 0.0132, { name: "slide-stop" });
+    side(ME, 196, 206, 50, 60, 0.0134);
+    side(ST, 222, 228, 55, 61, 0.0132, { name: "takedown-pin" });
+    side(PL, 60, 226, 52, 74, 0.0128, { name: "frame-panel" });
+    side(D, 60, 226, 63, 64, 0.0129);
+    for (const px of [72, 214]) side(ST, px, px + 5, 66, 71, 0.013, { name: "frame-pin" });
+    side(A, 36, 54, 52, 60, 0.0145, { name: "selector" });
+    side(D, 42, 48, 54, 58, 0.015);
+
+    // trigger guard: squared, flat front with grooves; trigger
+    side(P, 104, 184, 116, 124, 0.0085, { name: "guard-bottom" });
+    side(P, 176, 186, 76, 124, 0.0085, { name: "guard-front" });
+    for (let i = 0; i < 3; i++) side(D, 184, 186.5, 86 + i * 10, 90 + i * 10, 0.007, { name: "guard-groove" });
+    bar(ME, 136, 76, 142, 106, 0.007, 0.004, "trigger");
+    side(ME, 132, 142, 104, 108, 0.004);
+
+    // grip and magazine: raked back, built in the grip's own frame (z forward is minus, y up)
+    const grip = new T.Group();
+    grip.position.set(0, Y(76), Z(84));
+    grip.rotation.x = -0.26;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      name && (mesh.name = name);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.032, 0.03, -0.13, 0, 0.0155, "grip");
+    gb(P, 0.026, 0.05, -0.012, 0.02, 0.013, "beavertail");
+    // stippled panels and finger grooves on the front
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) gb(R, -0.018 + c * 0.015, -0.009 + c * 0.015, -0.032 - r * 0.018, -0.024 - r * 0.018, 0.0162, "stipple");
+    for (let i = 0; i < 3; i++) gb(PL, -0.038, -0.03, -0.035 - i * 0.03, -0.018 - i * 0.03, 0.014, "finger-groove");
+    gb(D, -0.028, 0.026, -0.124, -0.118, 0.016, "grip-band");
+    // the long magazine below the grip: body, ribs, a witness window with brass behind it, orange base
+    gb(ME, -0.026, 0.022, -0.235, -0.128, 0.0115, "extended-magazine");
+    for (let i = 0; i < 4; i++) gb(D, -0.027, 0.023, -0.148 - i * 0.022, -0.144 - i * 0.022, 0.0118, "mag-rib");
+    gb(D, -0.004, 0.012, -0.226, -0.15, 0.0118, "mag-window");
+    gb(BR, -0.001, 0.009, -0.222, -0.154, 0.0119, "mag-rounds");
+    gb(A, -0.03, 0.026, -0.25, -0.235, 0.0135, "magazine-floorplate");
+    gb(D, -0.03, 0.026, -0.252, -0.249, 0.0138);
+
+    // the old model was twice as thick; the parts are drawn slim and the whole body is widened to match it
+    const body = new T.Group();
+    body.name = "machpist-body";
+    body.scale.x = 1.7;
+    while (g.children.length) body.add(g.children[0]);
+    g.add(body);
+
+    g.name = "dfdf-machpist";
+    g.userData.weaponModel = "dfdf-machpist";
+    g.userData.design = { key: "machpist", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(29), Z(366)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
