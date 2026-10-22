@@ -63,7 +63,7 @@ const CLIPS = [
       // The buy phase ends inside tick(), so we step until the round is live.
       await page.evaluate(() => { window.requestAnimationFrame = () => 0; locked = true; updateLockHint(); window.__clipT = performance.now(); });
       await page.waitForTimeout(300);
-      await page.evaluate(() => { for (let i = 0; i < 120 && world.phase !== "live"; i++) { document.getElementById("pause").hidden = true; window.__clipT += 50; tick(window.__clipT); } window.__yaw0 = myActor().yaw; });
+      await page.evaluate(() => { for (let i = 0; i < 120 && world.phase !== "live"; i++) { locked = true; document.getElementById("pause").hidden = true; window.__clipT += 50; tick(window.__clipT); } window.__yaw0 = myActor().yaw; });
       if (await page.evaluate(() => world.phase) !== "live") throw new Error(clip.name + ": the round did not go live");
       await page.waitForTimeout(400);
       console.log(clip.name, "map", await page.evaluate(() => CUR_MAP_KEY), "phase", await page.evaluate(() => world.phase));
@@ -71,7 +71,9 @@ const CLIPS = [
         const t = i / clip.fps, a = { yaw0: await page.evaluate(() => window.__yaw0) };
         const cmd = clip.script(t, a);
         await page.evaluate(({ cmd, dt, i }) => {
-          document.getElementById("pause").hidden = true;
+          // the pointer-lock change event (there is no pointer lock here) flips `locked` back and
+          // shows the "click the screen" hint; every frame says again that we are locked
+          locked = true; document.getElementById("pause").hidden = true; const lh = document.getElementById("lockhint"); if (lh) lh.hidden = true;
           // network toasts from the test API under load are not the game: keep them out of the picture
           for (const n of document.querySelectorAll("body *")) if (n.childElementCount === 0 && /서버 응답|요청 시간이 초과|offline/.test(n.textContent)) n.style.display = "none";
           const me = myActor(); me.hp = 100; me.alive = true;
@@ -87,7 +89,7 @@ const CLIPS = [
       }
       await page.evaluate(() => { keys.w = keys.s = keys.a = keys.d = keys.fire = false; world.phase = "menu"; show("s-title"); });
     } else {
-      await page.evaluate(({ map }) => { window.requestAnimationFrame = () => 0; loadMap(map); titleCam(0.001); document.querySelectorAll(".screen, #hud, #tb-menu, .home-guide, #acct-notice").forEach((n) => (n.style.visibility = "hidden")); }, { map: clip.map });
+      await page.evaluate(({ map }) => { window.requestAnimationFrame = () => 0; loadMap(map); titleCam(0.001); document.querySelectorAll(".screen, #hud, #tb-menu, #lockhint, .home-guide, #acct-notice").forEach((n) => (n.style.visibility = "hidden")); const lh = document.getElementById("lockhint"); if (lh) lh.hidden = true; }, { map: clip.map });
       await page.waitForTimeout(3000);
       for (let i = 0; i < frames; i++) {
         await page.evaluate(({ step }) => { titleCam(step); render(); }, { step: clip.step });
