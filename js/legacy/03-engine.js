@@ -15384,10 +15384,22 @@ function handleSpike(e) {
         (player.planting = 0),
         (player.plantAnchor = null),
         void spikeUI(
-          "스파이크 소지 · 사이트에 들어가면 자동 설치",
+          "스파이크 소지 · 사이트 안에서 4 또는 F를 눌러 설치",
           "#8a97ab",
           0,
           "#5b6879",
+        )
+      );
+    // planting is never automatic: 4 or F must be held, in place, inside the site; letting go stops it
+    if (!(keys.f || keys["4"]))
+      return (
+        (player.planting = 0),
+        (player.plantAnchor = null),
+        void spikeUI(
+          `${t.id} 사이트 · 4 또는 F를 누르고 있으면 설치`,
+          "#ffc849",
+          0,
+          "#ffc849",
         )
       );
     if (player.plantAnchor) {
@@ -19625,8 +19637,7 @@ function drawTacWalls(r, s) {
   tctx.drawImage(TACW.cv, r(TACW.minX), s(TACW.minZ), r(TACW.w), s(TACW.h));
 }
 function drawTac() {
-  // the second map (top left) is no longer shown: one map on screen, the one at the top right
-  if (!tctx || !tac.offsetWidth) return;
+  if (!tctx) return;
   const e = tac.width,
     t = tac.height,
     o = e / 2,

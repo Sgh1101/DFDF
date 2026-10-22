@@ -25,6 +25,7 @@
     "test:neon": "node scripts/browser-neon.js",
     "test:neon-look": "node scripts/browser-neon-look.js",
     "test:ability-motions": "node scripts/browser-ability-motions.js",
+    "test:manual-plant": "node scripts/browser-manual-plant.js",
     "test:phantom-audio": "node scripts/browser-phantom-audio.js",
     "test:phantom-loading": "node scripts/browser-phantom-loading.js",
     "package:phantom": "node scripts/package-phantom-assets.js",
