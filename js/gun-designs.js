@@ -28,6 +28,11 @@
     accent: () => mat("accent", 0xff7a1a, 0.5, 0.15, { emissive: 0x3a1500 }),
     brass: () => mat("brass", 0xc9a248, 0.32, 0.85),
     glow: () => mat("glow", 0x9fd8ff, 0.3, 0.1, { emissive: 0x2a6f9a }),
+    mint: () => mat("mint", 0x7fe3ab, 0.45, 0.2, { emissive: 0x0d3a22 }),
+    green: () => mat("green", 0x0f6b3c, 0.5, 0.25),
+    pink: () => mat("pink", 0xe8a3a3, 0.55, 0.1),
+    blue: () => mat("blue", 0x4a7fd0, 0.45, 0.3),
+    silver: () => mat("silver", 0x8f969f, 0.4, 0.55),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -445,6 +450,104 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic };
+  // ── 고스트 (silenced): the tall rear slide with serrations and a mint bevel, the lower front slide with a pale
+  // top line, mint panel and stripe and a dark port, the frame with a dark green strip and a short rail, the
+  // trigger guard with a pale pink underside, the steeply raked grip with a mint front strap and a blue tip on
+  // the base, and the long two-tone suppressor with a grooved collar and a ringed cap ──
+  function ghost() {
+    const k = kit({ S: 1024, px0: 362, py0: 167, z0: 0.25, y0: 0.141 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), SI = M.silver();
+    const MI = M.mint(), GR = M.green(), PK = M.pink(), BL = M.blue();
+
+    // rear slide: block, pale top, serrations, mint bevel at the back, rear sight with dots, safety
+    side(PL, 366, 515, 175, 225, 0.022, { name: "slide-rear" });
+    side(PA, 395, 515, 175, 190, 0.0225, { name: "slide-top" });
+    for (let i = 0; i < 9; i++) side(D, 402 + i * 11, 407 + i * 11, 194, 220, 0.0228, { name: "serration" });
+    bar(MI, 366, 222, 393, 177, 0.008, 0.0228, "rear-bevel");
+    side(D, 396, 412, 166, 176, 0.012, { name: "rear-sight" });
+    side(MI, 399, 403, 168, 172, 0.0125);
+    side(MI, 405, 409, 168, 172, 0.0125);
+    side(ME, 470, 492, 216, 224, 0.004, { x: -0.024, name: "safety" });
+    side(D, 366, 515, 223, 226, 0.0228);
+    side(PA, 415, 462, 226, 232, 0.0222, { name: "slide-under-strip" });
+
+    // front slide: lower body, pale top line, mint stripe and panel, dark port with a lit edge, front sight
+    side(PL, 515, 772, 180, 210, 0.019, { name: "slide-front" });
+    side(PA, 515, 772, 180, 184, 0.0195, { name: "slide-line" });
+    side(D, 560, 618, 186, 204, 0.0195, { name: "ejection-port" });
+    side(PA, 560, 618, 186, 189, 0.02);
+    side(ST, 618, 628, 190, 196, 0.0198, { name: "extractor" });
+    side(MI, 628, 735, 196, 200, 0.0195, { name: "mint-stripe" });
+    side(MI, 735, 772, 186, 206, 0.0195, { name: "mint-panel" });
+    side(D, 740, 744, 188, 204, 0.0198);
+    side(D, 742, 770, 168, 181, 0.008, { name: "front-sight" });
+    side(MI, 754, 758, 170, 174, 0.0085);
+    for (const px of [530, 700]) side(ST, px, px + 5, 200, 205, 0.0198, { name: "slide-pin" });
+
+    // frame: body, dark green strip, rail with teeth, takedown lever, slide stop, pins
+    side(P, 505, 772, 205, 230, 0.021, { name: "frame" });
+    side(GR, 610, 668, 224, 231, 0.0215, { name: "green-strip" });
+    side(ME, 668, 768, 228, 236, 0.016, { name: "rail" });
+    for (let i = 0; i < 5; i++) side(ST, 674 + i * 19, 684 + i * 19, 236, 241, 0.015, { name: "rail-tooth" });
+    side(ST, 560, 600, 208, 214, 0.004, { x: -0.022, name: "takedown" });
+    side(ST, 600, 650, 214, 220, 0.004, { x: -0.022, name: "slide-stop" });
+    for (const px of [520, 650, 760]) side(ST, px, px + 5, 214, 219, 0.0215, { name: "frame-pin" });
+
+    // trigger guard and trigger
+    bar(ME, 516, 228, 528, 272, 0.01, 0.007, "guard-rear");
+    side(ME, 526, 642, 265, 274, 0.007, { name: "guard-bottom" });
+    side(PK, 565, 630, 273, 279, 0.0075, { name: "guard-pink" });
+    bar(ME, 640, 272, 668, 230, 0.01, 0.007, "guard-front");
+    side(SI, 530, 540, 234, 262, 0.004, { name: "trigger" });
+    bar(SI, 535, 262, 545, 268, 0.006, 0.004);
+
+    // grip: raked, mint front strap, a side panel with ribs, a dark base with a blue tip, mag release
+    const grip = new T.Group();
+    grip.position.set(0, Y(225), Z(452));
+    grip.rotation.x = -0.4;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      name && (mesh.name = name);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.03, 0.024, -0.15, 0, 0.0205, "grip");
+    gb(MI, 0.022, 0.028, -0.142, -0.008, 0.0185, "front-strap");
+    gb(D, -0.022, 0.016, -0.136, -0.02, 0.0208, "panel-border");
+    gb(PL, -0.02, 0.014, -0.134, -0.022, 0.021, "grip-panel");
+    for (let i = 0; i < 8; i++) gb(D, -0.017, 0.011, -0.03 - i * 0.013, -0.028 - i * 0.013, 0.0213, "grip-rib");
+    for (let i = 0; i < 6; i++) gb(D, -0.034, -0.027, -0.03 - i * 0.019, -0.026 - i * 0.019, 0.019, "backstrap-ridge");
+    gb(D, -0.034, 0.03, -0.164, -0.148, 0.0215, "mag-base");
+    gb(BL, 0.018, 0.034, -0.17, -0.152, 0.012, "base-tip");
+    gb(ST, -0.04, -0.032, -0.162, -0.152, 0.005, "lanyard-loop");
+    side(ST, 500, 512, 232, 242, 0.004, { x: -0.022, name: "mag-release" });
+
+    // suppressor: grooved collar, two-tone body stacked for a rounded section, ringed cap, bore
+    side(D, 772, 830, 174, 214, 0.019, { name: "sup-collar" });
+    side(D, 772, 830, 170, 218, 0.013);
+    for (let i = 0; i < 3; i++) side(ME, 793 + i * 8, 797 + i * 8, 172, 216, 0.0195, { name: "collar-groove" });
+    side(SI, 830, 996, 172, 196, 0.019, { name: "sup-body" });
+    side(SI, 830, 996, 168, 196, 0.013);
+    side(D, 830, 996, 196, 216, 0.019);
+    side(D, 830, 996, 196, 220, 0.013);
+    side(PA, 840, 990, 175, 178, 0.0195, { name: "sup-highlight" });
+    for (const px of [870, 930]) side(ST, px, px + 5, 186, 191, 0.0195, { name: "sup-screw" });
+    side(ME, 996, 1036, 172, 216, 0.019, { name: "sup-cap" });
+    side(ME, 996, 1036, 168, 220, 0.013);
+    side(D, 1004, 1018, 170, 218, 0.0195, { name: "cap-ring" });
+    side(D, 1004, 1018, 166, 222, 0.0135);
+    side(D, 1035, 1039, 186, 202, 0.007, { name: "muzzle-bore" });
+
+    g.name = "dfdf-ghost";
+    g.userData.weaponModel = "dfdf-ghost";
+    g.userData.design = { key: "silenced", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(194), Z(1039)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
