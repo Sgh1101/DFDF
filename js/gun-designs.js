@@ -35,6 +35,7 @@
     silver: () => mat("silver", 0x8f969f, 0.4, 0.55),
     chrome: () => mat("chrome", 0xe9edf3, 0.26, 0.38),
     shell: () => mat("shell", 0xa3262b, 0.55, 0.08),
+    gold: () => mat("gold", 0xe9c45c, 0.4, 0.3),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -656,7 +657,7 @@
   // and ring, the raked grip, and the wide box drum showing three rows of brass-and-red shells ──
   function judge() {
     const k = kit({ S: 550, px0: 361, py0: 178, z0: 0.25, y0: 0.215 }), { g, side, bar, Z, Y } = k;
-    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), SI = M.silver(), BR = M.brass(), SH = M.shell();
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), SI = M.silver(), BR = M.brass(), SH = M.shell(), GD = M.gold();
 
     // stock: butt pad, slanted leg, beam with a pale top line, rising to the receiver, sling loop
     side(R, 361, 372, 208, 325, 0.03, { name: "butt-pad" });
@@ -727,26 +728,55 @@
     bar(ME, 644, 306, 656, 270, 0.01, 0.008, "guard-front");
     bar(ST, 608, 272, 616, 296, 0.008, 0.004, "trigger");
 
-    // drum: a round drum on a sideways axis, built as stacked slabs; a rim on each face, a pale feed cap on top,
-    // a window on each face showing three rows of brass-and-red shells, a winding key in the middle
-    const cz = (660 + 782) / 2, cy = 323, rad = 57;
-    for (let i = -6; i <= 6; i++) {
-      const y0 = cy + (i - 0.5) * (rad / 6.5), y1 = cy + (i + 0.5) * (rad / 6.5), mid = Math.abs(i) / 6.5, half = rad * Math.sqrt(Math.max(0, 1 - mid * mid));
-      side(D, cz - half, cz + half, y0, y1, 0.042, { name: "drum" });
-      side(ME, cz - half, cz + half, y0, y1, 0.046);
-      side(D, cz - half + 6, cz + half - 6, y0, y1, 0.0465);
+    // drum: a cylinder lying along the barrel, round across (stacked slabs whose width follows the circle), rims
+    // at both ends, a window on each side showing three round shells (brass back, red front), spokes and a hub
+    // on the front face, a pale feed cap on top
+    const zb = Z(660), zf = Z(782), cy = Y(323), RD = 0.1, n = 11, h = (2 * RD) / n;
+    const box = (m, x0, x1, y0, y1, z0, z1, name) => k.add(m, x0, x1, y0, y1, Math.min(z0, z1), Math.max(z0, z1), 0, name);
+    const halfAt = (dy) => RD * Math.sqrt(Math.max(0, 1 - (dy / RD) * (dy / RD)));
+    const zs = Z(686), zm = Z(704), ze = Z(752);
+    for (let i = 0; i < n; i++) {
+      const y0 = cy - RD + i * h, y1 = y0 + h, dy = Math.min(Math.abs(y0 - cy), Math.abs(y1 - cy)), w = halfAt(dy);
+      // the middle slabs are set in where the shells show, so the shells sit in a recess on each side
+      if (Math.abs((y0 + y1) / 2 - cy) < 0.07) {
+        box(D, -w + 0.006, w - 0.006, y0, y1, zs, zb - 0.018, "drum");
+        box(D, -w + 0.006, w - 0.006, y0, y1, zf + 0.018, ze, "drum");
+        box(D, -w + 0.044, w - 0.044, y0, y1, ze, zs, "drum-recess");
+      } else box(D, -w + 0.006, w - 0.006, y0, y1, zf + 0.018, zb - 0.018, "drum");
+      box(ME, -w, w, y0, y1, zf, zf + 0.018, "drum-rim");
+      box(ME, -w, w, y0, y1, zb - 0.018, zb, "drum-rim");
+      box(D, -w + 0.012, w - 0.012, y0, y1, zf - 0.004, zf, "drum-face");
     }
+    // the side windows: three shells each, two blocks apiece so they read round, with dark slats between
+    for (const sx of [-1, 1]) {
+      for (let r = -1; r <= 1; r++) {
+        const yc = cy + r * 0.045, w = halfAt(Math.abs(r * 0.045) + 0.02) - 0.004, sr = 0.0205;
+        const xi = sx > 0 ? w - 2 * sr : -w, xo = sx > 0 ? w : -w + 2 * sr;
+        box(GD, xi, xo, yc - sr * 0.7, yc + sr * 0.7, zm, zs, "shell-base");
+        box(GD, xi + 0.004 * sx, xo - 0.004 * sx, yc - sr, yc + sr, zm, zs);
+        box(SH, xi, xo, yc - sr * 0.7, yc + sr * 0.7, ze, zm, "shell");
+        box(SH, xi + 0.004 * sx, xo - 0.004 * sx, yc - sr, yc + sr, ze, zm);
+        box(PA, sx > 0 ? xo - 0.002 : xo - 0.001, sx > 0 ? xo + 0.001 : xo + 0.002, yc + sr * 0.35, yc + sr * 0.55, ze + 0.004, zm - 0.004, "shell-shine");
+        if (r < 1) box(D, sx > 0 ? w - 0.03 : -w - 0.001, sx > 0 ? w + 0.001 : -w + 0.03, yc + 0.02, yc + 0.024, ze, zs, "window-slat");
+      }
+    }
+    // spokes and a hub on the front face
+    for (let i = 0; i < 6; i++) {
+      const sp = new T.Mesh(BOX, ME);
+      sp.scale.set(0.008, RD * 0.82, 0.004);
+      const a = (i / 6) * Math.PI * 2;
+      sp.position.set(Math.sin(a) * RD * 0.41, cy + Math.cos(a) * RD * 0.41, zf - 0.006);
+      sp.rotation.z = -a;
+      sp.name = "drum-spoke";
+      g.add(sp);
+    }
+    box(ST, -0.016, 0.016, cy - 0.016, cy + 0.016, zf - 0.01, zf - 0.002, "drum-hub");
+    box(D, -0.006, 0.006, cy - 0.006, cy + 0.006, zf - 0.012, zf - 0.01);
+    // back face ring and the feed cap
+    box(D, -0.06, 0.06, cy - 0.06, cy + 0.06, zb, zb + 0.004, "drum-back");
     side(SI, 690, 752, 262, 270, 0.03, { name: "drum-cap" });
     side(ME, 700, 742, 270, 276, 0.025);
-    for (let r = 0; r < 3; r++) {
-      const top = 291 + r * 22;
-      side(BR, 686, 702, top, top + 17, 0.0468, { name: "shell-base" });
-      side(SH, 702, 748, top, top + 17, 0.0468, { name: "shell" });
-      side(D, 700, 703, top, top + 17, 0.047);
-      side(PA, 704, 746, top + 2, top + 4, 0.047);
-    }
-    side(ST, 752, 764, 316, 330, 0.049, { name: "drum-key" });
-    side(ME, 748, 768, 320, 326, 0.05);
+
     g.name = "dfdf-judge";
     g.userData.weaponModel = "dfdf-judge";
     g.userData.design = { key: "autoshot", revision: 1 };
