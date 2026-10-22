@@ -39,6 +39,7 @@
     copper: () => mat("copper", 0xe0874a, 0.4, 0.3),
     red: () => mat("red", 0x8f352e, 0.55, 0.2),
     redLite: () => mat("redLite", 0xc65a4e, 0.5, 0.18),
+    lens: () => mat("lens", 0x5a2a48, 0.15, 0.4, { emissive: 0x2a0c22 }),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -943,6 +944,119 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin };
+  // ── 아웃로 (marksman): a deep block stock with a rubber pad and a pale comb wedge, the raked wrist and pistol
+  // grip, a looped trigger guard, the receiver with a pale band and an emblem, the long forend with its slanted
+  // nose, two barrels one over the other with slots at the muzzle, and the scope on a short rail ──
+  function outlaw() {
+    const k = kit({ S: 829, px0: 52, py0: 281, z0: 0.25, y0: 0.03 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), SI = M.silver(), BL = M.blue(), A = M.accent(), LE = M.lens();
+
+    // stock: rubber pad, then slabs whose top climbs a little and whose underside rises steeply toward the
+    // wrist, a pale comb wedge, a sling slot and two screws
+    side(R, 52, 64, 278, 412, 0.031, { name: "butt-pad" });
+    for (let i = 0; i < 6; i++) side(D, 51, 53, 290 + i * 20, 298 + i * 20, 0.028);
+    for (let i = 0; i < 9; i++) {
+      const a = 64 + i * 19, c = a + 9.5, top = 278 - (c - 64) * (20 / 171), bot = 410 - (c - 64) * (70 / 171);
+      side(P, a, a + 19.5, top, bot - 36, 0.03, { name: "stock" });
+    }
+    // the underside is one long sloped block so it runs straight instead of in steps
+    bar(P, 64, 380, 236, 310, 0.06, 0.03, "stock-belly");
+    side(PL, 66, 232, 278, 284, 0.0305, { name: "stock-comb" });
+    bar(PL, 222, 262, 264, 282, 0.02, 0.026, "comb-wedge");
+    side(D, 96, 120, 318, 334, 0.0305, { name: "sling-slot" });
+    for (const [px, py] of [[148, 328], [92, 366]]) side(ST, px, px + 6, py, py + 6, 0.031, { name: "screw" });
+    side(BL, 64, 67, 300, 400, 0.0302, { name: "pad-line" });
+
+    // wrist: slabs from the stock up to the receiver, the top dipping at the comb then rising, the underside
+    // running down into the pistol grip; a pale line along the top; grip with ribs and a cap
+    bar(P, 222, 292, 432, 240, 0.06, 0.024, "wrist");
+    bar(P, 236, 318, 380, 276, 0.04, 0.023, "wrist-belly");
+    bar(PL, 262, 264, 420, 214, 0.008, 0.0245, "wrist-top");
+    bar(P, 312, 296, 290, 354, 0.044, 0.021, "grip");
+    for (let i = 0; i < 4; i++) bar(D, 280 + i * -2, 306 + i * 11, 318 + i * -6, 306 + i * 11, 0.003, 0.0215, "grip-rib");
+    bar(D, 270, 356, 308, 360, 0.012, 0.022, "grip-cap");
+
+    // trigger guard loop, trigger, orange safety dot
+    bar(ST, 384, 282, 396, 310, 0.008, 0.008, "guard-rear");
+    side(ST, 394, 462, 304, 314, 0.008, { name: "guard-bottom" });
+    bar(ST, 460, 312, 470, 278, 0.008, 0.008, "guard-front");
+    bar(ST, 414, 280, 420, 300, 0.006, 0.004, "trigger");
+    side(A, 452, 458, 282, 288, 0.026, { name: "safety-dot" });
+
+    // receiver: body with a sloped back, pale band, top cover, emblem, a dark seam
+    side(P, 410, 600, 210, 284, 0.033, { name: "receiver" });
+    bar(P, 404, 232, 460, 210, 0.026, 0.032, "receiver-slope");
+    side(SI, 488, 600, 224, 238, 0.0335, { name: "receiver-band" });
+    side(D, 500, 590, 229, 233, 0.034);
+    side(ME, 456, 600, 206, 212, 0.03, { name: "receiver-top" });
+    side(ME, 562, 586, 246, 268, 0.0335, { name: "emblem" });
+    side(D, 567, 581, 251, 263, 0.034);
+    side(BL, 572, 576, 254, 260, 0.0342);
+    side(D, 410, 600, 270, 273, 0.0335);
+    for (const [px, py] of [[426, 252], [588, 276]]) side(ST, px, px + 5, py, py + 5, 0.0337, { name: "screw" });
+
+    // forend: body, a seam under the barrels, three vent slots, slanted nose
+    side(P, 598, 884, 212, 288, 0.038, { name: "forend" });
+    side(D, 600, 882, 232, 235, 0.0385);
+    side(D, 650, 870, 262, 264, 0.0385, { name: "forend-line" });
+    side(PL, 600, 650, 238, 286, 0.0385, { name: "forend-band" });
+    const nose = side(P, 876, 904, 214, 288, 0.034, { name: "forend-nose" });
+    nose.rotation.x = 0.5;
+
+    // barrels: upper and lower, each a dark tube with a pale top, a rib between, slots near the muzzle, the
+    // front post and two dark bores
+    for (const [t, b, name, m] of [[212, 232, "barrel-upper", SI], [240, 262, "barrel-lower", ME]]) {
+      side(m, 600, 1340, t + 2, b, 0.014, { name });
+      side(SI, 600, 1340, t, t + 5, 0.012);
+      side(ST, 1262, 1342, t, b, 0.0155, { name: "muzzle" });
+      side(D, 1340, 1344, t + 5, b - 4, 0.008, { name: "muzzle-bore" });
+    }
+    side(D, 880, 1336, 232, 240, 0.008, { name: "barrel-rib" });
+    for (let i = 0; i < 3; i++) {
+      side(D, 1270 + i * 17, 1280 + i * 17, 211, 218, 0.0158, { name: "muzzle-slot" });
+      side(D, 1270 + i * 17, 1280 + i * 17, 256, 263, 0.0158);
+    }
+    side(ME, 1318, 1332, 204, 212, 0.004, { name: "front-post" });
+    side(A, 1321, 1329, 199, 204, 0.004);
+
+    // scope: rail and two mounts, eyepiece, tube, turret with a knob, objective bell, lens
+    side(ME, 518, 706, 198, 210, 0.016, { name: "scope-rail" });
+    for (let i = 0; i < 8; i++) side(D, 526 + i * 22, 532 + i * 22, 198, 201, 0.0165, { name: "rail-slot" });
+    for (const px of [536, 664]) {
+      side(ME, px, px + 18, 188, 200, 0.014, { name: "scope-mount" });
+      side(ST, px - 2, px + 20, 184, 192, 0.026, { name: "scope-ring" });
+    }
+    // a round tube along the barrel: three crossed blocks so it reads round from the front
+    const tube = (m, pa, pb, top, bot, name) => {
+      const c = (top + bot) / 2, r = (bot - top) / 2;
+      side(m, pa, pb, c - r, c + r, (r * 0.55) / 829, { name });
+      side(m, pa, pb, c - r * 0.55, c + r * 0.55, r / 829);
+      side(m, pa, pb, c - r * 0.85, c + r * 0.85, (r * 0.85) / 829);
+    };
+    tube(ST, 476, 512, 157, 196, "eyepiece");
+    tube(SI, 476, 482, 155, 198);
+    tube(D, 473, 477, 164, 188);
+    tube(ST, 512, 586, 162, 190, "scope-tube");
+    tube(D, 512, 518, 160, 192);
+    tube(SI, 584, 614, 158, 194, "turret");
+    side(ST, 590, 608, 150, 158, 0.012, { name: "turret-knob" });
+    tube(ST, 592, 606, 164, 188);
+    side(D, 596, 602, 170, 182, 0.0185);
+    tube(ST, 612, 690, 156, 196, "objective");
+    tube(D, 612, 618, 154, 198);
+    tube(SI, 652, 656, 155, 197);
+    const bell = side(SI, 686, 704, 153, 199, 0.0165, { name: "objective-bell" });
+    bell.rotation.x = -0.18;
+    side(SI, 686, 704, 160, 192, 0.027);
+    tube(LE, 703, 706, 160, 192, "lens");
+
+    g.name = "dfdf-outlaw";
+    g.userData.weaponModel = "dfdf-outlaw";
+    g.userData.design = { key: "marksman", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(222), Z(1344)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
