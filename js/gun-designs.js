@@ -1278,6 +1278,85 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist };
+  // ── 기본 칼 (knife, the stock one; the knife skins keep their own builds): a drop-point combat knife kept to the
+  // old size (0.05 × 0.12 × 0.71 m) and the old grip place. A two-tone blade, black-coated above the grind line
+  // and bright on the edge bevel, with a fuller, jimping on the spine, serrations by the guard, a choil and an
+  // orange mark; a double guard; a shaped handle with a rubber inlay, grooves and a finger guard; a pommel with
+  // a glass breaker and an orange lanyard. Units: px = mm from the back of the pommel, py = mm down from the
+  // top of the guard. ──
+  function knife() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.273, y0: 0.05 }), { g, side, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), A = M.accent(), SI = M.silver(), CH = M.chrome();
+    const lerp = (x, pts) => {
+      for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) return pts[i - 1][1] + ((x - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0])) * (pts[i][1] - pts[i - 1][1]);
+      return pts[pts.length - 1][1];
+    };
+
+    // blade: slabs across its length; each one is the coated flat from the spine to the grind line and the bright
+    // bevel from there to the edge, thinner toward the edge
+    const top = (px) => (px < 540 ? 16 : 16 + 44 * Math.pow((px - 540) / 172, 1.6));
+    const bot = (px) => (px < 288 ? 70 : px < 296 ? 84 - ((296 - px) / 8) * 14 : px < 500 ? 84 : 84 - 24 * Math.pow((px - 500) / 212, 2.2));
+    // slabs whose shape matches their neighbour's are joined into one block, so the flat stretches have no seams
+    const runs = [];
+    for (let px = 268; px < 712; px += 6) {
+      const c = Math.min(px + 3, 711), t = Math.round(top(c)), b = Math.round(bot(c));
+      if (b - t < 1) continue;
+      const last = runs[runs.length - 1];
+      if (last && last.t === t && last.b === b && last.b1 === px) last.b1 = px + 6;
+      else runs.push({ a: px, b1: px + 6, t, b });
+    }
+    for (const r of runs) {
+      const gr = r.t + (r.b - r.t) * 0.52, e = r.b1 + 0.5;
+      side(ME, r.a, e, r.t, gr, 0.0072, { name: "blade-flat" });
+      side(SI, r.a, e, gr, r.b, 0.0042, { name: "blade-bevel" });
+      side(CH, r.a, e, r.b - 2, r.b, 0.0016, { name: "blade-edge" });
+    }
+    side(ST, 268, 540, 16, 18, 0.0068, { name: "blade-spine" });
+    // fuller, jimping, serrations, orange mark, the choil's dark notch
+    side(ST, 300, 500, 30, 36, 0.0075, { name: "fuller" });
+    side(D, 300, 500, 36, 37, 0.0076);
+    for (let i = 0; i < 7; i++) side(D, 292 + i * 8, 296 + i * 8, 15, 19, 0.0074, { name: "jimping" });
+    for (let i = 0; i < 8; i++) side(D, 300 + i * 11, 305 + i * 11, 78, 84.5, 0.0046, { name: "serration" });
+    side(A, 380, 470, 44, 46.5, 0.0074, { name: "blade-mark" });
+    side(A, 380, 386, 41, 49, 0.0074);
+    side(ST, 268, 296, 16, 70, 0.0078, { name: "ricasso" });
+    side(D, 272, 292, 62, 64, 0.0079);
+
+    // double guard: a steel plate with rounded ends and a dark seam
+    for (const [t, b, w] of [[6, 114, 0.012], [10, 110, 0.016], [14, 106, 0.018]]) side(ST, 252, 268, t, b, w, { name: "guard" });
+    side(D, 258, 262, 14, 106, 0.0182);
+
+    // handle: slabs that follow its shape (a rear swell, a waist, a finger guard), a rubber inlay with grooves, a
+    // pale bolster ring by the guard
+    const hTop = [[22, 26], [80, 20], [160, 18], [252, 22]], hBot = [[22, 100], [70, 106], [130, 96], [205, 110], [236, 104], [252, 100]];
+    for (let px = 22; px < 252; px += 8) {
+      const c = px + 4, t = lerp(c, hTop), b = lerp(c, hBot);
+      side(PL, px, px + 8.5, t, b, 0.0158, { name: "handle" });
+      side(PL, px, px + 8.5, t + 4, b - 4, 0.0168);
+      if (px >= 40 && px < 228) side(R, px, px + 8.5, t + 16, b - 16, 0.0174, { name: "handle-inlay" });
+    }
+    for (let i = 0; i < 9; i++) {
+      const px = 46 + i * 20, t = lerp(px, hTop) + 16, b = lerp(px, hBot) - 16;
+      side(D, px, px + 4, t, b, 0.0176, { name: "handle-groove" });
+    }
+    side(PL, 236, 252, 22, 102, 0.0172, { name: "bolster" });
+    side(D, 242, 244, 22, 102, 0.0174);
+
+    // pommel: steel cap, a glass-breaker point, the lanyard hole and an orange cord
+    side(ST, 4, 22, 22, 104, 0.0165, { name: "pommel" });
+    side(ST, 0, 4, 30, 96, 0.0145);
+    side(CH, -8, 0, 54, 72, 0.006, { name: "glass-breaker" });
+    side(D, 8, 18, 86, 94, 0.017, { name: "lanyard-hole" });
+    side(A, 8, 18, 104, 118, 0.004, { name: "lanyard" });
+    side(A, 2, 24, 116, 120, 0.004);
+
+    g.name = "dfdf-knife";
+    g.userData.weaponModel = "dfdf-knife";
+    g.userData.design = { key: "knife", revision: 1 };
+    g.userData.anchors = { tip: [0, Y(60), Z(712)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
