@@ -337,6 +337,84 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom };
+  // ── 클래식 (pistol): the slide with its pale top strip, rear and front serrations, dark ejection port and gold
+  // front sight; the frame with a toothed rail under the muzzle and a beavertail at the back; the big angular
+  // trigger guard with a pale blade; the long raked grip with a checkered face and a lighter base plate ──
+  function classic() {
+    const k = kit({ S: 1562, px0: 700, py0: 280, z0: 0.0355, y0: 0.03 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), BR = M.brass();
+
+    // slide
+    side(PL, 450, 1036, 62, 128, 0.027, { name: "slide" });
+    side(PL, 450, 642, 128, 165, 0.027, { name: "slide-rear" });
+    side(D, 450, 1036, 126, 130, 0.0282, { name: "slide-joint" });
+    side(D, 450, 642, 163, 167, 0.0282);
+    side(PA, 725, 1035, 55, 68, 0.022, { name: "slide-top" });
+    side(PL, 450, 725, 58, 70, 0.024);
+    side(PA, 618, 724, 60, 64, 0.0245);
+    side(D, 456, 470, 46, 60, 0.012, { name: "rear-sight" });
+    side(D, 486, 500, 46, 60, 0.012);
+    side(D, 456, 500, 56, 60, 0.012);
+    side(BR, 955, 990, 44, 56, 0.006, { name: "front-sight" });
+    for (let i = 0; i < 8; i++) side(PA, 516 + i * 12, 520 + i * 12, 78, 148, 0.0278, { name: "serration" });
+    for (let i = 0; i < 6; i++) {
+      side(PA, 914 + i * 11, 920 + i * 11, 96, 100, 0.0278, { name: "front-serration" });
+      side(PA, 914 + i * 11, 920 + i * 11, 114, 118, 0.0278);
+    }
+    side(D, 640, 722, 88, 132, 0.0278, { name: "ejection-port" });
+    side(ST, 724, 745, 95, 102, 0.0278, { name: "extractor" });
+    side(ST, 1028, 1038, 72, 122, 0.016, { name: "muzzle-crown" });
+    side(D, 1036, 1039, 84, 110, 0.009, { name: "muzzle-bore" });
+
+    // frame: a lighter upper band under the slide, the dark dust cover, the toothed rail, front face, takedown
+    // lever, slide stop, the block behind the guard, beavertail
+    side(ME, 640, 1032, 128, 165, 0.0285, { name: "frame-upper" });
+    side(P, 640, 1032, 165, 206, 0.029, { name: "frame" });
+    side(ME, 812, 1032, 206, 222, 0.026, { name: "rail-base" });
+    for (let i = 0; i < 6; i++) side(ST, 820 + i * 34, 840 + i * 34, 222, 236, 0.024, { name: "rail-tooth" });
+    side(D, 1028, 1036, 165, 230, 0.026);
+    side(ST, 622, 700, 150, 162, 0.0295, { name: "takedown" });
+    side(ST, 560, 612, 168, 178, 0.004, { x: -0.028, name: "slide-stop" });
+    side(P, 452, 642, 165, 192, 0.029, { name: "frame-rear" });
+    bar(P, 384, 128, 450, 162, 0.016, 0.018, "beavertail");
+
+    // trigger guard: front slope, flat bottom, rear slope up to the grip; the pale blade and its pin
+    bar(ME, 768, 186, 738, 292, 0.014, 0.009, "guard-front");
+    side(ME, 640, 742, 288, 306, 0.009, { name: "guard-bottom" });
+    bar(ME, 642, 298, 606, 262, 0.014, 0.009, "guard-rear");
+    side(PA, 648, 662, 212, 262, 0.004, { name: "trigger" });
+    bar(PA, 655, 262, 668, 282, 0.008, 0.004);
+    side(ST, 650, 660, 200, 210, 0.03, { name: "trigger-pin" });
+
+    // grip: raked back, a checkered face, grooves on the front strap, lighter base plate with a forward lip
+    const grip = new T.Group();
+    grip.position.set(0, Y(172), Z(530));
+    grip.rotation.x = -0.3;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      name && (mesh.name = name);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.048, 0.048, -0.185, 0, 0.0275, "grip");
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 3; c++) gb(PL, -0.03 + c * 0.022 + (r % 2) * 0.011, -0.018 + c * 0.022 + (r % 2) * 0.011, -0.036 - r * 0.022, -0.024 - r * 0.022, 0.0282, "checker");
+    for (let i = 0; i < 4; i++) gb(D, 0.04, 0.05, -0.05 - i * 0.03, -0.045 - i * 0.03, 0.026);
+    gb(PL, -0.049, -0.045, -0.175, -0.01, 0.027, "backstrap-line");
+    gb(PL, -0.05, 0.052, -0.2, -0.185, 0.028, "mag-base");
+    gb(PL, 0.036, 0.056, -0.215, -0.185, 0.026, "mag-lip");
+    side(PA, 586, 598, 286, 298, 0.004, { x: -0.026, name: "mag-release" });
+    side(D, 586, 600, 284, 300, 0.004, { x: 0.026 });
+
+    g.name = "dfdf-classic";
+    g.userData.weaponModel = "dfdf-classic";
+    g.userData.design = { key: "pistol", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(97), Z(1039)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
