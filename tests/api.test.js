@@ -690,3 +690,40 @@ test("the owner can switch agents off: only known ids are kept (in roster order)
   // only the owner
   assert.equal((await h.api("a_config_set", { atoken: "nope", config: h.config })).status, 401);
 });
+test("a name already taken cannot be signed up again, in any case, and says why", async () => {
+  const h = harness();
+  assert.equal((await h.api("auth", { id: "철수", pw: "password", device: "device-a1" })).created, true);
+  for (const id of ["철수", " 철수 "]) {
+    const again = await h.api("auth", { id, pw: "other-password", device: "device-b1" });
+    assert.equal(again.status, 401);
+    assert.match(again.error, /이미 있는 아이디/);
+  }
+  assert.equal((await h.api("auth", { id: "Alpha", pw: "password", device: "device-a2" })).created, true);
+  const upper = await h.api("auth", { id: "ALPHA", pw: "different", device: "device-b2" });
+  assert.equal(upper.status, 401);
+  // the owner of the name still signs in
+  const back = await h.api("auth", { id: "alpha", pw: "password", device: "device-a2" });
+  assert.equal(back.status, 200);
+  assert.equal(back.created, false);
+  assert.equal(back.user.id, "Alpha");
+});
+test("new accounts cannot take guest or nameless-player names", async () => {
+  const h = harness();
+  for (const id of ["게스트1234", "Guest77", "플레이어555", "player9"]) {
+    const r = await h.api("auth", { id, pw: "password", device: "device-reserved" });
+    assert.equal(r.status, 400, id);
+    assert.match(r.error, /쓸 수 없습니다/);
+  }
+});
+test("two devices never share a guest name, and a device keeps its own", async () => {
+  const h = harness(), names = new Set();
+  for (let i = 0; i < 40; i++) {
+    const g = await h.api("guest", { device: "guest-device-" + i });
+    assert.equal(g.status, 200);
+    assert.ok(!names.has(g.user.id), "repeated " + g.user.id);
+    names.add(g.user.id);
+  }
+  const first = (await h.api("guest", { device: "guest-device-0" })).user.id;
+  assert.equal((await h.api("guest", { device: "guest-device-0" })).user.id, first);
+  assert.ok(names.has(first));
+});

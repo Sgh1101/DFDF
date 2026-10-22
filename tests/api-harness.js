@@ -19,7 +19,7 @@ function harness(options = {}) {
       case "ZCARD": case "ZCOUNT": return key === "users" ? [...db.keys()].filter((x) => x.startsWith("user:")).length : 0;
       case "LLEN": return (db.get(key) || []).length;
       case "KEYS": { const re = new RegExp("^" + key.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$"); return [...db.keys()].filter((x) => re.test(x)); }
-      case "SET": db.set(key, args[0]); if (args[1] === "EX") expires.set(key, clock + +args[2] * 1000); return "OK";
+      case "SET": if (args.includes("NX") && get(key) != null) return null; db.set(key, args[0]); if (args[1] === "EX") expires.set(key, clock + +args[2] * 1000); return "OK";
       case "INCR": case "INCRBY": { const n = +(get(key) || 0) + (op === "INCR" ? 1 : +args[0]); db.set(key, String(n)); return n; }
       case "EXPIRE": expires.set(key, clock + +args[0] * 1000); return 1;
       case "DEL": { const had = db.delete(key); expires.delete(key); return +had; }
