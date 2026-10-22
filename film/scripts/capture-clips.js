@@ -16,8 +16,11 @@ const ONLY = (process.env.FILM_CLIPS || "").split(",").filter(Boolean);
 // A clip is a plan: which map and agent, and what the player does on each second.
 // mv: [strafe, forward] like gatherInput; yaw/pitch in radians; q/fire: press on that frame.
 const CLIPS = [
+  // run straight down the spawn corridor (a sideways sway ran into a wall), cast Q ahead early,
+  // stop, turn left, fire, come back to centre
   { name: "open", map: "glacier", agent: "hwaryeong", fps: 30, seconds: 5, mode: "round",
-    script: (t, a) => ({ mv: [0, t < 4.2 ? -1 : 0], yaw: a.yaw0 + 0.35 * Math.sin(t * 0.9) * Math.min(1, t), pitch: -0.06 + 0.03 * Math.sin(t * 1.7), q: Math.abs(t - 1.5) < 0.02, fire: t > 3.0 && t < 3.6 }) },
+    script: (t, a) => { const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x)); const turn = t < 4.0 ? 0.42 * ease((t - 2.6) / 0.8) : 0.42 * (1 - ease((t - 4.0) / 1.0));
+      return { mv: [0, t < 2.6 ? -1 : 0], yaw: a.yaw0 + turn + 0.05 * Math.sin(t * 1.1), pitch: -0.05 + 0.02 * Math.sin(t * 1.7), q: Math.abs(t - 1.0) < 0.02, fire: t > 3.4 && t < 3.9 }; } },
   { name: "cast", map: "neon", agent: "hwaryeong", fps: 30, seconds: 2.5, mode: "round",
     script: (t, a) => ({ mv: [0, t < 0.4 ? -1 : 0], yaw: a.yaw0 + 0.15 * Math.sin(t * 1.3), pitch: -0.04, q: Math.abs(t - 0.5) < 0.02, e: Math.abs(t - 1.4) < 0.02, fire: t > 2.0 && t < 2.4 }) },
   // the home screen's own orbit (titleCam from js/legacy/08-…js), advanced 0.2 s per frame
@@ -55,10 +58,13 @@ const CLIPS = [
         const me = myActor(); me.weapons.primary = "rifle"; me.slot = "primary"; me.ammo.rifle = 30; me.reserve.rifle = 90;
         world.roundTime = 0.01;
       }, { map: clip.map, agent: clip.agent });
-      await page.waitForFunction(() => world.phase === "live");
       // take the loop over: no more animation frames, we call tick ourselves. There is no
       // pointer lock in headless Chrome, which the game answers by pausing: pretend it is locked.
-      await page.evaluate(() => { window.requestAnimationFrame = () => 0; window.__yaw0 = myActor().yaw; window.__clipT = performance.now(); locked = true; updateLockHint(); document.getElementById("pause").hidden = true; });
+      // The buy phase ends inside tick(), so we step until the round is live.
+      await page.evaluate(() => { window.requestAnimationFrame = () => 0; locked = true; updateLockHint(); window.__clipT = performance.now(); });
+      await page.waitForTimeout(300);
+      await page.evaluate(() => { for (let i = 0; i < 120 && world.phase !== "live"; i++) { document.getElementById("pause").hidden = true; window.__clipT += 50; tick(window.__clipT); } window.__yaw0 = myActor().yaw; });
+      if (await page.evaluate(() => world.phase) !== "live") throw new Error(clip.name + ": the round did not go live");
       await page.waitForTimeout(400);
       console.log(clip.name, "map", await page.evaluate(() => CUR_MAP_KEY), "phase", await page.evaluate(() => world.phase));
       for (let i = 0; i < frames; i++) {

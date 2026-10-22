@@ -39,7 +39,7 @@
     screenPx: [2000, 1125],
     // Frame sequences: dir/NNN.jpg, played from the shot's start at the clip's own rate.
     clips: {
-      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령: 달리고, Q 불꽃 장막을 치고, 쏜다" },
+      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령: 복도를 달리며 Q 불꽃 장막, 멈춰서 왼쪽으로 돌며 사격" },
       cast: { dir: "screens/clips/cast", fps: 30, frames: 75, what: "네온 정점, 화령: Q 불꽃 장막, E 화염탄, 사격" },
       "map-pogu": { dir: "screens/clips/map-pogu", fps: 24, frames: 48, what: "포구, 홈 화면의 공중 카메라" },
       "map-neon": { dir: "screens/clips/map-neon", fps: 24, frames: 48, what: "네온 정점" },
@@ -147,9 +147,9 @@
     ],
     cues: [
       { t: 0, type: "bed", until: 40 },
-      { t: 1.5, type: "cast", why: "Q in the opening clip" },
+      { t: 1.0, type: "cast", why: "Q in the opening clip" },
       { t: 2.5, type: "motif", step: 1, why: "the play was a browser tab" },
-      { t: 3.0, type: "shots", n: 6, every: 0.085, why: "the opening clip fires" },
+      { t: 3.4, type: "shots", n: 6, every: 0.085, why: "the opening clip fires" },
       { t: 5.0, type: "thud", why: "13" },
       { t: 7.2, type: "keys", n: 6, every: 0.08 },
       { t: 9.0, type: "click" },

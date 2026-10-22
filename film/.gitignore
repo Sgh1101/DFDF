@@ -1,5 +1,6 @@
-# regenerable: scripts/audio.js, scripts/render.js --stills, scripts/contact.js
+# regenerable: scripts/audio.js, scripts/render.js --stills, scripts/contact.js, scripts/clips.js unpack
 out/*.wav
 review/beats/
 review/contact.html
 review/determinism-*.png
+screens/clips/*/
