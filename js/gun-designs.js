@@ -1593,6 +1593,81 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun };
+  // ── 산탄 권총 (pocketshot): a two-shot break-action pistol, kept to the old size (0.09 × 0.25 × 0.42 m): two
+  // barrels side by side with a rib and a brass bead, a silver frame with engraving, the hinge pin, a top lever and
+  // two hammers, a checkered wood forend with its latch, a guard with two triggers, a raked wood grip with a steel
+  // cap and a lanyard ring. Units: px = mm from the back of the grip, py = mm down from the hammer tops. ──
+  function pocketshot() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.095, y0: 0.07 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), A = M.accent(), BR = M.brass(), SI = M.silver(), W = M.wood(), WL = M.woodLite(), CH = M.chrome();
+
+    // barrels: two round tubes side by side, a pale top shine, the rib between with a brass bead, the bores
+    for (const x of [-0.023, 0.023]) {
+      roundRod(k, ME, 196, 412, 18, 64, "barrel", x);
+      side(SI, 200, 410, 17, 22, 0.012, { x, name: "barrel-shine" });
+      roundRod(k, ST, 404, 414, 17, 65, "barrel-crown", x);
+      side(D, 413, 416, 30, 52, 0.013, { x, name: "muzzle-bore" });
+      roundRod(k, ST, 196, 214, 16, 66, "barrel-breech", x);
+    }
+    side(ME, 196, 412, 12, 22, 0.01, { name: "rib" });
+    side(BR, 400, 408, 6, 12, 0.003, { name: "bead" });
+
+    // frame: silver body with a sloped back, engraving lines, hinge pin, top lever, two hammers and their pins
+    side(SI, 30, 200, 14, 104, 0.043, { name: "frame" });
+    bar(SI, 14, 70, 40, 16, 0.03, 0.04, "frame-back");
+    for (let i = 0; i < 3; i++) side(PA, 60 + i * 8, 180 - i * 8, 40 + i * 14, 42 + i * 14, 0.0432, { name: "engraving" });
+    side(D, 60, 186, 90, 92, 0.0432);
+    roundRod(k, ST, 184, 210, 74, 100, "hinge-pin", 0.044);
+    roundRod(k, ME, 190, 204, 80, 94, null, 0.046);
+    bar(ME, 70, 12, 120, 8, 0.008, 0.014, "top-lever");
+    side(ME, 112, 124, 4, 14, 0.016);
+    for (const x of [-0.022, 0.022]) {
+      bar(ST, 24, 0, 52, 30, 0.012, 0.007, "hammer").position.x = x;
+      side(CH, 18, 30, 0, 6, 0.008, { x, name: "hammer-spur" });
+    }
+    for (const px of [44, 150]) side(CH, px, px + 8, 60, 68, 0.0436, { name: "frame-pin" });
+
+    // forend: checkered wood under the barrels, slanted at the front, its latch
+    side(W, 206, 350, 66, 114, 0.038, { name: "forend" });
+    const fn = side(W, 344, 366, 66, 110, 0.034, { name: "forend-nose" });
+    fn.rotation.x = 0.4;
+    for (let i = 0; i < 6; i++) side(WL, 224 + i * 18, 232 + i * 18, 76, 104, 0.0383, { name: "forend-checkering" });
+    side(ME, 320, 342, 112, 118, 0.012, { name: "forend-latch" });
+
+    // trigger guard and two triggers
+    side(ME, 96, 170, 150, 158, 0.009, { name: "guard-bottom" });
+    bar(ME, 96, 104, 100, 154, 0.008, 0.009, "guard-rear");
+    side(ME, 162, 170, 104, 158, 0.009, { name: "guard-front" });
+    bar(CH, 118, 104, 124, 136, 0.006, 0.004, "trigger");
+    bar(CH, 138, 104, 144, 132, 0.006, 0.004, "trigger");
+
+    // grip: raked wood with a checkered panel, a steel butt cap and a lanyard ring
+    const grip = new T.Group();
+    grip.position.set(0, Y(104), Z(66));
+    grip.rotation.x = -0.36;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, nm) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      nm && (mesh.name = nm);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(W, -0.03, 0.034, -0.13, 0, 0.019, "grip");
+    gb(W, -0.026, 0.03, -0.138, -0.13, 0.017);
+    gb(WL, -0.02, 0.022, -0.11, -0.02, 0.0194, "grip-checkering");
+    for (let i = 0; i < 6; i++) gb(D, -0.02, 0.022, -0.03 - i * 0.014, -0.028 - i * 0.014, 0.0196, "checker-line");
+    gb(ST, -0.032, 0.036, -0.148, -0.136, 0.0195, "butt-cap");
+    gb(CH, 0.012, 0.022, -0.162, -0.148, 0.004, "lanyard-ring");
+
+    g.name = "dfdf-pocketshot";
+    g.userData.weaponModel = "dfdf-pocketshot";
+    g.userData.design = { key: "pocketshot", revision: 1 };
+    g.userData.anchors = { muzzle: [0.023, Y(41), Z(416)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun, pocketshot };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
