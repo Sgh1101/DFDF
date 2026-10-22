@@ -8,8 +8,11 @@ for (const c of T.copy) {
   if (c.l2 && c.l2at > c.t0) { cues.push([c.t0, c.l2at, c.l1]); cues.push([c.l2at, c.t1, c.l1 + "\n" + c.l2]); }
   else cues.push([c.t0, c.t1, c.l2 ? c.l1 + "\n" + c.l2 : c.l1]);
 }
-cues.push([T.moves.type[0], T.copy[1].t0, T.url]); // typed into the bar on screen
-T.clicks.forEach((k, i) => cues.push([k.t, i + 1 < T.clicks.length ? T.clicks[i + 1].t : T.counter.t1, `${T.counter.kicker}\n${k.n} ${k.label}`]));
+// the URL typed into the bar stays readable on screen until the window takes it into its chrome
+const typed = [T.moves.type[0], T.copy[1].t0], link = cues.find((c) => c[0] === T.copy[1].t0);
+cues.push([typed[0], typed[1], T.url]); link[2] = T.url + "\n" + link[2];
+// the counter names each button from the moment its screen is up (the numeral ticks on the click)
+T.clicks.forEach((k, i) => cues.push([k.show, i + 1 < T.clicks.length ? T.clicks[i + 1].show : T.counter.t1, `${T.counter.kicker}\n${k.n} ${k.label}`]));
 cues.sort((a, b) => a[0] - b[0]);
 const srt = cues.map(([a, b, text], i) => `${i + 1}\n${ts(a)} --> ${ts(b)}\n${text}\n`).join("\n");
 fs.writeFileSync(path.join(__dirname, "../captions.srt"), srt);

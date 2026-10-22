@@ -1,87 +1,988 @@
 {
   "determinism": {
-    "t": 19.5,
+    "t": 18.3,
     "twoBrowsers": [
-      "ca3b7c61d56162b35812481c648fd7f0fe4061b445485e77eff2ddac2d4bf105",
-      "ca3b7c61d56162b35812481c648fd7f0fe4061b445485e77eff2ddac2d4bf105"
+      "4c9da8321b008197a0c41f27f9681057af2abfac78e324cb58602b37a7993c25",
+      "4c9da8321b008197a0c41f27f9681057af2abfac78e324cb58602b37a7993c25"
     ],
     "identical": true,
     "seekAwayAndBack": true
   },
+  "captions": [
+    {
+      "format": "16x9",
+      "cues": 13,
+      "problems": []
+    },
+    {
+      "format": "9x16",
+      "cues": 13,
+      "problems": []
+    },
+    {
+      "format": "1x1",
+      "cues": 13,
+      "problems": []
+    },
+    {
+      "format": "16x9-reduced",
+      "cues": 13,
+      "problems": []
+    }
+  ],
   "textFits": [
     {
       "format": "16x9",
-      "checked": 11,
+      "checked": 10,
       "overflow": []
     },
     {
       "format": "9x16",
-      "checked": 11,
+      "checked": 10,
       "overflow": []
     },
     {
       "format": "1x1",
-      "checked": 11,
+      "checked": 10,
       "overflow": []
     },
     {
-      "format": "16x9",
-      "checked": 11,
-      "overflow": [],
-      "reduced": true
+      "format": "16x9-reduced",
+      "checked": 10,
+      "overflow": []
     }
   ],
   "stills": {
     "16x9": [
       "review/beats/16x9/16x9-01.50.png",
       "review/beats/16x9/16x9-03.90.png",
-      "review/beats/16x9/16x9-04.90.png",
-      "review/beats/16x9/16x9-06.60.png",
-      "review/beats/16x9/16x9-08.40.png",
-      "review/beats/16x9/16x9-10.00.png",
-      "review/beats/16x9/16x9-11.60.png",
-      "review/beats/16x9/16x9-13.60.png",
-      "review/beats/16x9/16x9-15.60.png",
-      "review/beats/16x9/16x9-18.10.png",
+      "review/beats/16x9/16x9-05.20.png",
+      "review/beats/16x9/16x9-08.00.png",
+      "review/beats/16x9/16x9-10.30.png",
+      "review/beats/16x9/16x9-10.70.png",
+      "review/beats/16x9/16x9-12.70.png",
+      "review/beats/16x9/16x9-14.70.png",
+      "review/beats/16x9/16x9-16.80.png",
+      "review/beats/16x9/16x9-17.50.png",
+      "review/beats/16x9/16x9-18.60.png",
       "review/beats/16x9/16x9-19.50.png",
-      "review/beats/16x9/16x9-21.90.png",
-      "review/beats/16x9/16x9-23.90.png",
-      "review/beats/16x9/16x9-26.20.png",
-      "review/beats/16x9/16x9-29.40.png"
+      "review/beats/16x9/16x9-21.30.png",
+      "review/beats/16x9/16x9-24.00.png",
+      "review/beats/16x9/16x9-29.00.png"
     ],
     "9x16": [
       "review/beats/9x16/9x16-01.50.png",
       "review/beats/9x16/9x16-03.90.png",
-      "review/beats/9x16/9x16-04.90.png",
-      "review/beats/9x16/9x16-06.60.png",
-      "review/beats/9x16/9x16-08.40.png",
-      "review/beats/9x16/9x16-10.00.png",
-      "review/beats/9x16/9x16-11.60.png",
-      "review/beats/9x16/9x16-13.60.png",
-      "review/beats/9x16/9x16-15.60.png",
-      "review/beats/9x16/9x16-18.10.png",
+      "review/beats/9x16/9x16-05.20.png",
+      "review/beats/9x16/9x16-08.00.png",
+      "review/beats/9x16/9x16-10.30.png",
+      "review/beats/9x16/9x16-10.70.png",
+      "review/beats/9x16/9x16-12.70.png",
+      "review/beats/9x16/9x16-14.70.png",
+      "review/beats/9x16/9x16-16.80.png",
+      "review/beats/9x16/9x16-17.50.png",
+      "review/beats/9x16/9x16-18.60.png",
       "review/beats/9x16/9x16-19.50.png",
-      "review/beats/9x16/9x16-21.90.png",
-      "review/beats/9x16/9x16-23.90.png",
-      "review/beats/9x16/9x16-26.20.png",
-      "review/beats/9x16/9x16-29.40.png"
+      "review/beats/9x16/9x16-21.30.png",
+      "review/beats/9x16/9x16-24.00.png",
+      "review/beats/9x16/9x16-29.00.png"
     ],
     "1x1": [
       "review/beats/1x1/1x1-01.50.png",
       "review/beats/1x1/1x1-03.90.png",
-      "review/beats/1x1/1x1-04.90.png",
-      "review/beats/1x1/1x1-06.60.png",
-      "review/beats/1x1/1x1-08.40.png",
-      "review/beats/1x1/1x1-10.00.png",
-      "review/beats/1x1/1x1-11.60.png",
-      "review/beats/1x1/1x1-13.60.png",
-      "review/beats/1x1/1x1-15.60.png",
-      "review/beats/1x1/1x1-18.10.png",
+      "review/beats/1x1/1x1-05.20.png",
+      "review/beats/1x1/1x1-08.00.png",
+      "review/beats/1x1/1x1-10.30.png",
+      "review/beats/1x1/1x1-10.70.png",
+      "review/beats/1x1/1x1-12.70.png",
+      "review/beats/1x1/1x1-14.70.png",
+      "review/beats/1x1/1x1-16.80.png",
+      "review/beats/1x1/1x1-17.50.png",
+      "review/beats/1x1/1x1-18.60.png",
       "review/beats/1x1/1x1-19.50.png",
-      "review/beats/1x1/1x1-21.90.png",
-      "review/beats/1x1/1x1-23.90.png",
-      "review/beats/1x1/1x1-26.20.png",
-      "review/beats/1x1/1x1-29.40.png"
+      "review/beats/1x1/1x1-21.30.png",
+      "review/beats/1x1/1x1-24.00.png",
+      "review/beats/1x1/1x1-29.00.png"
+    ],
+    "16x9-reduced": [
+      "review/beats/16x9-reduced/16x9-reduced-01.50.png",
+      "review/beats/16x9-reduced/16x9-reduced-03.90.png",
+      "review/beats/16x9-reduced/16x9-reduced-05.20.png",
+      "review/beats/16x9-reduced/16x9-reduced-08.00.png",
+      "review/beats/16x9-reduced/16x9-reduced-10.30.png",
+      "review/beats/16x9-reduced/16x9-reduced-10.70.png",
+      "review/beats/16x9-reduced/16x9-reduced-12.70.png",
+      "review/beats/16x9-reduced/16x9-reduced-14.70.png",
+      "review/beats/16x9-reduced/16x9-reduced-16.80.png",
+      "review/beats/16x9-reduced/16x9-reduced-17.50.png",
+      "review/beats/16x9-reduced/16x9-reduced-18.60.png",
+      "review/beats/16x9-reduced/16x9-reduced-19.50.png",
+      "review/beats/16x9-reduced/16x9-reduced-21.30.png",
+      "review/beats/16x9-reduced/16x9-reduced-24.00.png",
+      "review/beats/16x9-reduced/16x9-reduced-29.00.png"
+    ]
+  },
+  "pixelContrast": {
+    "16x9": [
+      {
+        "t": 1.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "barLabel",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "barUrl",
+        "ratio": 17.27,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "chip",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk0",
+        "ratio": 5.07,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          255,
+          59,
+          78
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk1",
+        "ratio": 5.07,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          58,
+          77
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk5",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "barUrl",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      }
+    ],
+    "9x16": [
+      {
+        "t": 1.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "barLabel",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "barUrl",
+        "ratio": 17.26,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "chip",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk0",
+        "ratio": 5.07,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          255,
+          59,
+          78
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk1",
+        "ratio": 5.07,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          58,
+          77
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk5",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "barUrl",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      }
+    ],
+    "1x1": [
+      {
+        "t": 1.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 1.5,
+        "id": "barLabel",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 5.2,
+        "id": "barUrl",
+        "ratio": 17.24,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          245
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 12.7,
+        "id": "cLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 18.5,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "l2",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 24,
+        "id": "chip",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk0",
+        "ratio": 5.07,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          58,
+          77
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk1",
+        "ratio": 5.1,
+        "fg": [
+          22,
+          23,
+          29
+        ],
+        "bg": [
+          254,
+          58,
+          77
+        ]
+      },
+      {
+        "t": 24,
+        "id": "mk5",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l1",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "l2",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 29,
+        "id": "barUrl",
+        "ratio": 17.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          254,
+          251,
+          246
+        ]
+      }
     ]
   },
   "media": {
@@ -94,33 +995,148 @@
             "width": 1920,
             "height": 1080,
             "pix_fmt": "yuv420p",
-            "r_frame_rate": "60/1"
+            "r_frame_rate": "60/1",
+            "nb_frames": "1800"
           },
           {
             "codec_name": "aac",
             "sample_rate": "48000",
             "channels": 2,
-            "r_frame_rate": "0/0"
+            "r_frame_rate": "0/0",
+            "nb_frames": "1408"
           }
         ],
         "format": {
           "duration": "30.000000",
-          "size": "5387531"
+          "size": "3445180"
         }
       },
       "loudness": {
         "I": -16,
-        "TP": -2,
-        "LRA": 1.3
+        "TP": -1.8,
+        "LRA": 1.2
       },
       "flashes": {
         "frames": 1800,
-        "bigLumaJumps": [],
-        "maxJumpsPerSecond": 0
+        "maxFlashesPerSecond": {
+          "general": 1,
+          "red": 0
+        }
       }
     },
-    "out/cut_9x16.mp4": "missing",
-    "out/cut_1x1.mp4": "missing",
-    "out/cut_reduced_16x9.mp4": "missing"
+    "out/cut_9x16.mp4": {
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920,
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "60/1",
+            "nb_frames": "1800"
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1408"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "3081254"
+        }
+      },
+      "loudness": {
+        "I": -16,
+        "TP": -1.8,
+        "LRA": 1.2
+      },
+      "flashes": {
+        "frames": 1800,
+        "maxFlashesPerSecond": {
+          "general": 0,
+          "red": 0
+        }
+      }
+    },
+    "out/cut_1x1.mp4": {
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1080,
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "60/1",
+            "nb_frames": "1800"
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1408"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "2853837"
+        }
+      },
+      "loudness": {
+        "I": -16,
+        "TP": -1.8,
+        "LRA": 1.2
+      },
+      "flashes": {
+        "frames": 1800,
+        "maxFlashesPerSecond": {
+          "general": 1,
+          "red": 0
+        }
+      }
+    },
+    "out/cut_reduced_16x9.mp4": {
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "60/1",
+            "nb_frames": "1800"
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1408"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "2548813"
+        }
+      },
+      "loudness": {
+        "I": -16,
+        "TP": -1.8,
+        "LRA": 1.2
+      },
+      "flashes": {
+        "frames": 1800,
+        "maxFlashesPerSecond": {
+          "general": 1,
+          "red": 0
+        }
+      }
+    }
   }
 }
