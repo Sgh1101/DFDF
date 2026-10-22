@@ -13,10 +13,24 @@
     [practice.querySelector("summary"), "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12 M12 10v4 M10 12h4"],
     [$("go-set"), "M9 3h6l1 4 4 2v6l-4 2-1 4H9l-1-4-4-2V9l4-2z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"],
   ]) element.insertAdjacentHTML("afterbegin", icon(path));
+  // the target range was mounted before the practice menu existed and landed in the bar: it belongs in the menu
+  const into = practice.querySelector(":scope > div");
+  if (into && $("go-targets") && !into.contains($("go-targets"))) into.append($("go-targets"));
+  // diagnostics (js/game-improvements.js, loaded later) joins the bar as an ordinary item, not a big box
+  const tidy = () => {
+    const d = $("go-diagnostics");
+    if (!d || d.classList.contains("tt-item")) return;
+    d.className = "tt-item tt-mini home-minor";
+    d.innerHTML = `<b>${L("성능 진단", "Diagnostics")}</b>`;
+    d.title = L("성능 진단", "Diagnostics");
+    d.insertAdjacentHTML("afterbegin", icon("M3 12h4l2-6 4 12 2-6h6"));
+  };
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", tidy) : setTimeout(tidy);
   // feedback: bug reports, agent ideas, player reports, suggestions (the form is js/feedback.js)
   if (window.FEEDBACK) {
     const fb = document.createElement("button");
-    fb.className = "tt-item tt-mini";
+    fb.className = "tt-item tt-mini home-minor";
+    fb.title = L("문의", "Feedback");
     fb.id = "go-feedback";
     fb.type = "button";
     fb.innerHTML = `<b>${L("문의", "Feedback")}</b>`;
@@ -26,7 +40,8 @@
     // paid cheats (shown only once the owner has opened the sale)
     if (window.ORDERS) {
       const od = document.createElement("button");
-      od.className = "tt-item tt-mini";
+      od.className = "tt-item tt-mini home-minor";
+      od.title = L("치트 구매", "Buy cheats");
       od.id = "go-order";
       od.type = "button";
       od.style.display = "none";
