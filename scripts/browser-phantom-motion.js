@@ -22,7 +22,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
           }
           shape.push({ name: o.name, vertices: o.geometry.drawRange.count, positions: Array.from(attribute.array.slice(0, o.geometry.drawRange.count * 3)), decoded: o.material.map.image?.naturalWidth > 0 });
         } });
-        const bones = []; model?.traverse(o => { if (o.name.startsWith("phantom-bone-")) bones.push(...o.matrixWorld.elements); });
+        const bones = []; model?.getObjectByName('champions-original-models')?.traverse(o => { if (o.name.startsWith("phantom-bone-")) bones.push(...o.matrixWorld.elements); });
         return { active: FINISHERS.active.size, time: motion?.userData.time, pulse: motion?.userData.pulse, vertices: motion?.userData.vertices, modelVisible: model?.visible, shape, bones, allFxFramed, glError: pv.r.getContext().getError() };
       });
     }

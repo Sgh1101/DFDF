@@ -24,6 +24,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--gold)}
 header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,13,18,.94);backdrop-filter:blur(6px);z-index:5;flex-wrap:wrap}
 header b{font-size:16px}
 nav{display:flex;gap:6px;flex-wrap:wrap}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}.ag{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);cursor:pointer;position:relative}.ag input{position:absolute;right:10px;top:10px}.ag small{color:var(--steel);font-size:11px}.ag.off{opacity:.45;border-style:dashed}
 nav button.on{border-color:var(--gold);color:var(--gold)}
 header .sp{flex:1}
 main{padding:18px;max-width:1200px;margin:0 auto}
@@ -166,6 +167,7 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
       <button data-v="orders">구매 주문<span id="odBadge"></span></button>
       <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
+      <button data-v="agents">요원</button>
       <button data-v="config">게임 설정</button>
     </nav>
     <span class="sp"></span>
@@ -642,9 +644,10 @@ function fbCard(r) {
   if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${esc(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
   if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
   const c = r.ctx || {};
+  const diagnostic=c.diagnostic?`<div class="kv"><span>진단 요약</span><span>${esc(c.diagnostic.quality)} · p95 ${esc(c.diagnostic.p95Ms)}ms · GPU ${esc(c.diagnostic.geometries)}/${esc(c.diagnostic.textures)}<br>${esc(c.diagnostic.version)} · ${esc(c.diagnostic.commit)}</span></div>`:'';
   const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
   return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span><b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
-    <div class="in">${extra}<div class="txt">${esc(r.text)}</div>
+    <div class="in">${extra}${diagnostic}<div class="txt">${esc(r.text)}</div>
     <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
     <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
     <label class="muted">운영자 메모 (보낸 사람에겐 안 보임)<textarea data-note maxlength="500">${esc(r.note)}</textarea></label>
@@ -735,6 +738,7 @@ const LABELS = {
   cos: ["꾸미기 상점", "칭호·네임카드·킬 효과를 골드로 삽니다. 등급별 가격이 하나씩이고, 끄면 사지도 못하고 새로 입히지도 못합니다(이미 입은 것은 그대로 보입니다)"], "cos.on": ["꾸미기 상점 열기"], "cos.price": ["등급별 가격 (골드)"], "cos.price.1": ["일반"], "cos.price.2": ["희귀"], "cos.price.3": ["영웅"], "cos.price.4": ["전설"],
   shop: ["일일 상점", "매일 자정(한국 시간)에 바뀌는 스킨 상점. 모두에게 같은 목록이 뜨고, 골라서 골드로 바로 삽니다 (뽑기보다 비싸게)"], "shop.on": ["상점 열기"], "shop.mix": ["등급별 개수", "합이 하루에 뜨는 칸 수 (1~40, 기본 20)"], "shop.mix.common": ["일반"], "shop.mix.rare": ["희귀"], "shop.mix.epic": ["영웅"], "shop.mix.legendary": ["전설"], "shop.price": ["등급별 가격 (골드)"], "shop.price.common": ["일반"], "shop.price.rare": ["희귀"], "shop.price.epic": ["영웅"], "shop.price.legendary": ["전설"], "shop.knife": ["칼 모양 스킨 가격 배율", "카람빗·발리송 같은 칼 모양 스킨은 이 배수로 비쌉니다 (1~10)"], "shop.weekly": ["주간 특가", "월요일 0시(한국 시간)에 바뀌어 한 주 내내 할인되는 영웅·전설 스킨. 일일 상점 목록에 같이 뜹니다"], "shop.weekly.on": ["주간 특가 열기"], "shop.weekly.mix": ["등급별 개수"], "shop.weekly.mix.epic": ["영웅"], "shop.weekly.mix.legendary": ["전설"], "shop.weekly.off": ["할인율 (%)", "0~90, 가격은 일일 상점 가격에서 이 비율만큼 깎입니다"], "shop.weekly.reroll": ["새로 고침 번호", "바꾸면 이번 주 특가가 즉시 다른 목록으로 바뀝니다"], "shop.reroll": ["새로 고침 번호", "바꾸면 오늘 상점이 즉시 다른 목록으로 바뀝니다 (대시보드의 '상점 새로 고침' 버튼과 같음)"],
   aim: ["에임 보정", "조준할 때 가까운 적을 조금 따라가는 보정. 모바일은 누구나 설정에서 켜고 끌 수 있고, 컴퓨터는 '가입자'에서 에임 보정 권한을 준 계정(또는 관리자 모드)만 쓸 수 있습니다"], "aim.mobile": ["모바일 에임 보정 허용", "끄면 폰에서 아무도 못 씁니다"], "aim.pc": ["컴퓨터 에임 보정 허용", "끄면 권한을 받은 계정도 못 씁니다"], "aim.strength": ["세기 (%)", "0~100. 기본 35"], "aim.range": ["거리 (m)", "이 거리 안의 적만. 5~150"], "aim.cone": ["각도 (도)", "조준선에서 이 각도 안의 적만. 1~30"], "aim.ranked": ["랭크전에서 모바일 보정 유지", "컴퓨터 보정은 랭크전에서 항상 꺼집니다"],
+  "game.disabledAgents": ["꺼 둔 요원", "요원 탭에서 켜고 끕니다 (아이디를 쉼표로 적은 것)"],
   "game.extraMaps": ["다시 보일 맵", "맵 목록은 5대5 7개 · 3대3 5개 · 1대1 3개로 줄였습니다. 뺀 맵을 다시 넣으려면 키를 쉼표로 적으세요(all이면 전부). 5대5: harbor 해안 포구, freighter 강철 항로, temple 폐사찰, forge 용암 제련소, g01~g30 · 3대3: s01 항구 창고 · 1대1: d02 모래 투기장"],
   "gacha.botMaxTier": ["봇이 입는 최고 등급", "0 없음 · 1 일반 · 2 희귀 · 3 영웅 · 4 전설 · 5 초월"],
   rank: ["티어", "경기마다 오르내리는 티어 점수(RR). 100마다 한 단계, 세 단계가 한 티어 (아이언 → 브론즈 → 실버 → 골드 → 플래티넘 → 다이아몬드 → 초월자 → 불멸 → 레디언트)"], "rank.win": ["승리 RR"], "rank.loss": ["패배 RR", "지면 이만큼 내려갑니다 (처치가 많으면 절반까지 덜 내려감)"], "rank.perKill": ["처치당 추가 RR"], "rank.maxKill": ["처치 보너스 최대"], "rank.maxPerDay": ["하루 최대 상승 RR", "0이면 한도 없음. 경기 결과는 게임이 보고하므로 꾸민 결과로 끝없이 올리지 못하게 합니다"], mission: ["미션", "일일 미션(한국 시간 자정에 새로)과 주간 미션(월요일에 새로). 숫자는 목표, 골드는 받기를 누르면 주는 보상. 목표를 0으로 하면 그 미션은 꺼집니다"], "mission.dPlay": ["일일 · 경기 수"], "mission.dPlayGold": ["일일 · 경기 보상"], "mission.dKill": ["일일 · 처치 수"], "mission.dKillGold": ["일일 · 처치 보상"], "mission.dWin": ["일일 · 승리 수"], "mission.dWinGold": ["일일 · 승리 보상"], "mission.wPlay": ["주간 · 경기 수"], "mission.wPlayGold": ["주간 · 경기 보상"], "mission.wKill": ["주간 · 처치 수"], "mission.wKillGold": ["주간 · 처치 보상"], "mission.wWin": ["주간 · 승리 수"], "mission.wWinGold": ["주간 · 승리 보상"],
@@ -761,6 +765,29 @@ VIEWS.config = async () => {
     await call("a_config_set", { config: c }); toast("저장했습니다. 게임에는 다음 접속·다음 신호 때 적용됩니다");
   };
   $("#crst").onclick = async () => { if (confirm("모든 설정을 기본값으로 되돌릴까요?")) { await call("a_config_reset"); VIEWS.config(); } };
+};
+// ── agents: switch each one on or off (an off agent leaves the picker, the bots and the random pick) ──
+VIEWS.agents = async () => {
+  const [{ config }, roster] = await Promise.all([call("a_config_get"), fetch("js/agent-roster.json", { cache: "no-store" }).then((r) => r.json())]);
+  const off = new Set(String(config.game.disabledAgents || "").split(/[\s,]+/).filter(Boolean));
+  const roles = [...new Set(roster.map((a) => a.role))];
+  $("#main").innerHTML = `<div class="sec"><h3>요원 켜기 · 끄기 <span class="tag" id="agn"></span></h3>
+    <div class="d">끈 요원은 요원 선택 화면, 봇, 무작위 선택에서 빠집니다. 진행 중인 경기는 그대로 두고 다음 접속·다음 신호 때 적용됩니다. 최소 10명을 켜 두어야 하고 역할마다 1명 이상 남아야 합니다.</div>
+    ${roles.map((r) => `<h3 style="margin-top:14px">${esc(r)} <span class="tag" data-rn="${esc(r)}"></span></h3><div class="agrid">${roster.filter((a) => a.role === r).map((a) => `<label class="ag${off.has(a.id) ? " off" : ""}"><input type="checkbox" data-id="${esc(a.id)}" ${off.has(a.id) ? "" : "checked"}><b>${esc(a.name)}</b><small>${esc(a.id)}</small></label>`).join("")}</div>`).join("")}
+    <div class="save"><button id="agall">모두 켜기</button><button class="go" id="agsave">저장</button></div></div>`;
+  const paint = () => {
+    const boxes = [...$("#main").querySelectorAll("[data-id]")];
+    boxes.forEach((b) => b.closest(".ag").classList.toggle("off", !b.checked));
+    $("#agn").textContent = boxes.filter((b) => b.checked).length + " / " + boxes.length + " 켜짐";
+    roles.forEach((r) => { const n = roster.filter((a) => a.role === r).map((a) => a.id); const t = $(`[data-rn="${r}"]`); t.textContent = boxes.filter((b) => n.includes(b.dataset.id) && b.checked).length + " / " + n.length; });
+  };
+  $("#main").querySelectorAll("[data-id]").forEach((b) => (b.onchange = paint));
+  $("#agall").onclick = () => { $("#main").querySelectorAll("[data-id]").forEach((b) => (b.checked = !0)); paint(); };
+  $("#agsave").onclick = async () => {
+    const ids = [...$("#main").querySelectorAll("[data-id]")].filter((b) => !b.checked).map((b) => b.dataset.id);
+    try { await saveCfg((c) => { c.game.disabledAgents = ids.join(","); }, ids.length ? ids.length + "명을 껐습니다. 게임에는 다음 접속·다음 신호 때 적용됩니다" : "모든 요원을 켰습니다"); } catch (e) { toast(e.message || "저장하지 못했습니다"); }
+  };
+  paint();
 };
 if (AT) start();
 </script>

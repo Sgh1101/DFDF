@@ -48,10 +48,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
           out.meshDelta.push(k);
           // each hand got fingers: the forearm mesh holds the glove pieces
           const fore = m.armL.fore.children.find((c) => c.isMesh);
-          if (ag.id === 'neon_agent') {
-            let n = 0; m.group.traverse(o => { if (o.userData.neonSkin) { n++; if (o.material.map !== NEON_AGENT.sourceSkin()) out.bad.push('Neon source texture'); } });
-            if (n !== 20) out.bad.push('Neon source skin mesh count ' + n);
-          } else fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
+          fore.geometry.attributes.position.count > 1600 || out.bad.push(ag.id + " forearm " + fore.geometry.attributes.position.count);
         } catch (e) { out.bad.push(ag.id + ": " + e.message); }
       }
       window.BLOCKY_OFF = false;
@@ -60,7 +57,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(agents));
     assert.deepEqual(agents.bad, [], "every agent builds with the detail pass");
-    assert.equal(agents.n, 43);
+    assert.equal(agents.n, 28);
     // the pass adds no meshes: the count per fighter stays where the body baking left it
     assert.ok(agents.maxMeshes < 90, "no extra draw calls (most meshes in one fighter: " + agents.maxMeshes + ")");
 

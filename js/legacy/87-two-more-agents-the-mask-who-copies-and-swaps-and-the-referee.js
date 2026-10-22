@@ -604,7 +604,8 @@
       const S = "atk" === a.team ? MAP.attackSpawn : MAP.defendSpawn;
       p = { x: S.x, z: S.z };
     }
-    return { x: p.x, z: p.z, y: groundAt(p.x, p.z, 2.5) };
+    const reference = window.ASCENT_TRIAL?.active ? p.y ?? (a.team === "atk" ? MAP.attackSpawn.y : MAP.defendSpawn.y) ?? a.y : 2.5;
+    return { x: p.x, z: p.z, y: groundAt(p.x, p.z, reference) };
   }
   function redFx(a, from, to) {
     const cm = cardMesh(RED, 1);

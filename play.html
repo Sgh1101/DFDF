@@ -116,6 +116,10 @@
 <link rel="preload" as="script" href="./js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js">
 <link rel="preload" as="script" href="./js/legacy/103-spider-web-swing-two-hands-a-rope-that-sways-and-a-real-pull.js">
 <link rel="preload" as="script" href="./js/legacy/104-death-shows-who-killed-you-for-two-seconds-with-their-name-and-title.js">
+<link rel="preload" as="script" href="./js/legacy/105-the-operator-kills-with-any-hit.js">
+<link rel="preload" as="script" href="./js/legacy/106-browser-shortcuts-no-longer-stick-keys-ctrl-is-not-a-game-key.js">
+<link rel="preload" as="script" href="./js/legacy/107-twenty-eight-agents-fifteen-retired-their-best-abilities-moved-to-the-rest.js">
+<link rel="preload" as="script" href="./js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js">
 <script src="./js/game-boot.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/portrait-loader.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/client-request.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
@@ -372,7 +376,7 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
     </div>
     <div id="team"></div>
     <div id="tips">
-      <b>WASD</b> 이동 · <b>SHIFT</b> 걷기 · <b>SPACE</b> 점프<br>
+      <b>WASD</b> 이동 · <b>SHIFT</b> 앉기 · <b>SPACE</b> 점프<br>
       <b>좌클릭</b> 사격 · <b>우클릭</b> 조준 · <b>R</b> 재장전<br>
       <b>Q E C X</b> 능력 · <b>1 2 3</b> 무기 (휠) · <b>F</b> 길게 — 설치/해제<br>
       <b>B</b> 상점 · <b>ESC</b> 설정 (감도 · 모바일 조작)<br>
@@ -717,6 +721,8 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
 <script src="./js/engine/weapons.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/engine/maps.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/engine/textures-portraits.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/graphics-settings.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/runtime-tools.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/03-engine.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/04-title-roster.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/05-game-modes.js" onerror="GAME_BOOT.fail(this.src)"></script>
@@ -827,6 +833,10 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
 <script src="./js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/103-spider-web-swing-two-hands-a-rope-that-sways-and-a-real-pull.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/104-death-shows-who-killed-you-for-two-seconds-with-their-name-and-title.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/105-the-operator-kills-with-any-hit.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/106-browser-shortcuts-no-longer-stick-keys-ctrl-is-not-a-game-key.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/107-twenty-eight-agents-fifteen-retired-their-best-abilities-moved-to-the-rest.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js" onerror="GAME_BOOT.fail(this.src)"></script>
 
 <style id="mobile-landscape-fix">
 /* phones in landscape (e.g. 852x393): agent select showed only ~1.5 abilities,
@@ -877,20 +887,26 @@ body:has(#shop:not([hidden])) #fps{display:none}
 <link rel="stylesheet" href="./css/home-newmap.css">
 <script src="./js/phantom-assets.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/bedrock-rig.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/gecko-finisher-rig.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/phantom-finisher-motion.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/phantom-gun-wave.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/phantom-finisher-scene.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/champions-phantom.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/valorant-pack.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/comet-rifle.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy-gun-models.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/phantom-audio.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/champion-shop.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <link rel="stylesheet" href="./css/champions-phantom.css">
-<script src="./js/neon-data.js" onerror="GAME_BOOT.fail(this.src)"></script>
-<script src="./js/neon-fx-source.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/neon-effects.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/neon-agent.js" onerror="GAME_BOOT.fail(this.src)"></script>
-<script src="./js/neon-appearance.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/blocky-characters.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/game-events.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
+<script src="./js/ability-profiles.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/ability-details.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/ability-motions.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/ability-ultimates.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/ability-counterplay.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/game-catalog.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/home.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/home-newmap.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
@@ -903,6 +919,9 @@ body:has(#shop:not([hidden])) #fps{display:none}
 <link rel="stylesheet" href="./css/weapon-shop.css">
 <script src="./js/weapon-shop.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/ascent-trial.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<link rel="stylesheet" href="./css/armory-mobile.css">
+<link rel="stylesheet" href="./css/game-improvements.css">
+<script src="./js/game-improvements.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script>GAME_BOOT.finish();</script>
 </body>
 </html>

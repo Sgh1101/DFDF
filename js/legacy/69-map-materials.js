@@ -34,16 +34,8 @@
   };
   const ROLES = ["floor", "wall", "crate"];
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
-  const coarse = (() => {
-    try {
-      return matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;
-    } catch (e) {
-      return !1;
-    }
-  })();
-  const quality = () => ("undefined" != typeof SETTINGS && SETTINGS.quality) || "balance";
-  const allowed = () => !window.RM_OFF && !("file:" === location.protocol && !window.RM_FILE) && "min" !== quality();
-  const texSize = () => (window.IS_MOBILE || coarse || ("undefined" != typeof IS_TOUCH && IS_TOUCH) || "perf" === quality() ? 512 : 1024);
+  const allowed = () => !window.RM_OFF && !("file:" === location.protocol && !window.RM_FILE);
+  const texSize = () => GFX.textureSize;
   const ST = { theme: "", applied: "", tok: 0, envTok: 0, env: "", loads: 0, fails: 0, last: null };
 
   // ── textures ──
@@ -86,7 +78,7 @@
     TEX.set(key, p);
     return p;
   }
-  const setTex = (set, size, tile) => Promise.all(["c", "n", "o"].map((k) => texOf(set, k, size, tile))).then(([c, n, o]) => ({ c, n, o }));
+  const setTex = (set, size, tile) => Promise.all(["c", "n", "o"].map((k) => k !== 'c' && !GFX.mapRelief ? null : texOf(set, k, size, tile))).then(([c, n, o]) => ({ c, n, o }));
   // keep the textures of the last two themes, let the rest go
   const keepSets = [];
   function retire(sets) {

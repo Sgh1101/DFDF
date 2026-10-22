@@ -114,7 +114,7 @@
     banner(msg, "#ffc849");
     "host" === NET.mode && sendEventAll({ t: "round", msg, color: "#ffc849" });
     send(!0);
-    setTimeout(() => gameOver(), 2600);
+    scheduleMatchFinish();
   }
 
   const _sr = startRound;

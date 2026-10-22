@@ -7,7 +7,10 @@
   const variant = (id) => id === ids[0] ? "attacker" : "defender";
   let assets = null, model = null, ready = false, selected = ids[0], preview = null, previewRAF = 0, generation = 0, installRevision = 0, loading = false, bannerHome = null, bundledRequest = null;
   const urls = new Map(), textures = new Map(), materials = new Map();
+  const waves = new Map(), waveAtlases = new Map(), waveModels = new Set(), W = window.PHANTOM_GUN_WAVE;
+  const boundWaveRigs = new WeakSet();
   let killPreviewCount = 0;
+  let bannerDeadline = 0;
   const rad = Math.PI / 180;
   const motion = () => SETTINGS.motion !== 0 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   function url(name) {
@@ -26,18 +29,57 @@
   }
   const buildGeo = (geo, mat) => { const rig = BEDROCK_RIG.build(geo, mat); rig.name = "phantom-rig"; rig.userData.phantomRig = true; return rig; };
   function weapon(id) {
+    const previewRenderer = GS._pv()?.r;
+    if (previewRenderer && !previewRenderer.userData?.phantomWave) {
+      previewRenderer.userData = {...previewRenderer.userData,phantomWave:true}; const draw = previewRenderer.render;
+      previewRenderer.render = function () { updateWaves(); return draw.apply(this,arguments); };
+    }
     const side = variant(id), key = "weapon-" + side;
     if (!materials.has(key)) {
       const mask = "textures/item/phantom_" + side + "_glowmask.png";
       materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
     }
-    const rig = buildGeo(model.geo, materials.get(key)), wrapper = new T.Group();
+    const base = materials.get(key), mat = base.clone(), rig = buildGeo(model.geo, mat), wrapper = new T.Group(); let waveModel = null;
+    mat.userData.phantomWaveOwn = true;
+    if (W && assets['textures/item/phantom_' + side + '_glowmask.png'] && W.textures.every(name => assets['textures/vfx/' + name + '.png'])) {
+      if (!waveAtlases.has(side)) waveAtlases.set(side, W.bake(model.geo, texture('textures/item/phantom_' + side + '.png').image, texture('textures/item/phantom_' + side + '_glowmask.png').image, texture('textures/vfx/gunart_side.png').image, texture('textures/vfx/gunart_top.png').image, side === 'attacker'));
+      const config = waveAtlases.get(side), values = waveMaterial(mat,config,side);
+      const flame = W.flames(rig, config, texture('textures/vfx/lick_' + side + '.png'), side === 'attacker');
+      waveModels.add(waveModel = {rig,mat,values,flame});
+      boundWaveRigs.add(rig);
+    }
     // Source points down +X; DFDF points down -Z. Fit to the Phantom's grip.
     // Preserve the larger Phantom fit and the shared 1.5x first-person gun sizing.
     rig.rotation.y = Math.PI / 2; rig.scale.setScalar(0.02); wrapper.add(rig);
     const box = new T.Box3().setFromObject(wrapper), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
     rig.position.set(-center.x, -center.y + 0.02, -center.z + 0.3 - size.z / 2);
+    if (waveModel) {
+      const shell = new T.Group(); shell.name = 'champions-gun-vfx'; shell.position.copy(rig.position); shell.rotation.copy(rig.rotation); shell.scale.copy(rig.scale);
+      shell.add(waveModel.flame.mesh); wrapper.add(shell);
+    }
     return wrapper;
+  }
+  function waveMaterial(mat,config,side) {
+    const values = new T.Vector4(1,1,0,side==='attacker'?1:0); mat.userData.phantomWaveUniform=values;
+    mat.onBeforeCompile = shader => {
+      shader.uniforms.phantomAtlas={value:config.atlas};shader.uniforms.phantomWave={value:values};
+      shader.fragmentShader=W.shader+'\n'+shader.fragmentShader.replace('#include <opaque_fragment>','#include <opaque_fragment>\nvec4 ph=phColor(vMapUv,texture2D(map,vMapUv).rgb);\ngl_FragColor.rgb=mix(gl_FragColor.rgb,ph.rgb,ph.a);');
+    };
+    mat.customProgramCacheKey=()=> 'champions-source-kill-wave-v1';return values;
+  }
+  // Third-person weapons are cloned from cached templates. Each actual wearer
+  // needs independent uniforms and flame buffers, rather than the template's state.
+  function bindPeerWaves() {
+    for (const actor of world.actors || []) {
+      const rig=actor.model?.gun?.getObjectByName('phantom-rig');if(!rig||boundWaveRigs.has(rig))continue;
+      const skin=GS.skinOf(actor,actorWeaponKey(actor));if(!isSkin(skin.id))continue;
+      const side=variant(skin.id),config=waveAtlases.get(side);if(!config)continue;
+      const mat=materials.get('weapon-'+side).clone(),values=waveMaterial(mat,config,side);
+      rig.traverse(p=>{if(p.isMesh)p.material=mat;});
+      const shell=rig.parent.getObjectByName('champions-gun-vfx'),old=shell?.getObjectByName('champions-source-gun-flames');old?.removeFromParent();
+      const flame=W.flames(rig,config,texture('textures/vfx/lick_'+side+'.png'),side==='attacker');if(shell)shell.add(flame.mesh);
+      boundWaveRigs.add(rig);waveModels.add({rig,mat,values,flame,owner:actor.id,wasAttached:true});
+    }
   }
   function fallback(root, skin) {
     const palette = { body: skin.body[0], metal: skin.metal[0], dark: skin.dark[0], glow: skin.glow };
@@ -103,10 +145,36 @@
   viewmodelFireKick = function () { const r = kick.apply(this, arguments); vm.shot = 0.18; return r; };
   const renderFrame = render;
   render = function () {
+    updateWaves();
+    if (bannerDeadline && performance.now() >= bannerDeadline) { $('killfx').hidden=true; bannerDeadline=0; }
     const brightness = motion() ? 0.45 + Math.sin(performance.now() / 550) * 0.12 : 0.45;
     for (const mat of materials.values()) if (mat.emissiveMap) mat.emissiveIntensity = brightness;
     return renderFrame.apply(this, arguments);
   };
+  function updateWaves() {
+    if (!W) return;
+    bindPeerWaves();
+    const now = performance.now()/1000, pv = GS._pv();
+    for (const item of waveModels) {
+      const ancestors = new Set(); for (let p=item.rig;p;p=p.parent) ancestors.add(p);
+      let owner = item.owner ?? null;
+      if (pv?.obj && ancestors.has(pv.obj)) owner = 'preview';
+      else if (VM.current && ancestors.has(VM.current)) owner = myActor()?.id;
+      else owner = world.actors.find(a=>a.group && ancestors.has(a.group))?.id;
+      const state = W.sample(waves.get(owner),now); item.values.set(state.current,state.previous,state.hold,item.values.w);
+      item.mat.emissiveIntensity = motion() ? .45+Math.sin(now*1000/550)*.12 : .45;
+      item.flame.step(now,state.flame,pv?.obj && ancestors.has(pv.obj)?pv.cam:camera);
+      item.rig.userData.killWave = state;
+      const attached = [...ancestors].some(p=>p.isScene);
+      if (attached) item.wasAttached = true;
+      else if (item.wasAttached) { item.mat.dispose(); item.flame.mesh.geometry.dispose(); item.flame.mesh.material.dispose(); waveModels.delete(item); }
+    }
+  }
+  addEventListener('kill-confirmed', ({detail:e})=>{
+    waves.delete(e.victim);
+    if (W && isSkin(e.skin) && e.gun === VALORANT_DATA.championsWeapon && ['gun','head'].includes(e.kind)) waves.set(e.killer,W.trigger(waves.get(e.killer),performance.now()/1000));
+  });
+  const start = startRound; startRound = function () { waves.clear(); return start.apply(this,arguments); };
 
   function finisher(group, skin, event = {}) {
     // The supplied renderer draws BOTH source models, not a generated spiral.
@@ -116,15 +184,26 @@
     const names = ["dragon_low", "serpent_" + snake];
     if (!model || !names.every(name => assets["geo/finisher/" + name + ".geo.json"])) return null;
     const figure = new T.Group(), native = new T.Group(), mats = [];
+    native.name = 'champions-original-models';
     figure.name = "champions-original-finisher"; figure.userData.phantom = true;
     // Original GeckoLib unit conversion and the renderer's 1.25 scale about y=4.15.
     native.scale.setScalar(1.25 / 16); native.position.y = 4.15 * (1 - 1.25); figure.add(native);
     for (const name of names) {
       const path = name === "dragon_low" ? "dragon_low_black" : name;
-      const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.01, side: T.DoubleSide });
+      const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.1, side: T.FrontSide });
+      // The supplied finisher_model shader shades each face with Minecraft's two
+      // diffuse lights, then mixes 20% emissive. A flat unlit material lost the form.
+      material.onBeforeCompile = shader => {
+        shader.vertexShader = 'varying vec3 vFinisherNormal;\n' + shader.vertexShader.replace('void main() {', 'void main() {\nvFinisherNormal = normalize(mat3(modelMatrix) * normal);');
+        shader.fragmentShader = 'varying vec3 vFinisherNormal;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+          vec3 finN = normalize(vFinisherNormal);
+          float finLight = min(1.0, 0.4 + 0.6 * (max(0.0, dot(normalize(vec3(0.2, 1.0, -0.7)), finN)) + max(0.0, dot(normalize(vec3(-0.2, 1.0, 0.7)), finN))));
+          diffuseColor.rgb *= mix(finLight, 1.0, 0.2);`);
+      };
+      material.customProgramCacheKey = () => 'champions-finisher-native-diffuse-v1';
       mats.push(material);
       const geo = A.json(assets, "geo/finisher/" + name + ".geo.json")["minecraft:geometry"][0];
-      const rig = buildGeo(geo, material); rig.name = "original-" + name; rig.userData.source = "geo/finisher/" + name + ".geo.json"; native.add(rig);
+      const rig = GECKO_FINISHER_RIG.build(geo, material); rig.name = "original-" + name; rig.userData.source = "geo/finisher/" + name + ".geo.json"; native.add(rig);
     }
     const box = new T.Box3().setFromObject(figure), size = box.getSize(new T.Vector3());
     const playerHeight = 2.1 * BODY_K, enlargement = Math.max(1, playerHeight * 5 / size.y);
@@ -133,6 +212,8 @@
     figure.rotation.y = Number.isFinite(event.finisherYaw) ? event.finisherYaw : 0;
     figure.userData.playerHeight = playerHeight; figure.userData.height = size.y * enlargement;
     figure.userData.serpent = snake; figure.visible = false; group.add(figure);
+    const stage = PHANTOM_FINISHER_SCENE.create(group,figure,texture,event,skin.id===ids[0]);
+    group.userData.finisherCleanup = stage.dispose;
     const effects = PHANTOM_FINISHER_MOTION.create(group, texture, skin.id === ids[0], event, enlargement, figure.position.y, figure.rotation.y);
     return (t) => {
       const seconds = t * 8;
@@ -141,13 +222,16 @@
       // Original one-second alpha exit, with the hold shortened for the requested 8s round transition.
       for (const material of mats) material.opacity = 1 - Math.max(0, Math.min(1, seconds - 7));
       effects.step(seconds, group.userData.previewScene ? GUN_SKINS._pv().cam : camera);
+      stage.step(seconds);
     };
   }
   function banner(id, kills = 1, final = false) {
     const fx = $("killfx"); if (!fx) return;
     fx.classList.remove("phantom-attack", "phantom-defense");
+    bannerDeadline = 0;
     const old = $("phantom-emblems"); if (old) old.remove();
     if (!isSkin(id)) return;
+    bannerDeadline = performance.now() + 1800;
     const side = variant(id); fx.classList.add(id === ids[0] ? "phantom-attack" : "phantom-defense");
     fx.style.setProperty("--phantom-accent", id === ids[0] ? "#ff405d" : "#ffe5a3");
     const frame = url("textures/gui/banner/" + (final ? "frame_fin" : "frame" + Math.min(5, kills)) + ".png");
@@ -187,6 +271,8 @@
     window.refreshSkinAssets();
   }
   function release() {
+    for (const item of waveModels) {item.mat.dispose();item.flame.mesh.geometry.dispose();item.flame.mesh.material.dispose();} waveModels.clear();
+    for (const item of waveAtlases.values()) item.atlas.dispose(); waveAtlases.clear(); waves.clear();
     for (const u of urls.values()) URL.revokeObjectURL(u); urls.clear();
     for (const tex of textures.values()) tex.dispose(); textures.clear();
     for (const mat of materials.values()) mat.dispose(); materials.clear();
@@ -207,6 +293,7 @@
     try {
       const weaponTextures = ["attacker", "defender"].flatMap(side => ["", "_glowmask"].map(suffix => `textures/item/phantom_${side}${suffix}.png`));
       const finisherTextures = ["dragon_low_black", "dragon_low_white", "serpent_cream", "serpent_red"].map(name => `textures/finisher/${name}.png`);
+      finisherTextures.push(...W.textures.map(name => 'textures/vfx/' + name + '.png'));
       finisherTextures.push(...PHANTOM_FINISHER_MOTION.textures.map(name => `textures/finisher/fx/${name}.png`));
       const decoded = await Promise.allSettled([...weaponTextures, ...finisherTextures].map(async name => {
         if (!next[name]) return;
@@ -233,6 +320,7 @@
   let playingTimer = 0;
   const settle = () => { clearTimeout(playingTimer); for (const b of document.querySelectorAll("#phantom-panel .pp-btn.playing")) b.classList.remove("playing"); };
   function stop() {
+    waves.delete('preview');
     settle(); cancelAnimationFrame(previewRAF); previewRAF = 0; SOUNDPACK.stop();
     if (preview) {
       preview.obj.position.copy(preview.position); preview.obj.rotation.copy(preview.rotation);
@@ -243,11 +331,13 @@
   }
   function demo(part) {
     stop(); const skin = GS.list.find((s) => s.id === selected);
+    if (part === "inspect") window.CHAMPIONS_AUDIO?.playMusic("inspect", true, 10.2);
     if (part === "kill") {
       const fx = $("killfx"); bannerHome = fx.parentElement; document.body.appendChild(fx); fx.classList.add("phantom-preview"); fx.hidden = false;
       killPreviewCount = killPreviewCount % 5 + 1;
       $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`원본 ${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Original kill ${killPreviewCount} · press again for next`); $("kf-streak").hidden = true;
       banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
+      if (W) waves.set('preview',W.trigger(waves.get('preview'),performance.now()/1000));
     }
     else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, VALORANT_DATA.championsWeapon);
     else if (motion()) {
@@ -255,9 +345,14 @@
       const obj = studio.obj;
       if (!obj) return;
       preview = { obj, position: obj.position.clone(), rotation: obj.rotation.clone() }; const started = performance.now();
-      const duration = part === "inspect" ? 3 : 2.8;
+      const run = preview;
+      const duration = part === "inspect" ? 10.2 : 2.8;
       const frame = () => {
-        if (!preview || !GS.isOpen() || studio.obj !== obj) return stop();
+        if (preview !== run) return; // An older preview must never stop a newer song/motion.
+        if (!GS.isOpen()) return stop();
+        // Installing the original model can replace the studio object while its
+        // song is loading. Retire that motion without cancelling the new audio.
+        if (studio.obj !== obj) { preview = null; previewRAF = 0; return; }
         const t = (performance.now() - started) / 1000; if (t > duration) return stop();
         obj.position.copy(preview.position); obj.rotation.copy(preview.rotation);
         const envelope = Math.sin(Math.PI * t / duration);
@@ -309,16 +404,27 @@
     <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
     <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
 
+    <p id="phantom-audio-status" role="status" hidden></p>
     <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
     <div class="pp-source"><label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button></div>
     <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
   $("champions-content").appendChild(panel);
+  addEventListener("champions-audio-state", ({ detail }) => {
+    const node = $("phantom-audio-status");
+    node.hidden = detail === "idle";
+    node.textContent = ({
+      loading: L("원본 음원 불러오는 중… 잠시만 기다려 주세요.", "Loading original audio…"),
+      playing: L("원본 연주 재생 중 · 중지를 누르면 멈춥니다.", "Playing the original arrangement · press Stop to end."),
+      muted: L("효과음이 꺼져 있어요. 설정에서 효과음을 켠 뒤 다시 눌러 주세요.", "Sound effects are off. Enable them in Settings and try again."),
+      error: L("음원을 재생하지 못했어요. 미리보기 버튼을 다시 눌러 재시도하세요.", "Audio could not play. Press the preview button to retry."),
+    })[detail] || "";
+  });
   addEventListener("champions-open", showSelected);
   new MutationObserver(() => { if ($("ar-p-champions").hidden) stop(); }).observe($("ar-p-champions"), { attributes: true, attributeFilter: ["hidden"] });
   panel.querySelectorAll("[data-phantom-skin]").forEach((b) => b.onclick = () => choose(b.dataset.phantomSkin));
   panel.querySelectorAll("[data-phantom-demo]").forEach((b) => b.onclick = () => {
     choose(selected); demo(b.dataset.phantomDemo); b.classList.add("playing");
-    playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 2800, inspect: 3000, reload: 2800 }[b.dataset.phantomDemo] || 1500);
+    playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 8000, inspect: 10200, reload: 2800 }[b.dataset.phantomDemo] || 1500);
   });
   $("phantom-stop").onclick = stop;
   $("phantom-file").onchange = async (event) => {
@@ -337,7 +443,7 @@
   }
   $("phantom-remove").onclick = $("phantom-retry").onclick = restoreBundled;
   new MutationObserver(() => { if ($("armory").hidden) stop(); }).observe($("armory"), { attributes: true, attributeFilter: ["hidden"] });
-  window.CHAMPIONS_PHANTOM = { isSkin, dress, finisher, choose, demo, stop, pose, loaded: () => ready };
+  window.CHAMPIONS_PHANTOM = { isSkin, dress, finisher, choose, demo, stop, pose, loaded: () => ready, waveState: actor => W.sample(waves.get(actor),performance.now()/1000) };
   // Do not overwrite a user import if the startup IndexedDB read resolves later.
   const version = generation;
   (async () => {

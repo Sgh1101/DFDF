@@ -77,9 +77,14 @@
 /* ── touch: small controls get a hit area of 36 px or more (agent role tabs and favourites were 25 px, the
    graphics-quality chips 19 px, the switches 22 px, the scoreboard tabs 29 px) ── */
 @media(pointer:coarse){
-  .sel-roles button,#agent-favorites .btn,.pz-q,.ar-tools .btn,.bd-tabs button,.bd-x,
+  .sel-roles button,#agent-favorites .btn,#s-select #sel-armory,.map-cats button,.pz-q,.ar-tools .btn,.bd-tabs button,.bd-x,
   #s-title.home-original .home-header #home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){min-height:36px}
   .pz-q{display:inline-flex;align-items:center;justify-content:center}
-  .pz-sw{position:relative}
-  .pz-sw::before{content:"";position:absolute;inset:-8px -6px}
+  #s-title.home-original .home-header #home-account #mis-chip{min-width:36px;justify-content:center}
+  /* An expanded pseudo-element was clipped by the settings row. Make the
+     actual button large enough, keeping the knob centred in both states. */
+  #pause .pz-sw{position:relative;width:48px!important;height:36px!important;min-height:36px;flex-shrink:0}
+  #pause .pz-sw span{top:50%!important;left:3px!important;transform:translateY(-50%)}
+  #pause .pz-sw.on span{left:calc(100% - 19px)!important}
+  #pause .pz-sw::before{content:none}
 }

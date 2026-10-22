@@ -87,3 +87,11 @@
 #champion-shop-status{margin:6px 0 0}
 #champions-content .ch-head+.champions-intro{margin:6px 0 10px}
 @media(max-height:740px){#champions-content .champions-intro,#phantom-panel .pp-desc{display:none}#champions-content .ch-head+.champions-intro{margin:0}}
+/* The original round emblem stays below the action, without an opaque kill card. */
+#killfx:is(.phantom-attack,.phantom-defense):not(.phantom-preview){top:auto;bottom:clamp(66px,18dvh,140px);left:50%;transform:translateX(-50%);width:132px}
+#killfx:is(.phantom-attack,.phantom-defense) #kf-badge{position:relative;box-sizing:border-box;width:132px;height:104px;padding:0;border:0;border-radius:0;background:var(--phantom-frame) center/contain no-repeat;box-shadow:none}
+#killfx:is(.phantom-attack,.phantom-defense) :is(#kf-main,#kf-sub,#kf-streak,#kf-tag,#kf-fx){display:none}
+#killfx:is(.phantom-attack,.phantom-defense) #kf-badge::after{display:none}
+#killfx:is(.phantom-attack,.phantom-defense) #phantom-emblems{position:absolute;inset:0;min-height:0;background-size:72px 72px;text-shadow:none}
+#killfx:is(.phantom-attack,.phantom-defense) #phantom-emblems span{display:none}
+body.champions-finishing :is(#banner,#tabil){visibility:hidden;pointer-events:none}

@@ -486,26 +486,15 @@
     return (FLOOR[n] = cv);
   }
   const viewLv = () => lvOf((player && player.y) || 0);
+  const _mw = drawMiniWalls;
+  drawMiniWalls = function () {
+    if (!on()) return _mw.apply(this, arguments);
+    mctx.drawImage(floorImage(viewLv()), 0, 0);
+  };
   const _dm = drawMini;
   drawMini = function () {
     if (!on()) return _dm.apply(this, arguments);
-    const n = viewLv(),
-      fr = mctx.fillRect;
-    let drawn = false;
-    // the engine fills every collider of every floor with this colour: swap them for the floor
-    mctx.fillRect = function () {
-      if ("#2a3444" === this.fillStyle) {
-        drawn || ((drawn = true), mctx.drawImage(floorImage(n), 0, 0));
-        return;
-      }
-      return fr.apply(this, arguments);
-    };
-    let r;
-    try {
-      r = _dm.apply(this, arguments);
-    } finally {
-      delete mctx.fillRect;
-    }
+    const n = viewLv(), r = _dm.apply(this, arguments);
     // the floor and the room in the dark strip under the building (the lot), where nothing else is drawn
     mctx.save();
     mctx.fillStyle = "rgba(255,255,255,.6)";

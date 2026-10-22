@@ -59,13 +59,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return res;
     });
     console.log("gun", JSON.stringify(gun));
-    assert.equal(gun.ladder.length, 13); assert.equal(gun.ladder[12], "knife");
+    assert.deepEqual(gun.ladder, ["rifle", "smg", "shotgun", "sniper", "hmg", "bullpup", "autoshot", "marksman", "burst", "revolver", "knife"]);
     assert.equal(gun.start, gun.ladder[0] + "//primary");
     assert.deepEqual(gun.after4.map((s) => s.split(":")[1]), gun.ladder.slice(1, 5), "each kill brings the next gun");
-    assert.match(gun.hud, /총기 순환 5\/13/);
+    assert.match(gun.hud, /총기 순환 5\/11/);
     assert.deepEqual(gun.knifed, [4, 3], "a knife death costs a step");
     assert.equal(gun.last, "//knife", "the last step is the knife alone");
-    assert.ok(gun.over && gun.top === 13, "a kill on the last step wins: " + JSON.stringify(gun));
+    assert.ok(gun.over && gun.top === 11, "a kill on the last step wins: " + JSON.stringify(gun));
     // ── the 1v1 maps: deaths come back ──
     for (const mode of ["dm", "tdm", "gun"]) {
       const r = await run("d" + mode, "d01", mode, async () => {

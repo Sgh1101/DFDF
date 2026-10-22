@@ -1,6 +1,0 @@
-{
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "valorant_neon:item/neon_arm"
-  }
-}

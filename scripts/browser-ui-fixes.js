@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
+const { AUDIT_SRC } = require("./ui-audit-lib");
 // UI fixes found by the audit (scripts/browser-ui-audit.js):
 //  · agent select on a small landscape phone: the map/mode sheet is above the agent cards (it was drawn under
 //    their names and the favourites row), every chip in it is on screen and a tap on one works and closes it;
@@ -11,12 +12,23 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   try {
     for (const [w, h] of [[568, 320], [667, 375], [844, 390]]) {
       const page = await f.page("fix" + w, { width: w, height: h }, { hasTouch: true, isMobile: true });
+      const mission = await page.locator('#mis-chip').boundingBox();
+      assert.ok(mission.width >= 35.5 && mission.height >= 35.5, w + ' mission chip has a full touch target');
+      await page.locator('#go-set').tap();
+      await page.waitForFunction(()=>document.getElementById('st-touch').getBoundingClientRect().height>=35.5);
+      await page.locator('#st-touch').scrollIntoViewIfNeeded();
+      const touchBefore=await page.evaluate(()=>IS_TOUCH);
+      await page.locator('#st-touch').tap({position:{x:24,y:32}});
+      await page.waitForFunction(value=>IS_TOUCH!==value,touchBefore);
+      await page.locator('#st-touch').tap({position:{x:24,y:32}});
+      await page.waitForFunction(value=>IS_TOUCH===value,touchBefore);
+      await page.locator('#pz-close').tap();
       await page.evaluate(() => { titleCam = () => {}; document.getElementById("go-play").click(); });
       await page.waitForTimeout(500);
       const row = await page.evaluate(() => { const r = (e) => e.getBoundingClientRect(); const tabs = r(document.querySelector(".sel-roles")), sk = r(document.getElementById("sel-armory")); return { sameRow: Math.abs(tabs.top - sk.top) < 30 || h2gone(), skinsInside: sk.right <= innerWidth + 1 && sk.left >= 0 }; function h2gone() { return false; } });
       assert.ok(row.skinsInside, w + " skins button on screen");
       if (w === 568) assert.ok(row.sameRow, "role tabs and the skins button on one row at 568");
-      const small = await page.evaluate(() => [".sel-roles button", "#agent-favorites .btn"].map((q) => Math.min(...[...document.querySelectorAll(q)].filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height))));
+      const small = await page.evaluate(() => [".sel-roles button", "#agent-favorites .btn", "#sel-armory"].map((q) => Math.min(...[...document.querySelectorAll(q)].filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height))));
       assert.ok(small.every((v) => v >= 35.5), w + " touch targets in select: " + small);
       // the sheet
       await page.tap("#sel-pick");
@@ -58,6 +70,21 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await desk.waitForTimeout(500);
     const news = await desk.evaluate(() => { const n = document.querySelector(".tt-news").getBoundingClientRect(), hd = document.querySelector(".home-header").getBoundingClientRect(); return { top: n.top, header: hd.bottom, bottom: n.bottom, vh: innerHeight }; });
     assert.ok(news.top >= news.header - 1 && news.bottom <= news.vh, "the guide fits between the bar and the edge " + JSON.stringify(news));
+    const tablet=await f.page('fixtablet',{width:1024,height:768},{hasTouch:true,isMobile:true});
+    await tablet.locator('#go-play').tap();
+    assert.ok((await tablet.locator('#s-select .map-cats button').evaluateAll(a=>a.map(e=>e.getBoundingClientRect().height))).every(h=>h>=35.5),'tablet map filters have full touch targets');
+    await tablet.locator('#s-select .map-cats [data-cat="small"]').tap();
+    assert.equal(await tablet.locator('#s-select .map-cats [data-cat="small"]').getAttribute('class'),'on');
+    await tablet.context().close();
+    // A decorative highlight must not look like clipped text, while real
+    // overflowing labels must still be reported by the diagnostic.
+    const diagnostic=await desk.context().newPage();
+    await diagnostic.setContent('<style>button{position:relative;overflow:hidden;white-space:nowrap;width:80px;height:40px;margin:10px}#highlight::after{content:"";position:absolute;left:150px;width:60px;height:5px}#clipped{width:35px}</style><button id="highlight">OK</button><button id="clipped">Long clipped label</button>');
+    await diagnostic.evaluate(src=>eval(src),AUDIT_SRC);
+    const signals=await diagnostic.evaluate(()=>__audit('diagnostic'));
+    assert.ok(!signals.some(s=>s.el==='#highlight'&&s.kind==='text-cut'),'ignore decorative scroll width');
+    assert.ok(signals.some(s=>s.el==='#clipped'&&s.kind==='text-cut'),'still catch actual clipped labels');
+    await diagnostic.close();
     assert.deepEqual(f.errors, []);
     console.log("ui fixes: the map sheet above the cards and tappable, one row of tabs at 568, result buttons reachable, the guide under the bar, 36 px touch targets");
   } finally { await f.browser.close(); }

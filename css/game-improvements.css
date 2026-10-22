@@ -1,0 +1,16 @@
+#game-diagnostics,#quick-guide{position:fixed;inset:0;z-index:24000;display:grid;place-items:center;padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));background:#050810d9;color:#edf5ff}
+#game-diagnostics[hidden],#quick-guide[hidden],#training-task[hidden],#death-detail[hidden]{display:none}
+.improve-card{width:min(720px,100%);max-height:94dvh;overflow:auto;background:#101b29;border:1px solid #506779;border-radius:12px;padding:14px;box-sizing:border-box;font:14px/1.5 system-ui}
+.improve-card header,.improve-card footer{display:flex;align-items:center;gap:12px;justify-content:space-between}.improve-card h2{font-size:18px;margin:0}.improve-card button,#training-task button{min-height:40px;min-width:40px;background:#283d51;border:1px solid #7b98ab;border-radius:8px;color:inherit;padding:6px 12px;cursor:pointer}
+.improve-card pre{max-height:46dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}.improve-card p{margin:10px 0}#mode-guides{max-height:42dvh;overflow:auto}
+#training-task{position:fixed;top:20%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;max-width:70vw;padding:8px 12px;background:#0a1828e8;border:1px solid #89b7d8;color:white;z-index:150;font:14px system-ui}
+#death-detail{position:fixed;top:65%;left:50%;transform:translateX(-50%);max-width:80vw;text-align:center;padding:9px 14px;border-radius:8px;background:#101724e8;color:#ffdfb0;font:13px/1.5 system-ui;z-index:150;pointer-events:none}
+#champion-progress{display:block;width:100%;height:10px;accent-color:#e4c46e}
+@media(max-height:450px){.improve-card{max-height:96dvh;padding:10px}.improve-card h2{font-size:16px}.improve-card pre{max-height:36dvh}#training-task{top:15%;font-size:12px}#death-detail{font-size:12px}}
+
+#go-mark-valo{display:flex;align-items:center;justify-content:center;gap:10px}#go-mark-valo img{object-fit:cover;border-radius:4px;flex:none}
+
+.improve-card footer{flex-wrap:wrap;justify-content:flex-start}
+
+/* Keep account actions tappable when the landscape header runs out of room. */
+#s-title.home-original .home-header #home-account :is(#rank-chip,#gold-chip,#mis-chip,#acct-chip){min-width:36px}

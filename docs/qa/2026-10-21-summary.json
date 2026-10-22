@@ -1,0 +1,701 @@
+{
+  "reference_commit": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+  "runtime_unchanged_between_test_revisions": true,
+  "expected_commands": 76,
+  "finished": true,
+  "status": {
+    "passed": 76,
+    "failed": 0,
+    "running": 0
+  },
+  "commands": [
+    {
+      "name": "check",
+      "status": "passed",
+      "started": "2026-10-20T17:43:46.619Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 0,
+      "log_sha256": "59d87f82d3e8f9a4619e7899a1292b9cc5aeb4aa497a7d800a2ea95c04c08760"
+    },
+    {
+      "name": "test",
+      "status": "passed",
+      "started": "2026-10-20T17:43:46.924Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 3,
+      "log_sha256": "13616833e0bc3cbc87ef8e2ef2bae7d7774900f0d6bad427add53b9027e76c00"
+    },
+    {
+      "name": "test:browser",
+      "status": "passed",
+      "started": "2026-10-20T17:43:49.556Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 24,
+      "log_sha256": "61d4aafc77b80b12c5c6364629a4d1d23d07a48add480cf45506f1293ebd96fc"
+    },
+    {
+      "name": "test:phantom",
+      "status": "passed",
+      "started": "2026-10-20T17:44:13.309Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 75,
+      "log_sha256": "588ed220c449fb91366f406c85c34e99404433e59dec65d42d5ab60ad04df441"
+    },
+    {
+      "name": "test:champions-panel",
+      "status": "passed",
+      "started": "2026-10-20T17:45:28.055Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 22,
+      "log_sha256": "5f2e1258cb2c19c83a0e2444062f61b405a5d4d077ff5e9df514c41031ab8e95"
+    },
+    {
+      "name": "test:killcam",
+      "status": "passed",
+      "started": "2026-10-20T17:45:50.230Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 14,
+      "log_sha256": "c10c93dd0479d309f6a5b62ff28adcd55c6e1c4a9ec92940d9f420320b30a784"
+    },
+    {
+      "name": "test:spider-swing",
+      "status": "passed",
+      "started": "2026-10-20T17:46:04.704Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 14,
+      "log_sha256": "c87163195ad028f91007cbc8b498fbdb4e67abead3aba8308a84205d75aa7da0"
+    },
+    {
+      "name": "test:abilities",
+      "status": "passed",
+      "started": "2026-10-20T17:46:18.821Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 28,
+      "log_sha256": "e20d0296816bb9b65065589943f3a59f0015da2c4c7f75b717eb58b990da08d4"
+    },
+    {
+      "name": "test:abilities-online",
+      "status": "passed",
+      "started": "2026-10-20T17:46:47.213Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 37,
+      "log_sha256": "c6cf64ad42e4eb9a6f7df0ba6d12822fc620373dfbb3ec7d58c48a8c324b56a9"
+    },
+    {
+      "name": "test:phantom-carbine",
+      "status": "passed",
+      "started": "2026-10-20T17:47:24.534Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 29,
+      "log_sha256": "2440505a727a1eeaf13b9d641b3ed88a1865d74d1452f22860d1620a6b2db11c"
+    },
+    {
+      "name": "test:champions-finish",
+      "status": "passed",
+      "started": "2026-10-20T17:47:53.079Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 30,
+      "log_sha256": "b4a80953adfb08ff37de47952ce23b2b48e91c9c7a6560d97ff64249e7a6d4b0"
+    },
+    {
+      "name": "test:champions-finish-online",
+      "status": "passed",
+      "started": "2026-10-20T17:48:23.060Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 39,
+      "log_sha256": "6372e2ac7e8c3183570102d98aa1759a0a3dfbcfeeb20d83d5885b0aa3b4395a"
+    },
+    {
+      "name": "test:phantom-motion",
+      "status": "passed",
+      "started": "2026-10-20T17:49:02.275Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 23,
+      "log_sha256": "0dbe171be8bdd2ceeced012c60c55c135450bccf17ad838e4de30f1e92e94cb5"
+    },
+    {
+      "name": "test:phantom-kill-wave",
+      "status": "passed",
+      "started": "2026-10-20T17:49:25.028Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 84,
+      "log_sha256": "6f17e77e77f8ce558edd8e2eb75f43e036309b3876c76c7596cd501de88f6846"
+    },
+    {
+      "name": "test:neon-online",
+      "status": "passed",
+      "started": "2026-10-20T17:50:49.111Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 37,
+      "log_sha256": "aa255abbe54ecd4ed09ac14d295385566374622d7c68456f1d253a1174138bf3"
+    },
+    {
+      "name": "test:neon",
+      "status": "passed",
+      "started": "2026-10-20T17:51:26.472Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 24,
+      "log_sha256": "dcbfacde27615c9012bbda32e57cb5e08ea6c22740e61d27cd443c0f765f0131"
+    },
+    {
+      "name": "test:neon-fidelity",
+      "status": "passed",
+      "started": "2026-10-20T17:51:50.571Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 32,
+      "log_sha256": "fe6327e23d2281a1c4acb1d544f7e77833a3c19194959a6e32fc012f8f165250"
+    },
+    {
+      "name": "test:phantom-audio",
+      "status": "passed",
+      "started": "2026-10-20T17:52:22.794Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 39,
+      "log_sha256": "0f1ba58f31bd1cc5b1f6b58238a3e27a44e77e6e018ef576956510fae2fde130"
+    },
+    {
+      "name": "test:phantom-loading",
+      "status": "passed",
+      "started": "2026-10-20T17:53:01.803Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 21,
+      "log_sha256": "f75679eddfffaa007aeb1f6585f74db04ebbd15a99a4de0dc45256ac5e9823f8"
+    },
+    {
+      "name": "test:regression",
+      "status": "passed",
+      "started": "2026-10-20T17:53:22.486Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 25,
+      "log_sha256": "9820111e15ade35a4a3da42ab587b3e37dcb0c2678285131d0f06a60751b07b9"
+    },
+    {
+      "name": "test:startup",
+      "status": "passed",
+      "started": "2026-10-20T17:53:47.735Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 22,
+      "log_sha256": "1256c79cacf65792d767bea745d206726985fcf41670443ac3f8757d593996df"
+    },
+    {
+      "name": "test:home-layout",
+      "status": "passed",
+      "started": "2026-10-20T17:54:09.321Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 82,
+      "log_sha256": "bba0b19a650f9f47af78ba2ff0ff2cb8ddf8a8a482afbb379e400eff6770473c"
+    },
+    {
+      "name": "test:online",
+      "status": "passed",
+      "started": "2026-10-20T17:55:31.091Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 53,
+      "log_sha256": "681967db5d6f186fa0811d50d0cf80bbc243c53d1290690a565bc92e2918d5b2"
+    },
+    {
+      "name": "test:ranked",
+      "status": "passed",
+      "started": "2026-10-20T17:56:24.483Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 53,
+      "log_sha256": "7b542719833a8f5b01efa8171f3a5a0e46caf819320fb52ad178f17f4fe97fee"
+    },
+    {
+      "name": "test:shift",
+      "status": "passed",
+      "started": "2026-10-20T17:57:17.456Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 13,
+      "log_sha256": "719d039766517d74cf79d64867236c4de61dcfe389062d346db243ee81ce3d2a"
+    },
+    {
+      "name": "test:followup",
+      "status": "passed",
+      "started": "2026-10-20T17:57:30.337Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 26,
+      "log_sha256": "4a0e3d9930da872f9b07e57caf9ce1638ba9d0ea76f5d6416e15ebf66fcee1bb"
+    },
+    {
+      "name": "test:maps",
+      "status": "passed",
+      "started": "2026-10-20T17:57:55.961Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 24,
+      "log_sha256": "ef49ed7c820beafeb9a35dff624428ae56fb237a0973e052ac7948dc2e514ad9"
+    },
+    {
+      "name": "test:ascent",
+      "status": "passed",
+      "started": "2026-10-20T17:58:19.841Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 31,
+      "log_sha256": "0326d88c1d3ee7510f9dbb59ee6dcc3bc0a8d69584073a3da8065b687baf06ca"
+    },
+    {
+      "name": "test:ascent-abilities",
+      "status": "passed",
+      "started": "2026-10-20T17:58:51.070Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 40,
+      "log_sha256": "5c5754399e2edd3adef00b1a36f82d33b44f69e0ba9681841d6803fb7737b796"
+    },
+    {
+      "name": "test:performance",
+      "status": "passed",
+      "started": "2026-10-20T17:59:30.799Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 26,
+      "log_sha256": "be44d65fb023a4050da5098d9ad9ead1b050de2528b0404fa5c58ba54d7186a1"
+    },
+    {
+      "name": "test:graphics",
+      "status": "passed",
+      "started": "2026-10-20T17:59:57.121Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 93,
+      "log_sha256": "622a01ef901d9e57bca048a3f7ce605461f7c33a9380ee604b32924bbe774d22"
+    },
+    {
+      "name": "test:mobile-map",
+      "status": "passed",
+      "started": "2026-10-20T18:01:30.068Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 44,
+      "log_sha256": "bc619e7bc19d0f30b2a38c43f2ff8c617939cb3dc3d7adfc9adf137dde3049a1"
+    },
+    {
+      "name": "test:mobile-preview",
+      "status": "passed",
+      "started": "2026-10-20T18:02:14.104Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 48,
+      "log_sha256": "0e7d45b0ce16ab3d11de81ba3c1a41913c6b19a556fd03841e217f1a00e912ae"
+    },
+    {
+      "name": "test:valorant",
+      "status": "passed",
+      "started": "2026-10-20T18:03:01.878Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 35,
+      "log_sha256": "88c3a06cf07686dc2ec84d60b542b4d26364f8e817a375ae417b8483a873dbce"
+    },
+    {
+      "name": "test:valorant-inspect",
+      "status": "passed",
+      "started": "2026-10-20T18:03:36.633Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 30,
+      "log_sha256": "92ed017a59208c410e0bf31cdde90af23310ca57547132c2a73325daf1a03825"
+    },
+    {
+      "name": "test:valorant-scopes",
+      "status": "passed",
+      "started": "2026-10-20T18:04:06.411Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 43,
+      "log_sha256": "438a44618ff9d71f4f557232321a8f910cfd5a93d892343050736f2f75a954bc"
+    },
+    {
+      "name": "test:weapon-shop",
+      "status": "passed",
+      "started": "2026-10-20T18:04:49.499Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 34,
+      "log_sha256": "50da95dc6e9951658e909b09fbd7ab99f2bc54d61f396cbf551b2ccd51d0970f"
+    },
+    {
+      "name": "test:legacy-models",
+      "status": "passed",
+      "started": "2026-10-20T18:05:23.218Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 25,
+      "log_sha256": "f10e0dabe96f09d025af6905e67265bf954f5db812e471c81f9958451c97a7ea"
+    },
+    {
+      "name": "test:rifle-identity",
+      "status": "passed",
+      "started": "2026-10-20T18:05:47.964Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 37,
+      "log_sha256": "77f66c2dbd9929b4b0f68d05ce72f191a2996de08e49be0a8e96cd8b6f92779e"
+    },
+    {
+      "name": "test:public-map-online",
+      "status": "passed",
+      "started": "2026-10-20T18:06:25.132Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 38,
+      "log_sha256": "3ffcb17cc958ce9635134a48399e639b8405268c0afdb3e453c857c78dd35c2e"
+    },
+    {
+      "name": "test:map-loading",
+      "status": "passed",
+      "started": "2026-10-20T18:07:02.715Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 18,
+      "log_sha256": "0c9f1876eca62bdd66ca16fefb7bf8cf643bd3a88bfa3eb72e9a0b3c8d06d607"
+    },
+    {
+      "name": "test:network-recovery",
+      "status": "passed",
+      "started": "2026-10-20T18:07:21.052Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 46,
+      "log_sha256": "e2855b6ee5fe838136d5d380ede1b0b28536749ccdfb04bc2bb7a59509e331d7"
+    },
+    {
+      "name": "test:reload",
+      "status": "passed",
+      "started": "2026-10-20T18:08:06.818Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 11,
+      "log_sha256": "143cbbb5f5dacf83182752989d6b175033a72ea6070e0186599d0fd5e77cd3dc"
+    },
+    {
+      "name": "test:knife",
+      "status": "passed",
+      "started": "2026-10-20T18:08:18.195Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 14,
+      "log_sha256": "9ecf536e154511f46695e94ad36e2b2dc3d0933023208140973337f965d13e78"
+    },
+    {
+      "name": "test:aim",
+      "status": "passed",
+      "started": "2026-10-20T18:08:31.730Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 13,
+      "log_sha256": "46c4dfd96f442acc6ac008ff619866e393ebf1ba904bba38d500c26c0c5663f7"
+    },
+    {
+      "name": "test:admin",
+      "status": "passed",
+      "started": "2026-10-20T18:08:44.419Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 3,
+      "log_sha256": "4a77f019be0077e1b047965c82317943319f031e00417ca7bee86e0045c593af"
+    },
+    {
+      "name": "test:shop",
+      "status": "passed",
+      "started": "2026-10-20T18:08:47.262Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 27,
+      "log_sha256": "a71d761df26a28c47cd59d21cf8c892c60310b76579671f16735d2296a036699"
+    },
+    {
+      "name": "test:modes2",
+      "status": "passed",
+      "started": "2026-10-20T18:09:14.598Z",
+      "head": "5c2e0874ffa0aaf36fd0c52ddac3b4e8c36b4390",
+      "code": 0,
+      "seconds": 61,
+      "log_sha256": "a9c120d42840f460c6023a2a4bec73c6f72437b47ee423692dffdbd0b7832d92"
+    },
+    {
+      "name": "test:wish",
+      "status": "passed",
+      "started": "2026-10-20T18:14:16.623Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 30,
+      "log_sha256": "de84dbb12e6f88cde7fe6a2f9f90cb4b406365df78521e964899579bcc34dc92"
+    },
+    {
+      "name": "test:train",
+      "status": "passed",
+      "started": "2026-10-20T18:15:19.010Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 21,
+      "log_sha256": "3afc8a918ced699078a892700ccb83cc14d2855c1277c58a7ce5a90d46e90097"
+    },
+    {
+      "name": "test:agents4",
+      "status": "passed",
+      "started": "2026-10-20T18:15:39.712Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 51,
+      "log_sha256": "44657a6ca30bc86de7d1a40eaf9b5026a6fb35067070cb37f1635ea58ee7db04"
+    },
+    {
+      "name": "test:season",
+      "status": "passed",
+      "started": "2026-10-20T18:16:31.025Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 90,
+      "log_sha256": "ed7b54c77cd4d2d3d45c0246d7a74565a01a4767944d6e3455ef5054e77026f0"
+    },
+    {
+      "name": "test:infection",
+      "status": "passed",
+      "started": "2026-10-20T18:18:01.148Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 45,
+      "log_sha256": "8d36978a7c2f35f05e77478c5dce274bfeac851a34ecae698bba840ad5f7ad91"
+    },
+    {
+      "name": "test:conquest",
+      "status": "passed",
+      "started": "2026-10-20T18:18:45.842Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 47,
+      "log_sha256": "d40e0d3e6d19c415cb03ec0dffa71421ff61fd498ffc6cd61f9c2de04e9ddf1a"
+    },
+    {
+      "name": "test:range",
+      "status": "passed",
+      "started": "2026-10-20T18:19:33.035Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 17,
+      "log_sha256": "cce664fc67eecb4573818c15e6672683284a17250980151bd683d053063bd56b"
+    },
+    {
+      "name": "test:cosmetics",
+      "status": "passed",
+      "started": "2026-10-20T18:19:49.790Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 46,
+      "log_sha256": "7ef27ee4d98bb6f5b3523935665c6ac8b0177fe7b0f16ce1b80f812d6578c0d0"
+    },
+    {
+      "name": "test:newmaps",
+      "status": "passed",
+      "started": "2026-10-20T18:20:35.716Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 31,
+      "log_sha256": "e386d8c40406b77ee98727f3527954d219ef7ae595d21be5a663129ae5a9a244"
+    },
+    {
+      "name": "test:hospital",
+      "status": "passed",
+      "started": "2026-10-20T18:21:07.011Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 37,
+      "log_sha256": "3a19cf09d43452720931fb99ed3b73461cb00fb25a600aea13dfce088ab0332a"
+    },
+    {
+      "name": "test:details",
+      "status": "passed",
+      "started": "2026-10-20T18:21:43.904Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 21,
+      "log_sha256": "e55f334a22273777c10959edd0705d9620070b470d6c364a40c11a8298ab1264"
+    },
+    {
+      "name": "test:hospital-bots",
+      "status": "passed",
+      "started": "2026-10-20T18:22:04.721Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 39,
+      "log_sha256": "6873f1f15fd3ac7d7587697986302177788ee209589bbb038a64a64923f30bd7"
+    },
+    {
+      "name": "test:landing",
+      "status": "passed",
+      "started": "2026-10-20T18:22:43.500Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 60,
+      "log_sha256": "5f5d626aa0f45849cb25f4a896754e74aa30e2ea7b27310ce64931016dfc9b5c"
+    },
+    {
+      "name": "test:gunshots",
+      "status": "passed",
+      "started": "2026-10-20T18:23:43.485Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 39,
+      "log_sha256": "8a5d0f710eb3b1439e327756ed27fb0b252cab44ff40b533402b54e52fc175c6"
+    },
+    {
+      "name": "test:ui-fixes",
+      "status": "passed",
+      "started": "2026-10-20T18:24:22.605Z",
+      "head": "e9a7d269462ea20fb6da94edba8aea24a21ab274",
+      "code": 0,
+      "seconds": 59,
+      "log_sha256": "b0bf7105fb212c455db68b3ad308da78223a322ea0905402e8ec1dca9618efa7"
+    },
+    {
+      "name": "test:ctf",
+      "status": "passed",
+      "started": "2026-10-20T18:31:55.213Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 48,
+      "log_sha256": "38a7cab0d6df5d51d6ada00bf34ba3ccab22e614fcb9e035f68ff70e979df9f7"
+    },
+    {
+      "name": "test:zone",
+      "status": "passed",
+      "started": "2026-10-20T18:33:28.583Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 44,
+      "log_sha256": "4eea8156d59a946a4b37a8dee5813afa44e8aa7c06c111dfeb54bf97794625af"
+    },
+    {
+      "name": "test:feedback",
+      "status": "passed",
+      "started": "2026-10-20T18:34:12.661Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 48,
+      "log_sha256": "a804eea7517a13d39fb2b52647336f082e498c4898f5d5ad03b4018d6e821b0f"
+    },
+    {
+      "name": "test:orders",
+      "status": "passed",
+      "started": "2026-10-20T18:35:00.872Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 61,
+      "log_sha256": "3e517d7aec0356721cd7218dd6a3f8cbbbbda11c604ddd5d484414921d218389"
+    },
+    {
+      "name": "test:champion",
+      "status": "passed",
+      "started": "2026-10-20T18:36:02.265Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 31,
+      "log_sha256": "69ecfe8a0fbddea71ed452cd39f3ac922926d121dbdd798b23ae2ccb530a2e51"
+    },
+    {
+      "name": "test:buildings",
+      "status": "passed",
+      "started": "2026-10-20T18:36:33.375Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 32,
+      "log_sha256": "d2ab3526a397dc752c46bca9d5a900572c831351fed782598de6a6aa7755757a"
+    },
+    {
+      "name": "test:chest",
+      "status": "passed",
+      "started": "2026-10-20T18:37:04.990Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 29,
+      "log_sha256": "1d497569ec4cde6561f4bc638dd06b0fad0e258a6062409f06bc8017dcde4d33"
+    },
+    {
+      "name": "test:operator",
+      "status": "passed",
+      "started": "2026-10-20T18:37:34.309Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 15,
+      "log_sha256": "f466a1cfee6242de90b83ad2b68a506f90b1fb8e2d1c678b3ea14d0b5b4182b8"
+    },
+    {
+      "name": "test:raycast",
+      "status": "passed",
+      "started": "2026-10-20T18:37:49.068Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 13,
+      "log_sha256": "62c541cd49338bb94304537dd36fc0bfe0f6f6296240cd2621f643fc764c3752"
+    },
+    {
+      "name": "test:touchlay",
+      "status": "passed",
+      "started": "2026-10-20T18:38:01.760Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 34,
+      "log_sha256": "76ad94328a832270cafb8e07462bb39cefbbd84105bcf82ef36a52777ca54e4d"
+    },
+    {
+      "name": "test:finisher",
+      "status": "passed",
+      "started": "2026-10-20T18:38:35.506Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 17,
+      "log_sha256": "9f3cf22ecac06a5e916a0420c485490457978168a7805b379d0ccdf4942ac0b4"
+    },
+    {
+      "name": "audit:ui",
+      "status": "passed",
+      "started": "2026-10-20T18:38:52.486Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 261,
+      "diagnosticSignals": 0,
+      "log_sha256": "28a5205a7442f77420603b713cf9cd3c705068763e04986f4170fcb1952b3ea9"
+    },
+    {
+      "name": "audit:ui-home",
+      "status": "passed",
+      "started": "2026-10-20T18:43:13.196Z",
+      "head": "f9d47c4258a1a4871a4520c65d0ff24e08365ad3",
+      "code": 0,
+      "seconds": 65,
+      "diagnosticSignals": 0,
+      "log_sha256": "cd4c7d5529f59a8f41fdcb9e8112ee38d8e48d821b81e7f6c50b46b82ea77e80"
+    }
+  ],
+  "android_verified": false,
+  "real_purchase_verified": false
+}

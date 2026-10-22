@@ -63,15 +63,18 @@ for line in listing.splitlines():
 sounds = fields["a"]
 profiles = {}
 for record in fields.values():
-    if not isinstance(record, dict) or not re.fullmatch(r"kill_[1-5]", record["name"]):
+    if not isinstance(record, dict) or not re.fullmatch(r"kill_[1-5]|inspect|finisher_music", record["name"]):
         continue
     assert len({len(record[key]) for key in ("times", "sounds", "pitches", "volumes")}) == 1
     profiles[record["name"]] = {"category": record["category"], "events": [{"at": at, "sound": sounds[sound], "pitch": pitch, "volume": volume} for at, sound, pitch, volume in zip(record["times"], record["sounds"], record["pitches"], record["volumes"])]}
-assert len(profiles) == 5
+    if record["loopStart"] >= 0:
+        profiles[record["name"]].update(loopStart=record["loopStart"], loopEnd=record["loopEnd"])
+assert len(profiles) == 7
 with zipfile.ZipFile(source) as archive:
     data = archive.read(table_class.replace(".", "/") + ".class")
 result = {"sourceClass": table_class, "sourceClassSha256": hashlib.sha256(data).hexdigest(), "sourceJarSha256": hashlib.sha256(source.read_bytes()).hexdigest(), "minecraftVersion": "1.20.1", "profiles": profiles}
 target = Path(__file__).resolve().parent.parent / "assets/champions-phantom/2026-0.1.0/audio/kill-sequences.json"
 target.parent.mkdir(parents=True, exist_ok=True)
-target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
+for filename, names in [("kill-sequences.json", [f"kill_{i}" for i in range(1, 6)]), ("music-sequences.json", ["inspect", "finisher_music"])]:
+    (target.parent / filename).write_text(json.dumps({**result, "profiles": {name: profiles[name] for name in names}}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
 print(json.dumps({name: {"events": len(profile["events"]), "duration": max(event["at"] for event in profile["events"]), "sounds": sorted({event["sound"] for event in profile["events"]})} for name, profile in profiles.items()}, indent=2))

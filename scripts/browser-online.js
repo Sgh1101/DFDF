@@ -26,9 +26,27 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     console.log("host state", await host.evaluate(() => ({status:NET.status,code:NET.room,conns:NET.conns.size,members:room.members.size,error:NET.error && NET.error.message})));
     console.log("guest state", await guest.evaluate(() => ({status:NET.status,code:NET.room,error:NET.error && NET.error.message})));
     await host.waitForFunction(() => NET.conns.size === 1 && room.members.size === 2);
-    await host.evaluate(() => { room.mode = "std"; hostStartMatch(); });
+    await host.evaluate(() => { room.mode = "std"; hostStartMatch(); ADMIN.freezeAI = true; for (const a of world.actors) { a.fireCd = 999; a.invuln = 999; } });
     await guest.waitForFunction(() => "client" === NET.mode && world.actors.length > 0 && myActor(), null, { timeout: 90000 });
     const first = await host.evaluate(() => ({ id: world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai").id, peer: [...NET.conns.keys()][0] }));
+    // Recover the living guest before the independent last-kill scenario.
+    await host.evaluate(() => { world.phase = "live"; world.roundTime = 999; });
+    await guest.waitForFunction(id => myActor()?.id === id && myActor().alive && world.phase === "live", first.id, {timeout:30000});
+    const paths=await guest.evaluate(async()=>{const out=[];for(const c of [NET.up.state,NET.up.event]){if(c?.peerConnection){const p=RUNTIME_TOOLS.connectionPath(await c.peerConnection.getStats());if(p)out.push(p);}}return out;});
+    assert.ok(paths.length>0,'actual WebRTC path can be diagnosed');assert.ok(paths.every(p=>!p.relay&&p.local==='host'&&p.remote==='host'));
+    assert.ok(paths.every(p=>Object.keys(p).every(k=>['local','remote','protocol','relay'].includes(k))));
+    // Transport destruction already triggers automatic recovery. Starting a second
+    // manual netJoin here raced that recovery and cancelled its connection.
+    const redials = await guest.evaluate(() => window.NET_REDIALS || 0);
+    await guest.evaluate(() => NET.peer.destroy());
+    await guest.waitForFunction(n => (window.NET_REDIALS || 0) > n && !NET_RC.busy && NET.status === "open", redials, { timeout: 90000 }).catch(async error => { console.log("guest recovery", JSON.stringify(await guest.evaluate(() => ({status:NET.status,mode:NET.mode,peer:NET.peer?.id,phase:world.phase,rc:NET_RC,actor:myActor()?.id}))), f.errors); throw error; });
+    await host.waitForFunction(peer => !NET.conns.has(peer) && NET.conns.size === 1 && world.actors.some((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead"), first.peer).catch(async error => {
+      console.log("recovery diagnostics", JSON.stringify({ host: await host.evaluate(() => ({ conns: [...NET.conns].map(([id,c]) => ({id,state:c.state?.open,event:c.event?.open})), actors: world.actors.map(a => ({id:a.id,ctrl:a.ctrl,alive:a.alive})) })), guest: await guest.evaluate(() => ({ peer: NET.peer?.id, status: NET.status, rc: NET_RC, actor: myActor()?.id })) }));
+      throw error;
+    });
+    const restored = await host.evaluate(() => world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead").id);
+    assert.equal(restored, first.id);
+    console.log("WebRTC transport replacement restored the original seat");
     const report = await host.evaluate(() => {
       world.phase = "live";
       const a = myActor(), foes = world.actors.filter((o) => o.team !== a.team), v = foes.find((o) => o.ctrl !== "ai") || foes[0];
@@ -46,12 +64,6 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     await guest.evaluate(() => { const event = onlineEvents.find((e) => e.t === "kill-detail"); FINISHERS.clear(); NET.onEvent(event); });
     assert.equal(await guest.evaluate(() => FINISHERS.active.size), 0);
     console.log("WebRTC host → guest: captured weapon/skin, last kill, duplicate suppression passed");
-    // Preserve the client's reconnect proof while replacing its PeerJS transport.
-    await guest.evaluate(async () => { const code = NET.room, prev = NET.peer.id, actorId = myActor().id; NET.peer.destroy(); await netJoin(code); sendAction({ t: "hello", name: myName(), prev, actorId }); });
-    await host.waitForFunction(() => NET.conns.size === 1 && world.actors.some((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead"));
-    const restored = await host.evaluate(() => world.actors.find((a) => a.ctrl !== "me" && a.ctrl !== "ai" && a.ctrl !== "dead").id);
-    assert.equal(restored, first.id);
-    console.log("WebRTC transport replacement restored the original seat");
     await host.evaluate(() => netShutdown()); await guest.waitForFunction(() => NET.status !== "open");
     assert.deepEqual(f.errors, []); console.log("online browser checks passed");
   } finally { await f.browser.close(); signaling.close(); }

@@ -545,7 +545,9 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   // closed until the owner opens it; nothing about the bank before then
   const info0 = await h.api("order_info", {});
   assert.equal(info0.on, false);
-  assert.equal(info0.items.length, 10);
+  assert.equal(info0.items.length, 12);
+  assert.equal(info0.items.some((x) => "god" === x.k), false, "invincibility is not sold");
+  assert.equal(info0.legacy.god, "무적");
   assert.equal(info0.items.find((x) => x.k === "wall").price, 5000);
   assert.equal(JSON.stringify(info0).includes("bank"), false);
   assert.equal((await order({ items: ["radar"], days: 7 })).status, 403, "closed");
@@ -563,6 +565,8 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   assert.equal((await order({ items: [], days: 7 })).status, 400);
   assert.equal((await order({ items: ["nothing"], days: 7 })).status, 400);
   assert.equal((await order({ items: ["radar"], days: 5 })).status, 400);
+  assert.equal((await order({ items: ["god"], days: 7 })).status, 400, "invincibility cannot be ordered");
+  assert.equal((await order({ items: ["admin"], days: 7 })).status, 400, "admin mode is not sold");
   // prices: per 7 days, times the length
   const pay = async (days, items = ["radar", "wall"]) => (await order({ items, days, depositor: "홍철수" })).order.total;
   assert.equal(await pay(7), 8000);
@@ -593,11 +597,11 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   assert.equal((await h.api("me", { token: p.token })).user.perm.radar, true, "the game sees it");
   assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: first.id, op: "grant" })).status, 409, "once");
   // a second order adds its length and its cheats (speed, buff are level values)
-  const o2 = await order({ items: ["god", "speed", "buff"], days: 30 });
+  const o2 = await order({ items: ["oneShot", "speed", "buff"], days: 30 });
   assert.equal(o2.status, 200);
   await h.api("a_order_set", { atoken: ow.atoken, id: o2.order.id, op: "grant" });
   const perm2 = h.user("player").perm;
-  assert.deepEqual([perm2.radar, perm2.wall, perm2.god, perm2.speed, perm2.buff], [true, true, true, 1.5, 10]);
+  assert.deepEqual([perm2.radar, perm2.wall, perm2.oneShot, perm2.god, perm2.speed, perm2.buff], [true, true, true, false, 1.5, 10]);
   assert.ok(Math.abs(perm2.until - (perm.until + 30 * 864e5)) < 5000, "added to what was running");
   // reject, refund with the cheats taken back
   const rej = await h.api("a_order_set", { atoken: ow.atoken, id: o30.order.id, op: "reject", reason: "입금 없음" });
@@ -616,4 +620,73 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   assert.equal(op.order.total, 20000);
   await h.api("a_order_set", { atoken: ow.atoken, id: op.order.id, op: "grant" });
   assert.equal(h.user("player").perm.until, 0, "permanent");
+});
+
+test("gold is sold once and added to the wallet; an account the owner makes an admin gets every cheat while it is one", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  const order = (b, who = p) => h.api("order_create", Object.assign({ token: who.token }, b));
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동";
+  await h.api("a_config_set", { atoken: owner.atoken, config: c });
+  h.advance(30000);
+  const info = await h.api("order_info", {});
+  const price = (k) => info.items.find((x) => x.k === k).price;
+  assert.equal(info.items.find((x) => "gold5k" === x.k).gold, 5000);
+  // gold is paid once, whatever the length; cheats are priced by length next to it
+  const g = await order({ items: ["gold5k", "gold1k"], days: 7 });
+  assert.equal(g.order.total, price("gold5k") + price("gold1k"));
+  const g30 = await order({ items: ["gold1k"], days: 30 });
+  assert.equal(g30.order.total, price("gold1k"), "no length on gold");
+  const mix = await order({ items: ["radar", "gold1k"], days: 30 });
+  assert.equal(mix.order.total, Math.round((price("radar") * 3) / 100) * 100 + price("gold1k"));
+  const ow = await login(h, "owner");
+  const g0 = h.user("player").gold;
+  assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: g.order.id, op: "grant" })).status, 200);
+  assert.equal(h.user("player").gold, g0 + 6000);
+  assert.equal((await h.api("me", { token: p.token })).user.perm, null, "gold alone opens no cheats");
+  await h.api("a_order_set", { atoken: ow.atoken, id: mix.order.id, op: "grant" });
+  assert.equal(h.user("player").gold, g0 + 7000); assert.equal(h.user("player").perm.radar, true);
+  // refund with the take-back removes the gold again
+  await h.api("a_order_set", { atoken: ow.atoken, id: g.order.id, op: "refund", revoke: true });
+  assert.equal(h.user("player").gold, g0 + 1000);
+  // admin mode: only the owner can give it, and it brings every cheat (the invincibility too), ending with it
+  const before = JSON.parse(JSON.stringify(h.user("player").perm));
+  const t0 = h.now();
+  assert.equal((await h.api("a_user_set", { atoken: ow.atoken, id: "player", op: "admin", days: 40 })).status, 200);
+  const u = h.user("player");
+  for (const k of ["radar", "wall", "cheat", "god", "oneShot", "infAmmo", "noRecoil"]) assert.equal(u.perm[k], true, k);
+  assert.deepEqual([u.perm.on, u.perm.speed, u.perm.fastFire, u.perm.buff], [true, 3, 10, 10]);
+  assert.ok(Math.abs(u.perm.until - (t0 + 40 * 864e5)) < 5000 && u.perm.until === u.adminUntil, "the cheats end with the admin mode");
+  const me = (await h.api("me", { token: p.token })).user;
+  assert.equal(me.admin, true); assert.equal(me.perm.god, true);
+  // taken away: the cheats from before come back
+  assert.equal((await h.api("a_user_set", { atoken: ow.atoken, id: "player", op: "admin", days: 0 })).status, 200);
+  const back = h.user("player").perm;
+  assert.deepEqual([back.on, back.radar, back.god], [before.on, before.radar, before.god]);
+  assert.equal((await h.api("me", { token: p.token })).user.admin, false);
+  // someone else cannot give it
+  assert.equal((await h.api("a_user_set", { atoken: p.token, id: "player", op: "admin", days: 5 })).status, 401);
+});
+
+test("the owner can switch agents off: only known ids are kept (in roster order), enough must stay on and every role needs one, and the game reads it from the public settings", async () => {
+  const h = harness(), owner = await login(h, "owner");
+  const roster = require("../js/agent-roster.json");
+  assert.equal(roster.length, new Set(roster.map((a) => a.id)).size, "ids are unique");
+  const set = (ids) => { const c = JSON.parse(JSON.stringify(h.config)); c.game.disabledAgents = ids; return h.api("a_config_set", { atoken: owner.atoken, config: c }); };
+  assert.equal((await h.api("a_config_get", { atoken: owner.atoken })).config.game.disabledAgents, "", "none off by default");
+  // known ids are kept, in roster order; unknown ones and repeats drop out
+  const [a, b, c3] = [roster[5].id, roster[2].id, roster[9].id];
+  const r = await set(` ${a}, nobody ,${b},${a}\n${c3} `);
+  assert.equal(r.status, 200);
+  assert.equal(r.config.game.disabledAgents, roster.filter((x) => [a, b, c3].includes(x.id)).map((x) => x.id).join(","));
+  h.advance(30000);
+  assert.equal((await h.api("config", {})).config.game.disabledAgents, r.config.game.disabledAgents, "the game reads it from the public settings");
+  // everything back on
+  assert.equal((await set("")).config.game.disabledAgents, "");
+  // too few left on, or a whole role gone
+  assert.equal((await set(roster.slice(0, roster.length - 9).map((x) => x.id).join(","))).status, 400, "fewer than ten on");
+  const role = roster[0].role;
+  assert.equal((await set(roster.filter((x) => x.role === role).map((x) => x.id).join(","))).status, 400, "a whole role off");
+  // only the owner
+  assert.equal((await h.api("a_config_set", { atoken: "nope", config: h.config })).status, 401);
 });

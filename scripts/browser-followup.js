@@ -3,7 +3,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   const f = await fixture();
   try {
     const page = await f.page("followup", { width: 852, height: 393 }, { hasTouch: true });
-    assert.deepEqual(await page.evaluate(() => GAME_CATALOG.counts()), { agents: 43, abilities: 172, weapons: 19, maps: 22, modes: 11, skins: 607 });
+    assert.deepEqual(await page.evaluate(() => GAME_CATALOG.counts()), { agents: 28, abilities: 112, weapons: 19, maps: 22, modes: 11, skins: 607 });
     const ch = await page.evaluate(() => { MULTI.paint(); return MULTI.ch(); });
     const rooms = [
       { code: "FULL01", name: "Full", n: 10, max: 10, state: "lobby", created: 1 },
@@ -104,7 +104,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForFunction(() => document.getElementById("mbe-bar").getAttribute("aria-label") === "Button layout");
     await page.locator("#mbe-x").dispatchEvent("click");
     await page.evaluate(() => togglePause(false));
-    const other = await page.context().newPage(); await other.goto("http://127.0.0.1:3000/privacy.html");
+    const other = await page.context().newPage(); await other.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + "/privacy.html");
     await other.evaluate(() => localStorage.clear());
     await page.waitForURL((url) => url.pathname === "/", { timeout: 30000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem("lgp_gate")), null);

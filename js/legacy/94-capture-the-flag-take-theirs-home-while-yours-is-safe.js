@@ -133,7 +133,7 @@
     world.over = !0;
     world.phase = "end";
     say(L("경기 종료", "Match over"), "#ffc849");
-    setTimeout(() => gameOver(), 2600);
+    scheduleMatchFinish();
   }
 
   const _sr = startRound;

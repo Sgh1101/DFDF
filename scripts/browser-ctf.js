@@ -96,16 +96,30 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     assert.ok(r.goals.some((g) => g.toFoe) && r.goals.some((g) => g.toOwn), "some go for the flag, some guard");
     assert.ok(r.carryGoalHome, "a carrier heads home");
     assert.deepEqual(r.final, { caps: 3, over: true, phase: "end" });
-    // a round of bots playing, with the AI on: do they take flags?
-    const bots = await page.evaluate(async () => {
+    // Isolate real AI navigation from random agents fighting in the middle.
+    // A five-minute firefight can legitimately produce no captures; it is not
+    // a deterministic assertion about flag pickup or return-path correctness.
+    // Both teams must actually run to the flag and bring it home, without
+    // teleporting the runner, replacing aiGoal, or bypassing movement physics.
+    const bots = await page.evaluate(() => ["atk", "def"].map(team => {
       ADMIN.freezeAI = false; room.map = "nightport"; startGame(AGENTS[0], false); closeShop(); world.phase = "live";
-      const me = myActor(); me.pos.set(MAP.bounds.maxX - 4, 0, MAP.bounds.maxZ - 4); me.invuln = 99;
+      const me = myActor(), runner = world.actors.find(a => a.ctrl === "ai" && (a.id + 1) % 3 !== 0);
+      world.actors = world.actors.filter(a => a === me || a === runner);
+      runner.team = me.team = team;
+      me.pos.set(MAP.bounds.maxX - 4, 0, MAP.bounds.maxZ - 4); me.invuln = 9999;
+      runner.alive = true; runner.invuln = 9999; runner.agent = AGENTS[0]; runner.ai = freshAIState(); runner.speedBuff = 1;
+      runner.vel.set(0, 0, 0); runner.pos.set(CTF.F[team].home.x, 0, CTF.F[team].home.z); runner.y = CTF.F[team].home.y;
+      runner.fireCd = 9999; runner.ultCharge = 0; for (const slot of runner.abilities) slot.charges = 0;
       let took = 0, scored = 0;
-      for (let i = 0; i < 6000; i++) { step(0.05); if (CTF.F.atk.st !== "home" || CTF.F.def.st !== "home") took++; if (CTF.caps.atk + CTF.caps.def > scored) scored = CTF.caps.atk + CTF.caps.def; }
-      return { took, scored };
-    });
+      for (let i = 0; i < 6000 && !world.over; i++) { step(0.05); if (CTF.F.atk.st !== "home" || CTF.F.def.st !== "home") took++; scored = Math.max(scored, CTF.caps[team]); }
+      return { team, took, scored, over: world.over };
+    }));
     console.log(JSON.stringify(bots));
-    assert.ok(bots.took > 20, "bots pick flags up: " + JSON.stringify(bots));
+    for (const result of bots) {
+      assert.ok(result.took > 20, "AI picks up and carries the flag: " + JSON.stringify(result));
+      assert.equal(result.scored, 3, "AI returns home and wins from either spawn");
+      assert.ok(result.over);
+    }
     await page.screenshot({ path: (process.env.SHOT_DIR || "/tmp") + "/ctf.png" });
     // online: a guest sees the flags the host moves
     await new Promise((resolve) => { const peer = PeerServer({ host: "127.0.0.1", port: 9000, path: "/" }, (s) => { signaling = s; resolve(); }); });

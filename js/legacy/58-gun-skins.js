@@ -1626,6 +1626,7 @@
   const signed = () => gated() && !!token();
   const owns = (key, id) => "default" === id || (!!BY[id] && fits(BY[id], key) && (!gated() || !!(INV.own[key] && INV.own[key].includes(id))));
   const pullableLeft = () => Object.keys(WEAPONS).reduce((n, key) => n + skinsFor(key).filter((s) => s.rar > 0 && !s.excl && !owns(key, s.id)).length, 0);
+  const collectorPull = () => pullableLeft() === 0 && SKINS.some(s => s.rar === 5 && s.excl === 'coins' && !owns(VALORANT_DATA.championsWeapon, s.id));
   const totalOf = (key) => skinsFor(key).length - 1;
   const ownedOf = (key) => (gated() ? (INV.own[key] || []).filter((id) => BY[id] && fits(BY[id], key)).length : totalOf(key));
   const ownedAll = () => {
@@ -1739,6 +1740,7 @@
     g.scale.setScalar(0.88);
     const w = new T.Group();
     w.add(g);
+    const sourceMuzzle = g.userData.anchors?.muzzle;
     try {
       bakeDeep(w);
     } catch (e) {}
@@ -1752,6 +1754,7 @@
     });
     const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w));
     w.userData.muzzle = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z - 0.01];
+    if (sourceMuzzle) w.userData.muzzle = sourceMuzzle.map(n => n * .88);
     TPL.set(id, w);
     return w;
   }
@@ -2262,7 +2265,7 @@
     n = 10 === n ? 10 : 1;
     if (INV.busy || !signed()) return null;
     const left = pullableLeft();
-    if (left < n) return note(left > 0 ? L(`남은 스킨이 ${left}개뿐입니다`, `Only ${left} skins left`) : L("일반~전설 뽑기 스킨을 모두 모았습니다", "You own every Common-Legendary pull skin")), null;
+    if (left < n && !collectorPull()) return note(left > 0 ? L(`남은 스킨이 ${left}개뿐입니다`, `Only ${left} skins left`) : L("모든 뽑기 스킨을 모았습니다", "Collection complete")), null;
     if (INV.gold < costOf(n)) return note(L("골드가 부족합니다", "Not enough gold")), null;
     INV.busy = !0;
     paintGacha();
@@ -2274,7 +2277,8 @@
       j.user && syncSession(j.user);
       addHist(j.results || []);
       takeInv(j);
-      revealResults(j.results || []);
+      if (j.collector && !j.results?.length) revealFail(L(`초월 미당첨 · ${j.refunded}골드 전액 반환. 확률은 매회 동일합니다.`, `No Transcendent drop · ${j.refunded} gold refunded. Each pull has the same odds.`));
+      else revealResults(j.results || []);
     } catch (e) {
       revealFail(e && e.message ? e.message : L("뽑기에 실패했습니다", "The pull failed"));
       j = null;
@@ -2692,12 +2696,12 @@
       const b = $("ar-pull" + n),
         cost = costOf(n);
       b.innerHTML = `${L(n + "회 뽑기", 1 === n ? "Pull ×1" : "Pull ×10")}<i>🪙 ${cost.toLocaleString()}</i>${10 === n && disc > 0 ? `<em>${disc}% ${L("할인", "off")}</em>` : ""}`;
-      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : !INV.synced ? (syncError ? L("스킨 정보를 불러오지 못했습니다 · 무기고를 다시 열어주세요", "Could not load skins · reopen the armory to retry") : L("스킨 정보를 불러오는 중…", "Loading your skins…")) : INV.busy ? L("뽑는 중…", "Pulling…") : left < n ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("일반~전설 뽑기 스킨을 모두 모았습니다", "You own every Common-Legendary pull skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
+      const why = !gated() ? L("파일로 연 게임: 모든 스킨이 열려 있습니다", "Opened from a file: every skin is free") : !token() ? L("로그인하면 뽑을 수 있습니다", "Sign in to pull") : !INV.synced ? (syncError ? L("스킨 정보를 불러오지 못했습니다 · 무기고를 다시 열어주세요", "Could not load skins · reopen the armory to retry") : L("스킨 정보를 불러오는 중…", "Loading your skins…")) : INV.busy ? L("뽑는 중…", "Pulling…") : left < n && !collectorPull() ? (left > 0 ? L(`남은 스킨 ${left}개`, `${left} skins left`) : L("일반~전설 뽑기 스킨을 모두 모았습니다", "You own every Common-Legendary pull skin")) : INV.gold < cost ? L("골드가 부족합니다 · 경기를 이기면 100, 지면 30, 처치마다 5", "Not enough gold · a win pays 100, a loss 30, each kill 5") : "";
       b.disabled = !!why;
       b.title = why;
       1 === n && (why1 = why);
     }
-    $("ar-why").textContent = why1;
+    $("ar-why").textContent = why1 || (collectorPull() ? L('일반~전설 수집 완료 · 초월 확률은 그대로이며 미당첨 회차는 골드가 반환됩니다.', 'Ordinary collection complete · same Transcendent odds; empty pulls are refunded.') : '');
     const own = ownedAll(),
       all = itemsAll();
     $("pl-own").textContent = own.toLocaleString();
@@ -3094,10 +3098,11 @@
     if (RV.on || "pull" === AR.tab || "shop" === AR.tab) {
       const k = 0.95 / Math.max(s.x, s.y, s.z, 0.05);
       w.scale.setScalar(k);
-      P.fit = { L: k * Math.max(s.x, s.z), H: k * s.y, w: RV.on ? 0.48 : 0.6, h: RV.on ? 0.5 : 0.56 };
+      P.fit = { L: k * (RV.on ? Math.max(s.x, s.z) : Math.hypot(s.x, s.z)), H: k * s.y, w: RV.on ? 0.48 : 0.6, h: RV.on ? 0.5 : 0.56, tilt: !RV.on };
     } else {
-      P.fit = null;
-      P.dist = Math.max(s.z * 2.3, s.y * 2.8, s.x * 2.8, 0.45);
+      // Fit to the actual canvas aspect, including its caption-free height.
+      // A fixed distance left long guns tiny on a short landscape phone.
+      P.fit = { L: Math.hypot(s.x, s.z), H: s.y, w: .82, h: .72, tilt: true };
     }
     P.pivot.add(w);
     P.obj = w;
@@ -3119,19 +3124,20 @@
     (cv.width !== Math.round(w * P.r.getPixelRatio()) || cv.height !== Math.round(h * P.r.getPixelRatio())) && P.r.setSize(w, h, !1);
     P.cam.aspect = w / h;
     P.cam.updateProjectionMatrix();
+    const k = Math.min(1, (P.dt || 0.016) * 7);
+    P.pc = P.drag ? P.pitch : P.pc + (P.pitch - P.pc) * k;
     // a framed gun fills a share of the view, whatever its shape
     if (P.fit && !P.cine) {
       const tan = Math.tan((P.cam.fov * Math.PI) / 360);
-      P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), P.fit.H / (2 * tan * P.fit.h), 0.9);
+      const height = P.fit.tilt ? P.fit.H * Math.abs(Math.cos(P.pc)) + P.fit.L * Math.abs(Math.sin(P.pc)) : P.fit.H;
+      P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), height / (2 * tan * P.fit.h), 0.9);
     } else if (P.fit && P.cine && P.cine.bt) {
       const tan = Math.tan((P.cam.fov * Math.PI) / 360);
       P.dist = Math.max(P.fit.L / (2 * tan * P.cam.aspect * P.fit.w), P.fit.H / (2 * tan * P.fit.h), 1.6);
     }
     // the camera eases to where it should be; a drag moves it at once
-    const k = Math.min(1, (P.dt || 0.016) * 7);
-    P.d += (P.dist - P.d) * k;
+    P.d = P.drag ? P.dist : P.d + (P.dist - P.d) * k;
     P.tyc += (P.ty - P.tyc) * k;
-    P.pc = P.drag ? P.pitch : P.pc + (P.pitch - P.pc) * k;
     // a new gun pops in
     if (!P.rise) {
       const pk = P.popT ? Math.min(1, (now - P.popT) / 420) : 1;
@@ -3669,8 +3675,8 @@
     $("ar-reveal").classList.add("done");
     $("rv-equip").disabled = !1;
     const left = pullableLeft();
-    $("rv-one").disabled = left < 1 || INV.gold < costOf(1);
-    $("rv-ten").disabled = left < 10 || INV.gold < costOf(10);
+    $("rv-one").disabled = (left < 1 && !collectorPull()) || INV.gold < costOf(1);
+    $("rv-ten").disabled = (left < 10 && !collectorPull()) || INV.gold < costOf(10);
     selectCard(RV.best);
     $("rv-hint").textContent = RV.n > 1 ? L("카드를 누르면 그 총을 돌려 봅니다", "Tap a card to turn that gun") : L("끌어서 돌려 보세요", "Drag to turn it");
     paintGacha();

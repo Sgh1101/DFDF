@@ -28,3 +28,26 @@ test("cancelled or obsolete round callbacks cannot restart a menu, new round or 
     const f = fixture(); f.ctx.endRound("atk", "end"); change(f); f.advance(9000); assert.equal(f.starts, 0); assert.equal(f.results, 0);
   }
 });
+test('respawn modes cannot show a stale result over a menu, new map, new match or guest',()=>{
+  for(const change of [()=>{},f=>f.world.phase='menu',f=>f.world.round++,f=>f.ctx.CUR_MAP_KEY='hospital',f=>f.ctx.room.mode='dm',f=>f.world.actors=[],f=>f.ctx.NET.mode='client',f=>f.ctx.cancelRoundEnd()]){
+    const f=fixture();f.world.actors=[];f.world.phase='end';f.world.over=true;f.ctx.CUR_MAP_KEY='glacier';f.ctx.room={mode:'ctf'};
+    f.ctx.scheduleMatchFinish();change(f);f.advance(2600);assert.equal(f.results,change.toString()==='()=>{}'?1:0);
+  }
+});
+test('simultaneous elimination follows the existing planted/unplanted rule and scores once',()=>{
+  for(const [state,atk,def,winner]of [['carried',0,0,'def'],['planted',0,0,'atk'],['carried',1,0,'atk'],['planted',0,1,null],['carried',1,1,'def']]){
+    const f=fixture();f.world.spike={state};f.world.roundTime=0;f.world.actors=[...Array.from({length:atk},()=>({alive:true,team:'atk'})),...Array.from({length:def},()=>({alive:true,team:'def'})),{alive:false,team:'atk'}];
+    vm.runInContext(engine.slice(engine.indexOf('function checkRoundEnd()'),engine.indexOf('function winRounds()')),f.ctx);
+    f.ctx.checkRoundEnd();f.ctx.checkRoundEnd();assert.equal(f.world.scoreAtk,winner==='atk'?1:0);assert.equal(f.world.scoreDef,winner==='def'?1:0);assert.equal(f.timers.size,winner?1:0);
+  }
+});
+test('defuse and detonation in one processing window keep the first committed result once',()=>{
+  for(const first of ['defuseDone','detonate']){
+    const f=fixture();f.world.spike={state:'planted',x:0,z:0};f.world.entities=[];f.world.actors=[];
+    Object.assign(f.ctx,{T:require('three'),SFX:{defused(){},boom(){}},screenShake(){},fxFlash(){},addFx(){},rnd:(a,b)=>(a+b)/2});
+    vm.runInContext(engine.slice(engine.indexOf('function defuseDone('),engine.indexOf('function spikeUI(')),f.ctx);
+    f.ctx[first]('player');f.ctx[first==='defuseDone'?'detonate':'defuseDone']('player');
+    assert.equal(f.world.scoreAtk,first==='detonate'?1:0);assert.equal(f.world.scoreDef,first==='defuseDone'?1:0);
+    assert.equal(f.world.spike.state,first==='detonate'?'boom':'defused');assert.equal(f.timers.size,1);f.advance(3600);assert.equal(f.starts,1);
+  }
+});
