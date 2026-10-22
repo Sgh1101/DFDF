@@ -59,33 +59,34 @@
       { t: 17.0, src: "agents" },
       { t: 19.5, src: "clip:cast" },
       { t: 22.0, src: "clip:map-pogu" },
-      { t: 22.8, src: "clip:map-neon" },
-      { t: 23.6, src: "clip:map-train" },
+      { t: 22.8, src: "clip:map-train" },
+      { t: 23.6, src: "clip:map-neon" },
       { t: 24.5, src: "skins" },
     ],
 
     // The camera inside the window: reach focus (image px) and scale by t0 + d (d 0 = cut).
     zoom: [
       { t0: 0, d: 0, cx: 1000, cy: 562.5, s: 1 },
-      { t0: 6.5, d: 0, cx: 1397.5, cy: 690, s: 1.7 }, // the login card
-      { t0: 9.35, d: 0, cx: 1397.5, cy: 700, s: 1.7 }, // the enter button sits where the card was
-      { t0: 10.85, d: 0, cx: 520, cy: 560, s: 1.7 }, // 혼자 하기
-      { t0: 12.35, d: 0, cx: 1700, cy: 960, s: 1.7 }, // 전투 투입
+      { t0: 6.5, d: 0, cx: 1396, cy: 554, s: 1.5 }, // the login card, whole (title to 게스트 button)
+      { t0: 9.35, d: 0, cx: 1396, cy: 488, s: 1.5 }, // the account card, whole, 게임 들어가기 at its foot
+      { t0: 10.85, d: 0, cx: 560, cy: 560, s: 1.5 }, // the home: the 13 mark, 혼자 하기, 같이 하기
+      { t0: 12.35, d: 0, cx: 1200, cy: 675, s: 1.25 }, // the select: six whole columns, 전체 22, 전투 투입
       { t0: 13.85, d: 0, cx: 1000, cy: 562.5, s: 1 }, // the buy phase, whole
       { t0: 14.6, d: 0, cx: 1000, cy: 300, s: 1.6 }, // the live round: clock and 5:5 roster
       { t0: 15.6, d: 0.5, cx: 1000, cy: 562.5, s: 1 },
       { t0: 17.0, d: 0, cx: 760, cy: 470, s: 1.35 }, // the agent grid
       { t0: 18.2, d: 0.8, cx: 1760, cy: 545, s: 2.1 }, // pan to the same agent's four abilities
       { t0: 19.5, d: 0, cx: 1000, cy: 562.5, s: 1 }, // clips and tiles: whole
-      { t0: 24.5, d: 0, cx: 1300, cy: 720, s: 1.3 }, // the armoury: a skin on a gun, the grid
+      { t0: 24.5, d: 0, cx: 1200, cy: 700, s: 1.2 }, // the armoury: the whole gun, the grid
     ],
 
     // show: when the button's screen is up and its name appears; t: the click itself.
+    // at: image px inside the button, at its right end so the ring does not cover the label.
     clicks: [
-      { show: 8.5, t: 9.0, n: 1, label: "로그인 / 가입", at: [1397.5, 607.1] },
-      { show: 9.5, t: 10.5, n: 2, label: "게임 들어가기", at: [1397.5, 723.8] },
+      { show: 8.5, t: 9.0, n: 1, label: "로그인 / 가입", at: [1560, 607.1] },
+      { show: 9.5, t: 10.5, n: 2, label: "게임 들어가기", at: [1560, 723.8] },
       { show: 11.0, t: 12.0, n: 3, label: "혼자 하기", at: [395, 541.4] },
-      { show: 12.5, t: 13.5, n: 4, label: "전투 투입", at: [1878, 995.5] },
+      { show: 12.5, t: 13.5, n: 4, label: "전투 투입", at: [1940, 995.5] },
     ],
     ring: 0.35,
     counter: { t0: 8.5, t1: 14.6, kicker: "클릭" },
@@ -127,11 +128,10 @@
       barToPill: [27.25, 0.4],
       seatsIn: [27.5, 0.4], // ours first, stagger 0.05 s; theirs 0.25 s later
       labelsIn: [28.0, 0.25],
-      chip: [30.5, 0.4],
+      chip: [30.5, 0.4], // the pill shrinks to a chip above our five seats: the link, handed over
       flips: [31.0, 0.25], // one per 0.25 s for the four teammates
       clear: [34.5, 0.25],
       barHome: [34.7, 0.4],
-      fillHome: [35.0, 0.4],
       logoIn: [35.2, 0.4],
     },
     soloNames: ["나", "AI", "AI", "AI", "AI", "AI", "AI", "AI", "AI", "AI"],

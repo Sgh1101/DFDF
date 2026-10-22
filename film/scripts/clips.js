@@ -13,7 +13,7 @@ for (const [name, c] of Object.entries(T.clips)) {
   if (mode === "pack") {
     const n = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^\d{3}\.jpg$/.test(f)).length : 0;
     if (n !== c.frames) { console.log(`${name}: ${n} frames on disk, timeline wants ${c.frames} — not packed`); bad++; continue; }
-    ff(["-framerate", String(c.fps), "-i", path.join(dir, "%03d.jpg"), "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", mp4]);
+    ff(["-framerate", String(c.fps), "-i", path.join(dir, "%03d.jpg"), "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", mp4]);
     console.log(`${name}: ${n} frames -> ${path.relative(ROOT, mp4)} (${(fs.statSync(mp4).size / 1e6).toFixed(1)} MB)`);
   } else if (mode === "unpack") {
     if (!fs.existsSync(mp4)) { console.log(`${name}: ${path.relative(ROOT, mp4)} missing`); bad++; continue; }

@@ -41,7 +41,9 @@ async function captionsMatch(format, reduced) {
   const { browser, page } = await open(format, reduced), bad = [];
   for (const c of srt) {
     const seen = new Set();
-    for (let t = c.a + 0.3; t <= c.z - 0.3 + 1e-9; t += 0.1) { await page.evaluate((x) => window.seek(x), t); for (const v of await page.evaluate(VISIBLE)) seen.add(v); }
+    // sample the cue's middle, 0.3 s in from each end; a cue shorter than 0.6 s (a first line that gets its second line soon after) is sampled just before it ends
+    const times = []; for (let t = c.a + 0.3; t <= c.z - 0.3 + 1e-9; t += 0.1) times.push(t); if (!times.length) times.push(c.z - 0.05);
+    for (const t of times) { await page.evaluate((x) => window.seek(x), t); for (const v of await page.evaluate(VISIBLE)) seen.add(v); }
     const typedOk = (line) => [...seen].some((v) => v.startsWith("url:") && line.startsWith(v.slice(4)) && v.length > 4);
     for (const line of c.lines) if (!seen.has(line) && !typedOk(line)) bad.push({ cue: c.a, missing: line });
     for (const v of seen) if (!v.startsWith("url:") && !c.lines.includes(v)) bad.push({ cue: c.a, extra: v });
@@ -65,7 +67,7 @@ async function textFits(format, reduced) {
 async function pixelContrast(format) {
   const { browser, page } = await open(format, false), dir = path.join(ROOT, "review/contrast", format), crops = [];
   fs.mkdirSync(dir, { recursive: true });
-  const probes = [[4.0, ["l1"]], [5.8, ["sub"]], [7.5, ["l1", "l2"]], [9.2, ["cKick", "cNum", "cLab"]], [16.2, ["l1", "l2"]], [25.8, ["iKick", "iLab", "iNum", "iUnit"]], [33.0, ["l1", "l2", "chip", "mk0", "mk1", "mk5"]], [38.5, ["l1", "l2", "barUrl"]]];
+  const probes = [[4.0, ["l1"]], [5.8, ["sub"]], [7.5, ["l1", "l2"]], [9.2, ["cKick", "cNum", "cLab"]], [16.2, ["l1", "l2"]], [25.8, ["iKick", "iLab", "iNum", "iUnit"]], [29.0, ["mk1"]], [33.0, ["l1", "l2", "barUrl", "mk0", "mk1", "mk5"]], [38.5, ["l1", "l2", "barUrl"]]];
   for (const [t, ids] of probes) {
     await page.evaluate((x) => window.seek(x), t);
     for (const id of ids) {

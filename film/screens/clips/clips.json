@@ -1,13 +1,21 @@
 {
-  "capturedAt": "2026-10-22T16:24:33.293Z",
+  "capturedAt": "2026-10-22T16:42:15.505Z",
   "clips": [
+    {
+      "name": "open",
+      "map": "glacier",
+      "fps": 30,
+      "frames": 150,
+      "seconds": 5,
+      "took": 799.104
+    },
     {
       "name": "cast",
       "map": "neon",
       "fps": 30,
       "frames": 75,
       "seconds": 2.5,
-      "took": 378.749
+      "took": 280.759
     },
     {
       "name": "map-pogu",
@@ -15,7 +23,7 @@
       "fps": 24,
       "frames": 48,
       "seconds": 2,
-      "took": 142.577
+      "took": 134.826
     },
     {
       "name": "map-neon",
@@ -23,7 +31,7 @@
       "fps": 24,
       "frames": 48,
       "seconds": 2,
-      "took": 185.101
+      "took": 169.938
     },
     {
       "name": "map-train",
@@ -31,7 +39,7 @@
       "fps": 24,
       "frames": 48,
       "seconds": 2,
-      "took": 78.903
+      "took": 88.425
     }
   ],
   "errors": []

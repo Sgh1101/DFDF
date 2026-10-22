@@ -19,14 +19,16 @@ html,body{background:var(--paper);overflow:hidden}
 #ring{border-radius:50%;border:4px solid var(--accent);box-shadow:0 0 0 2px var(--ink),inset 0 0 0 2px var(--ink)}
 #cursor{transform-origin:4px 3px}
 #bar{left:0;top:0;overflow:hidden;background:var(--field)}
-#barFill{left:0;bottom:0;background:var(--accent)}
 #barUrl{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--field-ink);display:flex;align-items:center}
+#meas{left:0;top:0;white-space:nowrap;font-weight:500;visibility:hidden}
 .mk{left:0;top:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .mk span{position:static;font-weight:700;line-height:1;white-space:nowrap;color:var(--ink)}
-.mk.atk{background:var(--accent)}
-.mk.atk span{color:var(--field-ink)}
-.mk.def{background:var(--paper2);box-shadow:inset 0 0 0 4px var(--ink)}
-#chip{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--field-ink);background:var(--field);border-radius:999px;display:flex;align-items:center;justify-content:center}
+/* a seat: outlined while an AI sits in it, filled when a person does; red is our team, ink the other */
+.mk{background:var(--paper2)}
+.mk.atk{box-shadow:inset 0 0 0 4px var(--accent)}
+.mk.def{box-shadow:inset 0 0 0 4px var(--ink)}
+.mk.fill{background:var(--accent);box-shadow:none}
+.mk.fill span{color:var(--field-ink)}
 #logo{left:0;top:0;font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1;white-space:nowrap;transform:translate(-50%,-50%)}
 #logoLine{left:0;top:0;background:var(--accent);border-radius:4px}
 #sub{left:0;top:0;white-space:nowrap;font-weight:700;color:var(--ink);transform:translate(-50%,-50%)}
@@ -55,8 +57,8 @@ html,body{background:var(--paper);overflow:hidden}
     </div>
   </div>
   <div id="markers"></div>
-  <div id="bar"><div id="barFill"></div><div id="barUrl"></div></div>
-  <div id="chip"></div>
+  <div id="bar"><div id="barUrl"></div></div>
+  <div id="meas"></div>
   <div id="logo">13</div>
   <div id="logoLine"></div>
   <div id="sub"></div>
@@ -78,22 +80,22 @@ const [IW, IH] = T.screenPx;
 const LAYOUTS = {
   "16x9": { W: 1920, H: 1080,
     win: { x: 370, y: 64, w: 1180, ch: 52 },
-    pill: { cx: 960, cy: 190, w: 900, h: 96, f: 48 }, home: { cx: 960, cy: 470, w: 1100, h: 124, f: 60 },
-    row: { atk: [330, 462, 594, 726, 858], def: [1062, 1194, 1326, 1458, 1590], atkY: 560, defY: 560, r: 58, inner: 44, chipY: 424 },
-    copy: { x: 96, bottom: 984, f1: 64, f2: 56 }, counter: { k: 44, n: 104, l: 64 },
-    logoTitle: { cx: 960, cy: 450, f: 280 }, sub: { cx: 960, cy: 660, f: 44 }, logo: { cx: 960, cy: 250, f: 220 }, cursor: 34, chip: 44 },
+    pill: { cx: 960, cy: 190, h: 96, f: 48 }, home: { cx: 960, cy: 470, h: 124, f: 60 },
+    row: { atk: [310, 450, 590, 730, 870], def: [1050, 1190, 1330, 1470, 1610], atkY: 560, defY: 560, r: 62, inner: 48, chipY: 424 },
+    copy: { x: 96, bottom: 984, f1: 64, f2: 56 }, counter: { k: 48, n: 104, l: 64 },
+    logoTitle: { cx: 960, cy: 450, f: 280 }, sub: { cx: 960, cy: 664, f: 56 }, logo: { cx: 960, cy: 250, f: 220 }, cursor: 34, chip: 44 },
   "9x16": { W: 1080, H: 1920,
     win: { x: 40, y: 760, w: 1000, ch: 48 },
-    pill: { cx: 540, cy: 720, w: 920, h: 88, f: 36 }, home: { cx: 540, cy: 1010, w: 960, h: 112, f: 46 },
-    row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 1170, defY: 1330, r: 56, inner: 38, chipY: 1050 },
+    pill: { cx: 540, cy: 720, h: 88, f: 36 }, home: { cx: 540, cy: 1010, h: 112, f: 46 },
+    row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 1170, defY: 1330, r: 60, inner: 42, chipY: 1050 },
     copy: { x: 64, top: 380, f1: 64, f2: 52 }, counter: { k: 44, n: 132, l: 76 },
-    logoTitle: { cx: 540, cy: 880, f: 300 }, sub: { cx: 540, cy: 1100, f: 48 }, logo: { cx: 540, cy: 760, f: 240 }, cursor: 40, chip: 40 },
+    logoTitle: { cx: 540, cy: 880, f: 300 }, sub: { cx: 540, cy: 1104, f: 56 }, logo: { cx: 540, cy: 760, f: 240 }, cursor: 40, chip: 40 },
   "1x1": { W: 1080, H: 1080,
     win: { x: 90, y: 44, w: 900, ch: 44 },
-    pill: { cx: 540, cy: 200, w: 820, h: 76, f: 32 }, home: { cx: 540, cy: 470, w: 900, h: 100, f: 44 },
-    row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 470, defY: 630, r: 52, inner: 36, chipY: 362 },
-    copy: { x: 64, bottom: 1016, f1: 58, f2: 46 }, counter: { k: 36, n: 110, l: 62 },
-    logoTitle: { cx: 540, cy: 450, f: 250 }, sub: { cx: 540, cy: 640, f: 40 }, logo: { cx: 540, cy: 250, f: 200 }, cursor: 32, chip: 36 },
+    pill: { cx: 540, cy: 200, h: 76, f: 32 }, home: { cx: 540, cy: 470, h: 100, f: 44 },
+    row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 470, defY: 630, r: 56, inner: 40, chipY: 362 },
+    copy: { x: 64, bottom: 1016, f1: 58, f2: 46 }, counter: { k: 40, n: 110, l: 62 },
+    logoTitle: { cx: 540, cy: 450, f: 250 }, sub: { cx: 540, cy: 644, f: 50 }, logo: { cx: 540, cy: 250, f: 200 }, cursor: 32, chip: 36 },
 };
 const L = LAYOUTS[FORMAT];
 const CH = L.win.ch, CW = L.win.w, CHH = CW * IH / IW;
@@ -135,7 +137,7 @@ const screenImg = Object.fromEntries(Object.entries(T.screens).map(([k, src]) =>
 const clipImgs = Object.fromEntries(Object.entries(T.clips).map(([k, c]) => [k, Array.from({ length: c.frames }, (_, i) => imgOf(`${c.dir}/${String(i).padStart(3, "0")}.jpg`))]));
 const allImgs = [...Object.values(screenImg), ...Object.values(clipImgs).flat()];
 const markers = Array.from({ length: 10 }, (_, i) => { const d = document.createElement("div"); d.className = "mk " + (i < 5 ? "atk" : "def"); d.appendChild(document.createElement("span")); $("markers").appendChild(d); return d; });
-$("chip").textContent = T.url;
+$("meas").textContent = T.url;
 $("cKick").textContent = T.counter.kicker;
 $("iKick").textContent = T.inventory.kicker;
 $("sub").textContent = T.title.sub;
@@ -196,37 +198,36 @@ function seek(t) {
     else $("ring").style.opacity = 0;
   }
 
-  // the address: lifted out of the window's chrome as a pill for the turn, then home at the end
+  // the address, one object all the way: lifted out of the window's chrome as a pill for the turn,
+  // shrunk to a chip above our five seats (the link, handed over), then grown into the sign-off
+  const r = L.row;
   { let R, o = 0;
-    if (t >= M.barToPill[0] && t < M.barHome[0]) { R = lerpRect(chromeRect(winPose(M.barToPill[0] - 0.01)), L.pill, mv(t, M.barToPill)); o = dip(t, M.barToPill); }
-    else if (t >= M.barHome[0]) { R = lerpRect(L.pill, L.home, mv(t, M.barHome)); o = dip(t, M.barHome); }
+    const chipPose = { cx: (r.atk[0] + r.atk[4]) / 2, cy: r.chipY, h: L.chip * 1.9, f: L.chip };
+    const rect = (p) => { $("meas").style.fontSize = p.f + "px"; return { cx: p.cx, cy: p.cy, h: p.h, f: p.f, w: $("meas").getBoundingClientRect().width + p.h * 0.84 }; };
+    if (t >= M.barToPill[0] && t < M.chip[0]) { R = lerpRect(chromeRect(winPose(M.barToPill[0] - 0.01)), rect(L.pill), mv(t, M.barToPill)); o = dip(t, M.barToPill); }
+    else if (t >= M.chip[0] && t < M.barHome[0]) { R = lerpRect(rect(L.pill), rect(chipPose), mv(t, M.chip)); o = dip(t, M.chip); }
+    else if (t >= M.barHome[0]) { R = lerpRect(rect(chipPose), rect(L.home), mv(t, M.barHome)); o = dip(t, M.barHome); }
     if (R) {
-      const fillV = t < M.fillHome[0] ? 0 : (REDUCED ? fd(t, M.fillHome) : mv(t, M.fillHome));
       css($("bar"), { opacity: o, width: R.w + "px", height: R.h + "px", borderRadius: R.h / 2 + "px", transform: `translate(${R.cx - R.w / 2}px,${R.cy - R.h / 2}px)`, boxShadow: `inset 0 0 0 ${Math.max(1, 2 * R.h / 72)}px #D3CABD` });
-      css($("barFill"), { width: R.w * fillV + "px", height: Math.max(4, R.h * 0.085) + "px" });
       css($("barUrl"), { height: R.h + "px", paddingLeft: R.h * 0.42 + "px", fontSize: R.f + "px" });
       $("barUrl").textContent = T.url;
     } else $("bar").style.opacity = 0;
   }
 
-  // the ten seats: who fills them
-  const r = L.row;
+  // the ten seats: who fills them. A person's seat is filled, an AI's is an outline, so the turn
+  // (four outlines filling in) shows without reading the labels.
   for (let i = 0; i < 10; i++) {
     const el = markers[i], atk = i < 5, k = atk ? i : i - 5;
     const x = atk ? r.atk[k] : r.def[k], y = atk ? r.atkY : r.defY, mIn = [M.seatsIn[0] + 0.05 * k + (atk ? 0 : 0.25), M.seatsIn[1]];
     const q = mv(t, mIn), o = fd(t, mIn) * dip(t, mIn) * (1 - fd(t, M.clear));
-    let label = T.soloNames[i], sx = 1, la = fd(t, M.labelsIn);
+    let label = T.soloNames[i], sx = 1, la = fd(t, M.labelsIn), filled = i === 0;
     if (atk && i > 0) { const f = prog(t, [M.flips[0] + (i - 1) * M.flips[1], M.flips[1]]);
-      if (f >= 0.5) label = T.friendName;
+      if (f >= 0.5) { label = T.friendName; filled = true; }
       if (REDUCED) la *= f > 0 && f < 1 ? Math.abs(f - 0.5) * 2 : 1; else sx = Math.abs(Math.cos(f * Math.PI)); }
+    el.className = `mk ${atk ? "atk" : "def"}${filled ? " fill" : ""}`;
     const span = el.firstChild; span.textContent = t >= M.labelsIn[0] ? label : ""; span.style.opacity = la; span.style.fontSize = r.inner + "px";
     css(el, { opacity: o, width: 2 * r.r + "px", height: 2 * r.r + "px", transform: `translate(${x - r.r}px,${y - r.r + 28 * (1 - q)}px) scaleX(${sx})` });
   }
-
-  // the same link, peeled off the address pill and handed to the team
-  { const f = L.chip, h = f * 1.9, w = f * 0.56 * T.url.length + f * 1.6, q = mv(t, M.chip);
-    const x = lerp(L.pill.cx, (r.atk[0] + r.atk[4]) / 2, q), y = lerp(L.pill.cy, r.chipY, q);
-    css($("chip"), { opacity: (t >= M.chip[0] ? fd(t, [M.chip[0], 0.15]) : 0) * (1 - fd(t, M.clear)) * dip(t, M.chip), fontSize: f + "px", width: w + "px", height: h + "px", borderRadius: h / 2 + "px", boxShadow: "inset 0 0 0 2px #D3CABD", transform: `translate(${x - w / 2}px,${y - h / 2}px)` }); }
 
   // the 13 mark: a title card after the reveal, and over the address at the end
   { const tt = T.title, inTitle = t >= tt.t0 && t < M.winBack[0];

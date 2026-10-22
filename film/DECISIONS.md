@@ -15,7 +15,22 @@ One line per call made where the brief was thin.
 - **The seats (나/AI/친구) stay** from the first build: the reviewer called them the clearest device, and nothing in the game's UI shows who fills a seat.
 - **Scenes** S1 0–6.5, S2 6.5–17, S3 17–27, S4 27–34.5, S5 34.5–40. Title card at 5 s (name early), end card held 5 s.
 - **Sound**: the bed starts on frame one with the pulse and hats under the play, chords from 3 s; synthesized rifle rounds and ability whooshes land where the clips fire and cast; the game's kill motif marks the reveal, the friends and the payoff as before.
+- **Clips travel as mp4, not frames.** 369 JPEG frames would be ~60 MB in git; the five clips are committed as H.264 at crf 20 (23 MB together) and `scripts/clips.js unpack` regenerates the frames `film.html` reads. crf 12 / yuv444p was tried first (21 MB for the opening clip alone) and dropped: at the window's size the difference is invisible.
+- **The round-start banner stays.** The live frame after click 4 carries the game's own “교전 개시” text; it is the game saying the round began, which is what the line (“링크에서 교전까지”) claims.
 
+
+### Second design review (on the finished composition, before the final render)
+
+A design-review subagent went through all 18 beat stills at 1920×1080 and at phone width. Three findings were marked must-fix and were; four of the five nice-to-haves were taken. Before/after pairs: `review/fixes/v2-*.png`.
+
+- **The zooms were cropping the real screens** (must-fix, confirmed): at 1.7× the login card lost its title under the chrome, the home lost the top of the game's own 13 mark, the select screen showed half cards and the “전체 22” chip cut to “체 22”, the armoury cut the rifle's barrel. A screenshot that is cut at the edge stops reading as a tab and starts reading as a crop. Now 1.5× centred on the whole card (login, account), 1.5× on the home with the mark in, 1.25× on the select with its left edge on a column boundary (six whole columns, chips and button in), 1.2× on the armoury with the whole gun.
+- **Seats: a person is filled, an AI is an outline** (must-fix, taken). Before, all five of our seats were solid red and only the labels said 나/AI, so the turn (AI → 친구) was invisible without reading. Now 나 is the one filled seat among four red outlines (“혼자여도” is visible), and the four outlines fill in as the friends arrive. Team is still red vs ink and left group vs right group; labels stay, 4 px larger.
+- **One link, not two** (must-fix, taken). The address pill at the top and a second chip over the seats meant two URLs on screen as the line said “링크 하나면”. The pill is now one object: it lifts out of the window's chrome, shrinks and moves down to sit over our five seats (the link, handed over), then grows into the sign-off pill under the 13 mark. The separate chip is gone, and so is the red fill line along the end pill, which doubled the mark's underline.
+- **The pill is sized to its text** (taken): the 1100 px end pill with the URL left-aligned read as an empty input; all pill poses are now text width plus padding, which also makes the pill → chip move a small one.
+- **The cursor sits at the right end of each button** (taken), inside its box but clear of its label, so the ring never covers the words the counter names.
+- **Map orbits reordered** 포구 → 달리는 열차 → 네온 정점 (taken), so 네온 정점 no longer follows its own cast clip.
+- **The title line is bigger** (taken): 44 → 56 px (16:9); it is the film's one sentence and was its smallest text. Kickers 44 → 48 px.
+- **Not taken: re-recording the play without “경기 크레딧 무제한”** in the HUD (the solo mode's economy readout, legible only at desktop size): a full re-record costs about an hour of frame-stepped capture for a line most viewers will not resolve. Noted here instead. Also kept: the agent-grid shot that pans into one agent's four abilities (the reviewer wanted more whole cards; the pan is what sets up the 스킬 count that follows).
 
 ## Brief
 
