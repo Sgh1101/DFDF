@@ -34,6 +34,7 @@
     blue: () => mat("blue", 0x4a7fd0, 0.45, 0.3),
     silver: () => mat("silver", 0x8f969f, 0.4, 0.55),
     chrome: () => mat("chrome", 0xe9edf3, 0.26, 0.38),
+    shell: () => mat("shell", 0xa3262b, 0.55, 0.08),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -650,6 +651,109 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff };
+  // ── 저지 (autoshot): the tall butt with a slanted leg and a long beam rising to the receiver, the upper barrel
+  // with four slanted vents and tall sights, the magazine tube under it with a pale top line, the pale muzzle
+  // and ring, the raked grip, and the wide box drum showing three rows of brass-and-red shells ──
+  function judge() {
+    const k = kit({ S: 550, px0: 361, py0: 178, z0: 0.25, y0: 0.215 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), SI = M.silver(), BR = M.brass(), SH = M.shell();
+
+    // stock: butt pad, slanted leg, beam with a pale top line, rising to the receiver, sling loop
+    side(R, 361, 372, 208, 325, 0.03, { name: "butt-pad" });
+    for (let i = 0; i < 8; i++) side(D, 360, 362, 216 + i * 13, 221 + i * 13, 0.026);
+    side(P, 372, 390, 208, 270, 0.028, { name: "butt" });
+    bar(P, 382, 323, 410, 268, 0.022, 0.024, "stock-leg");
+    side(P, 372, 392, 300, 325, 0.026);
+    side(P, 388, 572, 213, 268, 0.026, { name: "stock-beam" });
+    side(PA, 388, 572, 214, 218, 0.0265, { name: "beam-line" });
+    side(D, 400, 560, 248, 251, 0.0265);
+    for (const px of [452, 520]) side(D, px, px + 28, 226, 240, 0.0265, { name: "beam-cut" });
+    bar(P, 570, 216, 634, 206, 0.02, 0.026, "stock-rise");
+    side(P, 570, 634, 214, 268, 0.026);
+    side(ME, 540, 560, 268, 276, 0.02, { name: "sling-loop" });
+
+    // receiver: body, pale top line, rear sight, ejection port, bolt handle, selector, screws
+    side(PL, 632, 782, 203, 270, 0.03, { name: "receiver" });
+    side(ME, 632, 1000, 203, 209, 0.022, { name: "top-strip" });
+    side(PA, 632, 1000, 205, 208, 0.0225, { name: "top-line" });
+    side(ME, 646, 668, 180, 203, 0.012, { name: "rear-sight" });
+    side(D, 652, 662, 184, 192, 0.0125);
+    side(D, 690, 760, 214, 232, 0.0302, { name: "ejection-port" });
+    side(ST, 760, 774, 218, 228, 0.04, { x: 0.012, name: "bolt-handle" });
+    side(ME, 650, 672, 240, 248, 0.004, { x: -0.031, name: "selector" });
+    for (const [px, py] of [[640, 212], [640, 256], [772, 256]]) side(ST, px, px + 6, py, py + 6, 0.0303, { name: "screw" });
+    side(D, 632, 782, 258, 261, 0.0302);
+
+    // upper barrel: tube with slanted vents, front sight with ears; muzzle cylinder and ring
+    side(ME, 685, 1000, 209, 236, 0.022, { name: "upper-barrel" });
+    side(ME, 685, 1000, 205, 240, 0.015);
+    for (let i = 0; i < 4; i++) bar(PA, 896 + i * 16, 230, 906 + i * 16, 212, 0.004, 0.0225, "vent");
+    side(ME, 976, 996, 182, 205, 0.008, { name: "front-sight" });
+    side(ST, 984, 988, 178, 186, 0.004);
+    side(SI, 998, 1036, 208, 236, 0.016, { name: "muzzle" });
+    side(SI, 998, 1036, 204, 240, 0.011);
+    side(D, 1008, 1016, 205, 239, 0.0165, { name: "muzzle-ring" });
+    side(D, 1034, 1039, 214, 230, 0.008, { name: "muzzle-bore" });
+
+    // magazine tube under the barrel: pale top line, a light stud, rail under, end cap
+    side(P, 782, 1000, 237, 280, 0.024, { name: "tube" });
+    side(P, 782, 1000, 241, 276, 0.03);
+    side(PA, 782, 1000, 237, 243, 0.0245, { name: "tube-line" });
+    side(SI, 788, 798, 248, 258, 0.0302, { name: "stud" });
+    for (let i = 0; i < 8; i++) side(D, 806 + i * 22, 818 + i * 22, 276, 282, 0.02, { name: "tube-rail" });
+    side(ME, 996, 1022, 240, 266, 0.018, { name: "tube-cap" });
+    side(ME, 680, 785, 236, 246, 0.0245);
+
+    // grip and trigger guard
+    const grip = new T.Group();
+    grip.position.set(0, Y(268), Z(566));
+    grip.rotation.x = -0.5;
+    g.add(grip);
+    const gb = (m, a, b, y0, y1, w, name) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      name && (mesh.name = name);
+      grip.add(mesh);
+      return mesh;
+    };
+    gb(P, -0.034, 0.03, -0.17, 0, 0.021, "grip");
+    gb(PL, -0.026, 0.022, -0.152, -0.014, 0.0215, "grip-panel");
+    for (let i = 0; i < 8; i++) gb(D, -0.022, 0.018, -0.024 - i * 0.016, -0.021 - i * 0.016, 0.022, "grip-rib");
+    for (let i = 0; i < 3; i++) gb(PL, 0.028, 0.036, -0.04 - i * 0.04, -0.02 - i * 0.04, 0.02, "finger-bump");
+    gb(D, -0.038, 0.034, -0.182, -0.168, 0.0215, "grip-cap");
+    bar(ME, 584, 268, 588, 302, 0.01, 0.008, "guard-rear");
+    side(ME, 586, 644, 300, 308, 0.008, { name: "guard-bottom" });
+    bar(ME, 644, 306, 656, 270, 0.01, 0.008, "guard-front");
+    bar(ST, 608, 272, 616, 296, 0.008, 0.004, "trigger");
+
+    // drum: a round drum on a sideways axis, built as stacked slabs; a rim on each face, a pale feed cap on top,
+    // a window on each face showing three rows of brass-and-red shells, a winding key in the middle
+    const cz = (660 + 782) / 2, cy = 323, rad = 57;
+    for (let i = -6; i <= 6; i++) {
+      const y0 = cy + (i - 0.5) * (rad / 6.5), y1 = cy + (i + 0.5) * (rad / 6.5), mid = Math.abs(i) / 6.5, half = rad * Math.sqrt(Math.max(0, 1 - mid * mid));
+      side(D, cz - half, cz + half, y0, y1, 0.042, { name: "drum" });
+      side(ME, cz - half, cz + half, y0, y1, 0.046);
+      side(D, cz - half + 6, cz + half - 6, y0, y1, 0.0465);
+    }
+    side(SI, 690, 752, 262, 270, 0.03, { name: "drum-cap" });
+    side(ME, 700, 742, 270, 276, 0.025);
+    for (let r = 0; r < 3; r++) {
+      const top = 291 + r * 22;
+      side(BR, 686, 702, top, top + 17, 0.0468, { name: "shell-base" });
+      side(SH, 702, 748, top, top + 17, 0.0468, { name: "shell" });
+      side(D, 700, 703, top, top + 17, 0.047);
+      side(PA, 704, 746, top + 2, top + 4, 0.047);
+    }
+    side(ST, 752, 764, 316, 330, 0.049, { name: "drum-key" });
+    side(ME, 748, 768, 320, 326, 0.05);
+    g.name = "dfdf-judge";
+    g.userData.weaponModel = "dfdf-judge";
+    g.userData.design = { key: "autoshot", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(222), Z(1039)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
