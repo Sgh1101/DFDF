@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-22T12:34:59.356Z",
+  "capturedAt": "2026-10-22T16:04:56.744Z",
   "base": "http://127.0.0.1:3000",
   "chromium": "141.0.7390.37",
   "viewport": {
@@ -7,15 +7,16 @@
     "height": 900,
     "deviceScaleFactor": 1.25
   },
+  "signup": "hana",
   "clicks": [
     {
       "step": 1,
       "page": "/",
-      "selector": "#doGuest",
-      "label": "게스트로 시작",
+      "selector": "#doAuth",
+      "label": "로그인 / 가입",
       "box": {
         "x": 909,
-        "y": 548.6875,
+        "y": 463.6875,
         "width": 418,
         "height": 44
       }
@@ -27,7 +28,7 @@
       "label": "게임 들어가기",
       "box": {
         "x": 911,
-        "y": 538.5,
+        "y": 548.5,
         "width": 414,
         "height": 61
       }
@@ -125,7 +126,7 @@
     "x": 800,
     "y": 442.2717945345659
   },
-  "touchControlsVisible": 2,
+  "touchControlsVisible": null,
   "staged": [
     "05→06: ADMIN.freezeAI=true and closeShop() (solo pauses the clock while the shop is open), buy timer set to 0.01 s, so the game's own step() opens the round (clock 1:40, shop closes)",
     "06→07: player moved to the first site centre, then plantSpike() — the game's own plant routine"

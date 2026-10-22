@@ -8,9 +8,8 @@ for (const c of T.copy) {
   if (c.l2 && c.l2at > c.t0) { cues.push([c.t0, c.l2at, c.l1]); cues.push([c.l2at, c.t1, c.l1 + "\n" + c.l2]); }
   else cues.push([c.t0, c.t1, c.l2 ? c.l1 + "\n" + c.l2 : c.l1]);
 }
-// the URL typed into the bar stays readable on screen until the window takes it into its chrome
-const typed = [T.moves.type[0], T.copy[1].t0], link = cues.find((c) => c[0] === T.copy[1].t0);
-cues.push([typed[0], typed[1], T.url]); link[2] = T.url + "\n" + link[2];
+// the title card's line under the 13 mark (the mark itself is a graphic, not captioned)
+cues.push([T.title.t0 + 0.35, T.moves.titleOut[0], T.title.sub]);
 // the counter names each button from the moment its screen is up (the numeral ticks on the click)
 T.clicks.forEach((k, i) => cues.push([k.show, i + 1 < T.clicks.length ? T.clicks[i + 1].show : T.counter.t1, `${T.counter.kicker}\n${k.n} ${k.label}`]));
 // what is inside: the kicker with one count at a time, as on screen

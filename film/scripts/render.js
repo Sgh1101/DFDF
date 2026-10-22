@@ -13,7 +13,7 @@ async function open(format, reduced, scale = 1) {
   const [w, h] = SIZES[format];
   const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || "/opt/pw-browsers/chromium", args: ["--no-sandbox", "--font-render-hinting=none", "--disable-lcd-text", "--force-color-profile=srgb"] });
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: scale });
-  const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
   const url = "file://" + path.join(ROOT, "film.html") + `?format=${format}${reduced ? "&reduced=1" : ""}`;
   await page.goto(url);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });

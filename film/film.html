@@ -9,39 +9,35 @@
 html,body{background:var(--paper);overflow:hidden}
 #frame{position:relative;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
 #frame *{position:absolute}
-#win{left:0;top:0;transform-origin:0 0;border-radius:14px;overflow:hidden;background:var(--void);box-shadow:0 0 0 1px var(--rule),0 24px 48px -18px rgba(21,24,30,.35)}
-#chrome{left:0;top:0;width:100%;background:#FBF8F2;border-bottom:1px solid var(--rule)}
+#win{left:0;top:0;transform-origin:0 0;border-radius:14px;overflow:hidden;background:var(--void);box-shadow:0 0 0 1px var(--rule),0 30px 60px -20px rgba(0,0,0,.8)}
+#chrome{left:0;top:0;width:100%;background:var(--chrome);border-bottom:1px solid #D3CABD}
+#chromeUrl{background:var(--field);box-shadow:inset 0 0 0 1px #D3CABD;color:var(--field-ink);font-weight:500;white-space:nowrap;display:flex;align-items:center}
 #content{left:0;overflow:hidden;background:var(--void)}
 #shots{left:0;top:0;transform-origin:0 0;width:2000px;height:1125px}
-#shots img{left:0;top:0;width:2000px;height:1125px;display:block}
+#shots img{left:0;top:0;width:2000px;height:1125px;display:none}
 #ring,#cursor{left:0;top:0}
 #ring{border-radius:50%;border:4px solid var(--accent);box-shadow:0 0 0 2px var(--ink),inset 0 0 0 2px var(--ink)}
 #cursor{transform-origin:4px 3px}
-#bar{left:0;top:0;overflow:hidden}
-#barFill{left:0;bottom:0;background:var(--accent-ink)}
-#barUrl{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--ink);display:flex;align-items:center}
-#barLabel{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--ink2)}
+#bar{left:0;top:0;overflow:hidden;background:var(--field)}
+#barFill{left:0;bottom:0;background:var(--accent)}
+#barUrl{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--field-ink);display:flex;align-items:center}
 .mk{left:0;top:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.mk span{position:static;font-weight:700;color:var(--ink);line-height:1;white-space:nowrap}
+.mk span{position:static;font-weight:700;line-height:1;white-space:nowrap;color:var(--ink)}
 .mk.atk{background:var(--accent)}
-.mk.def{background:var(--paper);box-shadow:inset 0 0 0 4px var(--ink)}
-#chip{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--ink);background:var(--field);border-radius:999px;display:flex;align-items:center;justify-content:center}
+.mk.atk span{color:var(--field-ink)}
+.mk.def{background:var(--paper2);box-shadow:inset 0 0 0 4px var(--ink)}
+#chip{left:0;top:0;white-space:nowrap;font-weight:500;color:var(--field-ink);background:var(--field);border-radius:999px;display:flex;align-items:center;justify-content:center}
 #logo{left:0;top:0;font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1;white-space:nowrap;transform:translate(-50%,-50%)}
 #logoLine{left:0;top:0;background:var(--accent);border-radius:4px}
-#copy,#counter{left:0;top:0}
-#copy div,#counter div{white-space:nowrap;left:0;top:0}
+#sub{left:0;top:0;white-space:nowrap;font-weight:700;color:var(--ink);transform:translate(-50%,-50%)}
+#copy,#counter,#inventory{left:0;top:0}
+#copy div,#counter div,#inventory div{white-space:nowrap;left:0;top:0}
 #l1{font-weight:700;color:var(--ink)}
 #l2{font-weight:500;color:var(--ink2)}
-#cKick{font-weight:500;color:var(--ink2)}
-#cNum{font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1;text-align:right}
-#cLab{font-weight:700;color:var(--ink);line-height:1}
-#mosaic{left:0;top:0}
-#mosaic img{object-fit:cover;border-radius:4px}
-#inventory{left:0;top:0}
-#inventory div{white-space:nowrap;left:0;top:0}
-#iKick{font-weight:500;color:var(--ink2)}
-#iLab,#iUnit{font-weight:700;color:var(--ink);line-height:1}
-#iNum{font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1}
+#cKick,#iKick{font-weight:500;color:var(--ink2)}
+#cNum,#iNum{font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1}
+#cNum{text-align:right}
+#cLab,#iLab,#iUnit{font-weight:700;color:var(--ink);line-height:1}
 </style>
 </head>
 <body>
@@ -50,20 +46,20 @@ html,body{background:var(--paper);overflow:hidden}
     <div id="chrome">
       <svg id="gBack" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="#4B4F58" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <svg id="gReload" width="20" height="20" viewBox="0 0 20 20"><path d="M15.5 10a5.5 5.5 0 1 1-1.8-4.1" fill="none" stroke="#4B4F58" stroke-width="2.2" stroke-linecap="round"/><path d="M15.8 3.6v3.6h-3.6" fill="none" stroke="#4B4F58" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div id="chromeUrl"></div>
     </div>
     <div id="content">
       <div id="shots"></div>
-      <div id="mosaic"></div>
       <div id="ring"></div>
       <svg id="cursor" viewBox="0 0 34 34"><path d="M4 3v24l6.5-6 4.4 10 4.3-1.9-4.4-9.8h8.7z" fill="#15181E" stroke="#FFFCF7" stroke-width="2" stroke-linejoin="round"/></svg>
     </div>
   </div>
   <div id="markers"></div>
-  <div id="barLabel"></div>
   <div id="bar"><div id="barFill"></div><div id="barUrl"></div></div>
   <div id="chip"></div>
   <div id="logo">13</div>
   <div id="logoLine"></div>
+  <div id="sub"></div>
   <div id="copy"><div id="l1"></div><div id="l2"></div></div>
   <div id="counter"><div id="cKick"></div><div id="cNum"></div><div id="cLab"></div></div>
   <div id="inventory"><div id="iKick"></div><div id="iLab"></div><div id="iNum"></div><div id="iUnit"></div></div>
@@ -82,31 +78,26 @@ const [IW, IH] = T.screenPx;
 const LAYOUTS = {
   "16x9": { W: 1920, H: 1080,
     win: { x: 370, y: 64, w: 1180, ch: 52 },
-    bar0: { cx: 960, cy: 470, w: 720, h: 14 }, barLabel: 30,
-    field: { cx: 960, cy: 470, w: 900, h: 96, f: 48 }, pill: { cx: 960, cy: 190, w: 900, h: 96, f: 48 }, home: { cx: 960, cy: 470, w: 1100, h: 124, f: 60 },
+    pill: { cx: 960, cy: 190, w: 900, h: 96, f: 48 }, home: { cx: 960, cy: 470, w: 1100, h: 124, f: 60 },
     row: { atk: [330, 462, 594, 726, 858], def: [1062, 1194, 1326, 1458, 1590], atkY: 560, defY: 560, r: 58, inner: 44, chipY: 424 },
-    strip: { cy: 930, x: [1352, 1392, 1432, 1472, 1512, 1600, 1640, 1680, 1720, 1760], r: 14 },
     copy: { x: 96, bottom: 984, f1: 64, f2: 56 }, counter: { k: 44, n: 104, l: 64 },
-    logo: { cx: 960, cy: 250, f: 220 }, cursor: 34, chip: 44 },
+    logoTitle: { cx: 960, cy: 450, f: 280 }, sub: { cx: 960, cy: 660, f: 44 }, logo: { cx: 960, cy: 250, f: 220 }, cursor: 34, chip: 44 },
   "9x16": { W: 1080, H: 1920,
     win: { x: 40, y: 760, w: 1000, ch: 48 },
-    bar0: { cx: 540, cy: 1010, w: 820, h: 16 }, barLabel: 40,
-    field: { cx: 540, cy: 1010, w: 920, h: 88, f: 36 }, pill: { cx: 540, cy: 720, w: 920, h: 88, f: 36 }, home: { cx: 540, cy: 1010, w: 960, h: 112, f: 46 },
+    pill: { cx: 540, cy: 720, w: 920, h: 88, f: 36 }, home: { cx: 540, cy: 1010, w: 960, h: 112, f: 46 },
     row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 1170, defY: 1330, r: 56, inner: 38, chipY: 1050 },
-    strip: { cy: 1470, x: [290, 334, 378, 422, 466, 614, 658, 702, 746, 790], r: 16 },
     copy: { x: 64, top: 380, f1: 64, f2: 52 }, counter: { k: 44, n: 132, l: 76 },
-    logo: { cx: 540, cy: 760, f: 240 }, cursor: 40, chip: 40 },
+    logoTitle: { cx: 540, cy: 880, f: 300 }, sub: { cx: 540, cy: 1100, f: 48 }, logo: { cx: 540, cy: 760, f: 240 }, cursor: 40, chip: 40 },
   "1x1": { W: 1080, H: 1080,
     win: { x: 90, y: 44, w: 900, ch: 44 },
-    bar0: { cx: 540, cy: 470, w: 720, h: 14 }, barLabel: 30,
-    field: { cx: 540, cy: 470, w: 820, h: 76, f: 32 }, pill: { cx: 540, cy: 200, w: 820, h: 76, f: 32 }, home: { cx: 540, cy: 470, w: 900, h: 100, f: 44 },
+    pill: { cx: 540, cy: 200, w: 820, h: 76, f: 32 }, home: { cx: 540, cy: 470, w: 900, h: 100, f: 44 },
     row: { atk: [180, 360, 540, 720, 900], def: [180, 360, 540, 720, 900], atkY: 470, defY: 630, r: 52, inner: 36, chipY: 362 },
-    strip: { cy: 720, x: [300, 340, 380, 420, 460, 620, 660, 700, 740, 780], r: 15 },
     copy: { x: 64, bottom: 1016, f1: 58, f2: 46 }, counter: { k: 36, n: 110, l: 62 },
-    logo: { cx: 540, cy: 250, f: 200 }, cursor: 32, chip: 36 },
+    logoTitle: { cx: 540, cy: 450, f: 250 }, sub: { cx: 540, cy: 640, f: 40 }, logo: { cx: 540, cy: 250, f: 200 }, cursor: 32, chip: 36 },
 };
 const L = LAYOUTS[FORMAT];
 const CH = L.win.ch, CW = L.win.w, CHH = CW * IH / IW;
+const COVER = Math.max(L.W / CW, L.H / CHH); // the scale at which the window's content fills the frame
 
 // ── easing and tweens ──
 function bezier(x1, y1, x2, y2) {
@@ -124,8 +115,7 @@ const mv = (t, m) => (REDUCED ? (prog(t, m) >= 1 ? 1 : 0) : settle(prog(t, m)));
 const fd = (t, m) => settle(prog(t, m));
 // reduced cut: an object that would have moved fades out and back in around its cut
 const dip = (t, m) => { if (!REDUCED) return 1; const c = m[0] + m[1], w = Math.max(0.12, m[1] / 2); return clamp(Math.abs(t - c) / w); };
-const mixHex = (a, b, p) => { const A = a.match(/\w\w/g).map((h) => parseInt(h, 16)), B = b.match(/\w\w/g).map((h) => parseInt(h, 16)); return "rgb(" + A.map((v, i) => Math.round(lerp(v, B[i], p))).join(",") + ")"; };
-const C = Object.fromEntries(["paper2", "rule", "field", "accent"].map((k) => [k, getComputedStyle(document.documentElement).getPropertyValue("--" + k).trim().replace("#", "")]));
+const css = (el, o) => { for (const k in o) el.style[k] = o[k]; };
 
 // ── DOM ──
 const $ = (id) => document.getElementById(id);
@@ -136,17 +126,20 @@ win.style.width = CW + "px"; win.style.height = CH + CHH + "px";
 $("chrome").style.height = CH + "px";
 $("content").style.top = CH + "px"; $("content").style.width = CW + "px"; $("content").style.height = CHH + "px";
 const gy = (CH - 20) / 2; $("gBack").style.left = "18px"; $("gBack").style.top = gy + "px"; $("gReload").style.left = "50px"; $("gReload").style.top = gy + "px";
-const imgs = T.shots.map((s) => { const i = new Image(); if (s.src !== "mosaic") { i.src = T.screens[s.src]; i.decoding = "sync"; shots.appendChild(i); } return i; });
-const MZ = T.mosaic, tw = (CW - 2 * MZ.gap) / 3, th = (CHH - MZ.gap) / 2;
-const tiles = MZ.maps.map((m, i) => { const im = new Image(); im.src = m.src; im.decoding = "sync"; im.alt = m.name; $("mosaic").appendChild(im);
-  Object.assign(im.style, { width: tw + "px", height: th + "px", left: (i % 3) * (tw + MZ.gap) + "px", top: Math.floor(i / 3) * (th + MZ.gap) + "px" }); return im; });
-$("iKick").textContent = T.inventory.kicker;
+const chromeField = { x: 84, y: 8, w: CW - 84 - 40, h: CH - 16 };
+css($("chromeUrl"), { left: chromeField.x + "px", top: chromeField.y + "px", width: chromeField.w + "px", height: chromeField.h + "px", borderRadius: chromeField.h / 2 + "px", paddingLeft: chromeField.h * 0.42 + "px", fontSize: Math.round(chromeField.h * 0.5) + "px" });
+$("chromeUrl").textContent = T.url;
+// one <img> per screen and per clip frame; seek() shows exactly one
+const imgOf = (src) => { const i = new Image(); i.src = src; i.decoding = "sync"; shots.appendChild(i); return i; };
+const screenImg = Object.fromEntries(Object.entries(T.screens).map(([k, src]) => [k, imgOf(src)]));
+const clipImgs = Object.fromEntries(Object.entries(T.clips).map(([k, c]) => [k, Array.from({ length: c.frames }, (_, i) => imgOf(`${c.dir}/${String(i).padStart(3, "0")}.jpg`))]));
+const allImgs = [...Object.values(screenImg), ...Object.values(clipImgs).flat()];
 const markers = Array.from({ length: 10 }, (_, i) => { const d = document.createElement("div"); d.className = "mk " + (i < 5 ? "atk" : "def"); d.appendChild(document.createElement("span")); $("markers").appendChild(d); return d; });
-$("barLabel").textContent = T.barLabel.text;
 $("chip").textContent = T.url;
 $("cKick").textContent = T.counter.kicker;
+$("iKick").textContent = T.inventory.kicker;
+$("sub").textContent = T.title.sub;
 cursor.style.width = cursor.style.height = L.cursor + "px";
-const css = (el, o) => { for (const k in o) el.style[k] = o[k]; };
 
 // ── geometry ──
 function zoomAt(t) {
@@ -160,106 +153,91 @@ function zoomAt(t) {
   const z = (CW / IW) * cur.s;
   return { z, ox: clamp(CW / 2 - cur.cx * z, CW - IW * z, 0), oy: clamp(CHH / 2 - cur.cy * z, CHH - IH * z, 0) };
 }
-// image px -> content-local px -> frame px (the window never scales, it only fades)
 const imgToContent = ([px, py], Z) => [Z.ox + px * Z.z, Z.oy + py * Z.z];
-const contentToFrame = ([x, y]) => [L.win.x + x, L.win.y + CH + y];
-function winAlpha(t) {
-  const open = fd(t, [M.winOpen[0], 0.25]) * dip(t, M.winOpen);
-  return t < M.winBack[0] ? open * (1 - fd(t, M.winHide)) : fd(t, M.winBack) * (1 - fd(t, M.winOut));
+// the window: full-frame play at first, then the browser window it was in all along
+function winPose(t) {
+  const cover = { s: COVER, x: (L.W - CW * COVER) / 2, y: (L.H - CHH * COVER) / 2 - CH * COVER };
+  const q = mv(t, M.reveal);
+  const s = Math.exp(lerp(Math.log(cover.s), 0, q)), x = lerp(cover.x, L.win.x, q), y = lerp(cover.y, L.win.y, q);
+  let o = t < M.winBack[0] ? 1 - fd(t, M.winHide) : fd(t, M.winBack) * (1 - fd(t, M.winOut));
+  o *= dip(t, M.reveal);
+  return { s, x, y, o };
 }
-const chromeRect = () => { const w = CW - 84 - 40; return { cx: L.win.x + 84 + w / 2, cy: L.win.y + CH / 2, w, h: CH - 16, f: 15 }; };
+const chromeRect = (P) => ({ cx: P.x + P.s * (chromeField.x + chromeField.w / 2), cy: P.y + P.s * (chromeField.y + chromeField.h / 2), w: chromeField.w * P.s, h: chromeField.h * P.s, f: chromeField.h * 0.5 * P.s });
 const lerpRect = (a, b, p) => ({ cx: lerp(a.cx, b.cx, p), cy: lerp(a.cy, b.cy, p), w: lerp(a.w, b.w, p), h: lerp(a.h, b.h, p), f: lerp(a.f || 0, b.f || 0, p) });
-function crawl(t) { let v = 0, prev = 0; for (const [tc, f] of T.crawl) { v = lerp(prev, f, mv(t, [tc, 0.25])); if (t < tc + 0.25) break; prev = f; } return v; }
-// lines that run to the end hold on the last frame
 const lineAlpha = (t, t0, t1) => fd(t, [t0, 0.25]) * (t1 >= T.duration ? 1 : 1 - fd(t, [t1 - 0.25, 0.25]));
-const hudPos = (i, t) => { const Z = zoomAt(t), [x, y] = contentToFrame(imgToContent(T.hudFaces[i], Z)); return { x, y, r: (T.hudFaceSize / 2) * Z.z }; };
 
 function seek(t) {
   t = Math.max(0, Math.min(T.duration, t));
-  const Z = zoomAt(t), wa = winAlpha(t);
+  const Z = zoomAt(t), P = winPose(t);
 
-  // the window: opens under the address bar, steps aside for the model, carries the proof
-  css(win, { opacity: wa, transform: `translate(${L.win.x}px,${L.win.y}px)`, clipPath: `inset(0 0 ${(1 - mv(t, M.winOpen)) * (CHH + CH - 2)}px 0 round 14px)` });
+  css(win, { opacity: P.o, transform: `translate(${P.x}px,${P.y}px) scale(${P.s})` });
   css(shots, { transform: `translate(${Z.ox}px,${Z.oy}px) scale(${Z.z})` });
-  let top = -1; T.shots.forEach((s, i) => { if (t >= s.t) top = i; });
-  imgs.forEach((im, i) => { im.style.display = i === top && T.shots[i].src !== "mosaic" ? "block" : "none"; });
-  // the map tiles arrive one after another, then hold
-  { const on = top >= 0 && T.shots[top].src === "mosaic", t0 = on ? T.shots[top].t : 0;
-    $("mosaic").style.display = on ? "block" : "none";
-    tiles.forEach((im, i) => { const m = [t0 + i * MZ.stagger, MZ.fade]; css(im, { opacity: on ? fd(t, m) : 0, transform: `scale(${REDUCED ? 1 : lerp(0.96, 1, mv(t, m))})` }); }); }
+  // which picture: the latest shot; a clip shows the frame for the time since the shot began
+  let shot = null; for (const s of T.shots) if (t >= s.t) shot = s;
+  let show = null;
+  if (shot && shot.src.startsWith("clip:")) { const k = shot.src.slice(5), c = T.clips[k]; show = clipImgs[k][clamp(Math.floor((t - shot.t) * c.fps + 1e-6), 0, c.frames - 1)]; }
+  else if (shot) show = screenImg[shot.src];
+  for (const im of allImgs) im.style.display = im === show ? "block" : "none";
 
   // cursor and click rings
-  { const vis = fd(t, M.cursorIn) * (1 - fd(t, M.cursorOut));
-    const start = [CW * 0.78, CHH * 0.9];
+  { const vis = fd(t, M.cursorIn) * (1 - fd(t, M.cursorOut)), start = [CW * 0.78, CHH * 0.9];
     let pos = start, press = 0, cd = 1;
     T.clicks.forEach((c, k) => {
-      const from = k === 0 ? start : imgToContent(T.clicks[k - 1].at, Z), to = imgToContent(c.at, Z), m = [c.t - 0.75, 0.5];
+      const from = k === 0 ? start : imgToContent(T.clicks[k - 1].at, Z), to = imgToContent(c.at, Z), m = [c.t - 0.6, 0.4];
       if (t >= m[0]) pos = [lerp(from[0], to[0], mv(t, m)), lerp(from[1], to[1], mv(t, m))];
       const d = t - c.t; if (d > -0.06 && d < 0.16) press = Math.max(press, 1 - Math.abs(d - 0.03) / 0.12);
       cd *= dip(t, m);
     });
     css(cursor, { opacity: vis * cd, transform: `translate(${pos[0] - 4}px,${pos[1] - 3}px) scale(${1 - 0.14 * clamp(press)})` });
     const c = T.clicks.find((k) => t >= k.t && t < k.t + T.ring);
-    if (c) {
-      const p = prog(t, [c.t, T.ring]), [x, y] = imgToContent(c.at, Z), r = REDUCED ? 40 : lerp(14, 54, settle(p));
-      css($("ring"), { opacity: 0.9 * (1 - p), width: 2 * r + "px", height: 2 * r + "px", transform: `translate(${x - r}px,${y - r}px)` });
-    } else $("ring").style.opacity = 0;
+    if (c) { const p = prog(t, [c.t, T.ring]), [x, y] = imgToContent(c.at, Z), r = REDUCED ? 40 : lerp(14, 54, settle(p));
+      css($("ring"), { opacity: 0.9 * (1 - p), width: 2 * r + "px", height: 2 * r + "px", transform: `translate(${x - r}px,${y - r}px)` }); }
+    else $("ring").style.opacity = 0;
   }
 
-  // the bar: download bar -> address field -> the window's address bar -> pill -> home
-  { const progress = { ...L.bar0, f: L.field.f };
-    let R, o = fd(t, M.barIn);
-    if (t < M.winOpen[0]) { R = lerpRect(progress, L.field, mv(t, M.barToField)); o *= dip(t, M.barToField); }
-    else if (t < M.barToPill[0]) { R = lerpRect(L.field, chromeRect(), mv(t, M.winOpen)); o *= t < M.winHide[0] ? dip(t, M.winOpen) : (t < M.winOut[0] ? wa : 1); }
-    else if (t < M.barHome[0]) { R = lerpRect(chromeRect(), L.pill, mv(t, M.barToPill)); o *= dip(t, M.barToPill); }
-    else { R = lerpRect(L.pill, L.home, mv(t, M.barHome)); o *= dip(t, M.barHome); }
-    const field = mv(t, M.barToField);
-    const enter = t >= M.enter[0] ? 1 - prog(t, M.enter) : 0;
-    const fillV = t < M.fillHome[0] ? crawl(t) * (1 - prog(t, M.fillRetract)) : (REDUCED ? fd(t, M.fillHome) : mv(t, M.fillHome));
-    const fillH = lerp(R.h, Math.max(4, R.h * 0.085), field);
-    const sx = REDUCED ? 1 : lerp(0.6, 1, mv(t, M.barIn));
-    css($("bar"), { opacity: o, width: R.w + "px", height: R.h + "px", borderRadius: R.h / 2 + "px", transform: `translate(${R.cx - R.w / 2}px,${R.cy - R.h / 2}px) scaleX(${sx})`,
-      background: mixHex(C.paper2, C.field, field), boxShadow: `inset 0 0 0 ${Math.max(1, 2 * R.h / 72) * field}px ${mixHex(C.rule, C.accent, enter)}` });
-    css($("barFill"), { width: R.w * fillV + "px", height: fillH + "px" });
-    const n = Math.floor(T.url.length * prog(t, M.type) + 1e-6);
-    css($("barUrl"), { height: R.h + "px", paddingLeft: R.h * 0.42 + "px", fontSize: R.f + "px", opacity: field });
-    $("barUrl").textContent = T.url.slice(0, n);
-    const b = L.bar0, lb = T.barLabel;
-    css($("barLabel"), { opacity: lineAlpha(t, lb.t0, lb.t1), fontSize: L.barLabel + "px", transform: `translate(${b.cx - b.w / 2}px,${b.cy - b.h / 2 - L.barLabel * 1.9}px)` });
+  // the address: lifted out of the window's chrome as a pill for the turn, then home at the end
+  { let R, o = 0;
+    if (t >= M.barToPill[0] && t < M.barHome[0]) { R = lerpRect(chromeRect(winPose(M.barToPill[0] - 0.01)), L.pill, mv(t, M.barToPill)); o = dip(t, M.barToPill); }
+    else if (t >= M.barHome[0]) { R = lerpRect(L.pill, L.home, mv(t, M.barHome)); o = dip(t, M.barHome); }
+    if (R) {
+      const fillV = t < M.fillHome[0] ? 0 : (REDUCED ? fd(t, M.fillHome) : mv(t, M.fillHome));
+      css($("bar"), { opacity: o, width: R.w + "px", height: R.h + "px", borderRadius: R.h / 2 + "px", transform: `translate(${R.cx - R.w / 2}px,${R.cy - R.h / 2}px)`, boxShadow: `inset 0 0 0 ${Math.max(1, 2 * R.h / 72)}px #D3CABD` });
+      css($("barFill"), { width: R.w * fillV + "px", height: Math.max(4, R.h * 0.085) + "px" });
+      css($("barUrl"), { height: R.h + "px", paddingLeft: R.h * 0.42 + "px", fontSize: R.f + "px" });
+      $("barUrl").textContent = T.url;
+    } else $("bar").style.opacity = 0;
   }
 
-  // the ten seats: a row (model) -> the HUD (proof) -> who fills them (turn)
+  // the ten seats: who fills them
   const r = L.row;
   for (let i = 0; i < 10; i++) {
     const el = markers[i], atk = i < 5, k = atk ? i : i - 5;
-    const rowP = { x: atk ? r.atk[k] : r.def[k], y: atk ? r.atkY : r.defY, r: r.r }, stripP = { x: L.strip.x[i], y: L.strip.cy, r: L.strip.r };
-    const mIn = [(atk ? M.atkIn[0] : M.defIn[0]) + 0.05 * k, M.atkIn[1]], mHud = [M.toHud[0] + 0.02 * i, M.toHud[1]];
-    let p, o;
-    if (t < M.stripIn[0]) { const q = mv(t, mIn); p = { x: rowP.x, y: rowP.y + 28 * (1 - q), r: rowP.r }; o = fd(t, mIn) * (1 - fd(t, M.rowOut)) * dip(t, mIn); }
-    else if (t < M.backToRow[0]) { const h = hudPos(i, t), q = mv(t, mHud); p = { x: lerp(stripP.x, h.x, q), y: lerp(stripP.y, h.y, q), r: lerp(stripP.r, h.r, q) }; o = fd(t, M.stripIn) * (1 - fd(t, REDUCED ? M.hudFadeReduced : M.hudFade)) * dip(t, mHud); }
-    else { const mB = [M.backToRow[0] + 0.05 * k + (atk ? 0 : 0.25), M.backToRow[1]], q = mv(t, mB); p = { x: rowP.x, y: rowP.y + 28 * (1 - q), r: rowP.r }; o = fd(t, mB) * dip(t, mB) * (1 - fd(t, M.clear)); }
-    // who fills the seat: four teammates flip from AI to 친구
+    const x = atk ? r.atk[k] : r.def[k], y = atk ? r.atkY : r.defY, mIn = [M.seatsIn[0] + 0.05 * k + (atk ? 0 : 0.25), M.seatsIn[1]];
+    const q = mv(t, mIn), o = fd(t, mIn) * dip(t, mIn) * (1 - fd(t, M.clear));
     let label = T.soloNames[i], sx = 1, la = fd(t, M.labelsIn);
-    if (atk && i > 0) { const q = prog(t, [M.flips[0] + (i - 1) * M.flips[1], M.flips[1]]);
-      if (q >= 0.5) label = T.friendName;
-      if (REDUCED) la *= q > 0 && q < 1 ? Math.abs(q - 0.5) * 2 : 1; else sx = Math.abs(Math.cos(q * Math.PI)); }
-    const span = el.firstChild; span.textContent = t >= M.labelsIn[0] ? label : ""; span.style.opacity = la; span.style.fontSize = r.inner * (p.r / r.r) + "px";
-    css(el, { opacity: o, width: 2 * p.r + "px", height: 2 * p.r + "px", transform: `translate(${p.x - p.r}px,${p.y - p.r}px) scaleX(${sx})` });
+    if (atk && i > 0) { const f = prog(t, [M.flips[0] + (i - 1) * M.flips[1], M.flips[1]]);
+      if (f >= 0.5) label = T.friendName;
+      if (REDUCED) la *= f > 0 && f < 1 ? Math.abs(f - 0.5) * 2 : 1; else sx = Math.abs(Math.cos(f * Math.PI)); }
+    const span = el.firstChild; span.textContent = t >= M.labelsIn[0] ? label : ""; span.style.opacity = la; span.style.fontSize = r.inner + "px";
+    css(el, { opacity: o, width: 2 * r.r + "px", height: 2 * r.r + "px", transform: `translate(${x - r.r}px,${y - r.r + 28 * (1 - q)}px) scaleX(${sx})` });
   }
 
   // the same link, peeled off the address pill and handed to the team
   { const f = L.chip, h = f * 1.9, w = f * 0.56 * T.url.length + f * 1.6, q = mv(t, M.chip);
     const x = lerp(L.pill.cx, (r.atk[0] + r.atk[4]) / 2, q), y = lerp(L.pill.cy, r.chipY, q);
-    css($("chip"), { opacity: (t >= M.chip[0] ? fd(t, [M.chip[0], 0.15]) : 0) * (1 - fd(t, M.clear)) * dip(t, M.chip), fontSize: f + "px", width: w + "px", height: h + "px", borderRadius: h / 2 + "px",
-      boxShadow: `inset 0 0 0 2px #${C.rule}`, transform: `translate(${x - w / 2}px,${y - h / 2}px)` }); }
+    css($("chip"), { opacity: (t >= M.chip[0] ? fd(t, [M.chip[0], 0.15]) : 0) * (1 - fd(t, M.clear)) * dip(t, M.chip), fontSize: f + "px", width: w + "px", height: h + "px", borderRadius: h / 2 + "px", boxShadow: "inset 0 0 0 2px #D3CABD", transform: `translate(${x - w / 2}px,${y - h / 2}px)` }); }
 
-  // the 13 mark
-  { const q = mv(t, M.logoIn), o = fd(t, M.logoIn) * dip(t, M.logoIn);
-    css($("logo"), { opacity: o, fontSize: L.logo.f + "px", left: L.logo.cx + "px", top: L.logo.cy + 18 * (1 - q) + "px" });
-    const lw = L.logo.f * 0.7, lh = Math.round(L.logo.f * 0.04);
-    css($("logoLine"), { opacity: o, width: lw * (REDUCED ? 1 : q) + "px", height: lh + "px", transform: `translate(${L.logo.cx - lw / 2}px,${L.logo.cy + L.logo.f * 0.52}px)` }); }
+  // the 13 mark: a title card after the reveal, and over the address at the end
+  { const tt = T.title, inTitle = t >= tt.t0 && t < M.winBack[0];
+    const pose = inTitle ? L.logoTitle : L.logo, m = inTitle ? M.titleIn : M.logoIn;
+    const q = mv(t, m), o = (inTitle ? fd(t, M.titleIn) * (1 - fd(t, M.titleOut)) : (t >= M.logoIn[0] ? fd(t, M.logoIn) : 0)) * dip(t, m);
+    css($("logo"), { opacity: o, fontSize: pose.f + "px", left: pose.cx + "px", top: pose.cy + 18 * (1 - q) + "px" });
+    const lw = pose.f * 0.7, lh = Math.round(pose.f * 0.04);
+    css($("logoLine"), { opacity: o, width: lw * (REDUCED ? 1 : q) + "px", height: lh + "px", transform: `translate(${pose.cx - lw / 2}px,${pose.cy + pose.f * 0.52}px)` });
+    css($("sub"), { opacity: inTitle ? o * fd(t, [tt.t0 + 0.25, 0.25]) : 0, fontSize: L.sub.f + "px", left: L.sub.cx + "px", top: L.sub.cy + "px" }); }
 
-  // copy (= burned-in captions) and the click counter, in the caption zone
+  // copy (= burned-in captions), the click counter and the inventory, in the caption zone
   { const c = T.copy.find((x) => t >= x.t0 && t < x.t1), cp = L.copy, atTop = cp.top != null;
     const h1 = cp.f1 * 1.25, h2 = cp.f2 * 1.4, y1 = atTop ? cp.top : cp.bottom - h1 - h2, y2 = y1 + h1;
     const l1 = $("l1"), l2 = $("l2"), rise = (t0) => (REDUCED ? 0 : 14 * (1 - fd(t, [t0, 0.25])));
@@ -269,15 +247,14 @@ function seek(t) {
       l1.textContent = c.l1; l2.textContent = c.l2;
     } else { l1.style.opacity = 0; l2.style.opacity = 0; }
     // the counter names the button on screen; the numeral ticks on the click
-    const K = L.counter, ca = lineAlpha(t, T.counter.t0, T.counter.t1);
-    const k = T.clicks.filter((x) => t >= x.show).pop();
+    const K = L.counter, ca = lineAlpha(t, T.counter.t0, T.counter.t1), k = T.clicks.filter((x) => t >= x.show).pop();
     const kh = K.k * 1.4, ky = atTop ? cp.top : cp.bottom - kh - K.n, ny = ky + kh, box = K.n * 0.86;
     const ticked = k && t >= k.t, tick = ticked ? fd(t, [k.t, 0.2]) : 0;
     css($("cKick"), { opacity: ca, fontSize: K.k + "px", lineHeight: kh + "px", transform: `translate(${cp.x}px,${ky}px)` });
     css($("cNum"), { opacity: ca * (k ? lerp(0.28, 1, tick) : 0), fontSize: K.n + "px", width: box + "px", transform: `translate(${cp.x}px,${ny + (ticked && !REDUCED ? 10 * (1 - tick) : 0)}px)` });
     css($("cLab"), { opacity: ca * (k ? fd(t, [k.show, 0.2]) : 0), fontSize: K.l + "px", transform: `translate(${cp.x + box + K.l * 0.35}px,${ny + (K.n - K.l) * 0.62}px)` });
     $("cNum").textContent = k ? String(k.n) : ""; $("cLab").textContent = k ? k.label : "";
-    // what is inside: the game's own counts, one per beat, in the same place as the click counter
+    // what is inside: the game's own counts, one per beat
     const I = T.inventory, ia = lineAlpha(t, I.t0, I.t1), it = I.items.filter((x) => t >= x.show).pop();
     const iRise = it && !REDUCED ? 10 * (1 - fd(t, [it.show, 0.2])) : 0, iA = it ? ia * fd(t, [it.show, 0.2]) : 0;
     $("iLab").textContent = it ? it.label : ""; $("iNum").textContent = it ? String(it.n) : ""; $("iUnit").textContent = it ? it.unit : "";
@@ -293,13 +270,12 @@ function seek(t) {
 window.seek = seek;
 window.LAYOUT = L;
 
-// ── readiness: fonts and screens decoded before the first frame ──
-const sample = "가나다라 다운로드 클릭 친구 자리 요원 스킬 맵 스킨 명 개 13fps.vercel.app 0123456789";
+// ── readiness: fonts and every picture decoded before the first frame ──
+const sample = "가나다라 다운로드 클릭 친구 자리 요원 스킬 맵 스킨 명 개 브라우저 가입 13fps.vercel.app 0123456789";
 window.READY = Promise.all([
   ...["500", "700"].map((w) => document.fonts.load(`${w} 40px "Noto Sans KR"`, sample)),
   ...["700", "900"].map((w) => document.fonts.load(`${w} 40px Orbitron`, "13 0123456789")),
-  ...imgs.filter((i) => i.src).map((i) => i.decode()),
-  ...tiles.map((i) => i.decode()),
+  ...allImgs.map((i) => i.decode().catch(() => { i.dataset.missing = "1"; return null; })),
 ]).then(() => document.fonts.ready).then(() => { seek(Number(Q.get("t") || 0)); window.__ready = true; return true; });
 
 // ── sound: a tempo-locked bed rendered offline from the same TIMELINE ──
@@ -323,9 +299,9 @@ window.renderAudio = async function () {
     let n = o; if (opts.lp) { const f2 = ctx.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.value = opts.lp; f2.Q.value = 0.6; n.connect(f2); n = f2; }
     n.connect(e).connect(out); o.start(t0); o.stop(t0 + (opts.hold ? a + opts.hold + (opts.r || 0.3) : len) + 0.05);
   }
-  function hiss(out, t0, len, g, hp, bp) {
+  function hiss(out, t0, len, g, hp, bp, sweepTo) {
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), e = ctx.createGain();
-    s.buffer = noise; s.loop = true; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp; f.Q.value = bp ? 1.2 : 0.7;
+    s.buffer = noise; s.loop = true; f.type = bp ? "bandpass" : "highpass"; f.frequency.setValueAtTime(bp || hp, t0); if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t0 + len); f.Q.value = bp ? 1.2 : 0.7;
     e.gain.setValueAtTime(g, t0); e.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
     s.connect(f).connect(e).connect(out); s.start(t0, random() * 0.5); s.stop(t0 + len + 0.02);
   }
@@ -339,35 +315,40 @@ window.renderAudio = async function () {
     note(sfx, base * 2, t, 0.16, "sine", 0.12);
     if (bell) { note(sfx, base * 2, t + 0.005, 1.4, "sine", 0.12); note(sfx, base * 3.01, t + 0.005, 1.0, "sine", 0.06); note(sfx, base * 4.2, t + 0.005, 0.7, "sine", 0.035); }
   }
-  const chordAt = (t) => T.chords.filter(([s]) => s <= t + 1e-6).pop()[1];
+  // one rifle round: a crack, a body, a short tail (after js/legacy/63-heavier-gunshots.js)
+  function shot(t) { hiss(sfx, t, 0.04, 0.3, 0, 2600, 900); note(sfx, 180, t, 0.09, "sine", 0.3, { to: 60, slide: 0.08 }); hiss(sfx, t + 0.02, 0.12, 0.06, 600); }
+  const chordAt = (t) => { const c = T.chords.filter(([s]) => s <= t + 1e-6).pop(); return c ? c[1] : T.chords[0][1]; };
   for (const cue of T.cues) {
-    if (cue.type === "ticks") for (let t = cue.t; t < cue.until - 1e-6; t += beat) { hiss(sfx, t, 0.03, 0.06, 6000); note(sfx, 1500, t, 0.03, "sine", 0.03); }
-    if (cue.type === "drone") { note(music, 55, 0, cue.until, "sine", 0.06, { a: 1.2, hold: cue.until - 2.0, r: 0.8 }); note(music, 110, 0, cue.until, "triangle", 0.03, { a: 1.6, hold: cue.until - 2.4, r: 0.8, lp: 500 }); }
     if (cue.type === "motif") motif(cue.t, cue.step, cue.bell);
     if (cue.type === "click") { hiss(sfx, cue.t, 0.016, 0.34, 0, 3200); note(sfx, 2600, cue.t, 0.035, "sine", 0.12); }
+    if (cue.type === "keys") for (let i = 0; i < cue.n; i++) { hiss(sfx, cue.t + i * cue.every, 0.012, 0.16, 0, 4200 + 300 * (i % 3)); }
+    if (cue.type === "shots") for (let i = 0; i < cue.n; i++) shot(cue.t + i * cue.every);
+    if (cue.type === "cast") { hiss(sfx, cue.t, 0.35, 0.16, 0, 400, 3000); note(sfx, 220, cue.t, 0.4, "sine", 0.14, { to: 660, slide: 0.3 }); }
+    if (cue.type === "thud") { note(sfx, 92, cue.t, 0.45, "sine", 0.45, { to: 40, slide: 0.35 }); hiss(sfx, cue.t, 0.08, 0.12, 0, 180); }
     // each count lands with a soft fifth that climbs with the list
     if (cue.type === "count") { const f = hz(SEMI[cue.step - 1] + 12); note(sfx, f, cue.t, 0.12, "triangle", 0.1, { lp: 3000 }); note(sfx, f * 1.5, cue.t + 0.06, 0.16, "triangle", 0.08, { lp: 3000 }); }
     if (cue.type === "pop") { hiss(sfx, cue.t, 0.01, 0.08, 0, 2500); note(sfx, 880, cue.t, 0.09, "triangle", 0.16, { to: 1320, slide: 0.05 }); }
     if (cue.type === "bed") {
-      const end = cue.until;
+      const end = cue.until, first = T.chords[0][0];
+      // before the first chord: a low root under the play
+      note(music, hz(-36), cue.t, first, "sine", 0.1, { a: 0.2, hold: Math.max(0.05, first - 0.6), r: 0.4 });
       T.chords.forEach(([s, ch, root], i) => {
         const e = i + 1 < T.chords.length ? T.chords[i + 1][0] : end, last = i + 1 === T.chords.length;
-        const hold = Math.max(0.05, e - s - (last ? 1.6 : 0.6)), r = last ? 1.4 : 0.9;
-        for (const st of ch) for (const det of [-5, 5]) note(music, hz(st), s, e - s, "sawtooth", 0.02, { a: 0.5, hold, r, lp: 1500, detune: det });
+        const hold = Math.max(0.05, e - s - (last ? 1.6 : 0.6)), rel = last ? 1.4 : 0.9;
+        for (const st of ch) for (const det of [-5, 5]) note(music, hz(st), s, e - s, "sawtooth", 0.02, { a: 0.5, hold, r: rel, lp: 1500, detune: det });
         note(music, hz(root), s, e - s, "triangle", 0.06, { a: 0.02, hold: Math.max(0.05, hold + 0.2), r: 0.5, lp: 600 });
       });
       for (let t = cue.t; t < scene.Payoff.t0 - 0.01; t += beat) {
         const i = Math.round((t - cue.t) / beat), inTurn = t >= scene.Turn.t0;
         // pulse on every beat; half-time in the turn; silent in the payoff
         if (!inTurn || i % 2 === 0) note(music, 118, t, 0.2, "sine", 0.2, { to: 52, slide: 0.1 });
-        // the proof and what is inside walk on eighths: offbeat hat and a chord-tone arpeggio
-        if (t >= scene.Proof.t0 && t < scene.Inside.t1) {
-          const ch = chordAt(t), arp = [ch[1] + 24, ch[2] + 24, ch[3] + 24, ch[2] + 24], j = Math.round((t - scene.Proof.t0) / beat);
-          hiss(music, t + beat / 2, 0.035, 0.022, 7500);
+        // eighth-note hats from the first frame; the path and the inside add a chord-tone arpeggio
+        if (!inTurn) hiss(music, t + beat / 2, 0.035, 0.022, 7500);
+        if (t >= scene.Path.t0 && t < scene.Inside.t1) {
+          const ch = chordAt(t), arp = [ch[1] + 24, ch[2] + 24, ch[3] + 24, ch[2] + 24], j = Math.round((t - scene.Path.t0) / beat);
           note(music, hz(arp[j % 4]), t, 0.16, "triangle", 0.035, { lp: 3200 });
           note(music, hz(arp[(j + 2) % 4]), t + beat / 2, 0.14, "triangle", 0.028, { lp: 3200 });
         }
-        // the turn lifts an octave
         if (inTurn) note(music, hz(chordAt(t)[3] + 36), t, 0.2, "triangle", 0.02, { lp: 4000 });
       }
     }

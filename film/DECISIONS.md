@@ -2,6 +2,20 @@
 
 One line per call made where the brief was thin.
 
+## Second build (request: more dynamic, better copy, sign-up instead of guest, start over)
+
+- **Start over means the story and the look, not the pipeline.** render.js / audio.js / verify.js / captions.js / contact.js stay; timeline.js, film.html, tokens.json and directions.html were rewritten.
+- **Open on real play.** Trailer editors open on action and show the name early (RESEARCH.md); the first 2.5 s are a recorded round, full frame, then it shrinks into the browser window it was in. That shrink is the film's one image.
+- **Play is recorded by stepping the game's own loop** one frame at a time in headless Chrome (scripts/capture-clips.js: requestAnimationFrame off, tick(t) advanced 1/30 s, bots live, the player driven by a scripted route). It is real simulation and real rendering, but software-rendered: the user's own captured play on a real GPU would look better and the clip directories are the place to drop it in.
+- **Dark ground now.** Real play only fills the frame on the brand's void; the window's light chrome is what makes the tab read. Contrast measured on the new pairs (scripts/contrast.js, all ≥ 4.5:1 for text).
+- **Sign-up, not guest.** Click 1 is 로그인 / 가입 after typing an id and a password (the landing page: "처음 쓰는 아이디면 바로 가입됩니다. 인증 없음."). Still four clicks to the round.
+- **Copy says, it does not explain.** Lines are declarations of two to five words (“전부, 브라우저 안에서.”, “가입은 클릭 한 번.”, “있을 건, 다 있습니다.”, “혼자여도 5대5.”, “다운로드 대신, 탭 하나.”); the pictures carry the explanation. “다운로드 없음” alone is what every browser FPS says (RESEARCH.md), so it is a premise here, not the point.
+- **Skills and maps move.** 스킬 is a recorded cast (Q, E, fire) on 네온 정점; 맵 is three of the home screen's own orbits, cut on the beat. Still frames stay for 요원 (the grid, panning to one agent's four abilities) and 스킨 (the armoury).
+- **The seats (나/AI/친구) stay** from the first build: the reviewer called them the clearest device, and nothing in the game's UI shows who fills a seat.
+- **Scenes** S1 0–6.5, S2 6.5–17, S3 17–27, S4 27–34.5, S5 34.5–40. Title card at 5 s (name early), end card held 5 s.
+- **Sound**: the bed starts on frame one with the pulse and hats under the play, chords from 3 s; synthesized rifle rounds and ability whooshes land where the clips fire and cast; the game's kill motif marks the reveal, the friends and the payoff as before.
+
+
 ## Brief
 
 - **Topic “13fps 게임”** = this repository's game, “13” (`manifest.webmanifest`), served at 13fps.vercel.app. “13fps” is the address, not a frame-rate claim; the film makes no frame-rate claim.

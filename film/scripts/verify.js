@@ -17,7 +17,7 @@ const formats = [["16x9", false], ["9x16", false], ["1x1", false], ["16x9", true
 const tag = (f, red) => f + (red ? "-reduced" : "");
 
 async function determinism() {
-  const t = 25.4, hashes = [];
+  const t = 20.6, hashes = []; // inside the cast clip
   for (let i = 0; i < 2; i++) { const { browser, page } = await open("16x9", false); hashes.push(sha(await frameAt(page, t))); await browser.close(); }
   const { browser, page } = await open("16x9", false);
   const a = sha(await frameAt(page, t)); await frameAt(page, 3.2); await frameAt(page, 27.9); const b = sha(await frameAt(page, t));
@@ -30,6 +30,7 @@ const VISIBLE = () => {
   const vis = (id) => { const e = document.getElementById(id); return e && e.textContent && +getComputedStyle(e).opacity > 0.5 ? e.textContent : null; };
   const out = [vis("l1"), vis("l2"), vis("cKick")].filter(Boolean);
   const l = vis("cLab"); if (l) out.push((document.getElementById("cNum").textContent + " " + l).trim()); // numeral may still be dim before its click
+  const sub = vis("sub"); if (sub) out.push(sub);
   const ik = vis("iKick"); if (ik) out.push(ik);
   const il = vis("iLab"); if (il) out.push(`${il} ${document.getElementById("iNum").textContent}${document.getElementById("iUnit").textContent}`);
   const url = document.getElementById("barUrl"); if (+getComputedStyle(document.getElementById("bar")).opacity > 0.5 && +getComputedStyle(url).opacity > 0.5 && url.textContent) out.push("url:" + url.textContent);
@@ -51,10 +52,10 @@ async function captionsMatch(format, reduced) {
 
 async function textFits(format, reduced) {
   const [W, H] = SIZES[format], { browser, page } = await open(format, reduced), bad = [];
-  const times = [...T.copy.map((c) => Math.min(c.t1 - 0.3, Math.max(c.l2at, c.t0) + 0.4)), ...T.clicks.map((k) => k.t + 0.3), ...T.inventory.items.map((x) => x.show + 0.4)];
+  const times = [...T.copy.map((c) => Math.min(c.t1 - 0.3, Math.max(c.l2at, c.t0) + 0.4)), ...T.clicks.map((k) => k.t + 0.3), ...T.inventory.items.map((x) => x.show + 0.4), T.title.t0 + 0.8];
   for (const t of times) {
     await page.evaluate((x) => window.seek(x), t);
-    const boxes = await page.evaluate(() => ["l1", "l2", "cKick", "cNum", "cLab", "iKick", "iLab", "iNum", "iUnit"].map((id) => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { id, text: e.textContent, x: r.x, y: r.y, r: r.right, b: r.bottom, o: +getComputedStyle(e).opacity }; }).filter((b) => b.text && b.o > 0.5));
+    const boxes = await page.evaluate(() => ["l1", "l2", "cKick", "cNum", "cLab", "iKick", "iLab", "iNum", "iUnit", "sub"].map((id) => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { id, text: e.textContent, x: r.x, y: r.y, r: r.right, b: r.bottom, o: +getComputedStyle(e).opacity }; }).filter((b) => b.text && b.o > 0.5));
     for (const b of boxes) if (b.x < 48 || b.r > W - 48 || b.y < 0 || b.b > H) bad.push({ t, ...b });
   }
   await browser.close();
@@ -64,7 +65,7 @@ async function textFits(format, reduced) {
 async function pixelContrast(format) {
   const { browser, page } = await open(format, false), dir = path.join(ROOT, "review/contrast", format), crops = [];
   fs.mkdirSync(dir, { recursive: true });
-  const probes = [[1.5, ["l1", "l2", "barLabel"]], [5.2, ["l1", "barUrl"]], [12.7, ["cKick", "cNum", "cLab"]], [18.5, ["l1", "l2"]], [26.5, ["iKick", "iLab", "iNum", "iUnit"]], [34.0, ["l1", "l2", "chip", "mk0", "mk1", "mk5"]], [39.0, ["l1", "l2", "barUrl"]]];
+  const probes = [[4.0, ["l1"]], [5.8, ["sub"]], [7.5, ["l1", "l2"]], [9.2, ["cKick", "cNum", "cLab"]], [16.2, ["l1", "l2"]], [25.8, ["iKick", "iLab", "iNum", "iUnit"]], [33.0, ["l1", "l2", "chip", "mk0", "mk1", "mk5"]], [38.5, ["l1", "l2", "barUrl"]]];
   for (const [t, ids] of probes) {
     await page.evaluate((x) => window.seek(x), t);
     for (const id of ids) {
@@ -82,6 +83,8 @@ async function pixelContrast(format) {
 
 (async () => {
   fs.mkdirSync(path.join(ROOT, "review"), { recursive: true });
+  // every clip frame the timeline names must exist (film.html shows nothing for a missing one)
+  R.clips = Object.fromEntries(Object.entries(T.clips).map(([k, c]) => { const missing = []; for (let i = 0; i < c.frames; i++) if (!fs.existsSync(path.join(ROOT, c.dir, String(i).padStart(3, "0") + ".jpg"))) missing.push(i); return [k, { frames: c.frames, missing }]; }));
   R.determinism = await determinism();
   R.captions = []; R.textFits = []; R.stills = {};
   for (const [f, red] of formats) { R.captions.push(await captionsMatch(f, red)); R.textFits.push(await textFits(f, red)); }
@@ -105,6 +108,7 @@ async function pixelContrast(format) {
   fs.writeFileSync(path.join(ROOT, "review/verify.json"), JSON.stringify(R, null, 2) + "\n");
   const minRatio = Object.fromEntries(Object.entries(R.pixelContrast).map(([f, v]) => [f, Math.min(...v.map((x) => x.ratio))]));
   console.log(JSON.stringify({
+    clips: Object.fromEntries(Object.entries(R.clips).map(([k, v]) => [k, v.missing.length ? "MISSING " + v.missing.length : "ok " + v.frames])),
     determinism: R.determinism,
     captions: R.captions.map((c) => [c.format, c.cues, c.problems]),
     overflow: R.textFits.map((x) => [x.format, x.checked, x.overflow.length]),

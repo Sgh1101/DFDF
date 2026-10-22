@@ -6,17 +6,17 @@
 @font-face{font-family:"Orbitron";font-style:normal;font-weight:700;font-display:block;src:url(fonts/orbitron-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:"Orbitron";font-style:normal;font-weight:900;font-display:block;src:url(fonts/orbitron-latin-900-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
-  --paper:#F2EEE7;
-  --paper2:#E7E1D7;
-  --rule:#D3CABD;
+  --paper:#0A0D12;
+  --paper2:#141922;
+  --rule:#2A3444;
   --field:#FFFCF7;
-  --ink:#15181E;
-  --ink2:#4B4F58;
+  --chrome:#FBF8F2;
+  --ink:#E8EDF4;
+  --ink2:#8A97AB;
   --accent:#FF3B4E;
   --accent-ink:#BF1D32;
+  --field-ink:#15181E;
   --void:#0A0D12;
-  --screen-line:#2A3444;
-  --screen-ink:#E8EDF4;
   --f-display:"Orbitron",sans-serif;
   --f-body:"Noto Sans KR",sans-serif;
   --unit:8px;

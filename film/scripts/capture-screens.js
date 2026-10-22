@@ -9,6 +9,7 @@ const { harness } = require("../../tests/api-harness");
 const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
 const OUT = path.resolve(__dirname, "../screens");
 const CHROME = process.env.CHROME_BIN || "/opt/pw-browsers/chromium";
+const SIGNUP = { id: "hana", pw: "film-demo-1" }; // typed into the landing form; the harness makes the account
 
 async function prepare(context, h) {
   // Same rAF throttle as scripts/browser-fixture.js so SwiftShader keeps up.
@@ -47,7 +48,11 @@ const inRound = (page) => page.waitForFunction(() => window.world && world.actor
   await page.goto(BASE + "/", { waitUntil: "networkidle", timeout: 120000 });
   await page.waitForTimeout(800);
   await shot(page, "01-landing");
-  await click("#doGuest");
+  // sign up the way the film shows it: pick an id and a password, one click (a new id is an account)
+  await page.locator("#uid").fill(SIGNUP.id); await page.locator("#upw").fill(SIGNUP.pw);
+  await page.waitForTimeout(300);
+  await shot(page, "01b-landing-typed");
+  await click("#doAuth");
   await page.waitForSelector("#enter:visible");
   await page.waitForTimeout(800);
   await shot(page, "02-landing-in");
@@ -100,14 +105,17 @@ const inRound = (page) => page.waitForFunction(() => window.world && world.actor
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
   });
 
-  // Phone landscape with touch, same game, same path.
+  // Phone landscape with touch, same game, same path (FILM_NO_PHONE=1 skips it; the film does not use it).
+  let touch = null;
+  if (process.env.FILM_NO_PHONE !== "1") {
   const phone = await browser.newContext({ ...ko, viewport: { width: 852, height: 393 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36" });
   await prepare(phone, h);
   const mp = await phone.newPage();
   mp.setDefaultTimeout(120000);
   mp.on("pageerror", (e) => errors.push("phone: " + e.message));
   await mp.goto(BASE + "/", { waitUntil: "networkidle", timeout: 120000 });
-  await press(mp, "#doGuest");
+  await mp.locator("#uid").fill(SIGNUP.id + "m"); await mp.locator("#upw").fill(SIGNUP.pw);
+  await press(mp, "#doAuth");
   await mp.waitForSelector("#enter:visible");
   await press(mp, "#enter");
   await booted(mp);
@@ -123,9 +131,10 @@ const inRound = (page) => page.waitForFunction(() => window.world && world.actor
   await mp.waitForTimeout(3000);
   await settled(mp);
   await shot(mp, "09-phone-live");
-  const touch = await mp.evaluate(() => [...document.querySelectorAll("[id*=touch],[class*=touch],[id*=joy],[class*=joy]")].filter((n) => n.offsetWidth > 0).length);
+  touch = await mp.evaluate(() => [...document.querySelectorAll("[id*=touch],[class*=touch],[id*=joy],[class*=joy]")].filter((n) => n.offsetWidth > 0).length);
+  }
 
-  const log = { capturedAt: new Date().toISOString(), base: BASE, chromium: browser.version(), viewport: { width: 1600, height: 900, deviceScaleFactor: 1.25 }, clicks, home, roster, teams, plant, hud, spikeOnScreen, touchControlsVisible: touch, staged, errors };
+  const log = { capturedAt: new Date().toISOString(), base: BASE, chromium: browser.version(), viewport: { width: 1600, height: 900, deviceScaleFactor: 1.25 }, signup: SIGNUP.id, clicks, home, roster, teams, plant, hud, spikeOnScreen, touchControlsVisible: touch, staged, errors };
   fs.writeFileSync(path.join(OUT, "path.json"), JSON.stringify(log, null, 2) + "\n");
   console.log(JSON.stringify(log, null, 2));
   await browser.close();
