@@ -8,6 +8,7 @@
     "test:browser": "node scripts/browser-smoke.js",
     "test:phantom": "node scripts/browser-phantom.js",
     "test:champions-panel": "node scripts/browser-champions-panel.js",
+    "test:blocky": "node scripts/browser-blocky.js",
     "test:killcam": "node scripts/browser-killcam.js",
     "test:spider-swing": "node scripts/browser-spider-swing.js",
     "test:abilities": "node scripts/browser-ability-upgrade.js",
