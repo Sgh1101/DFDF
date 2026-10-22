@@ -1,0 +1,142 @@
+[
+ {
+  "id": "hwaryeong",
+  "name": "화령",
+  "role": "타격대"
+ },
+ {
+  "id": "seorin",
+  "name": "서린",
+  "role": "감시자"
+ },
+ {
+  "id": "gangcheol",
+  "name": "강철",
+  "role": "타격대"
+ },
+ {
+  "id": "yeonhwa",
+  "name": "연화",
+  "role": "전략가"
+ },
+ {
+  "id": "noeun",
+  "name": "노은",
+  "role": "전략가"
+ },
+ {
+  "id": "baekho",
+  "name": "백호",
+  "role": "감시자"
+ },
+ {
+  "id": "heuksa",
+  "name": "흑사",
+  "role": "전략가"
+ },
+ {
+  "id": "myeongjong",
+  "name": "명종",
+  "role": "감시자"
+ },
+ {
+  "id": "jacheol",
+  "name": "자철",
+  "role": "감시자"
+ },
+ {
+  "id": "hongyeol",
+  "name": "홍혈",
+  "role": "타격대"
+ },
+ {
+  "id": "gunbong",
+  "name": "군봉",
+  "role": "척후대"
+ },
+ {
+  "id": "baram",
+  "name": "바람",
+  "role": "타격대"
+ },
+ {
+  "id": "geomi",
+  "name": "거미",
+  "role": "감시자"
+ },
+ {
+  "id": "byeolbit",
+  "name": "별빛",
+  "role": "척후대"
+ },
+ {
+  "id": "kallal",
+  "name": "칼날",
+  "role": "타격대"
+ },
+ {
+  "id": "deonggul",
+  "name": "덩굴",
+  "role": "전략가"
+ },
+ {
+  "id": "hwanyeong",
+  "name": "환영",
+  "role": "척후대"
+ },
+ {
+  "id": "suho",
+  "name": "수호",
+  "role": "감시자"
+ },
+ {
+  "id": "danbi",
+  "name": "단비",
+  "role": "전략가"
+ },
+ {
+  "id": "chujeok",
+  "name": "추적",
+  "role": "척후대"
+ },
+ {
+  "id": "yakcho",
+  "name": "약초",
+  "role": "감시자"
+ },
+ {
+  "id": "chochim",
+  "name": "초침",
+  "role": "전략가"
+ },
+ {
+  "id": "gwanmun",
+  "name": "관문",
+  "role": "척후대"
+ },
+ {
+  "id": "hwangya",
+  "name": "황야",
+  "role": "타격대"
+ },
+ {
+  "id": "nachim",
+  "name": "나침",
+  "role": "척후대"
+ },
+ {
+  "id": "gamyeon",
+  "name": "가면",
+  "role": "척후대"
+ },
+ {
+  "id": "simpan",
+  "name": "심판",
+  "role": "감시자"
+ },
+ {
+  "id": "neon_agent",
+  "name": "네온",
+  "role": "타격대"
+ }
+]

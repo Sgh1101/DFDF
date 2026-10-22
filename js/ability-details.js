@@ -256,5 +256,5 @@
   const originalClear=abilClear;
   abilClear=function(){const r=originalClear.apply(this,arguments);for(const e of [...active,...impacts])e.dispose();active.clear();impacts.clear();stamps.clear();clearVM();if(VM_CAST.grp)VM_CAST.grp.visible=false;VM_CAST.t=0;return r;};
   window.ABILITY_DETAILS=Object.freeze({profiles,agents:catalog.agents,budget,tool,dispose,line,setLine,lifecycle,
-    active:()=>active.size+impacts.size,vmType:()=>vmType});
+    active:()=>active.size+impacts.size,vmType:()=>vmType,vm:()=>({tool:vmTool,support:vmSupport})});
 })();

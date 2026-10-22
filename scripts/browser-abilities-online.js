@@ -13,9 +13,9 @@ const {PeerServer}=require(process.env.DFDF_PEER_SERVER_MODULE||'peer');
   await host.evaluate(()=>{
    const id=[...NET.conns.keys()][0],m=room.members.get(id),team=m.team==='atk'?'def':'atk';
    for(let i=0;i<TEAM_SIZE&&!lobbyMove(id,team,i);i++);
-   for(const [k,m]of room.members)m.agentKey=k===id?'noeha':'gunbong';room.mode='std';room.map='glacier';hostStartMatch();
+   for(const [k,m]of room.members)m.agentKey=k===id?'danbi':'gunbong';room.mode='std';room.map='glacier';hostStartMatch();
   });
-  await guest.waitForFunction(()=>NET.mode==='client'&&myActor()?.agent.id==='noeha',null,{timeout:90000});
+  await guest.waitForFunction(()=>NET.mode==='client'&&myActor()?.agent.id==='danbi',null,{timeout:90000});
   const ids=await host.evaluate(()=>{
    closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;const a=myActor(),b=world.actors.find(a=>!['me','ai','dead'].includes(a.ctrl));
    for(const c of world.actors){c.fireCd=999;c.invuln=999;c.armor=0;c.input.mv=[0,0];if(c!==a&&c!==b){c.pos.x=100+c.id*3;c.pos.z=100;}}

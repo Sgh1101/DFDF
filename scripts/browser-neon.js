@@ -8,10 +8,10 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^네온$/ }) });
     await card.click();
     await p.waitForFunction(() => picked.id === "neon_agent");
-    assert.equal(await p.locator("#title-roster .tr-chip").count(), 43);
-    await p.waitForFunction(() => NEON_AGENT.ready());
-    assert.equal(await p.evaluate(() => NEON_AGENT.error()), null);
-    assert.equal(await p.locator('.ab-ic[src*="assets/neon"]').count() >= 4, true);
+    assert.equal(await p.locator("#title-roster .tr-chip").count(), 28);
+    // our own look: line icons like every other agent's, no outside image
+    assert.equal(await p.locator('img.ab-ic').count(), 0);
+    assert.ok(await p.locator('svg.ab-ic').count() >= 4);
     await p.waitForFunction(() => document.querySelector("#sel-detail .det-img")?.naturalWidth > 0);
     await p.screenshot({ path: path.join(dir, "select.png") });
     await p.evaluate(() => { room.map = "glacier"; room.mode = "std"; });
@@ -68,8 +68,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       me.ultW.cd = 0; ultwFire(me); out.ultDamage = 100 - foe.hp;
       const snap = buildSnapshot(false); out.snapshot = snap.neon.find(row => row[0] === me.id);
       const serverMode = NET.mode; NET.mode = "client"; foe.hp = 100; me.ultW.cd = 0; ultwFire(me); out.clientDamage = 100 - foe.hp; NET.mode = serverMode;
-      tickViewmodel(0.016); out.originalArms = !!VM.current.getObjectByName("bedrock-rig");
-      let vertices = 0; VM.current.traverse(o => { if (o.isMesh) vertices += o.geometry.attributes.position.count; }); out.armVertices = vertices;
+      tickViewmodel(0.016); out.ourArms = !!VM.current.userData.neonArms && !!VM.current.getObjectByName("neon-hand-r-tip");
       me.ultW.t = 17.5; me.ultW.cd = 0; followCamera(me, 0.1); tickViewmodel(0.016); __neonRender();
       return out;
     });
@@ -79,12 +78,12 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.equal(result.stoppedAtWall, true); assert.equal(result.copiedGear, true);
     assert.ok(result.walls >= 2); assert.equal(result.visionBlocked, true); assert.equal(result.forwardClear, true); assert.equal(result.wallsGone, true);
     assert.ok(result.concuss > 0); assert.equal(result.relayNoDamage, true);
-    assert.equal(result.ultName, "오버드라이브"); assert.equal(result.ultDuration, 20); assert.equal(result.ultDamage, 18); assert.equal(result.clientDamage, 0);
-    assert.equal(result.snapshot[4], 20); assert.equal(result.originalArms, true); assert.equal(result.armVertices, 3 * 36);
-    await p.screenshot({ path: path.join(dir, "original-overdrive-arms.png") });
+    assert.equal(result.ultName, "과충전"); assert.equal(result.ultDuration, 20); assert.equal(result.ultDamage, 18); assert.equal(result.clientDamage, 0);
+    assert.equal(result.snapshot[4], 20); assert.equal(result.ourArms, true);
+    await p.screenshot({ path: path.join(dir, "overdrive-arms.png") });
     await p.evaluate(() => { const me = myActor(); endUltW(me); NEON_AGENT.clear(me); });
     assert.equal(await p.evaluate(() => myActor().__neonSlideReady), false);
     assert.deepEqual(f.errors, []);
-    console.log("Neon: select, source assets, sprint/slide/refill, vision walls, bouncing concuss, authoritative ultimate passed");
+    console.log("Neon: select, our icons, sprint/slide/refill, vision walls, bouncing concuss, authoritative ultimate passed");
   } finally { await f.browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
