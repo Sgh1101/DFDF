@@ -878,14 +878,35 @@
     const ft = [b[0] + (b[0] - a[0]) * 0.18, b[1] + (b[1] - a[1]) * 0.18, b[2] + (b[2] - a[2]) * 0.18];
     bar3(D, b, ft, 0.03, 0.036, "lever-cap");
 
-    // ammo box: lid with a lip, inset side panel framed by corner plates, chamfered dark bottom, front latch
-    side(P, 368, 582, 280, 292, 0.108, { name: "box-lid" });
-    side(ME, 368, 582, 288, 292, 0.1085);
-    side(PL, 372, 578, 292, 420, 0.105, { name: "ammo-box" });
-    side(P, 386, 564, 304, 408, 0.1055, { name: "box-panel" });
-    for (const [px, py] of [[386, 304], [552, 304], [386, 396], [552, 396]]) side(ME, px, px + 12, py, py + 12, 0.1062, { name: "box-corner" });
-    side(D, 372, 578, 420, 436, 0.095, { name: "box-bottom" });
-    side(D, 378, 572, 436, 450, 0.08);
+    // ammo box: rounded all round. It is stacked from slabs; each slab is two crossed blocks so the upright
+    // corners read round, and the slabs near the bottom (and a little at the top) draw in on every side so the
+    // lower edges curve like the original. The lid is rounded the same way; the lowest slabs are dark.
+    const bW = 0.105, bz0 = Z(578), bz1 = Z(372), bTop = Y(292), bBot = Y(450), rB = 0.05, rT = 0.012, rV = 0.02;
+    const box = (m, x, y0, y1, z0, z1, name) => k.add(m, -x, x, y0, y1, z0, z1, 0, name);
+    const inset = (r, d) => (d >= r ? 0 : r - Math.sqrt(r * r - (r - d) * (r - d)));
+    const slab = (m, y0, y1, ins, name) => {
+      const w = bW - ins, a = bz0 + ins, b = bz1 - ins;
+      box(m, w, y0, y1, a + rV, b - rV, name);
+      box(m, w - rV, y0, y1, a, b);
+      box(m, w - rV * 0.3, y0, y1, a + rV * 0.3, b - rV * 0.3);
+    };
+    const nB = 18, hB = (bTop - bBot) / nB;
+    for (let i = 0; i < nB; i++) {
+      const y0 = bBot + i * hB, y1 = y0 + hB, mid = (y0 + y1) / 2;
+      const ins = Math.max(inset(rB, mid - bBot), inset(rT, bTop - mid));
+      slab(mid < Y(424) ? D : PL, y0, y1, ins, i ? "ammo-box" : "box-bottom");
+    }
+    // lid: a rounded plate a little wider than the box, with a metal lip
+    for (const [y0, y1, ins] of [[Y(292), Y(287), 0.004], [Y(287), Y(282), 0], [Y(282), Y(279), 0.006]]) {
+      const w = bW + 0.003 - ins, a = bz0 - 0.004 + ins, b = bz1 + 0.004 - ins;
+      box(P, w, y0, y1, a + rV, b - rV, "box-lid");
+      box(P, w - rV, y0, y1, a, b);
+      box(P, w - rV * 0.3, y0, y1, a + rV * 0.3, b - rV * 0.3);
+    }
+    box(ME, bW + 0.0035, Y(292), Y(289), bz0 + rV, bz1 - rV, "box-lip");
+    // inset side panel framed by corner plates, and a seam where the dark bottom starts
+    side(P, 390, 560, 306, 404, 0.1055, { name: "box-panel" });
+    for (const [px, py] of [[390, 306], [550, 306], [390, 394], [550, 394]]) side(ME, px, px + 10, py, py + 10, 0.1062, { name: "box-corner" });
     side(ME, 578, 588, 316, 384, 0.04, { name: "box-latch" });
     side(ST, 580, 588, 340, 360, 0.02);
 
