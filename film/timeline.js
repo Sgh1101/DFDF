@@ -82,17 +82,17 @@
 
     // show: when the button's screen is up and its name appears; t: the click itself.
     clicks: [
-      { show: 8.0, t: 9.0, n: 1, label: "로그인 / 가입", at: [1397.5, 607.1] },
+      { show: 8.5, t: 9.0, n: 1, label: "로그인 / 가입", at: [1397.5, 607.1] },
       { show: 9.5, t: 10.5, n: 2, label: "게임 들어가기", at: [1397.5, 723.8] },
       { show: 11.0, t: 12.0, n: 3, label: "혼자 하기", at: [395, 541.4] },
       { show: 12.5, t: 13.5, n: 4, label: "전투 투입", at: [1878, 995.5] },
     ],
     ring: 0.35,
-    counter: { t0: 8.0, t1: 14.6, kicker: "클릭" },
+    counter: { t0: 8.5, t1: 14.6, kicker: "클릭" },
     typing: { t0: 7.2, keys: 6, every: 0.08 },
     // What is inside, counted the way the game counts it (GAME_CATALOG.counts()).
     inventory: {
-      t0: 17.0, t1: 27.0, kicker: "있을 건, 다 있습니다.",
+      t0: 17.0, t1: 27.0, kicker: "탭 하나에 이만큼.",
       items: [
         { show: 17.0, label: "요원", n: 28, unit: "명" },
         { show: 19.5, label: "스킬", n: 112, unit: "개" },
@@ -103,14 +103,14 @@
 
     // On-screen words (also the captions). l2 may arrive later than l1 (l2at).
     copy: [
-      { t0: 3.0, t1: 5.0, l1: "전부, 브라우저 안에서.", l2: "", l2at: 3.0 },
-      { t0: 6.6, t1: 7.9, l1: "가입은 클릭 한 번.", l2: "인증도 이메일도 없습니다.", l2at: 6.6 },
+      { t0: 3.0, t1: 5.0, l1: "방금 그거, 브라우저 탭.", l2: "", l2at: 3.0 },
+      { t0: 6.6, t1: 8.5, l1: "가입은 클릭 한 번.", l2: "인증도, 이메일도 없이.", l2at: 6.6 },
       { t0: 15.3, t1: 16.9, l1: "링크에서 교전까지,", l2: "클릭 네 번.", l2at: 15.3 },
-      { t0: 27.5, t1: 30.4, l1: "혼자여도 5대5.", l2: "빈자리는 AI가 채웁니다.", l2at: 28.0 },
-      { t0: 30.75, t1: 34.25, l1: "링크 하나 보내면,", l2: "친구가 그 자리에.", l2at: 31.0 },
+      { t0: 27.5, t1: 30.4, l1: "혼자여도 5대5.", l2: "나머지는 AI.", l2at: 28.0 },
+      { t0: 30.75, t1: 34.25, l1: "링크 하나면,", l2: "친구가 그 자리에.", l2at: 31.0 },
       { t0: 35.0, t1: 40.0, l1: "다운로드 대신, 탭 하나.", l2: "지금 한 판.", l2at: 35.0 },
     ],
-    title: { t0: 5.0, t1: 6.5, sub: "다운로드 없는 5대5 전술 FPS" },
+    title: { t0: 5.0, t1: 6.5, sub: "브라우저에서 바로, 5대5 전술 FPS" },
 
     url: "13fps.vercel.app",
 
@@ -121,7 +121,7 @@
       titleIn: [5.1, 0.3],
       titleOut: [6.3, 0.2],
       winBack: [6.5, 0.2],
-      cursorIn: [8.3, 0.25],
+      cursorIn: [8.4, 0.25],
       cursorOut: [13.8, 0.1],
       winOut: [27.0, 0.25],
       barToPill: [27.25, 0.4],
