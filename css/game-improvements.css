@@ -14,3 +14,6 @@
 
 /* Keep account actions tappable when the landscape header runs out of room. */
 #s-title.home-original .home-header #home-account :is(#rank-chip,#gold-chip,#mis-chip,#acct-chip){min-width:36px}
+
+/* one map on screen: the minimap at the top right stays, the second tactical map at the top left is hidden */
+#hud #tacmap{display:none!important}
