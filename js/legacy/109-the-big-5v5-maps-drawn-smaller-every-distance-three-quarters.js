@@ -88,12 +88,15 @@
   for (const name of ["buildStructures", "dressGlacier", "dressDunes", "dressNeon", "dressGarden", "dressMarket", "dressJungle"])
     "function" == typeof window[name] && (window[name] = scaled(window[name]));
 
-  // the bots' walking grid shrinks with the map, so a lane that was wide enough for them still is
+  // the bots' walking grid shrinks with the map, so a lane that was wide enough for them still is. It is set
+  // once the old map is cleared: clearing a map that set its own cell (the 마크X발로 import) puts that map's
+  // previous cell back, which must not win over this one.
   const CELL = GRID.cell;
-  const _lm = loadMap;
-  loadMap = function (key) {
-    GRID.cell = KEYS.includes(key) ? CELL * K : CELL;
-    return _lm.apply(this, arguments);
+  const _bmg = buildMapGeometry;
+  buildMapGeometry = function () {
+    const r = _bmg.apply(this, arguments);
+    GRID.cell = active() ? CELL * K : CELL;
+    return r;
   };
 
   window.MAP_SHRINK_INFO = { k: K, maps: KEYS.slice(), cell: CELL };

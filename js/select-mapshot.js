@@ -39,8 +39,9 @@
     cam.updateProjectionMatrix();
     cam.position.set(cx - ux * dist * Math.cos(el), dist * Math.sin(el), cz - uz * dist * Math.cos(el));
     cam.lookAt(cx, 0, cz);
-    const fog = scene.fog, vm = "undefined" != typeof VM && VM.root, vmOn = vm && vm.visible;
-    scene.fog = null;
+    // the fog is thinned, not removed: taking it away would recompile every material's shader (seconds of stall)
+    const fog = scene.fog, f0 = fog && { d: fog.density, n: fog.near, f: fog.far }, vm = "undefined" != typeof VM && VM.root, vmOn = vm && vm.visible;
+    fog && (void 0 !== fog.density ? (fog.density = 0) : ((fog.near = 1e6), (fog.far = 2e6)));
     vm && (vm.visible = !1);
     try {
       renderer.render(scene, cam);
@@ -51,7 +52,7 @@
       out.getContext("2d").drawImage(canvas, 0, 0, W, H);
       return out.toDataURL("image/jpeg", 0.82);
     } finally {
-      scene.fog = fog;
+      fog && (void 0 !== fog.density ? (fog.density = f0.d) : ((fog.near = f0.n), (fog.far = f0.f)));
       vm && (vm.visible = vmOn);
     }
   }
@@ -105,8 +106,8 @@
     };
     // a map already pictured just shows (the match start loads it anyway); a new one loads only once the picking
     // stops (skipping through the chips does not load every map), and is taken again after its textures arrive
-    if (CACHE.has(key)) return;
-    timers.push(setTimeout(go, 390), setTimeout(go, 1250), setTimeout(go, 2750));
+    if (CACHE.has(key) || !MAPS[key] || MAPS[key].graphicsStatic) return;
+    timers.push(setTimeout(go, 390), setTimeout(go, 2000));
   }
 
   let last = null;
