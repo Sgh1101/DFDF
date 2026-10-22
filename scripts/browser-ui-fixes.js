@@ -12,6 +12,8 @@ const { AUDIT_SRC } = require("./ui-audit-lib");
   try {
     for (const [w, h] of [[568, 320], [667, 375], [844, 390]]) {
       const page = await f.page("fix" + w, { width: w, height: h }, { hasTouch: true, isMobile: true });
+      // the chip is drawn after the account loads; a first read can come back empty
+      await page.locator('#mis-chip').waitFor({ state: 'visible', timeout: 15000 });
       const mission = await page.locator('#mis-chip').boundingBox();
       assert.ok(mission.width >= 35.5 && mission.height >= 35.5, w + ' mission chip has a full touch target');
       await page.locator('#go-set').tap();
