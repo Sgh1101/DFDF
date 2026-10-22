@@ -29,6 +29,16 @@ One line per call made where the brief was thin.
 - **Rejected from the review: a “GB” readout** on the download bar. It would be an invented number; the bar is named “다운로드 중” instead.
 - **Arc timing** moved from the brief's 10/25/40/15/10 % to 10/20/37/20/13 % (S1 0–3, S2 3–9, S3 9–20, S4 20–26, S5 26–30 s) so scenes change on the two-bar grid and the end card holds for 3 s.
 
+## 40-second cut (request: add agents, maps, skills, skins)
+
+- **One beat, not a feature list.** The four counts sit in one scene, S4 “Inside” (20–30 s), under one line — “다운로드 없이도, 다 있다.” — so they answer the next doubt after the hook (a browser game must be thin) instead of starting a second idea.
+- **Counts are the game's own** (`GAME_CATALOG.counts()` at runtime): 요원 28 · 스킬 112 · 맵 22 · 스킨 607. Weapons (19) and modes (11) stay cut: the request named four things.
+- **맵 22, not the home screen's 21.** 22 maps are selectable (MAP_LIST, the select screen's “전체 22”); the home footer counts before 마크X발로 joins and never recounts. Flagged to the user as a game bug rather than worked around in the film.
+- **스킬, not 능력**, because the request said 스킬 and the buy screen says “스킬 & 장비”; the game mostly says 능력.
+- **Real frames, one camera move each**: the agent grid pans to the same frame's ability panel (one capture, not a composite); six maps tile into the window one by one; the armoury shows a skin on a gun next to the skin grid. Six maps chosen for different light and colour so the tiles read as different places at a glance.
+- **Scenes** S1 0–3, S2 3–9, S3 9–20, S4 20–30, S5 30–36, S6 36–40 (8/15/28/25/15/10 %). Turn and payoff are unchanged, only later; the seats re-enter for the turn instead of flying back from a HUD that is no longer on screen.
+- **Music**: S4 keeps the proof's eighth-note walk over I–IV–V, resolving into the turn; each count lands with a soft fifth that climbs with the list.
+
 ## Sound
 
 - **No voiceover.** No licensed Korean voice or TTS was available here, and the brief marks voice optional. The on-screen copy is the narration, so it is also the burned-in caption, and `captions.srt` carries the same words at the same times. With no voice there is nothing to duck.

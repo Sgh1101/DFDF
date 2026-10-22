@@ -17,8 +17,8 @@ h1{font-size:40px;font-weight:700}p.l{font-size:22px;color:var(--ink2);margin:6p
 .g{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}figure img{width:100%;display:block;border-radius:8px;box-shadow:0 0 0 1px var(--rule)}
 figcaption{display:flex;flex-direction:column;margin-top:8px;font-size:18px}figcaption b{font-weight:700}figcaption span{color:var(--ink2)}
 h2{font-size:26px;font-weight:700;margin:40px 0 14px}.row{display:flex;gap:10px;align-items:flex-start}.row img{border-radius:6px;box-shadow:0 0 0 1px var(--rule)}
-.tall img{width:138px}.sq img{width:140px}</style></head><body>
-<h1>13 · 30초 — 콘택트 시트</h1><p class="l">${esc(T.idea)}</p>
+.tall img{width:${Math.floor((2288 - 10 * (T.beats.length - 1)) / T.beats.length)}px}.sq img{width:${Math.floor((2288 - 10 * (T.beats.length - 1)) / T.beats.length)}px}</style></head><body>
+<h1>13 · ${T.duration}초 — 콘택트 시트</h1><p class="l">${esc(T.idea)}</p>
 <div class="g">${master.map(cell).join("")}</div>
 <h2>9:16</h2><div class="row tall">${tall.map((s) => `<img src="${s}">`).join("")}</div>
 <h2>1:1</h2><div class="row sq">${square.map((s) => `<img src="${s}">`).join("")}</div>

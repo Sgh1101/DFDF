@@ -1,0 +1,146 @@
+{
+  "capturedAt": "2026-10-22T14:39:46.673Z",
+  "base": "http://127.0.0.1:3000",
+  "counts": {
+    "agents": 28,
+    "abilities": 112,
+    "weapons": 19,
+    "maps": 22,
+    "modes": 11,
+    "skins": 607
+  },
+  "homeFoot": "요원 28명 · 무기 19종 · 맵 21종 · 스킨 607종",
+  "agent": {
+    "key": "hwaryeong",
+    "name": "화령",
+    "abilities": [
+      "불꽃 장막",
+      "화염탄",
+      "용암 갑옷",
+      "업화"
+    ]
+  },
+  "maps": [
+    {
+      "key": "pogu",
+      "name": "포구"
+    },
+    {
+      "key": "field",
+      "name": "마른 들판"
+    },
+    {
+      "key": "garden",
+      "name": "연화원"
+    },
+    {
+      "key": "market",
+      "name": "한옥 시장"
+    },
+    {
+      "key": "glacier",
+      "name": "빙하 관측소"
+    },
+    {
+      "key": "neon",
+      "name": "네온 정점"
+    },
+    {
+      "key": "dunes",
+      "name": "모래무덤"
+    },
+    {
+      "key": "jungle",
+      "name": "밀림 유적"
+    },
+    {
+      "key": "shift",
+      "name": "시프트 아레나"
+    },
+    {
+      "key": "train",
+      "name": "달리는 열차"
+    },
+    {
+      "key": "nightport",
+      "name": "야간 항구"
+    },
+    {
+      "key": "rooftops",
+      "name": "옥상 도시"
+    },
+    {
+      "key": "hospital",
+      "name": "폐병원"
+    },
+    {
+      "key": "s02",
+      "name": "산사 뜰"
+    },
+    {
+      "key": "s03",
+      "name": "제련 공방"
+    },
+    {
+      "key": "s04",
+      "name": "밀림 사당"
+    },
+    {
+      "key": "s05",
+      "name": "골목 장터"
+    },
+    {
+      "key": "s06",
+      "name": "화물칸"
+    },
+    {
+      "key": "d01",
+      "name": "서리 결투장"
+    },
+    {
+      "key": "d03",
+      "name": "네온 링"
+    },
+    {
+      "key": "d04",
+      "name": "달빛 마당"
+    },
+    {
+      "key": "ascent_trial",
+      "name": "마크X발로"
+    }
+  ],
+  "shotMaps": [
+    {
+      "key": "pogu",
+      "name": "포구",
+      "file": "12-map-pogu.jpg"
+    },
+    {
+      "key": "neon",
+      "name": "네온 정점",
+      "file": "12-map-neon.jpg"
+    },
+    {
+      "key": "shift",
+      "name": "시프트 아레나",
+      "file": "12-map-shift.jpg"
+    },
+    {
+      "key": "train",
+      "name": "달리는 열차",
+      "file": "12-map-train.jpg"
+    },
+    {
+      "key": "nightport",
+      "name": "야간 항구",
+      "file": "12-map-nightport.jpg"
+    },
+    {
+      "key": "dunes",
+      "name": "모래무덤",
+      "file": "12-map-dunes.jpg"
+    }
+  ],
+  "errors": []
+}

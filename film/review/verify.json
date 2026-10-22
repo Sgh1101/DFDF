@@ -1,9 +1,9 @@
 {
   "determinism": {
-    "t": 18.3,
+    "t": 25.4,
     "twoBrowsers": [
-      "4c9da8321b008197a0c41f27f9681057af2abfac78e324cb58602b37a7993c25",
-      "4c9da8321b008197a0c41f27f9681057af2abfac78e324cb58602b37a7993c25"
+      "9939de319e892c0bfc9f98b347296ab52d182483f54209e37f68123a2f6ac261",
+      "9939de319e892c0bfc9f98b347296ab52d182483f54209e37f68123a2f6ac261"
     ],
     "identical": true,
     "seekAwayAndBack": true
@@ -11,44 +11,44 @@
   "captions": [
     {
       "format": "16x9",
-      "cues": 13,
+      "cues": 17,
       "problems": []
     },
     {
       "format": "9x16",
-      "cues": 13,
+      "cues": 17,
       "problems": []
     },
     {
       "format": "1x1",
-      "cues": 13,
+      "cues": 17,
       "problems": []
     },
     {
       "format": "16x9-reduced",
-      "cues": 13,
+      "cues": 17,
       "problems": []
     }
   ],
   "textFits": [
     {
       "format": "16x9",
-      "checked": 10,
+      "checked": 14,
       "overflow": []
     },
     {
       "format": "9x16",
-      "checked": 10,
+      "checked": 14,
       "overflow": []
     },
     {
       "format": "1x1",
-      "checked": 10,
+      "checked": 14,
       "overflow": []
     },
     {
       "format": "16x9-reduced",
-      "checked": 10,
+      "checked": 14,
       "overflow": []
     }
   ],
@@ -66,9 +66,13 @@
       "review/beats/16x9/16x9-17.50.png",
       "review/beats/16x9/16x9-18.60.png",
       "review/beats/16x9/16x9-19.50.png",
-      "review/beats/16x9/16x9-21.30.png",
+      "review/beats/16x9/16x9-21.50.png",
       "review/beats/16x9/16x9-24.00.png",
-      "review/beats/16x9/16x9-29.00.png"
+      "review/beats/16x9/16x9-26.50.png",
+      "review/beats/16x9/16x9-29.00.png",
+      "review/beats/16x9/16x9-31.30.png",
+      "review/beats/16x9/16x9-34.00.png",
+      "review/beats/16x9/16x9-39.00.png"
     ],
     "9x16": [
       "review/beats/9x16/9x16-01.50.png",
@@ -83,9 +87,13 @@
       "review/beats/9x16/9x16-17.50.png",
       "review/beats/9x16/9x16-18.60.png",
       "review/beats/9x16/9x16-19.50.png",
-      "review/beats/9x16/9x16-21.30.png",
+      "review/beats/9x16/9x16-21.50.png",
       "review/beats/9x16/9x16-24.00.png",
-      "review/beats/9x16/9x16-29.00.png"
+      "review/beats/9x16/9x16-26.50.png",
+      "review/beats/9x16/9x16-29.00.png",
+      "review/beats/9x16/9x16-31.30.png",
+      "review/beats/9x16/9x16-34.00.png",
+      "review/beats/9x16/9x16-39.00.png"
     ],
     "1x1": [
       "review/beats/1x1/1x1-01.50.png",
@@ -100,9 +108,13 @@
       "review/beats/1x1/1x1-17.50.png",
       "review/beats/1x1/1x1-18.60.png",
       "review/beats/1x1/1x1-19.50.png",
-      "review/beats/1x1/1x1-21.30.png",
+      "review/beats/1x1/1x1-21.50.png",
       "review/beats/1x1/1x1-24.00.png",
-      "review/beats/1x1/1x1-29.00.png"
+      "review/beats/1x1/1x1-26.50.png",
+      "review/beats/1x1/1x1-29.00.png",
+      "review/beats/1x1/1x1-31.30.png",
+      "review/beats/1x1/1x1-34.00.png",
+      "review/beats/1x1/1x1-39.00.png"
     ],
     "16x9-reduced": [
       "review/beats/16x9-reduced/16x9-reduced-01.50.png",
@@ -117,9 +129,13 @@
       "review/beats/16x9-reduced/16x9-reduced-17.50.png",
       "review/beats/16x9-reduced/16x9-reduced-18.60.png",
       "review/beats/16x9-reduced/16x9-reduced-19.50.png",
-      "review/beats/16x9-reduced/16x9-reduced-21.30.png",
+      "review/beats/16x9-reduced/16x9-reduced-21.50.png",
       "review/beats/16x9-reduced/16x9-reduced-24.00.png",
-      "review/beats/16x9-reduced/16x9-reduced-29.00.png"
+      "review/beats/16x9-reduced/16x9-reduced-26.50.png",
+      "review/beats/16x9-reduced/16x9-reduced-29.00.png",
+      "review/beats/16x9-reduced/16x9-reduced-31.30.png",
+      "review/beats/16x9-reduced/16x9-reduced-34.00.png",
+      "review/beats/16x9-reduced/16x9-reduced-39.00.png"
     ]
   },
   "pixelContrast": {
@@ -275,7 +291,67 @@
         ]
       },
       {
-        "t": 24,
+        "t": 26.5,
+        "id": "iKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iUnit",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 34,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -290,7 +366,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "l2",
         "ratio": 7.1,
         "fg": [
@@ -305,7 +381,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "chip",
         "ratio": 17.37,
         "fg": [
@@ -320,7 +396,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk0",
         "ratio": 5.07,
         "fg": [
@@ -335,7 +411,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk1",
         "ratio": 5.07,
         "fg": [
@@ -350,7 +426,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk5",
         "ratio": 15.37,
         "fg": [
@@ -365,7 +441,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -380,7 +456,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l2",
         "ratio": 15.37,
         "fg": [
@@ -395,7 +471,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "barUrl",
         "ratio": 17.37,
         "fg": [
@@ -562,7 +638,67 @@
         ]
       },
       {
-        "t": 24,
+        "t": 26.5,
+        "id": "iKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iUnit",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 34,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -577,7 +713,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "l2",
         "ratio": 7.1,
         "fg": [
@@ -592,7 +728,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "chip",
         "ratio": 17.37,
         "fg": [
@@ -607,7 +743,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk0",
         "ratio": 5.07,
         "fg": [
@@ -622,7 +758,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk1",
         "ratio": 5.07,
         "fg": [
@@ -637,7 +773,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk5",
         "ratio": 15.37,
         "fg": [
@@ -652,7 +788,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -667,7 +803,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l2",
         "ratio": 15.37,
         "fg": [
@@ -682,7 +818,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "barUrl",
         "ratio": 17.37,
         "fg": [
@@ -849,7 +985,67 @@
         ]
       },
       {
-        "t": 24,
+        "t": 26.5,
+        "id": "iKick",
+        "ratio": 7.1,
+        "fg": [
+          75,
+          79,
+          88
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iLab",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          242,
+          238,
+          231
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iNum",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 26.5,
+        "id": "iUnit",
+        "ratio": 15.37,
+        "fg": [
+          21,
+          24,
+          30
+        ],
+        "bg": [
+          241,
+          237,
+          230
+        ]
+      },
+      {
+        "t": 34,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -864,7 +1060,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "l2",
         "ratio": 7.1,
         "fg": [
@@ -879,7 +1075,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "chip",
         "ratio": 17.37,
         "fg": [
@@ -894,7 +1090,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk0",
         "ratio": 5.07,
         "fg": [
@@ -909,7 +1105,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk1",
         "ratio": 5.1,
         "fg": [
@@ -924,7 +1120,7 @@
         ]
       },
       {
-        "t": 24,
+        "t": 34,
         "id": "mk5",
         "ratio": 15.37,
         "fg": [
@@ -939,7 +1135,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l1",
         "ratio": 15.37,
         "fg": [
@@ -954,7 +1150,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "l2",
         "ratio": 15.37,
         "fg": [
@@ -969,7 +1165,7 @@
         ]
       },
       {
-        "t": 29,
+        "t": 39,
         "id": "barUrl",
         "ratio": 17.37,
         "fg": [
@@ -996,28 +1192,28 @@
             "height": 1080,
             "pix_fmt": "yuv420p",
             "r_frame_rate": "60/1",
-            "nb_frames": "1800"
+            "nb_frames": "2400"
           },
           {
             "codec_name": "aac",
             "sample_rate": "48000",
             "channels": 2,
             "r_frame_rate": "0/0",
-            "nb_frames": "1408"
+            "nb_frames": "1876"
           }
         ],
         "format": {
-          "duration": "30.000000",
-          "size": "3445180"
+          "duration": "40.000000",
+          "size": "5548971"
         }
       },
       "loudness": {
         "I": -16,
-        "TP": -1.8,
-        "LRA": 1.2
+        "TP": -2,
+        "LRA": 1.3
       },
       "flashes": {
-        "frames": 1800,
+        "frames": 2400,
         "maxFlashesPerSecond": {
           "general": 1,
           "red": 0
@@ -1034,28 +1230,28 @@
             "height": 1920,
             "pix_fmt": "yuv420p",
             "r_frame_rate": "60/1",
-            "nb_frames": "1800"
+            "nb_frames": "2400"
           },
           {
             "codec_name": "aac",
             "sample_rate": "48000",
             "channels": 2,
             "r_frame_rate": "0/0",
-            "nb_frames": "1408"
+            "nb_frames": "1876"
           }
         ],
         "format": {
-          "duration": "30.000000",
-          "size": "3081254"
+          "duration": "40.000000",
+          "size": "4745804"
         }
       },
       "loudness": {
         "I": -16,
-        "TP": -1.8,
-        "LRA": 1.2
+        "TP": -2,
+        "LRA": 1.3
       },
       "flashes": {
-        "frames": 1800,
+        "frames": 2400,
         "maxFlashesPerSecond": {
           "general": 0,
           "red": 0
@@ -1072,28 +1268,28 @@
             "height": 1080,
             "pix_fmt": "yuv420p",
             "r_frame_rate": "60/1",
-            "nb_frames": "1800"
+            "nb_frames": "2400"
           },
           {
             "codec_name": "aac",
             "sample_rate": "48000",
             "channels": 2,
             "r_frame_rate": "0/0",
-            "nb_frames": "1408"
+            "nb_frames": "1876"
           }
         ],
         "format": {
-          "duration": "30.000000",
-          "size": "2853837"
+          "duration": "40.000000",
+          "size": "4382128"
         }
       },
       "loudness": {
         "I": -16,
-        "TP": -1.8,
-        "LRA": 1.2
+        "TP": -2,
+        "LRA": 1.3
       },
       "flashes": {
-        "frames": 1800,
+        "frames": 2400,
         "maxFlashesPerSecond": {
           "general": 1,
           "red": 0
@@ -1110,28 +1306,28 @@
             "height": 1080,
             "pix_fmt": "yuv420p",
             "r_frame_rate": "60/1",
-            "nb_frames": "1800"
+            "nb_frames": "2400"
           },
           {
             "codec_name": "aac",
             "sample_rate": "48000",
             "channels": 2,
             "r_frame_rate": "0/0",
-            "nb_frames": "1408"
+            "nb_frames": "1876"
           }
         ],
         "format": {
-          "duration": "30.000000",
-          "size": "2548813"
+          "duration": "40.000000",
+          "size": "3956794"
         }
       },
       "loudness": {
         "I": -16,
-        "TP": -1.8,
-        "LRA": 1.2
+        "TP": -2,
+        "LRA": 1.3
       },
       "flashes": {
-        "frames": 1800,
+        "frames": 2400,
         "maxFlashesPerSecond": {
           "general": 1,
           "red": 0

@@ -35,6 +35,13 @@ html,body{background:var(--paper);overflow:hidden}
 #cKick{font-weight:500;color:var(--ink2)}
 #cNum{font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1;text-align:right}
 #cLab{font-weight:700;color:var(--ink);line-height:1}
+#mosaic{left:0;top:0}
+#mosaic img{object-fit:cover;border-radius:4px}
+#inventory{left:0;top:0}
+#inventory div{white-space:nowrap;left:0;top:0}
+#iKick{font-weight:500;color:var(--ink2)}
+#iLab,#iUnit{font-weight:700;color:var(--ink);line-height:1}
+#iNum{font-family:var(--f-display);font-weight:900;color:var(--ink);line-height:1}
 </style>
 </head>
 <body>
@@ -46,6 +53,7 @@ html,body{background:var(--paper);overflow:hidden}
     </div>
     <div id="content">
       <div id="shots"></div>
+      <div id="mosaic"></div>
       <div id="ring"></div>
       <svg id="cursor" viewBox="0 0 34 34"><path d="M4 3v24l6.5-6 4.4 10 4.3-1.9-4.4-9.8h8.7z" fill="#15181E" stroke="#FFFCF7" stroke-width="2" stroke-linejoin="round"/></svg>
     </div>
@@ -58,6 +66,7 @@ html,body{background:var(--paper);overflow:hidden}
   <div id="logoLine"></div>
   <div id="copy"><div id="l1"></div><div id="l2"></div></div>
   <div id="counter"><div id="cKick"></div><div id="cNum"></div><div id="cLab"></div></div>
+  <div id="inventory"><div id="iKick"></div><div id="iLab"></div><div id="iNum"></div><div id="iUnit"></div></div>
 </div>
 <script src="timeline.js"></script>
 <script>
@@ -127,7 +136,11 @@ win.style.width = CW + "px"; win.style.height = CH + CHH + "px";
 $("chrome").style.height = CH + "px";
 $("content").style.top = CH + "px"; $("content").style.width = CW + "px"; $("content").style.height = CHH + "px";
 const gy = (CH - 20) / 2; $("gBack").style.left = "18px"; $("gBack").style.top = gy + "px"; $("gReload").style.left = "50px"; $("gReload").style.top = gy + "px";
-const imgs = T.shots.map((s) => { const i = new Image(); i.src = T.screens[s.src]; i.decoding = "sync"; shots.appendChild(i); return i; });
+const imgs = T.shots.map((s) => { const i = new Image(); if (s.src !== "mosaic") { i.src = T.screens[s.src]; i.decoding = "sync"; shots.appendChild(i); } return i; });
+const MZ = T.mosaic, tw = (CW - 2 * MZ.gap) / 3, th = (CHH - MZ.gap) / 2;
+const tiles = MZ.maps.map((m, i) => { const im = new Image(); im.src = m.src; im.decoding = "sync"; im.alt = m.name; $("mosaic").appendChild(im);
+  Object.assign(im.style, { width: tw + "px", height: th + "px", left: (i % 3) * (tw + MZ.gap) + "px", top: Math.floor(i / 3) * (th + MZ.gap) + "px" }); return im; });
+$("iKick").textContent = T.inventory.kicker;
 const markers = Array.from({ length: 10 }, (_, i) => { const d = document.createElement("div"); d.className = "mk " + (i < 5 ? "atk" : "def"); d.appendChild(document.createElement("span")); $("markers").appendChild(d); return d; });
 $("barLabel").textContent = T.barLabel.text;
 $("chip").textContent = T.url;
@@ -169,7 +182,11 @@ function seek(t) {
   css(win, { opacity: wa, transform: `translate(${L.win.x}px,${L.win.y}px)`, clipPath: `inset(0 0 ${(1 - mv(t, M.winOpen)) * (CHH + CH - 2)}px 0 round 14px)` });
   css(shots, { transform: `translate(${Z.ox}px,${Z.oy}px) scale(${Z.z})` });
   let top = -1; T.shots.forEach((s, i) => { if (t >= s.t) top = i; });
-  imgs.forEach((im, i) => { im.style.display = i === top ? "block" : "none"; });
+  imgs.forEach((im, i) => { im.style.display = i === top && T.shots[i].src !== "mosaic" ? "block" : "none"; });
+  // the map tiles arrive one after another, then hold
+  { const on = top >= 0 && T.shots[top].src === "mosaic", t0 = on ? T.shots[top].t : 0;
+    $("mosaic").style.display = on ? "block" : "none";
+    tiles.forEach((im, i) => { const m = [t0 + i * MZ.stagger, MZ.fade]; css(im, { opacity: on ? fd(t, m) : 0, transform: `scale(${REDUCED ? 1 : lerp(0.96, 1, mv(t, m))})` }); }); }
 
   // cursor and click rings
   { const vis = fd(t, M.cursorIn) * (1 - fd(t, M.cursorOut));
@@ -220,7 +237,7 @@ function seek(t) {
     let p, o;
     if (t < M.stripIn[0]) { const q = mv(t, mIn); p = { x: rowP.x, y: rowP.y + 28 * (1 - q), r: rowP.r }; o = fd(t, mIn) * (1 - fd(t, M.rowOut)) * dip(t, mIn); }
     else if (t < M.backToRow[0]) { const h = hudPos(i, t), q = mv(t, mHud); p = { x: lerp(stripP.x, h.x, q), y: lerp(stripP.y, h.y, q), r: lerp(stripP.r, h.r, q) }; o = fd(t, M.stripIn) * (1 - fd(t, REDUCED ? M.hudFadeReduced : M.hudFade)) * dip(t, mHud); }
-    else { const h = hudPos(i, M.backToRow[0]), q = mv(t, M.backToRow); p = { x: lerp(h.x, rowP.x, q), y: lerp(h.y, rowP.y, q), r: lerp(h.r, rowP.r, q) }; o = fd(t, [M.backToRow[0], 0.25]) * dip(t, M.backToRow) * (1 - fd(t, M.clear)); }
+    else { const mB = [M.backToRow[0] + 0.05 * k + (atk ? 0 : 0.25), M.backToRow[1]], q = mv(t, mB); p = { x: rowP.x, y: rowP.y + 28 * (1 - q), r: rowP.r }; o = fd(t, mB) * dip(t, mB) * (1 - fd(t, M.clear)); }
     // who fills the seat: four teammates flip from AI to 친구
     let label = T.soloNames[i], sx = 1, la = fd(t, M.labelsIn);
     if (atk && i > 0) { const q = prog(t, [M.flips[0] + (i - 1) * M.flips[1], M.flips[1]]);
@@ -260,6 +277,16 @@ function seek(t) {
     css($("cNum"), { opacity: ca * (k ? lerp(0.28, 1, tick) : 0), fontSize: K.n + "px", width: box + "px", transform: `translate(${cp.x}px,${ny + (ticked && !REDUCED ? 10 * (1 - tick) : 0)}px)` });
     css($("cLab"), { opacity: ca * (k ? fd(t, [k.show, 0.2]) : 0), fontSize: K.l + "px", transform: `translate(${cp.x + box + K.l * 0.35}px,${ny + (K.n - K.l) * 0.62}px)` });
     $("cNum").textContent = k ? String(k.n) : ""; $("cLab").textContent = k ? k.label : "";
+    // what is inside: the game's own counts, one per beat, in the same place as the click counter
+    const I = T.inventory, ia = lineAlpha(t, I.t0, I.t1), it = I.items.filter((x) => t >= x.show).pop();
+    const iRise = it && !REDUCED ? 10 * (1 - fd(t, [it.show, 0.2])) : 0, iA = it ? ia * fd(t, [it.show, 0.2]) : 0;
+    $("iLab").textContent = it ? it.label : ""; $("iNum").textContent = it ? String(it.n) : ""; $("iUnit").textContent = it ? it.unit : "";
+    css($("iKick"), { opacity: ia, fontSize: K.k + "px", lineHeight: kh + "px", transform: `translate(${cp.x}px,${ky}px)` });
+    css($("iLab"), { opacity: iA, fontSize: K.l + "px", transform: `translate(${cp.x}px,${ny + (K.n - K.l) * 0.62}px)` });
+    const lw = $("iLab").getBoundingClientRect().width;
+    css($("iNum"), { opacity: iA, fontSize: K.n + "px", transform: `translate(${cp.x + lw + K.l * 0.3}px,${ny + iRise}px)` });
+    const nw = $("iNum").getBoundingClientRect().width;
+    css($("iUnit"), { opacity: iA, fontSize: K.l + "px", transform: `translate(${cp.x + lw + K.l * 0.3 + nw + K.l * 0.12}px,${ny + (K.n - K.l) * 0.62}px)` });
   }
   document.body.dataset.t = t.toFixed(4);
 }
@@ -267,18 +294,19 @@ window.seek = seek;
 window.LAYOUT = L;
 
 // ── readiness: fonts and screens decoded before the first frame ──
-const sample = "가나다라 다운로드 클릭 친구 자리 13fps.vercel.app 0123456789";
+const sample = "가나다라 다운로드 클릭 친구 자리 요원 스킬 맵 스킨 명 개 13fps.vercel.app 0123456789";
 window.READY = Promise.all([
   ...["500", "700"].map((w) => document.fonts.load(`${w} 40px "Noto Sans KR"`, sample)),
   ...["700", "900"].map((w) => document.fonts.load(`${w} 40px Orbitron`, "13 0123456789")),
-  ...imgs.map((i) => i.decode()),
+  ...imgs.filter((i) => i.src).map((i) => i.decode()),
+  ...tiles.map((i) => i.decode()),
 ]).then(() => document.fonts.ready).then(() => { seek(Number(Q.get("t") || 0)); window.__ready = true; return true; });
 
 // ── sound: a tempo-locked bed rendered offline from the same TIMELINE ──
 function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
 window.renderAudio = async function () {
   const SR = 48000, ctx = new OfflineAudioContext(2, SR * T.duration, SR), beat = 60 / T.bpm;
-  const scene = Object.fromEntries(T.scenes.map((s) => [s.id, s]));
+  const scene = Object.fromEntries(T.scenes.map((s) => [s.arc, s]));
   const master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
   const music = ctx.createGain(), sfx = ctx.createGain(); music.connect(master); sfx.connect(master);
   const random = rng(13);
@@ -317,6 +345,8 @@ window.renderAudio = async function () {
     if (cue.type === "drone") { note(music, 55, 0, cue.until, "sine", 0.06, { a: 1.2, hold: cue.until - 2.0, r: 0.8 }); note(music, 110, 0, cue.until, "triangle", 0.03, { a: 1.6, hold: cue.until - 2.4, r: 0.8, lp: 500 }); }
     if (cue.type === "motif") motif(cue.t, cue.step, cue.bell);
     if (cue.type === "click") { hiss(sfx, cue.t, 0.016, 0.34, 0, 3200); note(sfx, 2600, cue.t, 0.035, "sine", 0.12); }
+    // each count lands with a soft fifth that climbs with the list
+    if (cue.type === "count") { const f = hz(SEMI[cue.step - 1] + 12); note(sfx, f, cue.t, 0.12, "triangle", 0.1, { lp: 3000 }); note(sfx, f * 1.5, cue.t + 0.06, 0.16, "triangle", 0.08, { lp: 3000 }); }
     if (cue.type === "pop") { hiss(sfx, cue.t, 0.01, 0.08, 0, 2500); note(sfx, 880, cue.t, 0.09, "triangle", 0.16, { to: 1320, slide: 0.05 }); }
     if (cue.type === "bed") {
       const end = cue.until;
@@ -326,13 +356,13 @@ window.renderAudio = async function () {
         for (const st of ch) for (const det of [-5, 5]) note(music, hz(st), s, e - s, "sawtooth", 0.02, { a: 0.5, hold, r, lp: 1500, detune: det });
         note(music, hz(root), s, e - s, "triangle", 0.06, { a: 0.02, hold: Math.max(0.05, hold + 0.2), r: 0.5, lp: 600 });
       });
-      for (let t = cue.t; t < scene.S5.t0 - 0.01; t += beat) {
-        const i = Math.round((t - cue.t) / beat), inTurn = t >= scene.S4.t0;
+      for (let t = cue.t; t < scene.Payoff.t0 - 0.01; t += beat) {
+        const i = Math.round((t - cue.t) / beat), inTurn = t >= scene.Turn.t0;
         // pulse on every beat; half-time in the turn; silent in the payoff
         if (!inTurn || i % 2 === 0) note(music, 118, t, 0.2, "sine", 0.2, { to: 52, slide: 0.1 });
-        // the proof walks on eighths: offbeat hat and a chord-tone arpeggio
-        if (t >= scene.S3.t0 && t < scene.S3.t1) {
-          const ch = chordAt(t), arp = [ch[1] + 24, ch[2] + 24, ch[3] + 24, ch[2] + 24], j = Math.round((t - scene.S3.t0) / beat);
+        // the proof and what is inside walk on eighths: offbeat hat and a chord-tone arpeggio
+        if (t >= scene.Proof.t0 && t < scene.Inside.t1) {
+          const ch = chordAt(t), arp = [ch[1] + 24, ch[2] + 24, ch[3] + 24, ch[2] + 24], j = Math.round((t - scene.Proof.t0) / beat);
           hiss(music, t + beat / 2, 0.035, 0.022, 7500);
           note(music, hz(arp[j % 4]), t, 0.16, "triangle", 0.035, { lp: 3200 });
           note(music, hz(arp[(j + 2) % 4]), t + beat / 2, 0.14, "triangle", 0.028, { lp: 3200 });
