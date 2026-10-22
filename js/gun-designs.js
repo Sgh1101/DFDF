@@ -42,6 +42,9 @@
     lens: () => mat("lens", 0x5a2a48, 0.15, 0.4, { emissive: 0x2a0c22 }),
     wood: () => mat("wood", 0x7c4a26, 0.72, 0.04),
     woodLite: () => mat("woodLite", 0x9c6233, 0.68, 0.04),
+    tan: () => mat("tan", 0xb39a6c, 0.78, 0.05),
+    tanDark: () => mat("tanDark", 0x8c7650, 0.8, 0.05),
+    olive: () => mat("olive", 0x75804e, 0.7, 0.1),
   };
   const BOX = new T.BoxGeometry(1, 1, 1);
   BOX.userData.shared = !0;
@@ -1668,6 +1671,354 @@
     return g;
   }
 
-  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun, pocketshot };
+  // a part built in its own tilted frame (grips, magazines): returns the group and a block maker in that frame,
+  // where z runs forward as minus and y up from the pivot
+  const tilted = (g, y, z, rx, name) => {
+    const grp = new T.Group();
+    grp.position.set(0, y, z);
+    grp.rotation.x = rx;
+    name && (grp.name = name);
+    g.add(grp);
+    const gb = (m, a, b, y0, y1, w, nm) => {
+      const mesh = new T.Mesh(BOX, m);
+      mesh.scale.set(2 * w, y1 - y0, b - a);
+      mesh.position.set(0, (y0 + y1) / 2, (a + b) / 2);
+      nm && (mesh.name = nm);
+      grp.add(mesh);
+      return mesh;
+    };
+    return gb;
+  };
+
+  // ── 정찰 소총 (carbine): a semi-auto marksman carbine with tan furniture, kept to the old size (0.11 × 0.37 ×
+  // 0.83 m): a tan stock with a cheek riser, lightening cuts and a rubber pad on its buffer tube; a dark upper
+  // with a full rail, dust cover, forward assist and charging handle; a lower with a flared well, bolt catch and
+  // orange selector; a long scope on two rings; a tan raked grip; a ribbed magazine; a tan slotted handguard with
+  // a top rail; a slotted brake. Units: px = mm from the butt, py = mm down from the scope's turret. ──
+  function carbine() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.312, y0: 0.148 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), A = M.accent(), BR = M.brass(), SI = M.silver(), LE = M.lens(), TN = M.tan(), TD = M.tanDark();
+
+    // stock: rubber pad, tan body with a cheek riser, two lightening cuts, a QD cup, the lever; buffer tube
+    side(R, 0, 10, 92, 186, 0.022, { name: "butt-pad" });
+    for (let i = 0; i < 4; i++) side(D, -1, 1, 102 + i * 22, 110 + i * 22, 0.02);
+    side(TN, 10, 140, 96, 184, 0.021, { name: "stock" });
+    bar(TN, 10, 178, 140, 160, 0.02, 0.0205, "stock-belly");
+    side(TD, 24, 134, 84, 98, 0.017, { name: "cheek-riser" });
+    side(D, 34, 82, 112, 134, 0.0212, { name: "stock-cut" });
+    side(D, 92, 128, 112, 134, 0.0212);
+    side(ST, 52, 62, 150, 160, 0.0214, { name: "qd-cup" });
+    side(D, 128, 144, 154, 160, 0.006, { name: "stock-lever" });
+    roundRod(k, ST, 136, 236, 114, 158, "buffer-tube");
+    roundRod(k, D, 150, 154, 113, 159);
+
+    // upper: body, rail with slots, ejection port with brass and its dust cover, forward assist, charging handle
+    side(ME, 230, 592, 78, 122, 0.024, { name: "upper" });
+    side(ME, 234, 590, 70, 80, 0.016, { name: "top-rail" });
+    for (let i = 0; i < 17; i++) side(D, 240 + i * 20, 248 + i * 20, 70, 73, 0.0165, { name: "rail-slot" });
+    side(D, 380, 452, 92, 112, 0.003, { x: 0.0222, name: "ejection-port" });
+    side(BR, 392, 440, 98, 106, 0.0012, { x: 0.0245, name: "chamber-round" });
+    side(PL, 372, 460, 112, 116, 0.0248, { name: "dust-cover" });
+    roundRod(k, ST, 350, 372, 86, 106, "forward-assist", 0.026);
+    side(ST, 220, 240, 80, 92, 0.012, { name: "charging-handle" });
+    for (const x of [-0.016, 0.016]) side(ST, 226, 240, 80, 90, 0.004, { x });
+    side(PA, 236, 588, 118, 120, 0.0242, { name: "upper-line" });
+
+    // lower: body, flared mag well, bolt catch, orange selector, pins, trigger guard and trigger
+    side(P, 236, 430, 122, 176, 0.0235, { name: "lower" });
+    side(P, 300, 396, 170, 198, 0.0235, { name: "mag-well" });
+    side(P, 294, 402, 192, 200, 0.026, { name: "mag-well-flare" });
+    side(ME, 400, 420, 134, 150, 0.025, { name: "bolt-catch" });
+    side(A, 254, 274, 132, 142, 0.0245, { name: "selector" });
+    side(D, 261, 267, 134, 140, 0.025);
+    for (const px of [266, 396]) side(ST, px, px + 5, 156, 161, 0.024, { name: "pin" });
+    side(P, 268, 304, 204, 210, 0.009, { name: "guard-bottom" });
+    side(P, 296, 304, 176, 210, 0.009);
+    bar(ME, 284, 176, 290, 200, 0.006, 0.004, "trigger");
+
+    // scope on two rings: eyepiece, tube, top and side turrets, objective bell, lens
+    for (const px of [328, 452]) {
+      side(ST, px, px + 20, 44, 72, 0.012, { name: "scope-ring" });
+      side(ST, px - 2, px + 22, 40, 50, 0.024);
+    }
+    roundRod(k, ST, 272, 314, 6, 56, "eyepiece");
+    roundRod(k, SI, 270, 278, 4, 58);
+    roundRod(k, D, 312, 318, 12, 50);
+    roundRod(k, ST, 314, 472, 16, 46, "scope-tube");
+    roundRod(k, ST, 378, 404, 12, 50, "turret");
+    side(ST, 382, 400, 0, 12, 0.012, { name: "turret-knob" });
+    side(D, 382, 400, 4, 6, 0.0125);
+    side(ST, 382, 400, 22, 40, 0.012, { x: 0.026, name: "side-turret" });
+    roundRod(k, ST, 470, 518, 4, 58, "objective");
+    roundRod(k, SI, 512, 518, 3, 59);
+    roundRod(k, D, 488, 492, 3, 59);
+    roundRod(k, LE, 517, 520, 10, 52, "lens");
+
+    // grip: raked tan with a dark panel and finger bumps
+    const gb = tilted(g, Y(176), Z(254), -0.38, "grip");
+    gb(TN, -0.03, 0.026, -0.124, 0, 0.0165, "grip");
+    gb(TD, -0.02, 0.018, -0.108, -0.016, 0.017, "grip-panel");
+    for (let i = 0; i < 5; i++) gb(D, -0.02, 0.018, -0.026 - i * 0.018, -0.023 - i * 0.018, 0.0172, "grip-groove");
+    for (let i = 0; i < 3; i++) gb(TD, -0.036, -0.028, -0.04 - i * 0.03, -0.022 - i * 0.03, 0.015, "finger-bump");
+    gb(D, -0.032, 0.028, -0.134, -0.122, 0.017, "grip-cap");
+
+    // magazine: polymer with ribs and a window, a tan base
+    const mb = tilted(g, Y(196), Z(348), 0.12, "magazine");
+    mb(P, -0.044, 0.044, -0.165, 0, 0.0145, "magazine");
+    for (let i = 0; i < 6; i++) mb(D, -0.045, 0.045, -0.02 - i * 0.024, -0.016 - i * 0.024, 0.0148, "mag-rib");
+    mb(BR, 0.02, 0.032, -0.14, -0.03, 0.0149, "mag-window");
+    mb(TN, -0.048, 0.048, -0.18, -0.165, 0.016, "mag-base");
+
+    // handguard: tan with two rows of slots, a top rail, a bevelled nose; barrel and the slotted brake
+    side(TN, 592, 776, 100, 164, 0.026, { name: "handguard" });
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 4; i++) side(D, 606 + i * 42, 636 + i * 42, 114 + r * 22, 122 + r * 22, 0.0262, { name: "handguard-slot" });
+    side(ME, 594, 776, 90, 100, 0.016, { name: "handguard-rail" });
+    for (let i = 0; i < 9; i++) side(D, 600 + i * 20, 608 + i * 20, 90, 93, 0.0165);
+    side(TD, 592, 776, 158, 164, 0.0262);
+    const nose = side(TN, 770, 786, 102, 162, 0.022, { name: "handguard-nose" });
+    nose.rotation.x = 0.3;
+    roundRod(k, ME, 776, 800, 120, 146, "barrel");
+    side(ST, 796, 832, 114, 152, 0.017, { name: "muzzle-brake" });
+    for (let i = 0; i < 3; i++) side(D, 802 + i * 10, 808 + i * 10, 118, 148, 0.0172, { name: "brake-slot" });
+    side(D, 830, 834, 126, 140, 0.008, { name: "muzzle-bore" });
+
+    g.name = "dfdf-recon";
+    g.userData.weaponModel = "dfdf-recon";
+    g.userData.design = { key: "carbine", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(133), Z(834)] };
+    return g;
+  }
+
+  // ── 점사소총 (burst): a three-round-burst rifle, kept to the old size (0.09 × 0.38 × 0.97 m): a thumbhole stock
+  // with a rubber pad and cheek strip, a carry handle with a rail and rear aperture, a side charging handle, an
+  // open port with brass, the orange burst selector with its three marks, a vented handguard with a heat shield
+  // and a bottom rail, the tall front sight, a birdcage flash hider, a raked grip and a curved magazine. Units: px
+  // = mm from the butt, py = mm down from the front sight's top. ──
+  function burst() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.358, y0: 0.146 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), R = M.rubber(), A = M.accent(), BR = M.brass(), SI = M.silver();
+
+    // stock: pad, upright, beam, the slanted lower bar that closes the thumbhole, a cheek strip, sling slot
+    side(R, 0, 16, 86, 246, 0.022, { name: "butt-pad" });
+    for (let i = 0; i < 6; i++) side(D, -1, 1, 96 + i * 24, 104 + i * 24, 0.02);
+    side(P, 16, 52, 86, 246, 0.022, { name: "stock-upright" });
+    side(P, 16, 250, 86, 140, 0.022, { name: "stock-beam" });
+    bar(P, 30, 232, 150, 172, 0.034, 0.021, "stock-lower");
+    bar(P, 146, 176, 256, 152, 0.03, 0.021);
+    side(PL, 22, 236, 82, 92, 0.0205, { name: "cheek-strip" });
+    side(D, 24, 44, 196, 220, 0.0225, { name: "sling-slot" });
+    side(D, 60, 236, 116, 118, 0.0222);
+
+    // receiver: upper with a pale line, lower, port with brass, side charging slot and handle, burst selector
+    side(PL, 234, 590, 84, 150, 0.024, { name: "upper" });
+    side(PA, 240, 586, 128, 130, 0.0242, { name: "upper-line" });
+    side(P, 250, 452, 150, 202, 0.023, { name: "lower" });
+    side(D, 330, 404, 98, 122, 0.003, { x: 0.0222, name: "ejection-port" });
+    side(BR, 342, 392, 104, 114, 0.0012, { x: 0.0245, name: "chamber-round" });
+    side(D, 420, 560, 96, 102, 0.0244, { name: "charging-slot" });
+    side(ST, 540, 552, 92, 106, 0.012, { x: 0.032, name: "charging-handle" });
+    side(A, 270, 296, 160, 172, 0.0245, { name: "selector" });
+    for (let i = 0; i < 3; i++) side(A, 300 + i * 6, 303 + i * 6, 158, 162, 0.0236, { name: "burst-mark" });
+    for (const px of [262, 440]) side(ST, px, px + 5, 186, 191, 0.0235, { name: "pin" });
+    side(P, 410, 456, 196, 214, 0.024, { name: "mag-well" });
+
+    // carry handle: two posts, a top bar with a rail, the rear aperture
+    side(P, 318, 342, 30, 86, 0.016, { name: "handle-post" });
+    side(P, 532, 556, 30, 86, 0.016);
+    side(P, 310, 562, 20, 36, 0.017, { name: "carry-handle" });
+    side(ME, 340, 540, 14, 20, 0.012, { name: "handle-rail" });
+    for (let i = 0; i < 10; i++) side(D, 346 + i * 20, 352 + i * 20, 14, 16, 0.0125);
+    side(ME, 312, 336, 4, 20, 0.01, { name: "rear-sight" });
+    side(D, 320, 328, 8, 14, 0.0105);
+
+    // handguard: body with a pale heat shield on top, two rows of vents, a bottom rail, bevelled nose
+    side(P, 588, 810, 84, 190, 0.026, { name: "handguard" });
+    side(PL, 592, 806, 84, 102, 0.0262, { name: "heat-shield" });
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) side(D, 604 + i * 32, 622 + i * 32, 116 + r * 30, 128 + r * 30, 0.0262, { name: "handguard-vent" });
+    side(ME, 600, 800, 190, 200, 0.012, { name: "bottom-rail" });
+    for (let i = 0; i < 10; i++) side(D, 606 + i * 20, 614 + i * 20, 196, 200, 0.0125);
+    const nose = side(P, 802, 820, 86, 188, 0.022, { name: "handguard-nose" });
+    nose.rotation.x = 0.3;
+
+    // front sight: a tall post on a block, with ears and an orange dot
+    side(P, 750, 784, 40, 86, 0.013, { name: "front-sight" });
+    side(P, 754, 760, 4, 40, 0.009);
+    side(P, 774, 780, 4, 40, 0.009);
+    side(ST, 765, 769, 10, 40, 0.002);
+    side(A, 765, 769, 8, 12, 0.0022);
+
+    // barrel and the birdcage flash hider
+    roundRod(k, ME, 808, 918, 104, 132, "barrel");
+    roundRod(k, ST, 914, 970, 98, 138, "flash-hider");
+    for (let i = 0; i < 4; i++) side(D, 924 + i * 11, 930 + i * 11, 100, 136, 0.0202, { name: "hider-slot" });
+    side(D, 968, 972, 110, 126, 0.008, { name: "muzzle-bore" });
+
+    // trigger guard and trigger
+    side(P, 288, 360, 230, 238, 0.009, { name: "guard-bottom" });
+    side(P, 352, 360, 202, 238, 0.009);
+    bar(ME, 322, 202, 328, 226, 0.006, 0.004, "trigger");
+
+    // grip and a curved magazine (two segments, the lower one turned further)
+    const gb = tilted(g, Y(202), Z(270), -0.36, "grip");
+    gb(P, -0.03, 0.026, -0.126, 0, 0.017, "grip");
+    gb(R, -0.02, 0.018, -0.11, -0.016, 0.0176, "grip-panel");
+    for (let i = 0; i < 5; i++) gb(D, -0.02, 0.018, -0.026 - i * 0.018, -0.023 - i * 0.018, 0.018, "grip-groove");
+    gb(D, -0.032, 0.028, -0.136, -0.124, 0.0175, "grip-cap");
+    const ma = tilted(g, Y(212), Z(432), 0.14, "magazine");
+    ma(ME, -0.044, 0.044, -0.09, 0, 0.0145, "magazine");
+    for (let i = 0; i < 3; i++) ma(D, -0.045, 0.045, -0.02 - i * 0.026, -0.016 - i * 0.026, 0.0148, "mag-rib");
+    const mb = tilted(g, Y(212) - 0.088 * Math.cos(0.14), Z(432) - 0.088 * Math.sin(0.14), 0.3, "magazine-lower");
+    mb(ME, -0.044, 0.044, -0.085, 0.002, 0.0145, "magazine");
+    for (let i = 0; i < 3; i++) mb(D, -0.045, 0.045, -0.016 - i * 0.024, -0.012 - i * 0.024, 0.0148, "mag-rib");
+    mb(PL, -0.048, 0.048, -0.1, -0.085, 0.016, "mag-base");
+
+    g.name = "dfdf-burst";
+    g.userData.weaponModel = "dfdf-burst";
+    g.userData.design = { key: "burst", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(118), Z(972)] };
+    return g;
+  }
+
+  // ── 코멧 소총 (bullpup): a tan bullpup, kept to the old size (0.16 × 0.43 × 0.99 m): an open stock frame with a
+  // rubber pad and a cheek rest, the magazine behind the grip, a brass deflector over the port by the cheek, a top
+  // rail with a red-dot sight, a dark grip with a long guard, a dark handguard with a tan top and vents, and a
+  // ported brake. Units: px = mm from the butt, py = mm down from the sight's hood. ──
+  function bullpup() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.358, y0: 0.197 }), { g, side, bar, Z, Y } = k;
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), D = M.dark(), R = M.rubber(), A = M.accent(), BR = M.brass(), LE = M.lens(), TN = M.tan(), TD = M.tanDark(), RE = M.red();
+
+    // stock frame: pad, upright, the top (the body runs on from it), the bottom bar, a cheek rest
+    side(R, 0, 14, 160, 328, 0.028, { name: "butt-pad" });
+    for (let i = 0; i < 6; i++) side(D, -1, 1, 170 + i * 26, 178 + i * 26, 0.026);
+    side(TN, 14, 80, 160, 328, 0.028, { name: "stock-upright" });
+    side(TN, 14, 232, 160, 226, 0.028, { name: "stock-top" });
+    side(TN, 60, 236, 288, 328, 0.026, { name: "stock-bottom" });
+    side(TD, 18, 226, 150, 162, 0.024, { name: "cheek-rest" });
+    side(D, 30, 64, 190, 214, 0.0285, { name: "sling-slot" });
+
+    // the magazine in the stock: body with ribs and a window, a release, an orange base
+    side(P, 132, 226, 226, 400, 0.017, { name: "magazine" });
+    for (let i = 0; i < 6; i++) side(D, 130, 228, 244 + i * 24, 248 + i * 24, 0.0173, { name: "mag-rib" });
+    side(BR, 194, 208, 250, 380, 0.0174, { name: "mag-window" });
+    side(A, 128, 230, 398, 416, 0.019, { name: "mag-base" });
+    side(ME, 236, 250, 300, 316, 0.01, { name: "mag-release" });
+
+    // body: tan, the port with brass under a deflector, seams, a selector, the top rail
+    side(TN, 165, 598, 104, 218, 0.03, { name: "body" });
+    side(D, 190, 262, 136, 166, 0.003, { x: 0.0282, name: "ejection-port" });
+    side(BR, 202, 250, 144, 156, 0.0012, { x: 0.0305, name: "chamber-round" });
+    side(TD, 180, 272, 120, 134, 0.034, { name: "brass-deflector" });
+    for (const py of [180, 198]) side(D, 270, 590, py, py + 2, 0.0302, { name: "body-seam" });
+    side(A, 300, 318, 186, 196, 0.031, { name: "selector" });
+    side(ME, 236, 598, 70, 104, 0.02, { name: "top-rail" });
+    for (let i = 0; i < 18; i++) side(D, 242 + i * 20, 250 + i * 20, 70, 74, 0.0205, { name: "rail-slot" });
+    side(TD, 236, 598, 98, 104, 0.0305);
+
+    // red-dot sight: base, an open hood with a window, the lens and the red dot
+    side(ME, 408, 486, 52, 70, 0.018, { name: "sight-base" });
+    side(ST, 412, 482, 0, 10, 0.022, { name: "sight-hood" });
+    for (const x of [-0.02, 0.02]) side(ST, 412, 482, 0, 52, 0.003, { x });
+    side(ST, 476, 482, 0, 52, 0.022);
+    side(LE, 474, 477, 10, 50, 0.018, { name: "sight-lens" });
+    side(RE, 420, 430, 26, 34, 0.004, { name: "red-dot" });
+    side(ST, 440, 452, 52, 60, 0.0215, { name: "sight-knob" });
+
+    // grip, the long guard running forward to the trigger, the trigger
+    const gb = tilted(g, Y(218), Z(330), -0.26, "grip");
+    gb(P, -0.03, 0.028, -0.13, 0, 0.018, "grip");
+    gb(R, -0.022, 0.02, -0.114, -0.016, 0.0186, "grip-panel");
+    for (let i = 0; i < 5; i++) gb(D, -0.022, 0.02, -0.028 - i * 0.018, -0.025 - i * 0.018, 0.019, "grip-groove");
+    gb(D, -0.032, 0.03, -0.14, -0.128, 0.0185, "grip-cap");
+    side(P, 366, 470, 262, 270, 0.012, { name: "guard-bottom" });
+    side(P, 462, 470, 218, 270, 0.012);
+    bar(ME, 400, 218, 406, 246, 0.007, 0.004, "trigger");
+
+    // handguard: dark with a tan top and vents, bevelled nose; barrel and the ported brake
+    side(P, 594, 744, 104, 212, 0.028, { name: "handguard" });
+    side(TN, 594, 740, 104, 130, 0.0282, { name: "handguard-top" });
+    for (let i = 0; i < 4; i++) side(D, 608 + i * 32, 628 + i * 32, 152, 182, 0.0282, { name: "handguard-vent" });
+    const nose = side(P, 736, 754, 108, 208, 0.024, { name: "handguard-nose" });
+    nose.rotation.x = 0.3;
+    roundRod(k, ST, 744, 916, 142, 178, "barrel");
+    roundRod(k, ME, 912, 984, 132, 188, "muzzle-brake");
+    for (let i = 0; i < 3; i++) side(D, 924 + i * 18, 934 + i * 18, 136, 184, 0.0222, { name: "brake-port" });
+    side(D, 983, 987, 150, 170, 0.01, { name: "muzzle-bore" });
+
+    g.name = "dfdf-comet";
+    g.userData.weaponModel = "dfdf-comet";
+    g.userData.design = { key: "bullpup", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(160), Z(987)] };
+    return g;
+  }
+
+  // ── RPG: kept to the old size (0.17 × 0.27 × 1.53 m): a flared venturi at the back, the launch tube with two
+  // wood heat shields held by steel clamps, an olive optic, rear and front sights, a pistol grip with its guard and
+  // a front grip, sling swivels, and the olive warhead with its neck, rear cone, a tan band, the front cone and a
+  // brass fuse. Units: px = mm from the venturi's end, py = mm down from the optic's top. ──
+  function rpg() {
+    const k = kit({ S: 1000, px0: 0, py0: 0, z0: 0.426, y0: 0.139 }), { g, side, bar, Z, Y } = k;
+    const PA = M.panel(), P = M.poly(), ME = M.metal(), ST = M.steel(), D = M.dark(), A = M.accent(), BR = M.brass(), LE = M.lens(), W = M.wood(), WL = M.woodLite(), OL = M.olive(), TN = M.tan(), SI = M.silver();
+    const cy = 84;
+    const ring = (m, a, b, r, name) => roundRod(k, m, a, b, cy - r, cy + r, name);
+
+    // venturi: steps from wide at the back to the tube, a steel rim and a dark throat
+    for (let i = 0; i < 8; i++) ring(PA, i * 24, i * 24 + 25, 72 - i * 4, "venturi");
+    ring(ST, 0, 8, 74, "venturi-rim");
+    ring(D, -2, 1, 60, "venturi-throat");
+
+    // tube, two wood heat shields with dark seams and steel clamps
+    ring(PA, 186, 1126, 40, "tube");
+    side(SI, 190, 1120, 44, 50, 0.012, { name: "tube-shine" });
+    for (const [a, b] of [[316, 478], [588, 794]]) {
+      ring(W, a, b, 54, "heat-shield");
+      for (let x = a + 30; x < b - 10; x += 32) ring(WL, x, x + 3, 55, "shield-seam");
+      ring(ST, a - 8, a + 4, 56, "shield-clamp");
+      ring(ST, b - 4, b + 8, 56, "shield-clamp");
+    }
+    ring(ST, 1110, 1128, 46, "tube-mouth");
+
+    // optic and sights
+    side(ME, 400, 590, 46, 64, 0.012, { name: "optic-mount" });
+    side(OL, 380, 612, 4, 46, 0.017, { name: "optic" });
+    roundRod(k, OL, 372, 384, 8, 42, "optic-eyepiece", 0);
+    roundRod(k, LE, 610, 614, 10, 40, "optic-lens", 0);
+    side(OL, 470, 500, 0, 6, 0.012, { name: "optic-knob" });
+    side(ME, 1000, 1012, 30, 46, 0.004, { name: "front-sight" });
+    side(A, 1002, 1010, 28, 32, 0.0042);
+    side(ME, 340, 356, 30, 46, 0.012, { name: "rear-sight" });
+
+    // grips: the pistol grip with its guard and trigger, the front grip; sling swivels
+    const ga = tilted(g, Y(132), Z(400), -0.3, "grip");
+    ga(W, -0.024, 0.024, -0.112, 0, 0.017, "grip");
+    for (let i = 0; i < 5; i++) ga(D, -0.024, 0.024, -0.02 - i * 0.018, -0.017 - i * 0.018, 0.0175, "grip-groove");
+    ga(ME, -0.026, 0.026, -0.122, -0.11, 0.0175, "grip-cap");
+    side(ME, 430, 500, 168, 176, 0.008, { name: "guard-bottom" });
+    side(ME, 492, 500, 124, 176, 0.008);
+    bar(ST, 448, 124, 454, 154, 0.007, 0.004, "trigger");
+    const gf = tilted(g, Y(130), Z(720), -0.22, "front-grip");
+    gf(W, -0.02, 0.02, -0.1, 0, 0.016, "front-grip");
+    for (let i = 0; i < 4; i++) gf(D, -0.02, 0.02, -0.02 - i * 0.02, -0.017 - i * 0.02, 0.0165);
+    for (const px of [240, 1040]) {
+      side(ST, px, px + 14, 124, 132, 0.006, { name: "sling-swivel" });
+      side(ST, px + 2, px + 12, 132, 142, 0.0035);
+    }
+
+    // warhead: neck, a rear cone of widening rings, the body with a tan band, the front cone and the fuse
+    ring(OL, 1124, 1196, 20, "warhead-neck");
+    for (let i = 0; i < 5; i++) ring(OL, 1192 + i * 14, 1207 + i * 14, 26 + i * 9, "warhead-cone");
+    ring(OL, 1260, 1362, 64, "warhead");
+    ring(TN, 1296, 1310, 65, "warhead-band");
+    ring(D, 1258, 1262, 65);
+    for (let i = 0; i < 8; i++) ring(OL, 1360 + i * 20, 1381 + i * 20, 62 - i * 7.2, "warhead-nose");
+    ring(BR, 1520, 1534, 5, "fuse");
+
+    g.name = "dfdf-rpg";
+    g.userData.weaponModel = "dfdf-rpg";
+    g.userData.design = { key: "rpg", revision: 1 };
+    g.userData.anchors = { muzzle: [0, Y(cy), Z(1534)] };
+    return g;
+  }
+
+  const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun, pocketshot, carbine, burst, bullpup, rpg };
   window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
