@@ -13,7 +13,7 @@
   MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[],graphicsStatic:true};
   const entry={key:KEY,name:'마크X발로',size:5};
   (window.MAP_EXTRA||=[]).push(entry);
-  if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else MAP_LIST.push(entry);
+  if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else{MAP_LIST.push(entry);dispatchEvent(new CustomEvent('maps-changed',{detail:{count:MAP_LIST.length}}));}
   let pending=null,startRevision=0,loadRevision=0;
   let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
   const renderAssets=new Map(),assetLoads=new Map();let graphicsRevision=0,renderProfile=null;
