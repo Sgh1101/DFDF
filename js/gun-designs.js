@@ -342,7 +342,7 @@
   // trigger guard with a pale blade; the long raked grip with a checkered face and a lighter base plate ──
   function classic() {
     const k = kit({ S: 1562, px0: 700, py0: 280, z0: 0.0355, y0: 0.03 }), { g, side, bar, Z, Y } = k;
-    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), BR = M.brass();
+    const P = M.poly(), PL = M.polyLite(), ME = M.metal(), ST = M.steel(), PA = M.panel(), D = M.dark(), BR = M.brass(), A = M.accent();
 
     // slide
     side(PL, 450, 1036, 62, 128, 0.027, { name: "slide" });
@@ -377,6 +377,27 @@
     side(ST, 560, 612, 168, 178, 0.004, { x: -0.028, name: "slide-stop" });
     side(P, 452, 642, 165, 192, 0.029, { name: "frame-rear" });
     bar(P, 384, 128, 450, 162, 0.016, 0.018, "beavertail");
+    bar(PL, 392, 134, 446, 160, 0.004, 0.0185);
+
+    // finer slide work: a groove along the side, a bevel line under the top strip, pins, a chamber indicator,
+    // a rear sight with white dots, a lightening cut over the front serrations
+    side(D, 460, 1030, 140, 143, 0.0275, { name: "slide-groove" });
+    side(D, 470, 1030, 70, 72, 0.0275);
+    side(PA, 452, 456, 66, 160, 0.0275, { name: "slide-rear-edge" });
+    for (const px of [472, 632, 760, 1000]) side(ST, px, px + 6, 150, 156, 0.0278, { name: "slide-pin" });
+    side(A, 748, 760, 84, 90, 0.0278, { name: "chamber-indicator" });
+    side(PA, 460, 466, 50, 55, 0.013, { name: "sight-dot" });
+    side(PA, 490, 496, 50, 55, 0.013);
+    side(D, 912, 980, 92, 122, 0.0276, { name: "front-cut" });
+    side(ST, 1024, 1030, 72, 122, 0.017, { name: "crown-ring" });
+    side(D, 1030, 1036, 78, 116, 0.012);
+
+    // frame work: a thumb pad on the slide stop, the takedown pin, frame pins, vents under the muzzle
+    side(ST, 596, 614, 164, 182, 0.004, { x: -0.026, name: "stop-pad" });
+    side(ST, 626, 636, 152, 162, 0.031, { name: "takedown-pin" });
+    for (const [px, py] of [[664, 180], [1004, 180], [470, 180]]) side(ST, px, px + 6, py, py + 6, 0.0295, { name: "frame-pin" });
+    for (let i = 0; i < 3; i++) side(D, 980 + i * 14, 988 + i * 14, 170, 200, 0.0295, { name: "frame-vent" });
+    side(D, 640, 1032, 203, 206, 0.0295);
 
     // trigger guard: front slope, flat bottom, rear slope up to the grip; the pale blade and its pin
     bar(ME, 768, 186, 738, 292, 0.014, 0.009, "guard-front");
@@ -407,6 +428,15 @@
     gb(PL, 0.036, 0.056, -0.215, -0.185, 0.026, "mag-lip");
     side(PA, 586, 598, 286, 298, 0.004, { x: -0.026, name: "mag-release" });
     side(D, 586, 600, 284, 300, 0.004, { x: 0.026 });
+    // grip work: a bordered panel, backstrap ridges, the magazine seam, a lanyard loop, a seam on the base
+    gb(D, -0.034, 0.038, -0.188, -0.018, 0.0282, "panel-border");
+    gb(P, -0.032, 0.036, -0.186, -0.02, 0.0284);
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 3; c++) gb(PL, -0.03 + c * 0.022 + (r % 2) * 0.011, -0.018 + c * 0.022 + (r % 2) * 0.011, -0.036 - r * 0.022, -0.024 - r * 0.022, 0.0288, "checker");
+    for (let i = 0; i < 9; i++) gb(D, -0.049, -0.04, -0.03 - i * 0.017, -0.026 - i * 0.017, 0.028, "backstrap-ridge");
+    gb(D, 0.046, 0.05, -0.17, -0.01, 0.0282, "mag-seam");
+    gb(ST, -0.056, -0.044, -0.2, -0.19, 0.006, "lanyard-loop");
+    gb(D, -0.05, 0.052, -0.187, -0.184, 0.0285, "base-seam");
+    gb(PA, -0.012, 0.012, -0.2, -0.186, 0.0285, "base-mark");
 
     g.name = "dfdf-classic";
     g.userData.weaponModel = "dfdf-classic";
