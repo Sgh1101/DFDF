@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 // 전설 마무리: the round's last kill with a legendary skin in a standard match turns the world's sky and plays the skin's
-// own figure; a plain skin keeps only the ordinary ring; every legendary's figure runs clean and the sky comes back.
+// own figure; any other skin now plays the Champions finisher (no sky); every legendary's figure runs clean and the sky comes back.
 (async () => {
   const f = await fixture();
   try {
@@ -51,13 +51,14 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(out.legendAdded >= 2, "figure and sky: " + out.legendAdded);
     assert.equal(out.activeLegend, 2);
     assert.equal(out.skyDuring, true); assert.equal(out.skyAfter, true);
-    assert.equal(out.activePlain, 0, "no finisher with the stock skin");
-    assert.equal(out.skyPlain, true);
-    assert.equal(out.rareActive, 1);
+    // a player's round-ending kill always plays the Champions finisher, even with the stock or a rare skin
+    assert.ok(out.activePlain >= 1, "the Champions finisher with the stock skin");
+    assert.equal(out.skyPlain, true, "and it does not tint the sky like a legendary");
+    assert.ok(out.rareActive >= 1);
     assert.ok(Object.keys(out.themes).length >= 12);
     for (const [k, v] of Object.entries(out.themes)) assert.equal(v, true, k);
     assert.equal(out.roundEnds, true);
     assert.deepEqual(f.errors, []);
-    console.log("finisher: legendary last kill turns the sky and draws its figure, the stock skin does not, the sky comes back");
+    console.log("finisher: legendary last kill turns the sky and draws its figure, any other skin gets the Champions finisher without the sky, the sky comes back");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });

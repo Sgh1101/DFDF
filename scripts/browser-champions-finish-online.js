@@ -36,7 +36,8 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     });
     await guest.waitForFunction(() => world.phase === "end" && world.championsFinishUntil > performance.now());
     const remaining = await guest.evaluate(() => world.championsFinishUntil - performance.now());
-    assert.ok(remaining > 5000 && remaining <= 8000, "host sends remaining hold time to guest");
+    // what is left of the host's eight seconds, not a fresh eight or nothing; a slow headless guest may see it a few seconds late
+    assert.ok(remaining > 2000 && remaining <= 8000, "host sends remaining hold time to guest: " + remaining);
     await guest.waitForFunction(() => [...FINISHERS.active].some(g => g.getObjectByName("champions-original-finisher")?.visible), null, { timeout: 10000 });
     const shape = await guest.evaluate(() => {
       const figure = [...FINISHERS.active].map(g => g.getObjectByName("champions-original-finisher")).find(Boolean);

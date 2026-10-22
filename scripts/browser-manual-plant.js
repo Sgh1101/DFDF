@@ -9,6 +9,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await p.locator("#sel-go").click();
     await p.waitForFunction(() => !!myActor() && world.actors.length >= 4);
     const setup = await p.evaluate(() => {
+      // the test steps the spike logic itself: stop the game's own frame loop so the two never race
+      window.requestAnimationFrame = () => 0;
       closeShop(); ADMIN.freezeAI = true;
       const me = myActor();
       for (const a of world.actors) if (a !== me) { a.pos.x = 400; a.pos.z = 400; a.invuln = 999; }
