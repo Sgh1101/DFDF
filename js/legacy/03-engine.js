@@ -17845,8 +17845,29 @@ const room = {
       err: 0.14,
     },
   };
+// How hard the bots are comes from ONE skill number (js/bot-skill.js): a multiple of the old normal bot, so 1.00 is
+// exactly normal, 0.60 is the weakest and 1.20 is the old hard. "hard" and "easy" pin it; "normal" (the default, and
+// every ranked room) follows the humans in the room: their tier in a ranked room, their level otherwise. The room's
+// skill is worked out once when a round starts (js/legacy/109-*) and cached here, so diffTune() on the bots' hot
+// path only reads numbers.
+const BOT_RT = { skill: null, diff: null, tune: null };
+function botSkillOf(e) {
+  const B = window.BOT_SKILL;
+  return !B
+    ? null
+    : "normal" === e || !(e in B.PRESET)
+      ? B.clampSkill(null == BOT_RT.skill ? B.DEFAULT_SKILL : BOT_RT.skill)
+      : B.PRESET[e];
+}
 function diffTune() {
-  return DIFF_TUNE[room.diff] || DIFF_TUNE.normal;
+  const e = room.diff;
+  if (BOT_RT.tune && BOT_RT.diff === e && BOT_RT.sk === BOT_RT.skill) return BOT_RT.tune;
+  const t = botSkillOf(e);
+  // without js/bot-skill.js the presets play as they always did
+  BOT_RT.tune = null === t ? DIFF_TUNE[e] || DIFF_TUNE.normal : window.BOT_SKILL.tune(t, DIFF_TUNE.normal, DIFF_TUNE.hard);
+  BOT_RT.diff = e;
+  BOT_RT.sk = BOT_RT.skill;
+  return BOT_RT.tune;
 }
 const BOT_NAMES = [
   "이준",

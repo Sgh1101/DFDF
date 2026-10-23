@@ -497,7 +497,7 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
   }
   function rowHTML(a, me, showUlt) {
     const s = st(a.id);
-    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
+    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
   }
   const HEAD = '<div class="bd-row hd"><span></span><span>플레이어</span><span class="n">킬</span><span class="n">데스</span><span class="n">도움</span><span class="n">피해</span><span></span></div>';
   function sbHTML(me, ffa) {

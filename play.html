@@ -8,6 +8,7 @@
 <link rel="preload" as="script" href="./js/engine/weapons.js">
 <link rel="preload" as="script" href="./js/engine/maps.js">
 <link rel="preload" as="script" href="./js/engine/textures-portraits.js">
+<link rel="preload" as="script" href="./js/bot-skill.js">
 <link rel="preload" as="script" href="./js/legacy/03-engine.js">
 <link rel="preload" as="script" href="./js/legacy/04-title-roster.js">
 <link rel="preload" as="script" href="./js/legacy/05-game-modes.js">
@@ -121,6 +122,8 @@
 <link rel="preload" as="script" href="./js/legacy/107-twenty-eight-agents-fifteen-retired-their-best-abilities-moved-to-the-rest.js">
 <link rel="preload" as="script" href="./js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js">
 <link rel="preload" as="script" href="./js/legacy/109-the-big-5v5-maps-drawn-smaller-every-distance-three-quarters.js">
+<link rel="preload" as="script" href="./js/legacy/109-ranked-flow-the-host-attests-the-match-and-the-server-sets-the-rank.js">
+<link rel="preload" as="script" href="./js/legacy/109-bot-skill-from-the-humans-in-the-room-and-a-level-chip-on-names.js">
 <script src="./js/game-boot.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/portrait-loader.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/client-request.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
@@ -714,6 +717,7 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
   </div>
 </div>
 <script src="./js/game-rules.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
+<script src="./js/bot-skill.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/damage-cause.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/game-audio.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
@@ -839,6 +843,8 @@ body.touching #gim-hint{pointer-events:auto;padding:10px 18px;font-size:13px;bor
 <script src="./js/legacy/107-twenty-eight-agents-fifteen-retired-their-best-abilities-moved-to-the-rest.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js" onerror="GAME_BOOT.fail(this.src)"></script>
 <script src="./js/legacy/109-the-big-5v5-maps-drawn-smaller-every-distance-three-quarters.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/109-ranked-flow-the-host-attests-the-match-and-the-server-sets-the-rank.js" onerror="GAME_BOOT.fail(this.src)"></script>
+<script src="./js/legacy/109-bot-skill-from-the-humans-in-the-room-and-a-level-chip-on-names.js" onerror="GAME_BOOT.fail(this.src)"></script>
 
 <style id="mobile-landscape-fix">
 /* phones in landscape (e.g. 852x393): agent select showed only ~1.5 abilities,
@@ -916,6 +922,7 @@ body:has(#shop:not([hidden])) #fps{display:none}
 <script src="./js/home-details.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/feedback.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/order.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
+<script src="./js/leaderboard.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/home-navigation.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/modal-focus.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>
 <script src="./js/select-compact.js" onerror="window.GAME_BOOT && GAME_BOOT.fail(this.src)"></script>

@@ -5,7 +5,7 @@ async function fixture() {
   const browser = await chromium.launch({ ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}), headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "browser-owner-device" });
   async function page(id, viewport = { width: 852, height: 393 }, contextOptions = {}, options = {}) {
-    const session = await h.api("auth", { id, pw: "password", device: "browser-test-" + id });
+    const session = await h.api("auth", { id, pw: options.pw || "password", device: "browser-test-" + id });
     for (const item of ["rifle|dragon", "rpg|dragon"]) await h.api("a_user_set", { atoken: owner.atoken, id, op: "grant", item });
     const context = await browser.newContext({ viewport, serviceWorkers: "block", ...contextOptions });
     const page = await context.newPage(); page.on("pageerror", (error) => errors.push(error.message));

@@ -107,7 +107,7 @@ const DEFAULT_CONFIG = {
   gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
-  gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 2 },
+  gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
   // the daily shop: every day (midnight in Korea) twenty skins, the same for everyone, sold
   // for gold at a fixed price by tier, dearer than a pull but the skin you choose. mix: how
   // many of each tier; knife: the knives that are other knives cost this many times more;
@@ -290,9 +290,60 @@ const rankOf = (rr) => {
   const d = Math.floor(rr / 100);
   return d >= 24 ? { rr, t: 8, tier: RANKS[8], div: 0, into: rr - 2400 } : { rr, t: Math.floor(d / 3), tier: RANKS[Math.floor(d / 3)], div: (d % 3) + 1, into: rr % 100 };
 };
+// ── hidden MMR and placement ──
+// Every account carries a hidden `mmr` (an Elo rating) next to the visible RR. The
+// first PLACE_N counted ranked matches are placement: MMR swings hard (K_PLACE), the
+// tier stays hidden, and after the last one RR is set from MMR. After that RR moves by the
+// base win/loss value scaled by how strong the other team was (see rrDelta).
+const MMR_BASE = 1000, // MMR of 0 RR; one RR is one MMR point when an account is first read
+  ELO_SCALE = 400,
+  PLACE_N = 5,
+  K_PLACE = 120,
+  K_RANKED = 32,
+  RANGE_BASE = 150, // a ranked room takes players within this many MMR of its average...
+  RANGE_STEP = 50, // ...plus this much for every minute the room has been open...
+  RANGE_MAX = 600, // ...up to this
+  BAND = 50; // the room's average MMR is shown rounded to this
+const mmrFromRR = (rr) => MMR_BASE + Math.max(0, Math.round(+rr || 0));
+const rrFromMMR = (m) => Math.max(0, Math.round((+m || 0) - MMR_BASE));
+// chance (0..1) that a team averaging `mine` beats one averaging `theirs`
+const eloExpected = (mine, theirs) => 1 / (1 + Math.pow(10, ((+theirs || 0) - (+mine || 0)) / ELO_SCALE));
+const mmrAfter = (mmr, expected, score, placing) => Math.max(0, Math.min(9999, Math.round((+mmr || 0) + (placing ? K_PLACE : K_RANKED) * (score - expected))));
+// RR change after placement: the base win/loss value times a factor in [0.5, 1.5] from the
+// opponent's strength (beat a stronger team: more; lose to a weaker one: more), plus the kill
+// bonus as before (a win adds it; a loss takes less, never under half the loss)
+function rrDelta(R, win, expected, kills) {
+  const kb = Math.max(0, Math.min(+R.maxKill || 0, (kills | 0) * (+R.perKill || 0))),
+    clamp = (x) => Math.max(0.5, Math.min(1.5, x));
+  if (win) return Math.round((+R.win || 0) * clamp(0.5 + (1 - expected))) + kb;
+  const loss = (+R.loss || 0) * clamp(0.5 + expected);
+  return -Math.max(Math.ceil(loss / 2), Math.round(loss - kb / 2));
+}
+const joinRange = (ageMs) => Math.min(RANGE_MAX, RANGE_BASE + RANGE_STEP * Math.floor(Math.max(0, +ageMs || 0) / 60000));
+const bandOf = (mmr) => Math.round(mmr / BAND) * BAND;
+// May this account (its mmr) join that ranked room (its average mmr, when it opened)? The
+// owner and any room without a measured average are open. Only the answer leaves the server.
+function canJoinRanked(account, room, t = now()) {
+  const range = joinRange(t - ((room && +room.created) || t));
+  if (!room || !room.ranked || account.owner || !Number.isFinite(room.mmr)) return { ok: !0, range };
+  return { ok: Math.abs(account.mmr - room.mmr) <= range, range };
+}
+// an account from before MMR counts as placed when it already has RR or ranked history
+const legacyPlaced = (u) => (+u.rr || 0) > 0 || (isObj(u.ssn) && (u.ssn.played | 0) > 0) || (Array.isArray(u.hist) && u.hist.some((m) => m && m.rk));
+const placedOf = (u) => (Number.isFinite(u.placed) ? Math.max(0, Math.min(PLACE_N, u.placed | 0)) : legacyPlaced(u) ? PLACE_N : 0);
+const mmrOf = (u) => (Number.isFinite(u.mmr) ? u.mmr : mmrFromRR(u.rr));
+// first read of an older account: MMR from its RR, placement already done if it has played ranked
+function rankInit(u) {
+  if (u.guest || (Number.isFinite(u.mmr) && Number.isFinite(u.placed))) return !1;
+  u.placed = placedOf(u);
+  u.mmr = mmrOf(u);
+  return !0;
+}
+// what the account shows: the tier while placing is hidden
+const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankOf(0), { hidden: !0 }) : rankOf(u.rr));
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankOf(u.rr), misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -449,6 +500,7 @@ function ensureWallet(u, c) {
     u.gold = Math.min(9e6, u.gold + back);
     u.refunded = (u.refunded || 0) + back;
   }
+  rankInit(u) && (changed = !0);
   seasonRoll(u, c) && (changed = !0);
   changed && trimPicks(u);
   return changed;
@@ -491,6 +543,8 @@ function seasonRoll(u, c) {
         for (const g of GUNS) if (fits("laurel", g) && !hasItem(u, g, "laurel")) ((u.own[g] = Array.isArray(u.own[g]) ? u.own[g] : []).push("laurel"), rec.skin++);
       }
     }
+    const cut = c.season.on && u.ssn.n < cur.n ? Math.pow(keepOf(c), cur.n - u.ssn.n) : 1;
+    Number.isFinite(u.mmr) && (u.mmr = Math.round(MMR_BASE + (u.mmr - MMR_BASE) * cut));
     u.rr = seasonRR(u, c, cur);
     rec.after = u.rr;
     u.ssnLog = [rec].concat(Array.isArray(u.ssnLog) ? u.ssnLog : []).slice(0, 12);
@@ -662,9 +716,9 @@ A.owner_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (!ownerScope(b.room, b.p)) throw fail(400, "방 또는 연결 정보가 이상합니다");
+  // cheats are shut in a ranked room for everyone but the operator, whose matches count for RR as usual
   const rmo = await getJ("room:" + roomOf(b.room));
-  if (rmo && rmo.ranked) return { ticket: null, ranked: !0 };
-  if (!(u.owner && isOwnerId(u.id) && u._s.o === 1)) return { ticket: null };
+  if (!(u.owner && isOwnerId(u.id) && u._s.o === 1)) return rmo && rmo.ranked ? { ticket: null, ranked: !0 } : { ticket: null };
   const exp = Math.min(u._s.exp, now() + 5 * 60000);
   return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp }), exp };
 };
@@ -1318,18 +1372,23 @@ A.match_start = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (await limited("mstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
-  // a ranked match: only from an account, in a room that opened as a ranked room
-  let ranked = 0;
+  // a ranked match: only from an account in the roster the host attested (ranked_start) for
+  // this room. One ticket per account per match: asking again hands back the same one.
+  let ranked = 0, m = "", n = crypto.randomBytes(12).toString("hex"), t0 = now(), fresh = !0;
   if (b.ranked) {
     if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
-    const rm = await getJ("room:" + roomOf(b.room));
+    const code = roomOf(b.room), rm = await getJ("room:" + code);
     if (!rm || !rm.ranked) throw fail(409, "랭크전 방이 아닙니다");
+    m = (await redis(["GET", "rmroom:" + code])) || "";
+    const rec = m && (await getJ("rm:" + m));
+    if (!rec) throw fail(409, "랭크전이 아직 시작되지 않았습니다");
+    if (!rec.a.includes(u.id) && !rec.b.includes(u.id)) throw fail(403, "이 랭크전의 참가자가 아닙니다");
     ranked = 1;
+    t0 = rec.t0;
+    if ((await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", "14400"])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
   }
-  const n = crypto.randomBytes(12).toString("hex"),
-    t0 = now();
-  await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]);
-  return { ticket: sign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }), ranked: !!ranked };
+  fresh && (await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]));
+  return { ticket: sign(Object.assign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }, m ? { m } : {})), ranked: !!ranked };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
 // unused ticket from a long enough match; kills no faster than the clock allows
@@ -1340,8 +1399,121 @@ async function matchTrust(u, ticket) {
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
   if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
-  return { ok: !0, ranked: 1 === t.r, key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
+// ── ranked match attestation ──
+// RR and MMR are never taken from what a player reports about himself. The host of a ranked
+// room opens the match with ranked_start (the roster per team; the server keeps each account's
+// MMR as it was then) and gets a signed ticket. When the match is over the host sends the
+// result with ranked_result (winning team, kills per account), once. Every player then settles
+// his own match through `progress` with the ticket match_start gave him; RR/MMR come from the
+// attested result and the team he was put in. The rule:
+//  - humans = roster accounts that fetched their ticket (bots never count); fewer than
+//    rank.minHumans, a draw, a match shorter than a minute: played, but no RR;
+//  - a player's own `win`/`outcome` must equal the attested one, else the report is refused
+//    (409) and counts as a dissent; if a strict majority of the non-host players of a team
+//    dissent, the match is disputed and nobody settled afterwards gets RR;
+//  - kills for the bonus are the host's count, lowered to the player's own if he reports fewer;
+//  - an account settles a match once (its ticket is one per match, and the match id is kept
+//    on the account); the daily RR cap still applies.
+// Known limit: a host with accounts of his own can still lie about a match nobody else disputes.
+const RESULT_TTL = 14400;
+async function rankedVerdict(u, trust, b) {
+  const [rec, res] = (await pipe([["GET", "rm:" + trust.m], ["GET", "rmres:" + trust.m]])).map((v) => (v ? JSON.parse(v) : null));
+  const team = rec && (rec.a.includes(u.id) ? "a" : rec.b.includes(u.id) ? "b" : "");
+  if (!rec || !team) return { attested: !1, counted: !1, why: "no_match" };
+  if (!res) {
+    if (!b.giveUp) throw fail(425, "경기 결과를 기다리는 중입니다");
+    return { attested: !1, counted: !1, why: "no_result" };
+  }
+  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
+  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
+  await redis(["SET", "rmv:" + trust.m + ":" + u.id, said === outcome ? "1" : "0", "EX", String(RESULT_TTL)]);
+  if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
+  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
+  const got = await pipe(ids.map((id) => ["GET", "rmt:" + trust.m + ":" + id]).concat(others.map((id) => ["GET", "rmv:" + trust.m + ":" + id])));
+  const votes = got.slice(ids.length), dissent = (list) => list.filter((id) => id !== rec.host && votes[others.indexOf(id)] === "0").length * 2 > list.filter((id) => id !== rec.host).length;
+  return {
+    attested: !0,
+    outcome,
+    counted: outcome !== "draw" && !dissent(rec.a) && !dissent(rec.b),
+    why: outcome === "draw" ? "draw" : dissent(rec.a) || dissent(rec.b) ? "disputed" : "",
+    kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
+    humans: got.slice(0, ids.length).filter(Boolean).length,
+    mine: team === "a" ? rec.avgA : rec.avgB,
+    enemy: team === "a" ? rec.avgB : rec.avgA,
+    m: trust.m,
+  };
+}
+A.ranked_start = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
+  if (await limited("rstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
+  const code = roomOf(b.room), room = await getJ("room:" + code);
+  if (!room || !room.ranked || room.host !== u.id) throw fail(409, "내가 연 랭크전 방이 아닙니다");
+  const list = (v) => (Array.isArray(v) ? v : []).slice(0, 12).map((x) => String(x || "").toLowerCase()).filter((x) => ID_OK.test(x));
+  const ta = list(b.a), tb = list(b.b), all = ta.concat(tb);
+  if (new Set(all).size !== all.length) throw fail(400, "같은 계정이 두 번 들어 있습니다");
+  // only accounts that exist, are not guests and are not banned stay in the roster
+  const recs = (await pipe(all.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null));
+  const ok = new Map(recs.filter((x) => x && !x.guest && !(x.ban && (!x.ban.until || x.ban.until > now()))).map((x) => [x.id.toLowerCase(), x]));
+  const side = (t) => t.filter((id) => ok.has(id)).map((id) => ok.get(id).id);
+  const a = side(ta), bb = side(tb), mmr = {};
+  if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
+  for (const x of ok.values()) mmr[x.id] = mmrOf(x);
+  const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
+  // a team with no human takes the other's average (bots are the same strength)
+  const avgA = avg(a) ?? avg(bb), avgB = avg(bb) ?? avg(a);
+  const id = crypto.randomBytes(12).toString("hex"), t0 = now();
+  const rec = { id, room: code, host: u.id, t0, a, b: bb, mmr, avgA, avgB, ownerPlayed: [...ok.values()].some((x) => x.owner && isOwnerId(x.id)) };
+  await pipe([["SET", "rm:" + id, JSON.stringify(rec), "EX", String(RESULT_TTL)], ["SET", "rmroom:" + code, id, "EX", String(RESULT_TTL)]]);
+  return { id, t0, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
+};
+// the host's result, once: w = "a" | "b" | "draw", k = kills per account
+A.ranked_result = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const t = verify(b.rm);
+  if (!t || "rmatch" !== t.k || t.u !== u.id) throw fail(409, "유효한 랭크전 확인표가 없습니다");
+  const rec = await getJ("rm:" + t.m);
+  if (!rec || rec.host !== u.id) throw fail(409, "없는 랭크전입니다");
+  const ms = now() - rec.t0;
+  if (ms < MATCH_MIN_MS) throw fail(409, "경기가 너무 짧습니다");
+  if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
+  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = {};
+  for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
+  // the first result stands; a second one is ignored
+  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now() }), "NX", "EX", String(RESULT_TTL)])) !== null;
+  return { accepted: first, duplicate: !first, w: first ? b.w : JSON.parse(await redis(["GET", "rmres:" + t.m])).w };
+};
+// may this account walk into that ranked room? Only the answer and the room's rounded band leave
+A.ranked_can_join = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const room = await getJ("room:" + roomOf(b.code));
+  if (!room) throw fail(404, "없는 방입니다");
+  const r = canJoinRanked({ mmr: mmrOf(u), owner: !!u.owner }, room);
+  return { ranked: !!room.ranked, ok: r.ok, range: r.range, band: room.ranked && Number.isFinite(room.mmr) ? bandOf(room.mmr) : null };
+};
+// the season's top accounts by RR: only placed accounts that played ranked this season
+const LB_MAX = 100;
+let lbCache = null;
+A.leaderboard = async (q, b) => {
+  const c = await loadConfig(), cur = seasonNow(c), n = Math.max(1, Math.min(LB_MAX, Math.round(+b.n) || 50));
+  if (lbCache && lbCache.until > now() && lbCache.n === cur.n && lbCache.size >= n) return { ...lbCache.out, rows: lbCache.out.rows.slice(0, n) };
+  const ids = (await redis(["ZRANGE", "lb:" + cur.n, "0", String(n * 2 - 1), "REV"])) || [];
+  const rows = (await pipe(ids.map((id) => ["GET", userKey(id)])))
+    .map((x) => (x ? JSON.parse(x) : null))
+    .filter((x) => x && !x.guest && placedOf(x) >= PLACE_N && isObj(x.ssn) && x.ssn.n === cur.n && !(x.ban && (!x.ban.until || x.ban.until > now())))
+    .map((x) => ({ name: x.id, rank: rankOf(x.rr), wins: x.ssn.w | 0, played: x.ssn.played | 0 }))
+    .sort((p, r) => r.rank.rr - p.rank.rr || r.wins - p.wins || (p.name < r.name ? -1 : 1))
+    .slice(0, n)
+    .map((x, i) => ({ pos: i + 1, name: x.name, tier: x.rank.tier, t: x.rank.t, div: x.rank.div, rr: x.rank.rr, wins: x.wins, played: x.played }));
+  const out = { season: { n: cur.n, end: cur.end }, rows };
+  lbCache = { out, n: cur.n, size: n, until: now() + 10000 };
+  return out;
+};
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -1353,16 +1525,21 @@ A.progress = async (q, b) => {
       const user = publicUser(u, c.xp.perLevel), cap = Math.max(0, +c.gold.maxPerDay || 0);
       const used = u.goldDay && u.goldDay.d === kstDay(now()) ? u.goldDay.n || 0 : 0;
       if (cap > 0) user.goldLeft = Math.max(0, cap - used);
-      return { ...receipt, user, goldLeft: cap > 0 ? user.goldLeft : null, hist: histOf(u), missions: misState(u, c), rank: rankOf(u.rr) };
+      return { ...receipt, user, goldLeft: cap > 0 ? user.goldLeft : null, hist: histOf(u), missions: misState(u, c), rank: rankView(u) };
     }
   }
+  // a ranked match whose result the host has not sent yet: wait (425), without using up the rate limit
+  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && !b.giveUp && !(await redis(["GET", "rmres:" + ticket.m]))) throw fail(425, "경기 결과를 기다리는 중입니다");
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
   // Every award requires a valid ticket; replay returns the committed receipt.
   const trust = await matchTrust(u, b.mt);
   if (!trust.ok) throw fail(409, trust.why === "too_short" ? "경기가 너무 짧아 보상을 받을 수 없습니다" : "유효한 경기 확인표가 없습니다");
-  const draw = b.outcome === "draw" || (b.match && b.match.mode !== "dm" && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
+  // ranked: the win/draw is the host's attested result for the team the server put him in
+  // (a report that differs is refused); RR/MMR never read `humans` or `win` from the player
+  const rkv = trust.ranked ? await rankedVerdict(u, trust, b) : null;
+  const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && b.match.mode !== "dm" && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
   const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
-    win = trust.ok && !draw && !!b.win;
+    win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
@@ -1381,18 +1558,34 @@ A.progress = async (q, b) => {
     rr0 = Math.max(0, Math.round(+u.rr || 0)),
     rcap = Math.max(0, +R.maxPerDay || 0);
   (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
-  let drr = win ? Math.round((+R.win || 0) + kb) : -Math.max(Math.ceil((+R.loss || 0) / 2), Math.round((+R.loss || 0) - kb / 2));
-  trust.ok || (drr = 0); // no ticket: the rank stays where it is
-  // RR moves only in a ranked room, and only when enough real people played
-  const humans = Math.max(0, Math.min(40, b.humans | 0)),
-    rankedOk = trust.ranked && humans >= Math.max(0, +R.minHumans || 0);
-  rankedOk || (drr = 0);
-  draw && (drr = 0);
-  drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
-  u.rr = Math.max(0, rr0 + drr);
-  drr = u.rr - rr0;
-  drr > 0 && (u.rrDay.n = (u.rrDay.n || 0) + drr);
-  rankedOk && !draw && isObj(u.ssn) && (u.ssn.played = (u.ssn.played | 0) + 1);
+  // RR and MMR move only for a ranked match the host attested (see rankedVerdict), with at
+  // least minHumans real accounts in it; a draw, a disputed match or a missing result moves nothing
+  let drr = 0;
+  const rb = rankView(u),
+    humans = rkv ? rkv.humans : 0,
+    dup = !!(rkv && Array.isArray(u.rmDone) && u.rmDone.includes(rkv.m)),
+    rankedOk = !!(rkv && rkv.counted && !dup && humans >= Math.max(0, +R.minHumans || 0)),
+    rankedWhy = rkv ? (dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
+  if (rankedOk) {
+    u.rr = rr0;
+    const placed0 = placedOf(u),
+      placing = placed0 < PLACE_N,
+      E = eloExpected(rkv.mine, rkv.enemy);
+    u.mmr = mmrAfter(mmrOf(u), E, win ? 1 : 0, placing);
+    if (placing) {
+      // placement: the tier stays hidden; after the last match RR is set from MMR
+      u.placed = placed0 + 1;
+      u.placed >= PLACE_N && (u.rr = rrFromMMR(u.mmr));
+    } else {
+      drr = rrDelta(R, win, E, Math.min(kills, rkv.kills));
+      drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
+      u.rr = Math.max(0, rr0 + drr);
+    }
+    drr = u.rr - rr0;
+    drr > 0 && !placing && (u.rrDay.n = (u.rrDay.n || 0) + drr);
+    u.rmDone = [rkv.m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
+    isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
+  }
   u.xp = (u.xp || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
@@ -1403,9 +1596,12 @@ A.progress = async (q, b) => {
   const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const rb = rankOf(rr0);
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, gain, gold, coinGain: 1, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain: 1, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
+  // the season board: a placed account that counted a ranked match this season
+  if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
+    try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
+  }
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
@@ -1459,7 +1655,7 @@ A.rooms = async () => {
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(now() - ROOM_TTL * 1000)]);
   const codes = await redis(["ZRANGE", "rooms", "0", "199"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
-  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked }) => ({ code, name, ch, mode, map, ranked: !!ranked, n: (players || []).length, max, state, host, created }));
+  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked, mmr }) => ({ code, name, ch, mode, map, ranked: !!ranked, band: ranked && Number.isFinite(mmr) ? bandOf(mmr) : null, range: ranked ? joinRange(now() - created) : null, n: (players || []).length, max, state, host, created }));
   roomsCache = { rooms, until: now() + 5000 };
   return { rooms };
 };
@@ -1490,6 +1686,16 @@ A.room_up = async (q, b, req) => {
     seen: now(),
     banAt: (prev && prev.banAt) || 0,
   };
+  // a ranked room's average MMR (kept private; the list shows it rounded): measured when the
+  // players change, and again every five minutes
+  if (room.ranked) {
+    const same = prev && prev.mmrAt && now() - prev.mmrAt < 300000 && JSON.stringify(prev.players) === JSON.stringify(players);
+    if (same) ((room.mmr = prev.mmr), (room.mmrAt = prev.mmrAt));
+    else {
+      const ms = (await pipe(players.map((p) => ["GET", userKey(p)]))).map((x) => (x ? JSON.parse(x) : null)).filter((x) => x && !x.guest).map(mmrOf);
+      ((room.mmr = ms.length ? ms.reduce((a, v) => a + v, 0) / ms.length : null), (room.mmrAt = now()));
+    }
+  }
   const fresh = players.filter((p) => !(prev && (prev.players || []).includes(p)));
   const checkAll = now() - room.banAt > 60000;
   checkAll && (room.banAt = now());
@@ -1514,7 +1720,7 @@ A.room_up = async (q, b, req) => {
     });
   }
   // the owner's room commands (kick, cheats, messages) do not run in a ranked room
-  return { cmds: room.ranked ? [] : (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room } };
+  return { cmds: room.ranked ? [] : (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room }, band: room.ranked && Number.isFinite(room.mmr) ? bandOf(room.mmr) : null, range: room.ranked ? joinRange(now() - room.created) : null };
 };
 A.room_down = async (q, b) => {
   const u = await who(b.token);
@@ -1717,6 +1923,8 @@ ADMIN.user_set = async (q, b) => {
       break;
     case "rr":
       u.rr = Math.max(0, Math.min(99999, Math.round(+b.rr || 0)));
+      u.mmr = mmrFromRR(u.rr); // the hidden rating follows; RR given by hand counts as placed
+      u.rr > 0 && (u.placed = PLACE_N);
       break;
     case "grant": {
       // item "gun|skin" or "all", or items: a list of "gun|skin" (the owner page's table); remove takes them back
@@ -1980,6 +2188,8 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
   }
 });
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
+// the pure rating helpers, for the tests
+module.exports.rankMath = { MMR_BASE, PLACE_N, mmrFromRR, rrFromMMR, eloExpected, mmrAfter, rrDelta, joinRange, bandOf, canJoinRanked };
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };
 module.exports.COS = COS;
 module.exports.FB_TYPES = FB_TYPES;
