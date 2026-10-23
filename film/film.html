@@ -323,12 +323,24 @@ window.renderAudio = async function () {
     if (cue.type === "motif") motif(cue.t, cue.step, cue.bell);
     if (cue.type === "click") { hiss(sfx, cue.t, 0.016, 0.34, 0, 3200); note(sfx, 2600, cue.t, 0.035, "sine", 0.12); }
     if (cue.type === "keys") for (let i = 0; i < cue.n; i++) { hiss(sfx, cue.t + i * cue.every, 0.012, 0.16, 0, 4200 + 300 * (i % 3)); }
-    if (cue.type === "shots") for (let i = 0; i < cue.n; i++) shot(cue.t + i * cue.every);
+    if (cue.type === "shots") for (let i = 0; i < cue.n; i++) shot(cue.t + i * (cue.every || 0));
     if (cue.type === "cast") { hiss(sfx, cue.t, 0.35, 0.16, 0, 400, 3000); note(sfx, 220, cue.t, 0.4, "sine", 0.14, { to: 660, slide: 0.3 }); }
     if (cue.type === "thud") { note(sfx, 92, cue.t, 0.45, "sine", 0.45, { to: 40, slide: 0.35 }); hiss(sfx, cue.t, 0.08, 0.12, 0, 180); }
     // each count lands with a soft fifth that climbs with the list
     if (cue.type === "count") { const f = hz(SEMI[cue.step - 1] + 12); note(sfx, f, cue.t, 0.12, "triangle", 0.1, { lp: 3000 }); note(sfx, f * 1.5, cue.t + 0.06, 0.16, "triangle", 0.08, { lp: 3000 }); }
     if (cue.type === "pop") { hiss(sfx, cue.t, 0.01, 0.08, 0, 2500); note(sfx, 880, cue.t, 0.09, "triangle", 0.16, { to: 1320, slide: 0.05 }); }
+    // a headshot: the bright metallic tick over the shot (the game layers its own "head" crack, js/legacy/79-…js)
+    if (cue.type === "head") { hiss(sfx, cue.t, 0.03, 0.16, 0, 5200); note(sfx, 2900, cue.t, 0.07, "sine", 0.16); note(sfx, 4350, cue.t + 0.004, 0.05, "sine", 0.07); }
+    // a legendary skin's round-ending kill: a deep hit, sparkles up the pentatonic, a long shimmer
+    if (cue.type === "legend") {
+      note(sfx, 72, cue.t, 0.9, "sine", 0.5, { to: 36, slide: 0.6 }); hiss(sfx, cue.t, 0.25, 0.14, 0, 220);
+      [0, 2, 4, 7, 9, 12, 14].forEach((st, i) => note(sfx, hz(st + 24), cue.t + 0.08 + i * 0.045, 0.22, "sine", 0.05, { lp: 7000 }));
+      note(sfx, hz(24), cue.t + 0.1, 1.6, "sine", 0.05, { a: 0.2, hold: 0.6, r: 0.8 }); note(sfx, hz(31), cue.t + 0.1, 1.6, "sine", 0.035, { a: 0.2, hold: 0.6, r: 0.8 });
+    }
+    // the play shrinking into the window
+    if (cue.type === "whoosh") hiss(sfx, cue.t, 0.45, 0.2, 0, 2400, 300);
+    // a skin changing in the armoury
+    if (cue.type === "swap") { hiss(sfx, cue.t, 0.012, 0.14, 0, 3600); note(sfx, 1760, cue.t, 0.04, "triangle", 0.06); }
     if (cue.type === "bed") {
       const end = cue.until, first = T.chords[0][0];
       // before the first chord: a low root under the play

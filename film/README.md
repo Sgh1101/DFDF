@@ -2,7 +2,7 @@
 
 **한 문장:** 13은 브라우저 탭 하나로 바로 하는 5대5 전술 FPS다. 가입은 클릭 한 번, 교전까지 클릭 네 번, 요원·스킬·맵·스킨은 다 들어 있고, 혼자여도 5대5다.
 **보고 나면:** 다운로드 없이 13fps.vercel.app에서 지금 바로, 혼자서도 내용이 꽉 찬 5대5 한 판을 시작할 수 있다는 걸 안다.
-**대상:** 이미 전술 FPS를 하는 사람. **첫 그림:** 실제 플레이가 화면을 채우다가 브라우저 창 안으로 접힌다 — 보고 있던 게 탭이었다.
+**대상:** 이미 전술 FPS를 하는 사람. **첫 그림:** 전설 스킨 소총으로 헤드샷 두 번(더블 킬, 라운드를 끝낸 처치에 피니셔)이 화면을 채우다가 브라우저 창 안으로 접힌다 — 보고 있던 게 탭이었다.
 
 **구성:** S1 플레이 → 탭 0–6.5 s · S2 가입 한 번, 클릭 네 번 6.5–17 s · S3 안에 든 것(요원·스킬·맵·스킨) 17–27 s · S4 혼자여도 5대5, 링크로 친구 27–34.5 s · S5 다운로드 대신 탭 하나 34.5–40 s.
 
@@ -21,7 +21,7 @@
 | `directions.html` | 네 방향과 선택 이유(결정 기록) |
 | `DECISIONS.md` · `SOURCES.md` · `RESEARCH.md` | 판단 한 줄씩 · 모든 숫자와 주장의 출처 · 조사 노트 |
 | `screens/clips/*.mp4` | 게임 엔진을 한 프레임씩 돌려 녹화한 플레이 (거의 무손실 H.264; `film.html`이 읽는 JPEG 프레임열은 `node scripts/clips.js unpack`으로 다시 만든다. `clips.json`에 녹화 기록) |
-| `review/` | 검증 결과(`verify.json`), 390 px 시트(`390-*.png`), 픽셀 대비 조각(`contrast/`), 수정 전후 쌍(`fixes/`: 첫 판 `1-`…`18-`, 두 번째 판 디자인 검토 뒤 `v2-*`) |
+| `review/` | 검증 결과(`verify.json`), 390 px 시트(`390-*.png`), 픽셀 대비 조각(`contrast/`), 수정 전후 쌍(`fixes/`: 첫 판 `1-`…`18-`, 두 번째 판 디자인 검토 뒤 `v2-*`, 헤드샷 오프닝·스킨 다섯 개 `v3-*`) |
 
 ## 실제 플레이 영상으로 바꿔 끼우기
 
@@ -33,7 +33,7 @@ ffmpeg -ss 12.0 -t 5 -i my-play.mp4 -vf "scale=1920:1080,fps=30" -c:v libx264 -c
 node film/scripts/clips.js unpack      # 프레임열을 다시 만들고 장수를 확인
 ```
 
-오프닝 클립에 어울리는 장면: 달리다가 능력을 쓰고 몇 발 쏘는 5초, HUD 포함, 사망·메뉴·채팅 없음. 소리 신호(`timeline.js` → `cues`의 `shots`, `cast`)는 클립 안에서 쏘고 쓰는 시각에 맞춰 둔 것이니 클립을 바꾸면 그 시각도 맞춘다. 바꾼 뒤 `node scripts/verify.js`가 프레임 수를 확인한다.
+오프닝 클립에 어울리는 장면: 2초 안에 헤드샷 처치가 나오는 5초(2.5초에 화면이 창으로 줄어들기 시작한다), HUD 포함, 사망·메뉴·채팅 없음. 소리 신호(`timeline.js` → `cues`의 `shots`, `head`, `motif`, `legend`)는 지금 클립에서 쏘고 처치한 프레임에 맞춰 둔 것이니(`screens/clips/clips.json` → `events`) 클립을 바꾸면 그 시각도 맞춘다. 바꾼 뒤 `node scripts/verify.js`가 프레임 수를 확인한다.
 
 ## 다시 만들기
 
@@ -53,7 +53,7 @@ python3 scripts/audio-check.py out/master_16x9.mp4   # 소리 신호가 제때 �
 node scripts/contact.js                # contact.png
 ```
 
-화면·녹화 다시 만들기(선택, 저장소 루트에서 `npm run dev`를 켠 채): `node film/scripts/capture-screens.js`(가입→라운드 경로), `node film/scripts/capture-content.js`(요원·능력·맵·스킨, 게임이 센 개수), `node film/scripts/capture-clips.js`(플레이·맵 회전 녹화; 프레임당 3–6초 걸린다) 뒤 `node film/scripts/clips.js pack`.
+화면·녹화 다시 만들기(선택, 저장소 루트에서 `npm run dev`를 켠 채): `node film/scripts/capture-screens.js`(가입→라운드 경로), `node film/scripts/capture-content.js`(요원·능력·맵, 게임이 센 개수), `node film/scripts/capture-skins.js`(무기고, 같은 소총에 스킨 열두 가지), `node film/scripts/capture-clips.js`(헤드샷 오프닝·스킬·맵 회전 녹화; 화면에 남는 프레임마다 3–6초 걸린다; `FILM_EVERY=6`이면 여섯 장에 한 장만 그려 빠르게 미리 본다, `FILM_OUT=폴더`로 실제 클립을 건드리지 않고 시험한다) 뒤 `node film/scripts/clips.js pack`. 녹화 스크립트는 메모리 속 테스트 API에서 `hana` 계정을 만들고 운영자 페이지의 "전체 지급"으로 스킨 607개를 준다. 운영 서버와 실제 계정은 쓰지 않는다.
 
 구조: `timeline.js`가 모든 장면·비트·움직임·컷·문구·소리 신호를 가진 TIMELINE 하나다. `film.html`의 `window.seek(t)`는 t만으로 한 프레임을 그린다(클립은 t에서 프레임 번호를 계산해 그 JPEG 한 장을 보인다; 시계·애니메이션 없음). `render.js`가 헤드리스 Chrome에서 t = n/60마다 찍어 ffmpeg(libx264, crf 16, yuv420p)로 보낸다. 소리는 같은 TIMELINE으로 `OfflineAudioContext`에서 만든다.
 

@@ -19,6 +19,17 @@ One line per call made where the brief was thin.
 - **The round-start banner stays.** The live frame after click 4 carries the game's own “교전 개시” text; it is the game saying the round began, which is what the line (“링크에서 교전까지”) claims.
 
 
+## Third build (request: open on a headshot; show several skins; the owner offered to grant every skin)
+
+- **The opening is a headshot double kill with a legendary skin.** Walk out, stop, two taps to one head, flick, two taps to the next: “헤드샷”, “헤드샷 · 더블 킬”, and because the second kill ends the round the phoenix skin plays its finisher (sky and fog turn orange, a figure over the body). It all happens before 2.5 s, full frame, so the shrink into the browser window lands on the climax and “방금 그거, 브라우저 탭.” points at something worth pointing at.
+- **Two taps, not one.** The rifle does 34 × 3 = 102 to the head before fall-off (`WEAPONS.rifle` at runtime); through heavy armour that leaves the target alive, so a one-tap would need staging the game's numbers. Two taps to the head is what the game actually takes, and it reads as a burst.
+- **Hip fire, at about 6 m.** Aiming down sights puts this rifle's front sight block over the target's head, which hides the very thing the shot is about. From the hip the crosshair stays on the head, and at about 6 m the game's hip spread (±0.018 rad) stays inside the head sphere (0.187 m).
+- **Aimed at the real head.** The first attempts aimed at y + 1.86 m, the number in the engine's original hit test, and half the shots hit the body: the hit test that actually runs (`js/legacy/11-walls-…js`) scales the body by BODY_K = 1.1, so the head centre is at 2.05 m. Aiming there also puts the crosshair in the middle of the drawn head.
+- **A virtual clock for the recorder.** The kill banner, the headshot X, the kill flash and the finisher run on `performance.now()`, `setTimeout` and CSS animations; stepping one frame every few seconds of real time made them finish between two frames. During a clip those now follow the clip's time.
+- **The owner's offer was not needed.** The clips record against the in-memory test API, where the owner page's own “grant all” runs on the film's account; no production account, password or grant was used or shared. The armoury shows 607 owned.
+- **Several skins, two ways.** Each moving clip carries a different legendary on the rifle (opening: 봉황, skill clip: 심연), and the 스킨 607개 beat cuts the same rifle through five skins on the beat (봉황 → 금이음 → 신스웨이브 → 프리즘 → 챔피언, 0.5 s each, a soft tick per change). Five chosen from twelve captured for distinct colours and a readable angle of the spinning preview (오팔 and 잉어 were caught end-on).
+- **Sound follows the clip's log**: a shot and a bright head tick on each of the four frames that fired (1.20, 1.33, 1.73, 1.87 s), the game's own kill ta-DAN one step up per kill (as the game climbs its ladder with the streak), a deep hit and a sparkle run for the finisher, a whoosh for the shrink. The later motif steps (friends 3, payoff 6) keep climbing from there.
+
 ### Second design review (on the finished composition, before the final render)
 
 A design-review subagent went through all 18 beat stills at 1920×1080 and at phone width. Three findings were marked must-fix and were; four of the five nice-to-haves were taken. Before/after pairs: `review/fixes/v2-*.png`.

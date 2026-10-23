@@ -1,0 +1,268 @@
+{
+  "capturedAt": "2026-10-23T04:07:12.101Z",
+  "account": {
+    "id": "hana",
+    "signup": 200,
+    "grantAll": 200,
+    "owned": 607
+  },
+  "gun": "rifle",
+  "pickedGun": true,
+  "guns": [
+    {
+      "id": "",
+      "cls": "ar-sk on",
+      "g": "rifle",
+      "text": "기본기본"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "설원 위장일반"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "밀림 위장일반"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "사막 위장일반"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "도심 위장일반"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "해군 위장일반"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "카본희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "호랑이희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "벚꽃희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "청자희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "대리석희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "벌집희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "청해파희귀"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "단청영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "수묵영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "황금영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "네온영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "회로영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "용비늘영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "오로라영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "비단잉어영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "금이음영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "프리즘영웅"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "용암전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "은하전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "봉황전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "뇌전전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "심해전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "신스웨이브전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "오팔전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "월계관전설"
+    },
+    {
+      "id": "",
+      "cls": "ar-sk",
+      "g": "rifle",
+      "text": "챔피언의 물결전설"
+    }
+  ],
+  "shot": [
+    {
+      "id": "phoenix",
+      "file": "14-skin-phoenix.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "abyss",
+      "file": "14-skin-abyss.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "synth",
+      "file": "14-skin-synth.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "opal",
+      "file": "14-skin-opal.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "galaxy",
+      "file": "14-skin-galaxy.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "lava",
+      "file": "14-skin-lava.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "storm",
+      "file": "14-skin-storm.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "champion",
+      "file": "14-skin-champion.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "laurel",
+      "file": "14-skin-laurel.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "kintsugi",
+      "file": "14-skin-kintsugi.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "prism",
+      "file": "14-skin-prism.png",
+      "shown": "스킨 뽑기"
+    },
+    {
+      "id": "koi",
+      "file": "14-skin-koi.png",
+      "shown": "스킨 뽑기"
+    }
+  ],
+  "errors": []
+}

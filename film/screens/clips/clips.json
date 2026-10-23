@@ -1,22 +1,6 @@
 {
-  "capturedAt": "2026-10-22T16:42:15.505Z",
+  "capturedAt": "2026-10-23T04:02:43.342Z",
   "clips": [
-    {
-      "name": "open",
-      "map": "glacier",
-      "fps": 30,
-      "frames": 150,
-      "seconds": 5,
-      "took": 799.104
-    },
-    {
-      "name": "cast",
-      "map": "neon",
-      "fps": 30,
-      "frames": 75,
-      "seconds": 2.5,
-      "took": 280.759
-    },
     {
       "name": "map-pogu",
       "map": "pogu",
@@ -40,7 +24,212 @@
       "frames": 48,
       "seconds": 2,
       "took": 88.425
+    },
+    {
+      "name": "open",
+      "map": "glacier",
+      "agent": "hwaryeong",
+      "skin": {
+        "rifle": "phoenix"
+      },
+      "fps": 30,
+      "frames": 150,
+      "seconds": 5,
+      "events": [
+        {
+          "frame": 36,
+          "fire": true,
+          "speed": 0.02
+        },
+        {
+          "frame": 36,
+          "hit": "head"
+        },
+        {
+          "frame": 40,
+          "fire": true,
+          "speed": 0.01
+        },
+        {
+          "frame": 40,
+          "kill": "태양",
+          "head": true,
+          "d": 5.71
+        },
+        {
+          "frame": 40,
+          "hit": "head"
+        },
+        {
+          "frame": 52,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 52,
+          "hit": "head"
+        },
+        {
+          "frame": 56,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 56,
+          "finisher": "phoenix"
+        },
+        {
+          "frame": 56,
+          "kill": "세인",
+          "head": true,
+          "d": 5.83
+        },
+        {
+          "frame": 56,
+          "hit": "head"
+        }
+      ],
+      "staged": {
+        "smokesCleared": 0,
+        "smokesLeft": 0,
+        "at": {
+          "x": -132.545,
+          "z": -6.183,
+          "yaw": -1.5707963267948966
+        },
+        "foes": [
+          {
+            "name": "태양",
+            "hp": 100,
+            "armor": 50,
+            "d": 10.089598604503548,
+            "check": {
+              "free": true,
+              "seen": true,
+              "y": 0
+            }
+          },
+          {
+            "name": "세인",
+            "hp": 100,
+            "armor": 50,
+            "d": 10.408650248711403,
+            "check": {
+              "free": true,
+              "seen": true,
+              "y": 0
+            }
+          }
+        ],
+        "others": [
+          {
+            "name": "은별",
+            "alive": false
+          },
+          {
+            "name": "한결",
+            "alive": false
+          },
+          {
+            "name": "이준",
+            "alive": false
+          }
+        ],
+        "phase": "live",
+        "clock": 91.24806666666717
+      },
+      "skinSet": [
+        [
+          "rifle",
+          "phoenix",
+          true
+        ]
+      ],
+      "took": 686.254
+    },
+    {
+      "name": "cast",
+      "map": "neon",
+      "agent": "hwaryeong",
+      "skin": {
+        "rifle": "abyss"
+      },
+      "fps": 30,
+      "frames": 75,
+      "seconds": 2.5,
+      "events": [
+        {
+          "frame": 61,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 62,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 63,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 64,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 65,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 66,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 67,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 68,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 69,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 70,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 71,
+          "fire": true,
+          "speed": 0
+        }
+      ],
+      "staged": null,
+      "skinSet": [
+        [
+          "rifle",
+          "abyss",
+          true
+        ]
+      ],
+      "took": 262.02
     }
   ],
+  "account": {
+    "id": "hana",
+    "signup": 200,
+    "grantAll": 200
+  },
+  "owned": 607,
   "errors": []
 }

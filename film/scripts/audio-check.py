@@ -28,5 +28,5 @@ def band(t0, t1):
     f, s = rfftfreq(len(seg), 1 / 48000), np.abs(rfft(seg)) ** 2
     return 10 * np.log10(s[(f > 1000) & (f < 4000)].sum() + 1e-12)
 for c in cues:
-    if c["type"] in ("click", "pop", "motif", "plant"):
+    if c["type"] in ("click", "pop", "motif", "plant", "head", "legend", "whoosh", "swap"):
         print(f'{c["t"]:6.2f}s {c["type"]:6s} 1-4 kHz rise {band(c["t"], c["t"] + 0.08) - band(c["t"] - 0.1, c["t"] - 0.02):+5.1f} dB')

@@ -34,13 +34,18 @@
       buy: "screens/05-buy.png",
       live: "screens/06-live.png",
       agents: "screens/11-abilities.png",
-      skins: "screens/13-skins.png",
+      // the armoury, every skin owned, the same rifle in five skins (scripts/capture-skins.js)
+      skinPhoenix: "screens/14-skin-phoenix.png",
+      skinKintsugi: "screens/14-skin-kintsugi.png",
+      skinSynth: "screens/14-skin-synth.png",
+      skinPrism: "screens/14-skin-prism.png",
+      skinChampion: "screens/14-skin-champion.png",
     },
     screenPx: [2000, 1125],
     // Frame sequences: dir/NNN.jpg, played from the shot's start at the clip's own rate.
     clips: {
-      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령: 복도를 달리며 Q 불꽃 장막, 멈춰서 왼쪽으로 돌며 사격" },
-      cast: { dir: "screens/clips/cast", fps: 30, frames: 75, what: "네온 정점, 화령: Q 불꽃 장막, E 화염탄, 사격" },
+      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령, 소총에 봉황(전설): 걸어 나와 멈추고, 한 명의 머리에 두 발, 옆으로 돌려 다음 머리에 두 발 — 헤드샷 두 번, 라운드를 끝낸 처치에 봉황 피니셔" },
+      cast: { dir: "screens/clips/cast", fps: 30, frames: 75, what: "네온 정점, 화령, 소총에 심연(전설): Q 불꽃 장막, E 화염탄, 사격" },
       "map-pogu": { dir: "screens/clips/map-pogu", fps: 24, frames: 48, what: "포구, 홈 화면의 공중 카메라" },
       "map-neon": { dir: "screens/clips/map-neon", fps: 24, frames: 48, what: "네온 정점" },
       "map-train": { dir: "screens/clips/map-train", fps: 24, frames: 48, what: "달리는 열차" },
@@ -61,7 +66,11 @@
       { t: 22.0, src: "clip:map-pogu" },
       { t: 22.8, src: "clip:map-train" },
       { t: 23.6, src: "clip:map-neon" },
-      { t: 24.5, src: "skins" },
+      { t: 24.5, src: "skinPhoenix" },
+      { t: 25.0, src: "skinKintsugi" },
+      { t: 25.5, src: "skinSynth" },
+      { t: 26.0, src: "skinPrism" },
+      { t: 26.5, src: "skinChampion" },
     ],
 
     // The camera inside the window: reach focus (image px) and scale by t0 + d (d 0 = cut).
@@ -77,7 +86,7 @@
       { t0: 17.0, d: 0, cx: 760, cy: 470, s: 1.35 }, // the agent grid
       { t0: 18.2, d: 0.8, cx: 1760, cy: 545, s: 2.1 }, // pan to the same agent's four abilities
       { t0: 19.5, d: 0, cx: 1000, cy: 562.5, s: 1 }, // clips and tiles: whole
-      { t0: 24.5, d: 0, cx: 1200, cy: 700, s: 1.2 }, // the armoury: the whole gun, the grid
+      { t0: 24.5, d: 0, cx: 1150, cy: 700, s: 1.25 }, // the armoury: the spinning gun and the skin grid, one skin per beat
     ],
 
     // show: when the button's screen is up and its name appears; t: the click itself.
@@ -147,9 +156,20 @@
     ],
     cues: [
       { t: 0, type: "bed", until: 40 },
-      { t: 1.0, type: "cast", why: "Q in the opening clip" },
-      { t: 2.5, type: "motif", step: 1, why: "the play was a browser tab" },
-      { t: 3.4, type: "shots", n: 6, every: 0.085, why: "the opening clip fires" },
+      // the opening clip (frames 36, 40, 52, 56 at 30 fps): two taps to a head, two taps to the next.
+      // Each kill plays the game's own ta-DAN, one step up the ladder per kill in the streak
+      { t: 1.2, type: "shots", n: 1, why: "tap 1" },
+      { t: 1.2, type: "head" },
+      { t: 1.333, type: "shots", n: 1, why: "tap 2" },
+      { t: 1.333, type: "head" },
+      { t: 1.333, type: "motif", step: 1, why: "headshot kill 1" },
+      { t: 1.733, type: "shots", n: 1, why: "tap 3" },
+      { t: 1.733, type: "head" },
+      { t: 1.867, type: "shots", n: 1, why: "tap 4" },
+      { t: 1.867, type: "head" },
+      { t: 1.867, type: "motif", step: 2, why: "headshot kill 2, the round's last" },
+      { t: 1.867, type: "legend", why: "the phoenix skin's finisher" },
+      { t: 2.5, type: "whoosh", why: "the play shrinks into the browser window" },
       { t: 5.0, type: "thud", why: "13" },
       { t: 7.2, type: "keys", n: 6, every: 0.08 },
       { t: 9.0, type: "click" },
@@ -163,6 +183,10 @@
       { t: 21.5, type: "shots", n: 5, every: 0.085, why: "the cast clip fires" },
       { t: 22.0, type: "count", step: 3 },
       { t: 24.5, type: "count", step: 4 },
+      { t: 25.0, type: "swap" },
+      { t: 25.5, type: "swap" },
+      { t: 26.0, type: "swap" },
+      { t: 26.5, type: "swap" },
       { t: 31.0, type: "motif", step: 3, why: "friends join by the link" },
       { t: 31.25, type: "pop" },
       { t: 31.5, type: "pop" },
@@ -172,7 +196,7 @@
 
     // A still at every beat that carries meaning (contact sheet, legibility checks).
     beats: [
-      { t: 1.2, id: "S1 실제 플레이" },
+      { t: 1.4, id: "S1 헤드샷" },
       { t: 2.75, id: "S1 창으로 줄어듦" },
       { t: 4.0, id: "S1 브라우저 안" },
       { t: 5.8, id: "S1 13" },
