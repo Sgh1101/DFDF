@@ -1035,4 +1035,106 @@ test("the books are written for orders made before they existed, once", async ()
   const one = await h.api("a_ledger", { atoken: owner.atoken });
   assert.deepEqual(one.rows.map((x) => x.kind).sort(), ["order", "paid"]);
   assert.equal((await h.api("a_ledger", { atoken: owner.atoken })).rows.length, 2, "not seeded twice");
+
+test("the per-account log: sign-ins, pulls and the owner's changes land in the account's own list, with no secrets", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h);
+  const lines = (id) => (h.db.get("ulog:" + id) || []).map((x) => JSON.parse(x));
+  assert.equal(lines("player").length, 1);
+  assert.equal(lines("player")[0].k, "join");
+  assert.equal(lines("player")[0].d.ip, "127.0.0.1");
+  assert.equal(lines("player")[0].d.dev, "device-123");
+  // a wrong password is a line on the account it was tried on
+  assert.equal((await h.api("auth", { id: "player", pw: "wrong-password", device: "device-evil" })).status, 401);
+  assert.equal(lines("player")[0].k, "loginfail");
+  assert.ok(!JSON.stringify(lines("player")).includes("wrong-password"));
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 5000 });
+  const g = await h.api("gacha", { token: p.token, n: 10 });
+  assert.equal(g.status, 200);
+  const gl = lines("player")[0];
+  assert.equal(gl.k, "gacha"); assert.equal(gl.d.n, 10); assert.equal(gl.d.dg, -g.cost); assert.equal(gl.d.res.length, 10);
+  assert.deepEqual(gl.d.res.map((r) => r[1]), g.results.map((r) => r.s));
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "ban", days: 2, reason: "test" });
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "password", pw: "brand-new-secret" });
+  const text = JSON.stringify(lines("player"));
+  assert.match(text, /차단 2일/); assert.match(text, /비밀번호 변경/);
+  for (const secret of ["brand-new-secret", "owner-password", "test-secret", p.token, h.user("player").pass]) assert.ok(!text.includes(secret), "log leaks " + secret.slice(0, 6));
+  assert.ok(h.db.get("ulog:player").every((x) => x.length < 900), "every line stays small");
+});
+
+test("ADMIN.user_profile: one call with the account, its log newest first and totals; no secrets; players are refused", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h);
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "gold", gold: 90000 });
+  await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "grant", item: "rifle|dragon" });
+  h.advance(1000);
+  assert.equal((await h.api("gacha", { token: p.token, n: 10 })).status, 200);
+  h.advance(1000);
+  assert.equal((await h.api("gacha", { token: p.token, n: 1 })).status, 200);
+  await login(h);
+  const shop = await h.api("shop", { token: p.token }), item = shop.items.find((x) => !x.own);
+  assert.equal((await h.api("shop_buy", { token: p.token, g: item.g, s: item.s, day: shop.day })).status, 200);
+  assert.equal((await h.api("wish", { token: p.token, item: "rifle|dragon" })).status, 200);
+  assert.equal((await h.api("skins", { token: p.token, t: h.now(), set: { rifle: "dragon" } })).status, 200);
+  assert.equal((await h.api("feedback_submit", { token: p.token, type: "ask", text: "how do I get more gold?" })).status, 200);
+  // not an admin: the player's own token, no token, and a made-up one are all refused
+  for (const atoken of [p.token, "", h.sign({ k: "admin", exp: h.now() + 1e5 })]) assert.equal((await h.api("a_user_profile", { atoken, id: "player" })).status, 401);
+  const r = await h.api("a_user_profile", { atoken: owner.atoken, id: "Player" });
+  assert.equal(r.status, 200);
+  const pr = r.profile, kinds = pr.log.map((e) => e.k);
+  assert.equal(pr.acct.id, "player");
+  assert.ok(pr.log.every((e, i) => !i || pr.log[i - 1].t >= e.t), "newest first");
+  for (const k of ["join", "login", "gacha", "shop", "wish", "equip", "feedback", "admin"]) assert.ok(kinds.includes(k), "missing " + k);
+  assert.equal(pr.agg.logins, 2); assert.equal(pr.agg.gacha.pulls, 11); assert.equal(pr.agg.gacha.times, 2);
+  assert.equal(Object.values(pr.agg.gacha.byRarity).reduce((a, v) => a + v, 0), 11);
+  assert.ok(pr.agg.gold.spent >= 2700 + 300 + item.price, "gold spent: " + pr.agg.gold.spent);
+  assert.equal(pr.agg.ips[0].v, "127.0.0.1"); assert.equal(pr.agg.ips[0].n, 2); assert.equal(pr.agg.devs[0].v, "device-123");
+  assert.equal(pr.acct.pulls, 11); assert.equal(pr.acct.gold, h.user("player").gold);
+  assert.equal(pr.acct.owned.total, 13); assert.equal(pr.acct.equipped.rifle, "dragon"); assert.deepEqual(pr.acct.wish, ["rifle|dragon"]);
+  assert.equal(pr.feedback.length, 1); assert.equal(pr.acct.rank.placed, 0); assert.equal(typeof pr.acct.rank.mmr, "number");
+  assert.ok(pr.acct.missions.list.length > 0);
+  const text = JSON.stringify(r);
+  for (const secret of ['"pass"', "sessionVersion", h.user("player").pass, h.user("player").sessionVersion, p.token, "owner-password", "test-secret"]) assert.ok(!text.includes(secret), "profile leaks " + String(secret).slice(0, 8));
+  // a name with no account, guest or log is a 404; a guest is found by its name
+  assert.equal((await h.api("a_user_profile", { atoken: owner.atoken, id: "ghost1" })).status, 404);
+  const guest = await h.api("guest", { device: "guest-device-77" });
+  const gp = await h.api("a_user_profile", { atoken: owner.atoken, id: guest.user.id });
+  assert.equal(gp.status, 200); assert.equal(gp.profile.acct.guest, true); assert.equal(gp.profile.log[0].k, "guest");
+});
+
+test("ADMIN.user_profile: before the log began it falls back on the server log, the match record and the sign-up", async () => {
+  const h = harness(), owner = await login(h, "owner");
+  await login(h);
+  // an account from before the per-account log: no list of its own, only the server log line and a match on the record
+  h.db.delete("ulog:player");
+  const u = h.user("player");
+  u.hist = [{ t: h.now() - 5000, win: true, k: 7, mode: "std", map: "harbor", xp: 50, gold: 100 }];
+  h.db.set("user:player", JSON.stringify(u));
+  const pr = (await h.api("a_user_profile", { atoken: owner.atoken, id: "player" })).profile;
+  assert.equal(pr.since, 0);
+  const by = (s) => pr.log.filter((e) => e.s === s).map((e) => e.k);
+  assert.deepEqual(by("g"), ["join"]);
+  assert.deepEqual(by("h"), ["match"]);
+  // once a line exists, older server-log lines are shown only when they predate it
+  h.advance(10000);
+  await login(h);
+  const pr2 = (await h.api("a_user_profile", { atoken: owner.atoken, id: "player" })).profile;
+  assert.ok(pr2.since > 0);
+  assert.equal(pr2.log[0].s, "u");
+  assert.equal(pr2.log.filter((e) => e.s === "g" && e.k === "login").length, 0);
+  assert.ok(pr2.log.some((e) => e.s === "h" && e.k === "match"));
+});
+
+test("a counted ranked match logs RR and the hidden MMR on the account's log, and the player's own answer never shows MMR", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]), owner = await login(h, "owner");
+  await setRR(h, ["player", "bobby", "carol", "dave1"], 200);
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+  await rankedEnd(m, "a", { player: 5 });
+  const r = await rankedSettle(m, "player");
+  assert.equal(r.status, 200); assert.equal(r.rankedCounted, true);
+  assert.ok(!/mmr/i.test(JSON.stringify(r)), "the player's answer has no MMR");
+  const pr = (await h.api("a_user_profile", { atoken: owner.atoken, id: "player" })).profile;
+  const e = pr.log.find((x) => x.k === "match");
+  assert.equal(e.d.rk, 1); assert.equal(e.d.ok, 1); assert.equal(e.d.win, 1);
+  assert.equal(e.d.rr[0], 200); assert.equal(e.d.rr[1], h.user("player").rr);
+  assert.equal(e.d.mmr[1], h.user("player").mmr);
+  assert.ok(pr.log.some((x) => x.k === "room"), "the room the account opened");
 });
