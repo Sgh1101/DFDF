@@ -602,7 +602,7 @@ const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
 const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
 // on/off switches shown as chips at the top (warn: on is the alarming side)
-const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
+const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
 // numbers the owner tunes most: [path, name, min, max, step, note]
 const QUICK_NUM = [["aim.strength", "에임 보정 세기", 0, 100, 1, "%"], ["aim.range", "에임 보정 거리", 5, 150, 1, "m"], ["aim.cone", "에임 보정 각도", 1, 30, 0.5, "도"], ["game.maxRoomPlayers", "방 최대 인원", 2, 12, 1, "명"], ["gold.perWin", "승리 골드", 0, 2000, 10, ""], ["gold.perLoss", "패배 골드", 0, 2000, 10, ""], ["gold.perKill", "처치당 골드", 0, 200, 1, ""], ["gacha.cost1", "뽑기 1회", 0, 10000, 10, "골드"], ["gacha.cost10", "뽑기 10회", 0, 100000, 50, "골드"], ["shop.price.common", "상점 일반", 0, 100000, 100, "골드"], ["shop.price.rare", "상점 희귀", 0, 100000, 100, "골드"], ["shop.price.epic", "상점 영웅", 0, 200000, 100, "골드"], ["shop.price.legendary", "상점 전설", 0, 500000, 500, "골드"], ["rank.win", "승리 RR", 0, 100, 1, ""], ["rank.loss", "패배 RR", 0, 100, 1, ""], ["shop.weekly.off", "주간 특가 할인", 0, 90, 5, "%"], ["cos.price.1", "꾸미기 일반", 0, 100000, 100, "골드"], ["cos.price.2", "꾸미기 희귀", 0, 100000, 100, "골드"], ["cos.price.3", "꾸미기 영웅", 0, 200000, 100, "골드"], ["cos.price.4", "꾸미기 전설", 0, 500000, 500, "골드"], ["season.weeks", "시즌 길이", 1, 26, 1, "주"], ["season.keep", "시즌 뒤 남는 RR", 0, 100, 5, "%"], ["season.minPlay", "시즌 보상 최소 랭크전", 0, 50, 1, "판"]];
 const getPath = (o, p) => p.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
@@ -672,7 +672,7 @@ VIEWS.dash = async () => {
     </div>
     <div class="sec"><h3>빠른 조절</h3><div class="d">자주 바꾸는 값. 저장하면 게임에는 다음 접속·다음 신호 때 적용됩니다. 나머지는 '게임 설정'에서.</div>
       <div class="qc">
-        <label class="wide">공지 <small>홈페이지와 게임 첫 화면 위에 뜹니다 (비우면 없음)</small><input type="text" data-q="game.announcement" value="${esc(C.game.announcement || "")}" maxlength="200"></label>
+        <label class="wide">공지 <small>홈페이지에 로그인하면 가운데 공지 창으로 뜹니다 (비우면 없음)</small><input type="text" data-q="game.announcement" value="${esc(C.game.announcement || "")}" maxlength="200"></label>
         ${QUICK_NUM.map(([p, n, lo, hi, st, u]) => `<label>${n}${u ? ` <small>${u} · ${lo}~${hi}</small>` : ` <small>${lo}~${hi}</small>`}<span class="rg"><input type="range" min="${lo}" max="${hi}" step="${st}" value="${getPath(C, p)}" data-r="${p}"><input type="number" min="${lo}" max="${hi}" step="${st}" value="${getPath(C, p)}" data-q="${p}"></span></label>`).join("")}
       </div>
       <div class="row end" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button id="qc-reset">되돌리기</button><button class="go" id="qc-save">빠른 조절 저장</button></div></div>`;
@@ -843,7 +843,7 @@ VIEWS.ledger = async () => {
 };
 // ── the feedback box: what players sent (bugs, agent ideas, reports, suggestions, questions) ──
 const FB_ST = { new: ["새 문의", "gold"], read: ["확인함", "blue"], doing: ["처리 중", "blue"], done: ["완료", "green"], no: ["보류", "red"] };
-const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "개선 제안"], ask: ["❓", "문의"], other: ["💬", "기타"] };
+const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "추가했으면 하는 점 (제안)"], review: ["⭐", "후기"], ask: ["❓", "문의"], other: ["💬", "기타"] };
 const FB_REASON = { cheat: "치트·핵", abuse: "욕설·비매너", grief: "팀킬·방해", afk: "자리 비움", name: "부적절한 이름", other: "기타" };
 async function fbBadge() { try { const j = await call("a_feedback", { limit: 1 }); const e = $("#fbBadge"); e && (e.textContent = j.counts.new ? String(j.counts.new) : ""); return j.counts; } catch (e) {} }
 function fbCard(r) {
@@ -853,10 +853,11 @@ function fbCard(r) {
   if (r.type === "agent" && r.agent) extra = `<div class="kv"><span>요원 이름</span><span><b>${esc(r.agent.name)}</b> ${r.agent.role ? `<span class="tag blue">${esc(r.agent.role)}</span>` : ""}</span></div><div class="abl">${r.agent.abilities.map((a) => `<i>${esc(a.key)}</i><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>`).join("")}</div>`;
   if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${uname(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
   if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
+  if (r.type === "review" && r.rating) extra = `<div class="kv"><span>별점</span><span><b style="color:var(--gold,#ffc849)">${"★".repeat(r.rating)}</b><span class="muted">${"★".repeat(5 - r.rating)}</span> ${r.rating}/5</span></div>`;
   const c = r.ctx || {};
   const diagnostic=c.diagnostic?`<div class="kv"><span>진단 요약</span><span>${esc(c.diagnostic.quality)} · p95 ${esc(c.diagnostic.p95Ms)}ms · GPU ${esc(c.diagnostic.geometries)}/${esc(c.diagnostic.textures)}<br>${esc(c.diagnostic.version)} · ${esc(c.diagnostic.commit)}</span></div>`:'';
   const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
-  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span><b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
+  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span>${r.type === "review" && r.rating ? `<span class="tag" title="별점 ${r.rating}/5" style="color:var(--gold,#ffc849)">${"★".repeat(r.rating)}</span>` : ""}<b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
     <div class="in">${extra}${diagnostic}<div class="txt">${esc(r.text)}</div>
     <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
     <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
@@ -908,7 +909,8 @@ const LABELS = {
   game: ["게임 운영", "접속과 방에 관한 규칙"],
   "game.maintenance": ["점검 모드", "켜면 아무도 로그인·게스트 입장을 못 합니다"],
   "game.maintenanceMsg": ["점검 안내 문구"],
-  "game.announcement": ["공지", "홈페이지와 게임 첫 화면 위에 뜹니다 (비우면 없음)"],
+  "game.announcement": ["공지", "홈페이지에 로그인하면 가운데 공지 창으로 뜹니다. X로 닫으면 같은 공지는 다시 안 뜹니다. 게임 첫 화면에서는 위쪽 띠로 보입니다 (비우면 없음)"],
+  "game.promoNotice": ["홍보영상 공지", "켜면 공지 창에 홍보영상과 후기·제안 버튼이 나오고, 홈페이지 위쪽에 ▶ 홍보영상 버튼이 보입니다. 끄면 둘 다 사라집니다"],
   "game.guestAllowed": ["게스트 입장 허용"],
   "game.mobileServer": ["모바일 전용 서버", "폰·앱으로만 들어갈 수 있는 서버(채널)를 켭니다. PC는 그 서버의 방을 만들거나 들어갈 수 없습니다"],
   "game.registerOpen": ["새 가입 허용"],

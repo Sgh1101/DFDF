@@ -1,4 +1,4 @@
-// 문의 · 제안: one form for bug reports, agent ideas, player reports, suggestions, questions and the rest.
+// 문의 · 제안: one form for bug reports, agent ideas, player reports, suggestions, reviews, questions and the rest.
 // Shared by the homepage and the game's title screen; it needs a signed-in account or guest (the token the
 // game keeps in localStorage) and shows the sender what they sent before, where it stands, and the answer.
 (() => {
@@ -12,7 +12,8 @@
     ["bug", "🐞", L("버그 신고", "Bug report"), L("고장 난 것, 이상하게 움직이는 것", "Something broken or odd")],
     ["agent", "🧑‍🎤", L("요원 제안", "Agent idea"), L("새 요원과 능력을 설명해 주세요", "Describe a new agent and its abilities")],
     ["report", "🚩", L("사용자 신고", "Report a player"), L("치트, 욕설, 방해 같은 행동", "Cheating, abuse, griefing")],
-    ["idea", "💡", L("개선 제안", "Suggestion"), L("바꾸거나 있었으면 하는 것", "Something to change or add")],
+    ["idea", "💡", L("추가했으면 하는 점 (제안)", "Wish list (suggestion)"), L("바꾸거나 있었으면 하는 것", "Something to change or add")],
+    ["review", "⭐", L("후기", "Review"), L("해 본 느낌을 들려주세요", "Tell us how it played")],
     ["ask", "❓", L("문의", "Question"), L("궁금한 것", "Anything you want to ask")],
     ["other", "💬", L("기타", "Other"), L("위에 없는 이야기", "Anything else")],
   ];
@@ -47,13 +48,17 @@
 #fb .fb-types button:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.3)}
 #fb .fb-types button.on{border-color:#ffc849;background:linear-gradient(180deg,rgba(255,200,73,.16),rgba(255,200,73,.03));box-shadow:0 8px 20px -12px rgba(255,200,73,.7)}
 #fb .fb-types b{font-size:13px}#fb .fb-types span{font-size:10.5px;color:#8a97ab;line-height:1.35}
-#fb label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:600;color:#aab4c3}
+#fb label,#fb .fb-lab{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:600;color:#aab4c3}
 #fb input,#fb select,#fb textarea{width:100%;box-sizing:border-box;padding:10px 12px;min-height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.3);color:#e8edf4;font:400 13px/1.45 inherit;outline:none}
 #fb textarea{min-height:110px;resize:vertical}
 #fb input:focus,#fb select:focus,#fb textarea:focus{border-color:#ffc849;box-shadow:0 0 0 3px rgba(255,200,73,.18)}
 #fb .fb-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 #fb .fb-ab{display:grid;grid-template-columns:34px minmax(0,.8fr) minmax(0,2fr);gap:8px;align-items:center}
 #fb .fb-ab i{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:rgba(255,106,74,.18);border:1px solid rgba(255,106,74,.5);color:#ffb4a2;font:700 12px/1 var(--f-display,inherit);font-style:normal}
+#fb .fb-rate{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+#fb .fb-rate button{min-width:36px;min-height:36px;padding:0;border-radius:10px;border:0;background:none;color:#4a5568;font-size:24px;line-height:1;cursor:pointer}
+#fb .fb-rate button.on{color:#ffc849;text-shadow:0 0 12px rgba(255,200,73,.5)}
+#fb .fb-rate em{font-style:normal;font-size:11px;color:#8a97ab;margin-left:6px}
 #fb .fb-cnt{align-self:flex-end;font-size:10px;color:#6e7b8e;margin-top:-6px}
 #fb .fb-note{font-size:11px;line-height:1.5;color:#8a97ab}
 #fb footer{display:flex;align-items:center;gap:10px;padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.08)}
@@ -105,6 +110,7 @@
     const d = { type: state.type, title: val("fb-title"), text: val("fb-text"), contact: val("fb-contact") };
     if ("bug" === state.type) d.bug = { where: val("fb-where"), steps: val("fb-steps") };
     if ("agent" === state.type) d.agent = { name: val("fb-an"), role: val("fb-role"), abilities: [0, 1, 2, 3].map((i) => ({ name: val("fb-n" + i), desc: val("fb-d" + i) })) };
+    if ("review" === state.type) d.rating = val("fb-rating");
     if ("report" === state.type) d.report = { target: val("fb-target"), reason: val("fb-reason"), room: val("fb-room") };
     return d;
   }
@@ -131,15 +137,27 @@
     } else if ("report" === state.type) {
       const r = d.report || {};
       extra = `<div class="fb-row">${f("fb-target", L("신고할 사용자 이름", "Player's name"), L("게임 안에서 보인 이름", "As shown in game"), r.target, 30)}<label>${L("이유", "Reason")}<select id="fb-reason">${REASONS.map(([k, n]) => `<option value="${k}"${r.reason === k ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></label></div>${f("fb-room", L("방 코드 (있다면)", "Room code (if any)"), "ABC123", r.room, 8)}`;
+    } else if ("review" === state.type) {
+      const r = Math.min(5, +d.rating || 0);
+      extra = `<div class="fb-lab">${L("별점 (선택)", "Rating (optional)")}<input type="hidden" id="fb-rating" value="${r || ""}"><div class="fb-rate" role="radiogroup" aria-label="${L("별점", "Rating")}">${[1, 2, 3, 4, 5].map((i) => `<button type="button" role="radio" data-r="${i}" class="${i <= r ? "on" : ""}" aria-checked="${i === r}" aria-label="${L(i + "점", i + (1 === i ? " star" : " stars"))}">★</button>`).join("")}<em id="fb-rate-n">${r ? r + " / 5" : ""}</em></div></div>`;
     }
     const t = TYPES.find((x) => x[0] === state.type);
-    body.innerHTML = `<div class="fb-types" role="group" aria-label="${L("종류", "Kind")}">${TYPES.map(([k, ic, n, s]) => `<button type="button" data-k="${k}" class="${k === state.type ? "on" : ""}" aria-pressed="${k === state.type}"><b>${ic} ${esc(n)}</b><span>${esc(s)}</span></button>`).join("")}</div>${f("fb-title", L("제목 (선택)", "Title (optional)"), "", d.title, 60)}${extra}${f("fb-text", "agent" === state.type ? L("요원 소개와 콘셉트", "The agent in a few lines") : "report" === state.type ? L("무슨 일이 있었나요?", "What happened?") : L("내용", "Details"), t[3], d.text, 2000, "textarea")}<div class="fb-cnt" id="fb-cnt">0 / 2000</div>${f("fb-contact", L("답장 받을 곳 (선택)", "Where to answer (optional)"), L("디스코드·이메일 등. 비워 두면 '내 문의'에서 답을 확인합니다", "Discord, e-mail… or leave it and check “Mine”"), d.contact, 80)}<div class="fb-note">${L("보낸 분의 계정 이름과 레벨, 화면 크기, 지금 하던 모드·맵이 함께 전달됩니다. 비밀번호는 전달되지 않습니다.", "Your account name and level, screen size and the mode and map you were in go with it. Never your password.")}</div>`;
+    body.innerHTML = `<div class="fb-types" role="group" aria-label="${L("종류", "Kind")}">${TYPES.map(([k, ic, n, s]) => `<button type="button" data-k="${k}" class="${k === state.type ? "on" : ""}" aria-pressed="${k === state.type}"><b>${ic} ${esc(n)}</b><span>${esc(s)}</span></button>`).join("")}</div>${f("fb-title", L("제목 (선택)", "Title (optional)"), "", d.title, 60)}${extra}${f("fb-text", "agent" === state.type ? L("요원 소개와 콘셉트", "The agent in a few lines") : "report" === state.type ? L("무슨 일이 있었나요?", "What happened?") : "review" === state.type ? L("후기", "Your review") : L("내용", "Details"), t[3], d.text, 2000, "textarea")}<div class="fb-cnt" id="fb-cnt">0 / 2000</div>${f("fb-contact", L("답장 받을 곳 (선택)", "Where to answer (optional)"), L("디스코드·이메일 등. 비워 두면 '내 문의'에서 답을 확인합니다", "Discord, e-mail… or leave it and check “Mine”"), d.contact, 80)}<div class="fb-note">${L("보낸 분의 계정 이름과 레벨, 화면 크기, 지금 하던 모드·맵이 함께 전달됩니다. 비밀번호는 전달되지 않습니다.", "Your account name and level, screen size and the mode and map you were in go with it. Never your password.")}</div>`;
     const cnt = body.querySelector("#fb-cnt"),
       tx = body.querySelector("#fb-text");
     if(window.GAME_DIAGNOSTICS){const label=document.createElement('label');label.style.cssText='display:flex;flex-direction:row;align-items:center;gap:8px';const check=document.createElement('input');check.id='fb-diagnostic';check.type='checkbox';check.style.cssText='width:18px;min-height:18px';label.append(check,document.createTextNode(L('진단 요약 함께 보내기 (버전·품질·프레임·자원 수)','Include diagnostic summary (version, quality, frames, resource counts)')));body.append(label);}
     const upd = () => (cnt.textContent = `${tx.value.length} / 2000`);
     tx.oninput = upd;
     upd();
+    const stars = body.querySelectorAll(".fb-rate button");
+    // a star sets the rating; the same star again clears it
+    stars.forEach((b) => (b.onclick = () => {
+      const hid = body.querySelector("#fb-rating"), n = +b.dataset.r === +hid.value ? 0 : +b.dataset.r;
+      hid.value = n || "";
+      stars.forEach((x) => { x.classList.toggle("on", +x.dataset.r <= n); x.setAttribute("aria-checked", String(+x.dataset.r === n)); });
+      body.querySelector("#fb-rate-n").textContent = n ? n + " / 5" : "";
+      hid.dispatchEvent(new Event("input", { bubbles: !0 }));
+    }));
     body.querySelectorAll(".fb-types button").forEach((b) => (b.onclick = () => { const all = draft(); all[state.type] = collect(); keep(all); state.type = b.dataset.k; paint(); }));
     body.addEventListener("input", () => { const all = draft(); all[state.type] = collect(); keep(all); });
     if (!session()) { msg.textContent = L("로그인(또는 게스트 입장) 후 보낼 수 있습니다", "Sign in (or enter as a guest) first"); msg.className = "fb-msg err"; }
@@ -170,6 +188,7 @@
     if ("agent" === d.type && !(d.agent.name || "").trim()) { msg.textContent = L("요원 이름을 적어 주세요", "Name the agent"); msg.className = "fb-msg err"; root.querySelector("#fb-an").focus(); return; }
     if ("agent" === d.type && !d.agent.abilities.some((a) => (a.name || a.desc || "").trim())) { msg.textContent = L("능력을 하나 이상 설명해 주세요", "Describe at least one ability"); msg.className = "fb-msg err"; return; }
     if ("report" === d.type && !(d.report.target || "").trim()) { msg.textContent = L("신고할 사용자의 이름을 적어 주세요", "Name the player"); msg.className = "fb-msg err"; root.querySelector("#fb-target").focus(); return; }
+    if ("review" === d.type) +d.rating >= 1 ? (d.rating = +d.rating) : delete d.rating;
     d.ctx = { ua: navigator.userAgent, view: `${innerWidth}x${innerHeight}`, page: /play\.html/.test(location.pathname) ? "play" : "home", mode: (typeof room!=='undefined' && room.mode) || "", map: (typeof room!=='undefined' && room.map) || "", lang: EN ? "en" : "ko" };
     if(root.querySelector('#fb-diagnostic')?.checked&&window.GAME_DIAGNOSTICS){const r=GAME_DIAGNOSTICS.report();d.ctx.diagnostic={version:r.release.version,commit:r.release.commit,quality:r.game.quality,medianMs:r.frameMs.median,p95Ms:r.frameMs.p95,geometries:r.gpu.geometries,textures:r.gpu.textures};}
     state.busy = !0;
