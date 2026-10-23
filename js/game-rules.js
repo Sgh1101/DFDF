@@ -12,15 +12,14 @@
     if (mode === "dm") return rank === 1 ? "win" : "loss";
     return score[0] === score[1] ? "draw" : score[0] > score[1] ? "win" : "loss";
   }
-  // The skin a finisher is played in: the one the killer's gun wore (finisherSkin, when an event names one,
-  // takes its place). A bot's kill has none.
+  // The skin a finisher is played in: a player's round-ending kill always gets the Champions finisher
+  // (finisherSkin, set where the kill is made); otherwise the skin the killer's gun wore. A bot's kill has none.
   const finisherSkin = (event) => (event && (event.finisherSkin || event.skin));
   function finisher(event) {
     const skin = finisherSkin(event);
     return !!event && event.finisher !== false && !event.byBot && event.mode === "std" && event.last === true && ["gun", "head", "melee"].includes(event.kind) && event.killer !== event.victim && typeof skin === "string" && skin !== "default";
   }
-  // only the transcendent Champions Phantom; the legendary "champion" (Champion's Wave) keeps its own legendary finisher
-  const championsSkin = (id) => ["champions_atk", "champions_def"].includes(id);
+  const championsSkin = (id) => ["champion", "champions_atk", "champions_def"].includes(id);
   const championsFinisher = (event) => finisher(event) && championsSkin(finisherSkin(event));
   // the Champions skin a player's finisher uses: the attackers' dragon pair or the defenders'
   const playerFinisherSkin = (team) => ("atk" === team ? "champions_atk" : "champions_def");
