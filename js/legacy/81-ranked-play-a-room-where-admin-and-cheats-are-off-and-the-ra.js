@@ -1,12 +1,15 @@
 (() => {
   // Ranked play. A ranked room is opened from "Play together" with one button
   // ("Find a ranked match": join an open ranked room, or open one). In it
-  // everything the owner or a player could bend is off for everybody: the admin
-  // switches, the cheat code and the cheats it gives, the owner's room commands,
-  // an account's own cheat rights, and the host's room rules (the mode, the map
-  // and the rounds are set when the room opens and stay). The server only moves
-  // the rank (RR) for matches played in a ranked room, with enough real people;
-  // other matches keep paying XP and gold and leave the rank where it is.
+  // everything a player could bend is off: the admin switches, the cheat code
+  // and the cheats it gives, an account's own cheat rights, and the host's room
+  // rules (the mode, the map and the rounds are set when the room opens and
+  // stay). The one exception is the operator (owner account): the server hands
+  // him an owner ticket in a ranked room, and once that is confirmed he keeps
+  // his personal cheats (the room-wide switches stay shut for him too) and the
+  // match counts for his RR like anybody's. The rank (RR) itself is set on the
+  // server from a match the host attested (see 109-ranked-flow); other matches
+  // keep paying XP and gold and leave the rank where it is.
   if ("undefined" == typeof room || "undefined" == typeof ADMIN || "undefined" == typeof ADMIN_DEF || !window.ACCOUNT) return;
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko);
@@ -20,10 +23,13 @@
 
   // ── what the lock holds off ──
   const G_DEF = { roundT: 100, buyT: 0, matchT: 0, infAll: !1 };
-  const real = {};
-  // the owner's and an admin's rights read as off while the lock is on
+  const held = {};
+  // the owner's and an admin's rights read as off while the lock is on; what the
+  // account claims is kept apart (a claim alone opens nothing: see verifyOwner)
+  const claim = {};
   for (const k of ["IS_OWNER", "ADMIN_GRANTED"]) {
     let v = window[k];
+    claim[k] = () => v;
     try {
       Object.defineProperty(window, k, {
         configurable: !0,
@@ -32,54 +38,112 @@
       });
     } catch (e) {}
   }
-  function lockAdmin(on) {
-    if (!!RANKED.locked === !!on) return;
-    RANKED.locked = !!on;
+  // what a room-wide switch changes for everybody (the rest of ADMIN is the player's own)
+  const ROOM_KEYS = ["run", "walk", "crouch", "adsMul", "jumpV", "gravity", "airCtrl", "infAbil", "aiSpeed", "freezeAI"];
+  // mode 0: no lock, 1: the confirmed operator (room-wide switches shut, his own cheats open), 2: everything shut
+  let mode = 0;
+  function lockAdmin(m) {
+    if (mode === m) return;
+    mode = m;
+    RANKED.locked = 2 === m;
+    RANKED.operator = 1 === m;
+    const want = 2 === m ? Object.keys(ADMIN_DEF) : 1 === m ? ROOM_KEYS : [];
     for (const k of Object.keys(ADMIN_DEF)) {
       try {
-        if (on) {
-          real[k] = ADMIN[k];
+        if (want.includes(k)) {
+          if (!(k in held)) held[k] = ADMIN[k];
           Object.defineProperty(ADMIN, k, { configurable: !0, enumerable: !0, get: () => ADMIN_DEF[k], set() {} });
-        } else Object.defineProperty(ADMIN, k, { configurable: !0, enumerable: !0, writable: !0, value: k in real ? real[k] : ADMIN_DEF[k] });
+        } else if (k in held) {
+          Object.defineProperty(ADMIN, k, { configurable: !0, enumerable: !0, writable: !0, value: held[k] });
+          delete held[k];
+        }
       } catch (e) {}
     }
-    document.body.classList.toggle("ranked", !!on);
-    on && clean();
+    document.body.classList.toggle("ranked", !!m);
+    m && clean();
   }
-  // the switches that live outside ADMIN: personal and room cheats, the cheat code
+  // the switches that live outside ADMIN: personal and room cheats, the cheat code.
+  // The operator's own are left alone, and a host keeps the operator guest the server confirmed.
   function clean() {
     try {
-      const A2 = window.ADMIN2;
+      const A2 = window.ADMIN2,
+        X = window.HUNTX,
+        op = RANKED.operator;
       if (A2) {
         let ch = !1;
-        for (const k of Object.keys(A2.P)) {
-          const want = "speed" === k || "fastFire" === k ? 1 : !1;
-          A2.P[k] !== want && (A2.setPersonal(k, want), (ch = !0));
-        }
+        if (!op)
+          for (const k of Object.keys(A2.P)) {
+            const want = "speed" === k || "fastFire" === k ? 1 : !1;
+            A2.P[k] !== want && (A2.setPersonal(k, want), (ch = !0));
+          }
         for (const k of Object.keys(G_DEF)) A2.G[k] !== G_DEF[k] && ((A2.G[k] = G_DEF[k]), (ch = !0));
-        A2.PEERS && A2.PEERS.size && A2.PEERS.clear();
+        if (A2.PEERS) for (const peer of [...A2.PEERS.keys()]) X && X.OWNP && X.OWNP.has(peer) ? 0 : A2.PEERS.delete(peer);
         ch && A2.afterChange && A2.afterChange();
       }
-      const X = window.HUNTX;
-      if (X) {
+      if (X && !op) {
         const H = X.HUNT;
         H.unlocked = !1;
         H.granted = !1;
         H.code = "";
         X.OK && X.OK.clear();
         X.GRANT && X.GRANT.clear();
-        X.OWNP && X.OWNP.clear();
       }
-      "undefined" != typeof ADMIN_UNLOCKED && (ADMIN_UNLOCKED = !1);
-      "undefined" != typeof FLY && FLY.on && (FLY.on = !1);
+      "undefined" == typeof ADMIN_UNLOCKED || op || (ADMIN_UNLOCKED = !1);
+      "undefined" != typeof FLY && FLY.on && !op && (FLY.on = !1);
     } catch (e) {}
   }
-  // a guest's switches and kit requests are not heard in a ranked room
+  // The operator: the server hands an owner ticket only to the owner account, in a ranked room too.
+  // Claiming to be the owner (window.IS_OWNER) opens nothing until that ticket is asked for and given.
+  let ownerKey = "",
+    ownerBusy = !1;
+  const peerId = () => (NET.peer && NET.peer.id) || NET.id || "";
+  const roomKey = () => (NET.room ? NET.room + "|" + peerId() : "");
+  RANKED.isOperator = () => !!ownerKey && ownerKey === roomKey();
+  async function verifyOwner() {
+    const A = AC(),
+      s = A && A.session && A.session(),
+      key = roomKey();
+    if (ownerBusy || !key || !peerId() || !claim.IS_OWNER() || !s || !s.token || !A.api || ownerKey === key) return;
+    ownerBusy = !0;
+    try {
+      const j = await A.api("owner_ticket", { token: s.token, room: NET.room, p: peerId() });
+      j && j.ticket && key === roomKey() && room.ranked && (ownerKey = key);
+    } catch (e) {
+    } finally {
+      ownerBusy = !1;
+    }
+  }
+  // the host listens to nobody's cheat switches but a confirmed operator's, and to him only about himself
+  if (window.HUNTX && HUNTX.GRANT) {
+    const _add = HUNTX.GRANT.add;
+    HUNTX.GRANT.add = function (peer) {
+      return room.ranked && !HUNTX.OWNP.has(peer) ? this : _add.apply(this, arguments);
+    };
+  }
+  const SELF_OPS = ["hp", "armor", "god"];
+  const heard = (peer, msg) => {
+    if (!room.ranked || "solo" === NET.mode || !msg) return !0;
+    const own = !!(window.HUNTX && HUNTX.OWNP && HUNTX.OWNP.has(peer));
+    if ("padm" === msg.t || "kit" === msg.t) return own;
+    if ("perm-hi" === msg.t || "hunt-try" === msg.t) return !1;
+    if ("own" === msg.t) {
+      const a = own && null != msg.id ? world.actors.find((x) => String(x.id) === String(msg.id)) : null;
+      return !!(a && a.ctrl === peer && SELF_OPS.includes(msg.op));
+    }
+    return !0;
+  };
   if ("undefined" != typeof NET) {
     const _oa = NET.onAction;
     NET.onAction = function (peer, msg) {
-      if (RANKED.locked && msg && ("padm" === msg.t || "kit" === msg.t)) return;
+      if (!heard(peer, msg)) return;
       return _oa && _oa.apply(this, arguments);
+    };
+  }
+  // the owner's room commands (kick, move, close, messages, cheats by name) do not run in a ranked room
+  if (window.ACCOUNT && ACCOUNT.runCmd) {
+    const _rc = ACCOUNT.runCmd;
+    ACCOUNT.runCmd = function () {
+      return room.ranked && "solo" !== NET.mode ? void 0 : _rc.apply(this, arguments);
     };
   }
 
@@ -148,7 +212,9 @@
   function sync() {
     const on = !!room.ranked && "solo" !== NET.mode;
     on || (room.ranked && "solo" === NET.mode && (room.ranked = !1));
-    lockAdmin(on);
+    on || (ownerKey = "");
+    on && verifyOwner();
+    lockAdmin(on ? (RANKED.isOperator() ? 1 : 2) : 0);
     on && clean();
     document.body.classList.toggle("ranked", !!on);
     mark();
@@ -192,7 +258,7 @@ body.ranked #lb-rounds button,body.ranked #lb-diff button,body.ranked #lb-maps b
     if (lb && !lb.querySelector(".lb-rk")) {
       const n = document.createElement("div");
       n.className = "lb-rk";
-      n.textContent = L(`랭크전 · 관리자와 치트가 모두 꺼져 있습니다. 사람이 ${RANKED.MIN_HUMANS}명 이상이어야 RR이 반영됩니다.`, `Ranked · admin and cheats are off. RR counts with ${RANKED.MIN_HUMANS}+ real players.`);
+      n.textContent = L(`랭크전 · 관리자와 치트가 꺼져 있습니다. 사람이 ${RANKED.MIN_HUMANS}명 이상이어야 RR이 반영됩니다.`, `Ranked · admin and cheats are off. RR counts with ${RANKED.MIN_HUMANS}+ real players.`);
       const code = lb.querySelector(".lb-code");
       code ? code.after(n) : lb.prepend(n);
     }
@@ -237,7 +303,15 @@ body.ranked #lb-rounds button,body.ranked #lb-diff button,body.ranked #lb-maps b
       try {
         rooms = (await a.api("rooms")).rooms || [];
       } catch (e) {}
-      const open = rooms.filter((r) => r.ranked && r.ch === ch && "lobby" === r.state && r.n < r.max).sort((x, y) => y.n - x.n)[0];
+      // the fullest open ranked room whose skill range takes me (the server decides)
+      let open = null;
+      for (const r of rooms.filter((r) => r.ranked && r.ch === ch && "lobby" === r.state && r.n < r.max).sort((x, y) => y.n - x.n).slice(0, 6)) {
+        const c = RANKED.canJoin ? await RANKED.canJoin(r.code) : { ok: !0 };
+        if (!1 !== c.ok) {
+          open = r;
+          break;
+        }
+      }
       if (open) return void joinRoom(open.code);
       const m = a.meta;
       if (m) {
@@ -257,7 +331,7 @@ body.ranked #lb-rounds button,body.ranked #lb-diff button,body.ranked #lb-maps b
     const c = document.createElement("div");
     c.className = "mu-card mu-rank";
     c.id = "mu-rank";
-    c.innerHTML = `<div class="mu-ct">${L("랭크전", "Ranked")}</div><p>${L("관리자·치트·방 규칙 변경이 모두 꺼진 경기입니다. 이기면 RR이 오르고, 일반 경기에서는 RR이 바뀌지 않습니다.", "Admin, cheats and room rule changes are all off. Wins raise your RR; normal matches leave it alone.")}</p><button class="mu-go" id="mu-rank-go"><b>${L("랭크전 찾기", "Find a ranked match")}</b><small>${L("열린 랭크 방에 들어가거나 새로 엽니다", "Join an open ranked room or open one")}</small></button>`;
+    c.innerHTML = `<div class="mu-ct">${L("랭크전", "Ranked")}</div><p>${L("관리자·치트·방 규칙 변경이 꺼진 경기입니다. 처음 5판은 배치전이고, 이후 이기면 RR이 오릅니다. 일반 경기에서는 RR이 바뀌지 않습니다.", "Admin, cheats and room rule changes are off. The first 5 matches are placement; after that wins raise your RR. Normal matches leave it alone.")}</p><div class="mu-rk-me" id="mu-rank-me"></div><button class="mu-go" id="mu-rank-go"><b>${L("랭크전 찾기", "Find a ranked match")}</b><small>${L("열린 랭크 방에 들어가거나 새로 엽니다", "Join an open ranked room or open one")}</small></button>`;
     side.prepend(c);
     $("mu-rank-go").onclick = find;
   }

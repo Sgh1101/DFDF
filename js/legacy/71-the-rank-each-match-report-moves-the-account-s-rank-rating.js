@@ -4,7 +4,9 @@
   // server: a win lifts it (more with kills), a loss takes a little. 100 RR is
   // a division, three divisions a tier, Iron to Immortal, then Radiant. Here:
   // the RR the match brought on the result screen, a banner on a promotion or
-  // a demotion, and the tier next to the gold on the title screen.
+  // a demotion, and the tier next to the gold on the title screen. The first
+  // five ranked matches are placement: the tier stays hidden ("?", "배치 n/5"),
+  // and after the fifth the tier is revealed.
   if (!window.ACCOUNT || "function" != typeof ACCOUNT.session) return;
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko);
@@ -15,6 +17,7 @@
   const step = (r) => (r.t >= 8 ? 24 : r.t * 3 + (r.div || 1) - 1);
   // a gem in the tier's colour, more points the higher, a pip a division (as on the homepage)
   function badge(t, div, px) {
+    if (t < 0) return hiddenBadge(px);
     const c = COL[t] || COL[0],
       n = t >= 8 ? 8 : 4 + Math.floor(t / 2),
       id = "rkg" + t + "_" + Math.round(Math.random() * 1e6);
@@ -31,6 +34,10 @@
     }
     return `<svg viewBox="0 0 48 48" width="${px}" height="${px}" style="vertical-align:middle;filter:drop-shadow(0 0 6px ${c}88)" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="#0c1018"/></linearGradient></defs><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="url(#${id})" stroke="${c}" stroke-width="1.5"/><path d="M24 7l15 8.3v17.4L24 41 9 32.7V15.3z" fill="#0c1018" opacity=".45"/><path d="${star}Z" fill="${c}" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>${pips}</svg>`;
   }
+  // the gem of an account still placing: grey, a question mark
+  function hiddenBadge(px) {
+    return `<svg viewBox="0 0 48 48" width="${px}" height="${px}" style="vertical-align:middle" aria-hidden="true"><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="#1b222e" stroke="#8a8f98" stroke-width="1.5" stroke-dasharray="3 2"/><text x="24" y="31" text-anchor="middle" font-size="22" font-weight="800" fill="#c9d3de" font-family="sans-serif">?</text></svg>`;
+  }
   const user = () => {
     try {
       const s = ACCOUNT.session();
@@ -43,26 +50,36 @@
 
   // ── the result screen and the banner ──
   // While a match runs, keep the rank it started from; once it is over, the
-  // report's answer replaces the signed-in user, and the difference shows.
-  const R = { base: null, baseUser: null, last: -1 };
+  // report's answer (the "account-reward" event brings it) says what the match
+  // did: RR gained or lost, a placement match counted, or why nothing moved.
+  const R = { base: null, rep: null, last: -1, told: !1 };
+  const placing = (u) => !!(u && u.rank && u.rank.hidden);
+  const plc = (u) => (u && u.placement) || { done: 0, of: 5 };
+  addEventListener("account-reward", (e) => {
+    if ("over" === phase() && e.detail && e.detail.ranked) R.rep = e.detail;
+  });
+  const WHY = {
+    few_humans: L("사람이 부족해 RR에 반영되지 않았습니다", "Not enough real players, so RR did not move"),
+    draw: L("무승부 · RR 변동 없음", "Draw · RR did not move"),
+    disputed: L("플레이어 결과가 달라 RR에 반영되지 않았습니다", "Players disagreed on the result, so RR did not move"),
+    no_result: L("방장의 결과를 받지 못해 RR에 반영되지 않았습니다", "No result from the host, so RR did not move"),
+    duplicate: L("이미 반영된 경기입니다", "This match was already counted"),
+  };
   function overCell() {
     const u = user(),
       ph = phase();
     if ("over" !== ph) {
       R.base = u && u.rank ? u.rank : null;
-      R.baseUser = u;
-      R.last = R.base ? step(R.base) : -1;
+      R.rep = null;
+      R.told = !1;
+      R.last = R.base && !R.base.hidden ? step(R.base) : -1;
       const c = $("ov-rank");
       c && (c.hidden = !0);
       return;
     }
-    if (!u || !u.rank || !R.base || u === R.baseUser) return;
+    const j = R.rep;
     // RR moves in ranked matches only: no cell for a normal one
-    const h0 = ((ACCOUNT.session() || {}).hist || [])[0];
-    if (!(h0 && h0.rk)) {
-      const c0 = $("ov-rank");
-      return void (c0 && (c0.hidden = !0));
-    }
+    if (!u || !u.rank || !R.base || !j) return;
     const st = document.querySelector("#s-over .ov-stats");
     if (!st) return;
     let c = $("ov-rank");
@@ -73,22 +90,49 @@
       c.innerHTML = `<b></b><span class="lbl"></span>`;
       st.appendChild(c);
     }
-    const d = u.rank.rr - R.base.rr;
     c.hidden = !1;
-    c.querySelector("b").innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${d > 0 ? "#4ade80" : d < 0 ? "#ff6b7a" : "#8a97ab"}">${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}</span>`;
-    c.querySelector(".lbl").textContent = nameOf(u.rank) + " · RR";
-    c.querySelector(".lbl").style.color = COL[u.rank.t];
-    c.title = u.rank.t >= 8 ? `${u.rank.rr} RR` : L(`다음 단계까지 ${100 - u.rank.into} RR`, `${100 - u.rank.into} RR to the next division`);
-    const now = step(u.rank);
-    if (R.last >= 0 && now !== R.last) {
-      const up = now > R.last;
-      R.last = now;
-      // after the XP banner the report brings
-      setTimeout(() => {
+    const b = c.querySelector("b"),
+      lbl = c.querySelector(".lbl"),
+      p = plc(u),
+      reveal = !!R.base.hidden && !placing(u);
+    if (!j.rankedCounted) {
+      // played, but nothing moved (a placement match that did not count is not counted)
+      b.innerHTML = `${badge(placing(u) ? -1 : u.rank.t, u.rank.div, 26)} <span style="color:#8a97ab">±0</span>`;
+      lbl.textContent = WHY[j.rankedWhy] || L("RR에 반영되지 않았습니다", "RR did not move");
+      lbl.style.color = "#8a97ab";
+      c.title = placing(u) ? L(`배치 ${p.done}/${p.of}`, `Placement ${p.done}/${p.of}`) : "";
+    } else if (placing(u)) {
+      b.innerHTML = `${badge(-1, 0, 26)} <span style="color:#ffc849">${L("배치", "Placement")} ${p.done}/${p.of}</span>`;
+      lbl.textContent = L(`티어는 ${p.of}판을 마치면 공개됩니다`, `Your tier shows after ${p.of} matches`);
+      lbl.style.color = "#ffc849";
+      c.title = L("배치전에서는 RR이 바뀌지 않고 실력만 측정합니다", "RR does not move while placing; your skill is being measured");
+    } else if (reveal) {
+      b.innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${COL[u.rank.t]}">${nameOf(u.rank)}</span>`;
+      lbl.textContent = L(`배치 완료 · ${u.rank.rr} RR`, `Placement done · ${u.rank.rr} RR`);
+      lbl.style.color = COL[u.rank.t];
+      c.title = L("배치전 결과로 정해진 티어입니다", "The tier your placement matches set");
+    } else {
+      const d = j.rr | 0;
+      b.innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${d > 0 ? "#4ade80" : d < 0 ? "#ff6b7a" : "#8a97ab"}">${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}</span>`;
+      lbl.textContent = nameOf(u.rank) + " · RR";
+      lbl.style.color = COL[u.rank.t];
+      c.title = u.rank.t >= 8 ? `${u.rank.rr} RR` : L(`다음 단계까지 ${100 - u.rank.into} RR`, `${100 - u.rank.into} RR to the next division`);
+    }
+    // the reveal after placement, a promotion or a demotion: once, after the XP banner the report brings
+    if (j.rankedCounted && !R.told) {
+      const now = placing(u) ? -1 : step(u.rank),
+        up = now > R.last;
+      if (reveal || (R.last >= 0 && now >= 0 && now !== R.last)) {
+        R.told = !0;
+        R.last = now;
+        setTimeout(() => {
           try {
-            "function" == typeof banner && banner(up ? L(`승급! ${nameOf(u.rank)}`, `Promoted! ${nameOf(u.rank)}`) : L(`강등 · ${nameOf(u.rank)}`, `Demoted · ${nameOf(u.rank)}`), up ? COL[u.rank.t] : "#ff6b7a");
+            if ("function" != typeof banner) return;
+            if (reveal) banner(L(`배치 완료! 당신의 티어는 ${nameOf(u.rank)}`, `Placement done! Your tier is ${nameOf(u.rank)}`), COL[u.rank.t]);
+            else banner(up ? L(`승급! ${nameOf(u.rank)}`, `Promoted! ${nameOf(u.rank)}`) : L(`강등 · ${nameOf(u.rank)}`, `Demoted · ${nameOf(u.rank)}`), up ? COL[u.rank.t] : "#ff6b7a");
           } catch (e) {}
         }, 2300);
+      }
     }
   }
 
@@ -107,13 +151,23 @@
       document.body.appendChild(b);
     }
     const r = u.rank,
-      key = r.t + "|" + r.div + "|" + r.rr;
+      pl = plc(u),
+      hid = placing(u),
+      key = hid ? "?|" + pl.done : r.t + "|" + r.div + "|" + r.rr;
     if (b.dataset.k !== key) {
       b.dataset.k = key;
-      b.innerHTML = `${badge(r.t, r.div, 22)}<span>${nameOf(r)}</span>`;
-      b.style.color = COL[r.t];
-      b.style.borderColor = COL[r.t] + "66";
-      b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 랭크전에서만 오르고 내려갑니다`, `${r.into}/100 RR · only ranked matches move it`));
+      if (hid) {
+        // placing: no tier yet
+        b.innerHTML = `${badge(-1, 0, 22)}<span>${L("배치", "Placement")} ${pl.done}/${pl.of}</span>`;
+        b.style.color = "#c9d3de";
+        b.style.borderColor = "#8a8f9866";
+        b.title = L(`배치전 ${pl.done}/${pl.of} · ${pl.of}판을 마치면 티어가 공개됩니다`, `Placement ${pl.done}/${pl.of} · your tier shows after ${pl.of} matches`);
+      } else {
+        b.innerHTML = `${badge(r.t, r.div, 22)}<span>${nameOf(r)}</span>`;
+        b.style.color = COL[r.t];
+        b.style.borderColor = COL[r.t] + "66";
+        b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 랭크전에서만 오르고 내려갑니다`, `${r.into}/100 RR · only ranked matches move it`));
+      }
     }
     // left of the gold chip (itself left of the account chip)
     let right = 12;

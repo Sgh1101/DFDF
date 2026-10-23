@@ -115,6 +115,17 @@ MMR (Elo, field `mmr`, `placed`): older accounts get `1000 + RR` on first read (
 
 Matchmaking: `rooms` and `room_up` give a ranked room `band` (its average MMR rounded to 50, `null` when unknown) and `range` (150 MMR, +50 per minute the room has been open, up to 600). `ranked_can_join` `{token, code}` returns `{ranked, ok, range, band}`; the operator and rooms without a measured average are always open.
 
+## Competitive (client)
+
+The client side of the flow above (`js/legacy/109-ranked-flow-*.js`, with `44-account-sync.js`, `71-…rank…`, `81-ranked-play-…` and `js/leaderboard.js`). Ranked rooms are for signed-in accounts only; a guest is refused before joining (and sent out if it got in by a link).
+
+- **Flow.** When the host starts a ranked match it sends the roster (accounts per team) with `ranked_start` and tells the room (`rk-go`); everyone else waits for that, then calls `match_start {ranked: true, room}` (retrying on 409; on 403 or any failure the match gets a plain ticket: XP and gold, no RR). When the match is over the host sends `ranked_result` (winning side, kills per account), then every player's `progress` report settles it. The report queue keeps a ranked report on 425 (the host's result is not in yet) and asks again every few seconds; after two minutes it asks with `giveUp: true` (plain reward); a 409 drops it. `humans` is no longer sent.
+- **Placement.** While `user.placement.done < 5` the title chip, the result screen and the "Play together" card show "배치 n/5" with a "?" gem instead of a tier; the fifth counted match reveals the tier (result screen cell and banner). A counted match afterwards shows `+/-RR`; a match that did not count says why (`few_humans`, `draw`, `disputed`, `no_result`).
+- **Matchmaking.** The room list shows a ranked room's `band` as the tier it sits in. Joining a ranked room (list, code, link, "Find a ranked match") first asks `ranked_can_join`; out of range gives a Korean message (the room list note and a banner). Note the server answers an out-of-range room with HTTP 200 `{ok: false, ranked, range, band}`, so the client reads that answer raw instead of through the shared `api()` (which treats `ok: false` as an error).
+- **Leaderboard.** "순위표" in the home menu (also `play.html#ranks`, linked from the homepage): the season, the top 50 with tier, RR and wins, my row marked.
+- **Cheats.** In a ranked room the admin switches, the cheat code, account cheat rights, owner commands and room rules are closed for everyone. The exception is the operator: a client claiming to be the owner stays locked until the server hands it an `owner_ticket` for that room (a normal account gets none, so editing `window.IS_OWNER` opens nothing). A confirmed operator keeps his own cheats (the host listens to his personal switches and to his commands about himself); room-wide switches (speed, gravity, round time, bots, …), cheats for others and kick/move/message/close stay shut for him too. His match counts for RR like anyone's (the server marks `ownerPlayed`).
+- **Checks.** `npm test` (`tests/ranked-client.test.js`), `npm run test:ranked` (the room and its lock), `npm run test:ranked-flow` (three browsers: roster, tickets, result, settle, placement, reveal, leaderboard screen, band and range message, cheat lock for a normal account and for the operator), `npm run test:season`.
+
 ## 환경변수 (Vercel)
 
 | 이름 | 용도 |

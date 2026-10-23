@@ -13,6 +13,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(u.ssn.n, 1);
     Object.assign(u.ssn, { played: 4 });
     u.rr = 1300;
+    delete u.mmr; delete u.placed; // an account from before the hidden rating: it is migrated from its RR when next read
     f.h.db.set("user:seasoned", JSON.stringify(u));
     const gold0 = u.gold;
     // the owner ends it now
@@ -28,8 +29,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.match(text, /시즌 1 종료 — 플래티넘 2로 마쳤습니다\. 보상 🪙1,000 · 전용 스킨 「월계관」 총 19종 · RR은 650부터 다시/);
     const after = f.h.user("seasoned");
     assert.deepEqual([after.gold - gold0, after.rr, after.ssn.n, after.ssnLog.length], [1000, 650, 2, 1]);
+    // the hidden rating follows the same cut (1000 + RR 1300 -> 1000 + 650), and an account with ranked history is already placed
+    assert.deepEqual([after.mmr, after.placed], [1650, 5]);
+    assert.deepEqual(await page.evaluate(() => { const s = ACCOUNT.session().user; return [s.placement, !!s.rank.hidden]; }), [{ done: 5, of: 5 }, false]);
     await page.screenshot({ path: dir + "/season-note.png" });
-    // the tier chip: the new season and the days left
+    // the tier chip: the tier (not "placement"), the new season and the days left
+    assert.ok(!/배치/.test(await page.evaluate(() => document.getElementById("rank-chip").textContent)));
     await page.waitForFunction(() => /시즌 2 · \d+일 남음 · 랭크전 0판 \(보상까지 3판 더\)/.test((document.getElementById("rank-chip") || {}).title || ""), null, { timeout: 10000 });
     // the season skin, worn on the rifle
     await page.evaluate(() => GUN_SKINS.sync());

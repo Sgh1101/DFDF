@@ -34,16 +34,21 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     // the ticket for the report is asked for as ranked, and the room is on the list as ranked
     const body = await guest.evaluate(() => RANKED.ticketBody());
     assert.deepEqual(body, { ranked: true, room: code });
-    // the server knows the room as ranked: it gives a ranked ticket for it (the fake store has no room list)
+    // the server learns the room from the host's report; the host then opens the match with its roster
+    // (ranked_start) and tells the room, and the guest's ticket is the ranked one for that match
     await host.waitForFunction(() => document.body.classList.contains("ranked"));
-    const served = await guest.evaluate(async () => {
-      let t = null;
-      for (let i = 0; i < 40 && !(t && t.ranked); i++) { try { t = await ACCOUNT.api("match_start", { token: ACCOUNT.session().token, ...RANKED.ticketBody() }); } catch (e) { await new Promise((r) => setTimeout(r, 500)); } }
-      return { ticketRanked: !!(t && t.ranked) };
-    });
-    assert.deepEqual(served, { ticketRanked: true });
+    for (let i = 0; i < 60 && !f.h.db.get("room:" + code); i++) await new Promise((r) => setTimeout(r, 500));
+    assert.ok(f.h.db.get("room:" + code), "the server knows the ranked room");
     await host.evaluate(() => { room.mode = "std"; hostStartMatch(); });
     await guest.waitForFunction(() => "client" === NET.mode && world.actors.length > 0 && myActor(), null, { timeout: 90000 });
+    await host.waitForFunction(() => RANKED.flow.current() && RANKED.flow.current().info, null, { timeout: 30000 });
+    const info = await host.evaluate(() => RANKED.flow.current().info);
+    assert.deepEqual(info.a.concat(info.b).sort(), ["rankguest", "rankhost"]);
+    const served = await guest.evaluate(async () => {
+      const j = await RANKED.flow.ticket(ACCOUNT.session().token, ACCOUNT.api);
+      return { ticketRanked: !!(j && j.ranked), flagged: !!(j && RANKED.flow.isRanked(j.ticket)) };
+    });
+    assert.deepEqual(served, { ticketRanked: true, flagged: true });
     assert.equal(await guest.evaluate(() => room.ranked && RANKED.locked), true);
     // leaving the room lifts the lock
     await host.evaluate(() => netShutdown());
@@ -52,6 +57,6 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     const after = await guest.evaluate(async () => { await new Promise((r) => setTimeout(r, 700)); ADMIN.god = true; const r = { ranked: room.ranked, locked: RANKED.locked, god: ADMIN.god }; ADMIN.god = false; return r; });
     assert.deepEqual(after, { ranked: false, locked: false, god: true });
     assert.deepEqual(f.errors, []);
-    console.log("ranked room: admin and cheats locked for host and guest, room rules fixed, ticket asked as ranked, lock lifted on leaving");
+    console.log("ranked room: admin and cheats locked for host and guest, room rules fixed, ranked ticket from the host's roster, lock lifted on leaving");
   } finally { await f.browser.close(); signaling.close(); }
 })().then(() => process.exit(0), (error) => { console.error(error); process.exit(1); });
