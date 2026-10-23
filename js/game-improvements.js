@@ -93,8 +93,12 @@
   const thumb=document.createElement('img');thumb.src='./assets/ui/ascent-preview-v1.png';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title='Minecraft 기본 텍스처 · 5대5 · A/B 거점';
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){
-    const preset=document.createElement('div');preset.className='pz-row';preset.textContent=L('주 사격 손 · 적용 후 버튼 배치에서 더 조절할 수 있습니다.','Fire hand · refine the layout in Edit layout.');controls.append(preset);
-    for(const [id,label,x] of [['touch-left','왼손 사격',.14],['touch-right','오른손 사격',.86]])button(id,L(label,id==='touch-left'?'Left fire':'Right fire'),()=>{TOUCHLAY.set('tb-fire',[x,.55,1]);TOUCHLAY.apply();},preset);
+    // the sentence as the row's label like every other setting, the two buttons side by side under it
+    const preset=document.createElement('div');preset.className='pz-row';
+    const lab=document.createElement('div');lab.className='pz-lab';lab.textContent=L('주 사격 손 · 적용 후 버튼 배치에서 더 조절할 수 있습니다.','Fire hand · refine the layout in Edit layout.');
+    const hands=document.createElement('div');hands.className='pz-hands';hands.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+    preset.append(lab,hands);controls.append(preset);
+    for(const [id,label,x] of [['touch-left','왼손 사격',.14],['touch-right','오른손 사격',.86]])button(id,L(label,id==='touch-left'?'Left fire':'Right fire'),()=>{TOUCHLAY.set('tb-fire',[x,.55,1]);TOUCHLAY.apply();},hands);
   }
   window.addEventListener('pagehide',()=>{lifetime.reset();CHAMPIONS_AUDIO?.stopMusic();});
   window.GAME_DIAGNOSTICS=Object.freeze({report,reset,open,events,lifetime,optional});

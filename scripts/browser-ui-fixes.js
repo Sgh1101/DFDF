@@ -74,6 +74,8 @@ const { AUDIT_SRC } = require("./ui-audit-lib");
     assert.ok(news.top >= news.header - 1 && news.bottom <= news.vh, "the guide fits between the bar and the edge " + JSON.stringify(news));
     const tablet=await f.page('fixtablet',{width:1024,height:768},{hasTouch:true,isMobile:true});
     await tablet.locator('#go-play').tap();
+    // the tablet folds the map chips into one button too; its sheet holds the filters
+    if(await tablet.locator('#sel-pick').isVisible())await tablet.locator('#sel-pick').tap();
     assert.ok((await tablet.locator('#s-select .map-cats button').evaluateAll(a=>a.map(e=>e.getBoundingClientRect().height))).every(h=>h>=35.5),'tablet map filters have full touch targets');
     await tablet.locator('#s-select .map-cats [data-cat="small"]').tap();
     assert.equal(await tablet.locator('#s-select .map-cats [data-cat="small"]').getAttribute('class'),'on');

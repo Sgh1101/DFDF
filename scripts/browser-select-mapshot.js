@@ -27,7 +27,7 @@ const pictureStats = (page, key) => page.evaluate(async (key) => {
     await page.mouse.click(640, 360);
     await page.evaluate(() => { window.__loads = []; const lm = loadMap; loadMap = function (k) { __loads.push(k); return lm.apply(this, arguments); }; document.getElementById("go-play").click(); });
     await page.waitForFunction(() => SELECT_MAPSHOT.cache.has(room.map), null, { timeout: 20000 });
-    const first = await page.evaluate(() => ({ key: room.map, has: document.getElementById("s-select").classList.contains("has-mapshot"), bg: getComputedStyle(document.getElementById("s-select")).backgroundImage.includes("data:image/jpeg"), cap: document.getElementById("sel-mapcap").textContent, capShown: !document.getElementById("sel-mapcap").hidden }));
+    const first = await page.evaluate(() => ({ key: room.map, has: document.getElementById("s-select").classList.contains("has-mapshot"), bg: getComputedStyle(document.getElementById("s-select")).backgroundImage.includes("data:image/jpeg"), cap: document.getElementById("sel-mapcap").textContent, capShown: !document.getElementById("sel-mapcap").hidden, pick: (() => { const b = document.getElementById("sel-pick"); return b && getComputedStyle(b).display !== "none" ? b.textContent : ""; })() }));
     const pic = await pictureStats(page, first.key);
     await page.screenshot({ path: path.join(dir, "desktop.png") });
     // another map
@@ -54,7 +54,9 @@ const pictureStats = (page, key) => page.evaluate(async (key) => {
     console.log(JSON.stringify({ first, pic, after, back, live }));
     assert.ok(first.has && first.bg, "the select screen's backdrop is the map picture");
     assert.ok(first.cap.includes("빙하 관측소") && /5대5/.test(first.cap) && /\d+×\d+m/.test(first.cap), "the corner names the map, its team size and footprint (" + first.cap + ")");
-    assert.ok(first.capShown, "the name shows on a wide screen");
+    // a screen up to 920px tall folds the map chips into one button that names the map, as a phone does; a taller
+    // one keeps the chips and names it in the corner
+    assert.ok(first.capShown || first.pick.includes("빙하 관측소"), "the name shows on a wide screen (" + JSON.stringify(first.pick) + ")");
     assert.ok(pic && pic.w >= 640 && pic.sd > 12, "the picture is a drawn map, not a blank frame");
     assert.equal(after.cur, "dunes", "picking another map loads it");
     assert.ok(after.cap.includes("모래무덤"), "and the corner follows");
