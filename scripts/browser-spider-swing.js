@@ -16,6 +16,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const r = await page.evaluate(() => {
       const out = {}, me = myActor() || player, def = AGENTS.find((a) => "geomi" === a.id).abilities.find((a) => "y_webzip" === a.type);
       const dt = 1 / 60, step = (n) => { for (let i = 0; i < n; i++) { abilTick(dt); simMove(me, dt); followCamera(me, dt); } };
+      // the swing is what E does with no enemy in the line: keep the bots out of the way (an enemy in the line is pulled instead, see browser-spider-silk.js)
+      foesOf(me).forEach((o, i) => { o.pos.x = me.pos.x + 400 + i; o.pos.z = me.pos.z + 400; });
       const ropes = () => scene.children.filter((o) => o.userData && o.userData.radius && o.material && o.material.color.getHex() === 0xf2f4f7).length;
       let aim = null;
       // a point on the side of a wall (the wall goes on above it), not on top of something

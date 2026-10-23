@@ -219,12 +219,39 @@ const cleanId = (s) => String(s || "").trim();
 const ID_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
 // names a new account may not take: they read as a guest or a nameless player in a room
 const RESERVED_ID = /^(게스트|guest)|^(플레이어|player)\d+$/i;
+// ── the per-account activity log ──
+// `ulog:<id>` holds what one account did (sign-ins with IP and device, pulls, buys, matches, what the
+// owner changed on it), newest first: the latest ULOG_MAX lines, gone ULOG_DAYS days after the last one.
+// Only the owner page reads it (ADMIN.user_profile). `data` is small and chosen by the caller: never put a
+// token, password or hash in it (the keys below are dropped as a second guard). `dg` is the gold change.
+const ULOG_MAX = 500,
+  ULOG_DAYS = 180,
+  ULOG_SECRET = /pass|^pw$|token|secret|hash|session/i;
+const ulogKey = (id) => "ulog:" + String(id || "").toLowerCase().slice(0, 40);
+function ulogCmds(id, kind, msg, data) {
+  const d = {};
+  if (isObj(data)) for (const k in data) data[k] != null && !ULOG_SECRET.test(k) && (d[k] = data[k]);
+  let json = Object.keys(d).length ? JSON.stringify(d) : "";
+  json.length > 600 && (json = JSON.stringify({ cut: 1 }));
+  const line = { t: now(), k: String(kind).slice(0, 12), m: String(msg || "").replace(/[\u0000-\u001f]/g, " ").slice(0, 140) };
+  json && (line.d = JSON.parse(json));
+  const key = ulogKey(id);
+  return [["LPUSH", key, JSON.stringify(line)], ["LTRIM", key, "0", String(ULOG_MAX - 1)], ["EXPIRE", key, String(ULOG_DAYS * 86400)]];
+}
+async function ulog(id, kind, msg, data) {
+  if (!id) return;
+  try { await pipe(ulogCmds(id, kind, msg, data)); } catch (e) {}
+}
+// entries of the server log that also belong in an account's own log (the others call ulog with more detail)
+const ULOG_FROM_LOG = new Set(["order", "room", "level", "rank", "feedback"]);
 async function log(type, msg, extra) {
   try {
-    await pipe([
+    const cmds = [
       ["LPUSH", "logs", JSON.stringify(Object.assign({ t: now(), type, msg }, extra || {}))],
       ["LTRIM", "logs", "0", "4999"],
-    ]);
+    ];
+    extra && extra.user && ULOG_FROM_LOG.has(type) && cmds.push(...ulogCmds(extra.user, type, msg, { id: extra.id, room: extra.room }));
+    await pipe(cmds);
   } catch (e) {}
 }
 // a little brake on guessing passwords
@@ -623,6 +650,7 @@ A.auth = async (q, b, req) => {
     if (await limited("adm:" + ip, 8, 900)) throw fail(429, "너무 많이 시도했습니다. 15분 뒤에 다시");
     if (!masterOk(pw)) {
       await log("admin", "운영자 계정 로그인 실패", { ip });
+      await ulog(id, "loginfail", "운영자 계정 비밀번호 틀림", { ip, dev: String(b.device || "").slice(0, 64) });
       throw fail(401, "비밀번호가 틀렸습니다");
     }
     if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -636,11 +664,13 @@ A.auth = async (q, b, req) => {
     u.dev = String(b.device || "").slice(0, 64);
     await saveUser(u);
     await log("admin", "운영자 계정 로그인: " + id, { ip, user: id });
+    await ulog(id, created ? "join" : "login", created ? "운영자 계정 생성" : "운영자 계정 로그인", { ip, dev: u.dev, owner: 1 });
     return { token: sign({ k: "p", id, o: 1, v: u.sessionVersion, pv: 2, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
   }
   if (u) {
     if (!checkPw(pw, u.pass)) {
       await log("auth", "비밀번호 틀림: " + id, { ip });
+      await ulog(u.id, "loginfail", "비밀번호 틀림", { ip, dev: String(b.device || "").slice(0, 64) });
       // the same sign-in box also signs up: a taken name must say so, not just "wrong password"
       throw fail(401, "이미 있는 아이디입니다. 내 계정이면 비밀번호를 확인하고, 새로 가입하려면 다른 아이디를 쓰세요");
     }
@@ -654,13 +684,17 @@ A.auth = async (q, b, req) => {
   ensureWallet(u, c);
   u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
   const ban = await banOf(u, b.device, ip);
-  if (ban) throw Object.assign(fail(403, "이용이 제한된 계정입니다"), { ban });
+  if (ban) {
+    created || (await ulog(u.id, "blocked", "차단 중 로그인 시도", { ip, dev: String(b.device || "").slice(0, 64), why: ban.reason }));
+    throw Object.assign(fail(403, "이용이 제한된 계정입니다"), { ban });
+  }
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
   u.lastSeen = now();
   u.lastIp = ip;
   u.dev = String(b.device || "").slice(0, 64);
   await saveUser(u);
   await log(created ? "join" : "login", (created ? "가입: " : "로그인: ") + id, { ip, user: id });
+  await ulog(u.id, created ? "join" : "login", created ? "가입" : "로그인", { ip, dev: u.dev });
   return { token: sign({ k: "p", id, v: u.sessionVersion, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
 };
 // Each guest name belongs to one device. Two devices used to land on the same "게스트NNNN" (9000 numbers); a
@@ -698,6 +732,7 @@ A.guest = async (q, b, req) => {
   u.lastIp = ip;
   await saveUser(u);
   await log("guest", "게스트 입장: " + u.id, { ip, user: u.id });
+  await ulog(u.id, "guest", "게스트 입장", { ip, dev });
   return { token: sign({ k: "p", id: dev, g: 1, v: u.sessionVersion, exp: now() + 30 * 864e5 }), user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
 A.me = async (q, b, req) => {
@@ -757,7 +792,8 @@ A.skins = async (q, b) => {
     u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   let dirty = ensureWallet(u, c);
-  const dropped = [];
+  const dropped = [],
+    swap = {};
   if (b.set && "object" == typeof b.set) {
     const m = {};
     let n = 0;
@@ -768,9 +804,15 @@ A.skins = async (q, b) => {
       hasItem(u, k, v) ? (m[k] = v) : dropped.push(k);
     }
     const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
-    if (!u.skins || t > u.skins.t) { u.skins = { t, m }; dirty = !0; }
+    if (!u.skins || t > u.skins.t) {
+      const was = (u.skins && u.skins.m) || {};
+      for (const k of new Set([...Object.keys(m), ...Object.keys(was)])) (m[k] || "default") !== (was[k] || "default") && Object.keys(swap).length < 8 && (swap[k] = m[k] || "default");
+      u.skins = { t, m };
+      dirty = !0;
+    }
   }
   dirty && (await saveUser(u));
+  Object.keys(swap).length && (await ulog(u.id, "equip", "스킨 장착 변경: " + Object.entries(swap).map(([g, s]) => g + "/" + s).join(", "), { sw: swap }));
   return { skins: u.skins || null, own: u.own, gold: u.gold, championCoins: u.championCoins, items: ITEMS, dropped };
 };
 // what a player wears, signed. In a room every player's skins travel with
@@ -918,7 +960,7 @@ const orderPick = (list) => {
   return [...new Set((Array.isArray(list) ? list : []).map(String))].filter((k) => known.has(k));
 };
 const ORDER_DUR = [{ id: "d1", days: 1, label: "1일" }, { id: "d7", days: 7, label: "7일" }, { id: "d30", days: 30, label: "30일" }, { id: "d0", days: 0, label: "영구" }];
-const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded"];
+const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded", "revoked"];
 const orderTotal = (c, items, days) => {
   const dur = ORDER_DUR.find((d) => d.days === days);
   if (!dur) return 0;
@@ -930,6 +972,44 @@ const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.
 const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
 const orderMe = (u) => "u:" + u.id.toLowerCase();
 const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
+// The books of the paid orders: one line for each thing that happened (order made, money confirmed and opened,
+// taken back, refunded, declined, cancelled), kept for good. `money` is what moved in (+) or out (-) in won.
+const LEDGER_KINDS = ["order", "paid", "revoke", "refund", "reject", "cancel"];
+const ledgerLine = (kind, o, extra) => JSON.stringify(Object.assign({ t: now(), kind, id: o.id, user: o.by, items: o.items, days: o.days, total: o.total, depositor: o.depositor, money: 0 }, extra));
+const ledgerAdd = (kind, o, extra) => pipe([["LPUSH", "ledger", ledgerLine(kind, o, extra)], ["LTRIM", "ledger", "0", "19999"]]);
+// the first time the books are opened, the orders made before them are written in (oldest first)
+async function ledgerSeed() {
+  if ((await redis(["LRANGE", "ledger", "0", "0"])).length) return;
+  const ids = await redis(["LRANGE", "ord", "0", "1999"]);
+  const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
+  const lines = [];
+  for (const o of rows.sort((a, b) => a.t - b.t)) {
+    lines.push(ledgerLine("order", o, { t: o.t }));
+    if (o.grantedAt) lines.push(ledgerLine("paid", o, { t: o.grantedAt, money: o.total }));
+    if ("refunded" === o.status) lines.push(ledgerLine("refund", o, { t: o.refundedAt || o.grantedAt || o.t, money: o.grantedAt ? -o.total : 0, reason: o.reason || "" }));
+    if ("revoked" === o.status) lines.push(ledgerLine("revoke", o, { t: o.revokedAt || o.grantedAt || o.t, reason: o.reason || "" }));
+    if ("rejected" === o.status) lines.push(ledgerLine("reject", o, { t: o.t, reason: o.reason || "" }));
+    if ("cancelled" === o.status) lines.push(ledgerLine("cancel", o, { t: o.t }));
+  }
+  for (const l of lines) await redis(["LPUSH", "ledger", l]);
+}
+// what an order gave is taken back, this order's part only: its cheats switched off, its gold taken from the wallet (never below nothing)
+function takeBackOrder(u, o) {
+  const cheats = o.items.filter((k) => !goldOf(k));
+  if (cheats.length && u.perm) {
+    const p = Object.assign({}, u.perm);
+    for (const k of cheats) {
+      if (PERM_SW.includes(k)) p[k] = !1;
+      else if ("speed" === k) p.speed = 1;
+      else if ("fastFire" === k) p.fastFire = 1;
+      else if ("buff" === k) p.buff = 0;
+    }
+    p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
+    u.perm = p;
+  }
+  const g = o.items.reduce((n, k) => n + goldOf(k), 0);
+  g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+}
 A.order_info = async () => {
   const c = await loadConfig();
   return Object.assign({ on: !!c.order.on }, orderCatalog(c));
@@ -962,6 +1042,7 @@ A.order_create = async (q, b) => {
     ["LPUSH", "ordu:" + me, id],
     ["LTRIM", "ordu:" + me, "0", "19"],
   ]);
+  await ledgerAdd("order", rec);
   await log("order", `주문 ${id} · ${u.id} · ${items.join(",")} · ${days || "영구"}일 · ${total}원`, { id, user: u.id });
   return { order: rec, pay: orderPay(c) };
 };
@@ -983,7 +1064,9 @@ A.order_cancel = async (q, b) => {
   if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
   if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
   o.status = "cancelled";
+  await ledgerAdd("cancel", o);
   await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
+  await ulog(u.id, "order", `주문 ${id} 취소`, { id });
   return { ok: !0 };
 };
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
@@ -1035,6 +1118,7 @@ A.champion_buy = async (q, b) => {
   (u.own[item.g] = u.own[item.g] || []).push(item.s);
   await saveUser(u);
   await log("shop", `${u.id} 초월 스킨 구매: ${item.g}/${item.s} · 초월 코인 ${CHAMPION_PRICE}개`, { user: u.id });
+  await ulog(u.id, "shop", `초월 스킨 구매: ${item.g}/${item.s} · 초월 코인 ${CHAMPION_PRICE}개`, { g: item.g, s: item.s, r: 5, coins: -CHAMPION_PRICE, cc: u.championCoins });
   return { item, championCoins: u.championCoins, own: u.own, gold: u.gold, items: ITEMS, user: publicUser(u, c.xp.perLevel) };
 };
 
@@ -1088,6 +1172,7 @@ A.cos_buy = async (q, b) => {
   u.cosBought = (u.cosBought || 0) + 1;
   await saveUser(u);
   await log("shop", `${u.id} 꾸미기 구매: ${x.s}/${x.id} (${["", "일반", "희귀", "영웅", "전설"][x.r]}) ${price}골드`, { user: u.id });
+  await ulog(u.id, "cos", `꾸미기 구매: ${x.s}/${x.id} (${["", "일반", "희귀", "영웅", "전설"][x.r]}) ${price}골드`, { slot: x.s, id: x.id, r: x.r, price, dg: -price, gold: u.gold });
   return { item: x.id, gold: u.gold, own: u.cos.own, eq: u.cos.eq, user: publicUser(u, c.xp.perLevel) };
 };
 A.cos_equip = async (q, b) => {
@@ -1101,9 +1186,11 @@ A.cos_equip = async (q, b) => {
     id = b.id ? String(b.id) : "";
   if (id && !(COS_BY[id] && COS_BY[id].s === slot)) throw fail(400, "이 칸에 맞지 않는 아이템입니다");
   if (id && !me.own.includes(id)) throw fail(403, "가지고 있지 않은 아이템입니다");
+  const prevEq = me.eq[slot];
   me.eq[slot] = id;
   u.cos = { own: me.own, eq: me.eq };
   await saveUser(u);
+  prevEq !== id && (await ulog(u.id, "cos", id ? `꾸미기 장착: ${slot}/${id}` : `꾸미기 해제: ${slot}`, { slot, id }));
   return { own: me.own, eq: me.eq, user: publicUser(u, c.xp.perLevel) };
 };
 // ── the daily shop ──
@@ -1216,6 +1303,7 @@ A.wish = async (q, b) => {
       [g, s] = it.split("|");
     if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템입니다");
     if (EXCLUSIVE[s]) throw fail(400, "시즌 보상 스킨은 찜할 수 없습니다");
+    const had = list.includes(it);
     if (!1 === b.on) list = list.filter((x) => x !== it);
     else if (!list.includes(it)) {
       if (list.length >= WISH_MAX) throw fail(409, `찜은 ${WISH_MAX}개까지입니다`);
@@ -1223,6 +1311,7 @@ A.wish = async (q, b) => {
     }
     u.wish = list;
     await saveUser(u);
+    had !== list.includes(it) && (await ulog(u.id, "wish", (had ? "찜 해제: " : "찜: ") + it, { item: it, on: had ? 0 : 1 }));
   }
   return { wish: list, max: WISH_MAX };
 };
@@ -1249,6 +1338,7 @@ A.shop_buy = async (q, b) => {
   u.spent = (u.spent || 0) + it.price;
   await saveUser(u);
   await log("shop", `${u.id} 구매${it.w ? "(주간 특가)" : ""}: ${it.g}/${it.s} (${SKIN_TIERS.label(it.r)}) ${it.price}골드`, { user: u.id });
+  await ulog(u.id, "shop", `구매${it.w ? "(주간 특가)" : ""}: ${it.g}/${it.s} (${SKIN_TIERS.label(it.r)}) ${it.price}골드`, { g: it.g, s: it.s, r: it.r, price: it.price, w: it.w ? 1 : 0, dg: -it.price, gold: u.gold });
   return { item: it, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // a pull of one or ten: gold out, items in, never one already owned. The
@@ -1279,6 +1369,7 @@ A.gacha = async (q, b) => {
   await saveUser(u);
   const leg = results.filter((r) => r.r >= 4);
   leg.length && (await log("gacha", `${u.id} 전설·초월 스킨: ${leg.map((r) => r.g + "/" + r.s).join(", ")}`, { user: u.id }));
+  await ulog(u.id, "gacha", `${n}회 뽑기 ${charged}골드${leg.length ? " · 전설 이상 " + leg.length : ""}`, { n, cost: charged, dg: -charged, res: results.map((r) => [r.g, r.s, r.r]), gold: u.gold, pulls: u.pulls });
   return { results, cost: charged, refunded: cost - charged, collector, gold: u.gold, owned: ownedCount(u), items: ITEMS, own: u.own, user: publicUser(u, c.xp.perLevel) };
 };
 // ── missions ──
@@ -1360,6 +1451,7 @@ A.mission_claim = async (q, b) => {
   }
   u.gold += gold;
   await saveUser(u);
+  await ulog(u.id, "mission", `미션 보상 ${pick.length}개 받음 +${gold}골드`, { ids: pick.map((x) => x.id), dg: gold, gold: u.gold });
   return { gold, ids: pick.map((x) => x.id), missions: misState(u, c), user: publicUser(u, c.xp.perLevel) };
 };
 // a match ticket: asked for when a match starts, handed back with the result.
@@ -1566,6 +1658,7 @@ A.progress = async (q, b) => {
     dup = !!(rkv && Array.isArray(u.rmDone) && u.rmDone.includes(rkv.m)),
     rankedOk = !!(rkv && rkv.counted && !dup && humans >= Math.max(0, +R.minHumans || 0)),
     rankedWhy = rkv ? (dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
+  const mmr0 = mmrOf(u);
   if (rankedOk) {
     u.rr = rr0;
     const placed0 = placedOf(u),
@@ -1602,6 +1695,8 @@ A.progress = async (q, b) => {
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
     try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
   }
+  // the account's own log gets the hidden MMR too: it is read on the owner page only
+  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
@@ -1873,12 +1968,16 @@ function adminCheats(u) {
     delete u.permBefore;
   }
 }
+// the owner's changes to an account, as its own log shows them
+const OP_KO = { ban: "차단", unban: "차단 해제", admin: "관리자 모드", xp: "경험치 설정", level: "레벨 설정", password: "비밀번호 변경", note: "메모", perm: "치트 권한", aim: "에임 보정", gold: "골드 설정", rr: "티어 점수 설정", grant: "스킨 지급" };
+const opNote = (b, u, was) => ("ban" === b.op ? (b.days > 0 ? ` ${b.days}일` : " 영구") + (b.reason ? ` (${String(b.reason).slice(0, 60)})` : "") : "gold" === b.op ? ` ${was.gold ?? 0} → ${u.gold}` : "rr" === b.op ? ` ${was.rr || 0} → ${u.rr}` : "grant" === b.op ? (b.remove ? " 회수 " : " ") + (Array.isArray(b.items) ? b.items.length + "개" : b.item === "all" ? "전부" : String(b.item || "").slice(0, 40)) : "level" === b.op || "xp" === b.op ? ` ${was.xp || 0} → ${u.xp} xp` : "");
 ADMIN.user_set = async (q, b) => {
   const id = cleanId(b.id),
     u = await getJ(userKey(id));
   if (!u) throw fail(404, "없는 아이디");
   const c = await loadConfig(),
-    d = b.days > 0 ? now() + b.days * 864e5 : 0;
+    d = b.days > 0 ? now() + b.days * 864e5 : 0,
+    was = { gold: u.gold, rr: u.rr, xp: u.xp };
   switch (b.op) {
     case "ban":
       u.ban = { reason: String(b.reason || "").slice(0, 200), until: d, at: now() };
@@ -1947,11 +2046,13 @@ ADMIN.user_set = async (q, b) => {
         ["ZREM", "users", id.toLowerCase()],
       ]);
       await log("admin", "계정 삭제: " + id);
+      await ulog(id, "admin", "운영자: 계정 삭제", { op: "delete" });
       return { ok: !0 };
     default:
       throw fail(400, "알 수 없는 작업");
   }
   await saveUser(u);
+  await ulog(u.id, "admin", "운영자: " + (OP_KO[b.op] || b.op) + opNote(b, u, was), { op: b.op, days: b.days > 0 ? +b.days : undefined, why: "ban" === b.op ? String(b.reason || "").slice(0, 80) : undefined, gold: "gold" === b.op ? [was.gold, u.gold] : undefined, rr: "rr" === b.op ? [was.rr || 0, u.rr] : undefined, xp: "xp" === b.op || "level" === b.op ? [was.xp || 0, u.xp] : undefined, n: "grant" === b.op ? (Array.isArray(b.items) ? b.items.length : "all" === b.item ? "all" : 1) : undefined, rm: "grant" === b.op && b.remove ? 1 : undefined, perm: "perm" === b.op && u.perm ? { on: u.perm.on ? 1 : 0, sw: PERM_SW.filter((k) => u.perm[k]).join(","), sp: u.perm.speed, ff: u.perm.fastFire, bf: u.perm.buff, until: u.perm.until } : undefined, until: "admin" === b.op ? u.adminUntil || 0 : undefined });
   await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}${"aim" === b.op ? ` PC ${b.pc ? "켬" : "끔"} · 모바일 ${!1 !== b.mobile ? "켬" : "끔"}` : ""}`);
   return { ok: !0 };
 };
@@ -1962,6 +2063,96 @@ ADMIN.user_skins = async (q, b) => {
   const own = {};
   if (isObj(u.own)) for (const g of GUNS) Array.isArray(u.own[g]) && (own[g] = u.own[g].filter((s) => SKIN_TIER[s] && fits(s, g)));
   return { id: u.id, own, owned: ownedCount({ own }), items: ITEMS, gold: "number" == typeof u.gold ? u.gold : null, guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY };
+};
+// one account's whole profile for the owner page, in one call: the account (nothing secret: no hash, no
+// session), its own activity log, totals counted from that log, and, for the time before the log began, what
+// can still be found (server-log lines that name it, the last matches kept on the account, the sign-up).
+// A guest is found through its name (gname:) to its device's record.
+ADMIN.user_profile = async (q, b) => {
+  const id = cleanId(b.id).slice(0, 40),
+    lc = id.toLowerCase();
+  if (!id) throw fail(400, "아이디가 없습니다");
+  const c = await loadConfig(),
+    t = now();
+  let u = await getJ(userKey(id));
+  if (!u) {
+    const dev = await redis(["GET", guestNameKey(id)]);
+    u = dev ? await getJ(guestKey(dev)) : null;
+  }
+  const me = u && u.guest ? "g:" + u.dev : "u:" + lc;
+  const [lines, global, ordIds, fbIds] = await pipe([["LRANGE", ulogKey(id), "0", String(ULOG_MAX - 1)], ["LRANGE", "logs", "0", "1999"], ["LRANGE", "ordu:u:" + lc, "0", "19"], ["LRANGE", "fbu:" + me, "0", "19"]]);
+  const parse = (x) => {
+    try { return JSON.parse(x); } catch (e) { return null; }
+  };
+  const own = (lines || []).map(parse).filter((e) => e && e.t && e.k);
+  if (!u && !own.length) throw fail(404, "없는 아이디");
+  const recs = ((ordIds || []).length || (fbIds || []).length ? await pipe((ordIds || []).map((i) => ["GET", "ord:" + i]).concat((fbIds || []).map((i) => ["GET", "fb:" + i]))) : []).map((x) => (x ? parse(x) : null));
+  const orders = recs.slice(0, (ordIds || []).length).filter(Boolean).map((o) => ({ id: o.id, t: o.t, items: o.items, days: o.days, total: o.total, status: o.status, until: o.until || 0, reason: o.reason || "" }));
+  const feedback = recs.slice((ordIds || []).length).filter(Boolean).map((f) => ({ id: f.id, t: f.t, type: f.type, title: f.title, status: f.status }));
+  // the log begins at its oldest line; before that only what the server log and the account itself kept
+  const since = own.length ? own[own.length - 1].t : 0,
+    before = (x) => !since || x < since;
+  const timeline = own.map((e) => Object.assign({ s: "u" }, e));
+  const mine = (e) => (e.user && String(e.user).toLowerCase() === lc) || (("auth" === e.type || "admin" === e.type) && (String(e.msg).toLowerCase().endsWith(": " + lc) || String(e.msg).toLowerCase().startsWith("계정 " + lc + ":")));
+  for (const x of global || []) {
+    const e = parse(x);
+    e && e.t && before(e.t) && mine(e) && timeline.push({ s: "g", t: e.t, k: "auth" === e.type ? "loginfail" : String(e.type).slice(0, 12), m: String(e.msg || "").slice(0, 140), d: e.ip ? { ip: e.ip } : undefined });
+  }
+  if (u) {
+    for (const h of histOf(u)) h && h.t && before(h.t) && timeline.push({ s: "h", t: h.t, k: "match", m: `${h.win ? "승리" : "패배"} · ${h.k || 0}킬${h.rk ? " · 랭크" : ""} · ${h.mode || ""} ${h.map || ""}`.trim(), d: { win: h.win ? 1 : 0, k: h.k || 0, xp: h.xp, dg: h.gold, rr: h.rr || undefined, rk: h.rk ? 1 : 0 } });
+    u.created && before(u.created) && !timeline.some((e) => "join" === e.k && e.t <= u.created + 5000) && timeline.push({ s: "h", t: u.created, k: "join", m: u.guest ? "게스트 첫 입장" : "계정 생성" });
+  }
+  timeline.sort((p, r) => r.t - p.t);
+  // totals from the log's own lines
+  const agg = { logins: 0, fails: 0, gacha: { times: 0, pulls: 0, cost: 0, byRarity: {} }, gold: { earned: 0, spent: 0 }, shop: 0, matches: 0, wins: 0, ips: [], devs: [] };
+  const seen = (list, v, e) => {
+    if (!v) return;
+    const f = list.find((x) => x.v === v);
+    f ? (f.n++, f.t = Math.max(f.t, e.t)) : list.push({ v, n: 1, t: e.t });
+  };
+  for (const e of own) {
+    const d = e.d || {};
+    if ("login" === e.k || "join" === e.k || "guest" === e.k) (agg.logins++, seen(agg.ips, d.ip, e), seen(agg.devs, d.dev, e));
+    else if ("loginfail" === e.k) agg.fails++;
+    if ("gacha" === e.k) {
+      agg.gacha.times++;
+      agg.gacha.pulls += d.n | 0;
+      agg.gacha.cost += d.cost | 0;
+      for (const r of Array.isArray(d.res) ? d.res : []) agg.gacha.byRarity[r[2]] = (agg.gacha.byRarity[r[2]] || 0) + 1;
+    }
+    ("shop" === e.k || "cos" === e.k) && (d.price || d.coins) && agg.shop++;
+    if ("match" === e.k) (agg.matches++, d.win && agg.wins++);
+    typeof d.dg === "number" && (d.dg > 0 ? (agg.gold.earned += d.dg) : (agg.gold.spent -= d.dg));
+  }
+  const last = (list) => list.sort((p, r) => r.t - p.t).slice(0, 10);
+  agg.ips = last(agg.ips);
+  agg.devs = last(agg.devs);
+  const out = { id: u ? u.id : id, found: !!u, log: timeline.slice(0, 900), since, capped: own.length >= ULOG_MAX, agg, orders, itemNames: Object.fromEntries(ORDER_ITEMS.map((x) => [x.k, x.name])), feedback, t };
+  if (!u) return { profile: out };
+  const lv = levelOf(u.xp || 0, c.xp.perLevel),
+    cur = seasonNow(c, t),
+    tiers = {},
+    guns = {};
+  if (isObj(u.own)) for (const g in u.own) if (Array.isArray(u.own[g])) for (const s of u.own[g]) SKIN_TIER[s] && (tiers[SKIN_TIER[s]] = (tiers[SKIN_TIER[s]] || 0) + 1, guns[g] = (guns[g] || 0) + 1);
+  const ban = u.ban ? Object.assign({ active: !u.ban.until || u.ban.until > t }, u.ban) : null;
+  const acct = {
+    id: u.id, guest: !!u.guest, created: u.created || 0, lastSeen: u.lastSeen || 0, lastIp: u.lastIp || "", dev: u.dev || "",
+    level: lv.level, xp: u.xp || 0, into: lv.into, need: lv.need, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0,
+    pulls: u.pulls || 0, bought: u.bought || 0, cosBought: u.cosBought || 0, spent: u.spent || 0, refunded: u.refunded || 0,
+    kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0,
+    owner: !!u.owner, admin: !!(u.owner || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
+    perm: u.perm || null, permActive: !!activePerm(u), aim: aimOf(u), ban, note: u.note || "",
+    // the hidden rating is for the owner page only
+    rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
+    season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,
+    seasonLog: Array.isArray(u.ssnLog) ? u.ssnLog.slice(0, 12) : [],
+    owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
+    equipped: (u.skins && isObj(u.skins.m) && u.skins.m) || {},
+    wish: cleanWish(u), missions: misState(u, c), cos: cosOf(u),
+    goldDay: isObj(u.goldDay) ? u.goldDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
+    hist: histOf(u),
+  };
+  return { profile: Object.assign(out, { acct }) };
 };
 ADMIN.bans = async () => {
   const keys = [...((await redis(["KEYS", "ban:dev:*"])) || []), ...((await redis(["KEYS", "ban:ip:*"])) || [])];
@@ -2067,9 +2258,9 @@ ADMIN.order_set = async (q, b) => {
   if (!raw) throw fail(404, "없는 주문입니다");
   const o = JSON.parse(raw);
   const op = String(b.op || "");
-  if (!["grant", "reject", "refund", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
+  if (!["grant", "reject", "refund", "revoke", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
   null != b.note && (o.note = fbStr(b.note, 300));
-  if ("grant" === op || "refund" === op) {
+  if ("grant" === op || "refund" === op || "revoke" === op) {
     const u = await getJ(userKey(o.by));
     if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
     if ("grant" === op) {
@@ -2080,9 +2271,20 @@ ADMIN.order_set = async (q, b) => {
       o.status = "granted";
       o.grantedAt = now();
       o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+      await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
       await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+    } else if ("revoke" === op) {
+      // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
+      if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
+      takeBackOrder(u, o);
+      await saveUser(u);
+      o.status = "revoked";
+      o.revokedAt = now();
+      o.reason = fbStr(b.reason, 200);
+      await ledgerAdd("revoke", o, { reason: o.reason });
+      await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
     } else {
-      if ("granted" !== o.status && "pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
+      if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
       if (b.revoke && "granted" === o.status) {
         // what the order gave is taken back: the cheats, the gold (never below nothing)
         if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
@@ -2090,18 +2292,37 @@ ADMIN.order_set = async (q, b) => {
         g && (u.gold = Math.max(0, (+u.gold || 0) - g));
         await saveUser(u);
       }
+      const paid = "pending" !== o.status;
       o.status = "refunded";
+      o.refundedAt = now();
       o.reason = fbStr(b.reason, 200);
+      await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
       await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
     }
   } else if ("reject" === op) {
     if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
     o.status = "rejected";
     o.reason = fbStr(b.reason, 200);
+    await ledgerAdd("reject", o, { reason: o.reason });
     await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
   }
   await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
   return { order: o };
+};
+// the books: every money event of the paid orders, newest first, with the totals of what is shown
+ADMIN.ledger = async (q, b) => {
+  await ledgerSeed();
+  const raw = await redis(["LRANGE", "ledger", "0", "19999"]);
+  const kind = String(b.kind || ""),
+    from = +b.from || 0,
+    to = +b.to || 0,
+    s = String(b.q || "").toLowerCase();
+  const rows = raw.map((x) => JSON.parse(x)).filter((r) => (!kind || r.kind === kind) && (!from || r.t >= from) && (!to || r.t < to) && (!s || JSON.stringify(r).toLowerCase().includes(s)));
+  rows.sort((a, c) => c.t - a.t);
+  const sum = (k) => rows.filter((r) => r.kind === k).reduce((n, r) => n + (r.money || 0), 0);
+  const count = (k) => rows.filter((r) => r.kind === k).length;
+  const totals = { paid: sum("paid"), refund: -sum("refund"), net: sum("paid") + sum("refund"), orders: count("order"), paidCount: count("paid"), revoked: count("revoke"), refunded: count("refund"), rejected: count("reject") };
+  return { rows: rows.slice(0, 1000), total: rows.length, totals, names: orderNames() };
 };
 ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_CONFIG });
 ADMIN.config_set = async (q, b) => {
