@@ -126,7 +126,28 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
 .qc label small{color:var(--dim);font-size:11px}
 .qc .rg{display:flex;align-items:center;gap:8px}.qc .rg input[type=range]{flex:1;accent-color:var(--gold)}.qc .rg input[type=number]{width:72px;text-align:right}
 .qc .wide{grid-column:1/-1}
-@media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}table.sk th,table.sk td{display:table-cell!important}}
+@media (max-width:640px){main{padding:10px}th:nth-child(n+5),td:nth-child(n+5){display:none}table.sk th,table.sk td,.pf th,.pf td{display:table-cell!important}}
+
+/* a player's name opens the profile window */
+button.uname,.pl span button.uname{background:none;border:0;border-radius:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted var(--steel);text-underline-offset:3px}
+button.uname:hover{color:var(--gold);border:0}
+.modal .sheet.pf{width:min(1180px,100%);height:min(92vh,900px);padding-top:0}
+.pf .pfh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:16px}
+.pf .pfh h3{font-size:18px}.pf .pfh .sp{flex:1}
+.pf-tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:3;background:var(--panel);padding:8px 0;border-bottom:1px solid var(--line)}
+.pf-tabs button.on{border-color:var(--gold);color:var(--gold)}
+.pf-body{display:flex;flex-direction:column;gap:12px;min-width:0}.pf-body[hidden]{display:none}
+.pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.pf-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.pf-card h4{font-size:13px;margin-bottom:8px;color:var(--steel)}
+.pf .kv{display:grid;grid-template-columns:120px 1fr;gap:4px 12px;font-size:12.5px}.pf .kv span:nth-child(odd){color:var(--dim)}.pf .kv span{min-width:0;word-break:break-word}
+.pf-scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+.pf-scroll table{border:0;border-radius:0}
+.pf .log td:nth-child(3){font-family:inherit;word-break:break-word}
+.pf .log td small{display:block;color:var(--dim)}.pf td .tag{white-space:nowrap}
+.pf .pf-div td{background:var(--panel2);color:var(--gold);text-align:center;font-size:12px}
+.pf .pf-old td{opacity:.78}
+.pf-note{border:1px dashed var(--line);border-radius:10px;padding:8px 12px;color:var(--steel);font-size:12.5px}
 
 /* the feedback box */
 #osum a{color:var(--gold)}
@@ -411,6 +432,171 @@ async function skinEditor(u, done) {
   $("#sk-none", box).onclick = () => confirm(u.id + "의 스킨을 전부 회수할까요?") && send({ item: "all", remove: !0 }, "스킨을 전부 회수했습니다");
   paint();
 }
+// ── a player's profile: everything kept about one account, in one window (a_user_profile = one call) ──
+// uname(id) makes a name clickable anywhere on the page; one capture-phase handler opens the window, so the
+// buttons and rows around a name never see that click.
+const uname = (id) => (id ? `<button type="button" class="uname" data-user="${esc(id)}" title="프로필 열기">${esc(id)}</button>` : "");
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest(".uname");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  openProfile(b.dataset.user);
+}, true);
+// a table whose header says 계정 shows its names clickable too (so a new table needs nothing more)
+const NAME_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
+function nameCells(root) {
+  root.querySelectorAll("table").forEach((tb) => {
+    const i = [...tb.querySelectorAll("tr:first-child th")].findIndex((h) => h.textContent.trim() === "계정");
+    if (i < 0) return;
+    tb.querySelectorAll("tr").forEach((tr) => {
+      const td = tr.children[i];
+      if (!td || td.tagName !== "TD" || td.childNodes.length !== 1 || td.firstChild.nodeType !== 3 || !NAME_OK.test(td.textContent.trim())) return;
+      td.innerHTML = uname(td.textContent.trim());
+    });
+  });
+}
+new MutationObserver(() => nameCells($("#main"))).observe($("#main"), { childList: !0, subtree: !0 });
+const PF_KIND = { join: ["가입", "gold"], login: ["로그인", "green"], guest: ["게스트", "green"], loginfail: ["로그인 실패", "red"], blocked: ["차단됨", "red"], gacha: ["뽑기", "gold"], shop: ["상점", "blue"], cos: ["꾸미기", "blue"], wish: ["찜", ""], equip: ["스킨 장착", ""], mission: ["미션", "green"], match: ["경기", "blue"], level: ["레벨", "gold"], rank: ["티어", "gold"], order: ["주문", "gold"], feedback: ["문의", ""], admin: ["운영", "red"], room: ["방", ""] };
+const PF_TABS = [["info", "정보"], ["conn", "접속 기록"], ["shop", "뽑기·상점"], ["match", "경기·랭크"], ["order", "주문"], ["all", "전체 로그"]];
+const PF_SRC = { g: "서버 로그에서 가져옴", h: "계정에 남은 기록에서 가져옴" };
+const pfNum = (n) => (+n || 0).toLocaleString("ko-KR");
+const pfSgn = (n) => (n > 0 ? "+" : "") + pfNum(n);
+const pfChip = (g, s, r) => `<span class="tag" style="color:${TIER_C[r] || "var(--steel)"};border-color:${TIER_C[r] || "var(--line)"}">${esc(SKIN_KO[s] || s)} <span class="muted">${esc(GUN_KO[g] || g)}</span></span>`;
+const pfArrow = (a) => (Array.isArray(a) ? a.map(pfNum).join(" → ") : String(a));
+// the small facts of one line, as readable text
+function pfDetail(e) {
+  const d = e.d || {}, out = [], done = new Set(["ip", "dev", "res", "g", "s", "r", "dg", "gold", "coins", "xp", "rr", "mmr", "pl", "cc", "lv", "sw", "perm", "item", "id", "slot", "cut", "until", "price", "w", "n", "cost", "pulls", "op", "days", "why", "owner", "rk", "ok", "win", "draw", "k", "on", "rm"]);
+  if (d.ip || d.dev) out.push(`IP ${esc(d.ip || "-")} · 기기 ${esc(String(d.dev || "-").slice(0, 18))}`);
+  if (Array.isArray(d.res)) out.push(d.res.map(([g, s, r]) => pfChip(g, s, r)).join(" "));
+  else if (d.g && d.s) out.push(pfChip(d.g, d.s, d.r));
+  if (d.item) out.push(esc(String(d.item).replace("|", " / ")));
+  if (d.sw) out.push(Object.entries(d.sw).map(([g, s]) => `${esc(GUN_KO[g] || g)}: ${esc(SKIN_KO[s] || s)}`).join(", "));
+  if (typeof d.dg === "number") out.push(`골드 ${pfSgn(d.dg)}${typeof d.gold === "number" ? " → " + pfNum(d.gold) : ""}`);
+  else if (Array.isArray(d.gold)) out.push(`골드 ${pfArrow(d.gold)}`);
+  if (d.coins) out.push(`초월 코인 ${pfSgn(d.coins)}`);
+  if (d.xp != null) out.push(Array.isArray(d.xp) ? `경험치 ${pfArrow(d.xp)}` : `XP +${pfNum(d.xp)}`);
+  if (d.rr) out.push(Array.isArray(d.rr) ? `RR ${pfArrow(d.rr)}` : `RR ${pfSgn(d.rr)}`);
+  if (Array.isArray(d.mmr)) out.push(`MMR ${pfArrow(d.mmr)} <span class="muted">(운영자만)</span>`);
+  if (d.perm) out.push(`권한 ${d.perm.on ? "켬" : "끔"} ${esc(d.perm.sw || "")} ${d.perm.sp > 1 ? "속도×" + d.perm.sp : ""} ${d.perm.ff > 1 ? "연사×" + d.perm.ff : ""} ${d.perm.bf ? "버프 " + d.perm.bf + "초" : ""} ${d.perm.until ? "~" + when(d.perm.until) : "기한 없음"}`);
+  d.until && out.push("기한 ~" + when(d.until));
+  for (const k in d) done.has(k) || out.push(`${esc(k)}=${esc(Array.isArray(d[k]) ? pfArrow(d[k]) : d[k])}`);
+  return out.join(" · ");
+}
+// the lines as a table; where the per-account log began, a divider says what is older
+function pfRows(list, p) {
+  const note = p.since ? "" : `<div class="pf-note">이 계정은 아직 개별 기록이 없습니다. 기록 시작 이전 — 서버 로그와 계정에 남은 경기 기록에서 가져온 것만 보입니다.</div>`;
+  if (!list.length) return note + '<p class="muted">기록이 없습니다.</p>';
+  let rows = "", cut = !p.since;
+  const divider = () => (p.since ? `<tr class="pf-div"><td colspan="3">▼ 기록 시작 이전 (${when(p.since)} 이전) — 서버 로그·경기 기록에서 가져온 것만 보입니다${p.capped ? " · 오래된 줄은 500줄 한도로 지워졌습니다" : ""}</td></tr>` : "");
+  for (const e of list) {
+    if (!cut && e.t < p.since) { rows += divider(); cut = !0; }
+    const k = PF_KIND[e.k] || [e.k, ""], det = pfDetail(e);
+    rows += `<tr class="${e.s === "u" ? "" : "pf-old"}"><td>${when(e.t)}</td><td><span class="tag ${k[1]}">${esc(k[0])}</span></td><td>${esc(e.m)}${det ? `<small>${det}</small>` : ""}${e.s !== "u" ? `<small>${PF_SRC[e.s] || ""}</small>` : ""}</td></tr>`;
+  }
+  !cut && (rows += divider());
+  return note + `<div class="pf-scroll"><table class="log"><tr><th>시각</th><th>종류</th><th>내용</th></tr>${rows}</table></div>`;
+}
+const pfKv = (rows) => `<div class="kv">${rows.map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join("")}</div>`;
+const pfCard = (t, body) => `<div class="pf-card"><h4>${t}</h4>${body}</div>`;
+function pfInfo(p) {
+  const a = p.acct;
+  if (!a) return '<p class="muted">계정이 없습니다 (지워졌거나 기록만 남은 이름). 기록 탭을 보세요.</p>';
+  const ban = a.ban && a.ban.active, rk = a.rank, eq = Object.entries(a.equipped), cos = a.cos || { own: [], eq: {} };
+  const tags = `${a.guest ? '<span class="tag">게스트</span>' : ""} ${a.owner ? '<span class="tag gold">소유자</span>' : a.admin ? `<span class="tag gold">관리자 ${a.adminUntil ? "~" + when(a.adminUntil) : ""}</span>` : ""} ${ban ? `<span class="tag red">차단 ${a.ban.until ? "~" + when(a.ban.until) : "영구"}</span>` : '<span class="tag green">정상</span>'} ${a.permActive ? '<span class="tag blue">치트 권한</span>' : ""} ${a.aim.pc ? '<span class="tag blue">PC 에임 보정</span>' : ""}${a.aim.mobile === !1 ? ' <span class="tag red">모바일 보정 막힘</span>' : ""}`;
+  const mis = a.missions.list.map((m) => `<span class="tag ${m.got ? "green" : m.done ? "gold" : ""}">${m.per === "d" ? "일일" : "주간"} ${{ play: "경기", kills: "처치", wins: "승리" }[m.stat] || m.stat} ${m.have}/${m.n}${m.got ? " · 받음" : m.done ? " · 받을 수 있음" : ""}</span>`).join(" ");
+  return `<div class="pf-grid">
+    ${pfCard("계정", pfKv([["상태", tags], ["레벨", `Lv.${a.level} <span class="muted">${pfNum(a.xp)}xp (다음까지 ${pfNum(a.need - a.into)})</span>`], ["가입", when(a.created)], ["마지막 접속", when(a.lastSeen)], ["마지막 IP", esc(a.lastIp || "-")], ["기기", esc(a.dev || "-")], ["전적", `${pfNum(a.kills)}킬 · ${pfNum(a.wins)}승 / ${pfNum(a.matches)}판`], ["메모", esc(a.note || "-")]]))}
+    ${pfCard("제한·권한", pfKv([["차단", a.ban ? `${ban ? "" : "(끝남) "}${a.ban.until ? "~" + when(a.ban.until) : "영구"} · ${esc(a.ban.reason || "사유 없음")} <span class="muted">${when(a.ban.at)}</span>` : "-"], ["관리자 모드", a.admin ? (a.adminUntil ? "~" + when(a.adminUntil) : a.owner ? "소유자" : "기한 없음") : "-"], ["치트 권한", a.perm && a.perm.on ? `${a.permActive ? "" : "(만료) "}${esc(permParts(a.perm).join(" · ") || "아무것도 안 엶")}${a.perm.until ? " ~" + when(a.perm.until) : ""}` : "-"], ["에임 보정", `PC ${a.aim.pc ? "허용" : "없음"}${a.aim.until ? " ~" + when(a.aim.until) : ""} · 모바일 ${a.aim.mobile ? "허용" : "막힘"}`]]))}
+    ${pfCard("골드·구매", pfKv([["골드", "🪙 " + pfNum(a.gold)], ["초월 코인", pfNum(a.championCoins)], ["뽑기", pfNum(a.pulls) + "회"], ["상점 구매", `${pfNum(a.bought)}건 · 꾸미기 ${pfNum(a.cosBought)}건`], ["쓴 골드", pfNum(a.spent)], ["환불된 골드", pfNum(a.refunded)], ["오늘 경기 골드", a.goldDay ? pfNum(a.goldDay.n) : "-"]]))}
+    ${pfCard("랭크", a.guest ? '<span class="muted">게스트는 랭크가 없습니다</span>' : pfKv([["지금 티어", rk.shown && rk.shown.hidden ? `배치 중 ${rk.placed}/${rk.of}` : rankTag(rk.now)], ["RR", pfNum(rk.rr)], ["숨은 MMR", `${pfNum(rk.mmr)} <span class="muted">운영자만 볼 수 있음</span>`], ["이번 시즌", a.season ? `시즌 ${a.season.n} · 랭크전 ${a.season.played}/${a.season.need}판 · ${a.season.wins}승` : "-"], ["지난 시즌", a.seasonLog.length ? a.seasonLog.slice(0, 3).map((s) => `시즌 ${s.n} ${esc(RANK_KO[s.t] || s.tier)} ${s.div || ""} (${s.played}판${s.gold ? " · +" + pfNum(s.gold) + "골드" : ""})`).join("<br>") : "-"]]))}
+    ${pfCard(`스킨 ${pfNum(a.owned.total)} / ${pfNum(a.owned.items)}`, `<div>${SKIN_TIERS.list.map(({ id }) => `<span class="tag" style="color:${TIER_C[id]};border-color:${TIER_C[id]}">${TIER_KO[id]} ${a.owned.byTier[id] || 0}</span>`).join(" ")}</div><div class="muted" style="margin-top:8px">많이 가진 총: ${Object.entries(a.owned.byGun).sort((x, y) => y[1] - x[1]).slice(0, 6).map(([g, n]) => `${esc(GUN_KO[g] || g)} ${n}`).join(" · ") || "-"}</div>`)}
+    ${pfCard("장착한 스킨", eq.length ? eq.map(([g, s]) => `<span class="tag">${esc(GUN_KO[g] || g)}: ${esc(SKIN_KO[s] || s)}</span>`).join(" ") : '<span class="muted">없음</span>')}
+    ${pfCard(`찜 ${a.wish.length}개`, a.wish.length ? a.wish.map((w) => { const [g, s] = w.split("|"); return `<span class="tag">${esc(GUN_KO[g] || g)}: ${esc(SKIN_KO[s] || s)}</span>`; }).join(" ") : '<span class="muted">없음</span>')}
+    ${pfCard("미션", mis || '<span class="muted">없음</span>')}
+    ${pfCard("꾸미기", pfKv([["가진 것", pfNum(cos.own.length) + "개"], ["칭호", esc(cos.eq.title || "-")], ["네임카드", esc(cos.eq.card || "-")], ["배너", esc(cos.eq.banner || "-")]]))}
+    ${pfCard(`문의 ${p.feedback.length}건 <span class="muted">(최근 20건까지)</span>`, p.feedback.length ? p.feedback.map((f) => `<div>${when(f.t)} <span class="tag">${esc(f.type)}</span> ${esc(f.title)} <span class="muted">${esc(f.status)}</span></div>`).join("") : '<span class="muted">없음</span>')}
+  </div>`;
+}
+function pfShop(p) {
+  const g = p.agg.gacha, tot = Object.values(g.byRarity).reduce((x, y) => x + y, 0) || 1, a = p.acct;
+  const bars = SKIN_TIERS.list.map(({ id }) => `<div class="hbar"><span style="color:${TIER_C[id]}">${TIER_KO[id]}</span><span class="t"><i style="width:${Math.round((100 * (g.byRarity[id] || 0)) / tot)}%;background:${TIER_C[id]}"></i></span><span class="v">${g.byRarity[id] || 0}</span></div>`).join("");
+  return `<div class="pf-grid">
+    ${pfCard("뽑기", pfKv([["계정 전체", a ? pfNum(a.pulls) + "회" : "-"], ["기록된 뽑기", `${pfNum(g.pulls)}회 (${pfNum(g.times)}번 눌렀음)`], ["쓴 골드", pfNum(g.cost)]]) + `<div class="hbars" style="margin-top:10px">${bars}</div>`)}
+    ${pfCard("골드 흐름 <span class='muted'>(기록된 줄 기준)</span>", pfKv([["번 골드", pfSgn(p.agg.gold.earned)], ["쓴 골드", pfNum(p.agg.gold.spent)], ["상점·꾸미기 구매", pfNum(p.agg.shop) + "건"], ["가진 골드", a ? "🪙 " + pfNum(a.gold) : "-"]]))}
+  </div>${pfRows(p.log.filter((e) => ["gacha", "shop", "cos", "wish", "equip", "mission"].includes(e.k)), p)}`;
+}
+function pfMatch(p) {
+  const a = p.acct, hist = a ? a.hist : [], num = (n) => pfNum(n);
+  const rows = hist.map((m) => `<tr><td>${when(m.t)}</td><td><span class="tag ${m.win ? "green" : "red"}">${m.win ? "승" : "패"}</span>${m.rk ? ' <span class="tag gold">랭크</span>' : ""}${m.mvp ? ' <span class="tag blue">MVP</span>' : ""}</td><td>${esc(MODE_KO[m.mode] || m.mode)} · ${esc(m.map)}</td><td>${esc(m.agent)}</td><td>${num(m.k)} / ${num(m.d)} / ${num(m.a)}</td><td>${num(m.dmg)}</td><td>+${num(m.xp)}</td><td>+${num(m.gold)}</td><td>${m.rr ? pfSgn(m.rr) : "-"}</td></tr>`).join("");
+  return `<div class="pf-grid">${pfCard("전적", a ? pfKv([["경기", num(a.matches) + "판 · " + num(a.wins) + "승"], ["처치", num(a.kills)], ["기록된 경기", `${p.agg.matches}판 · ${p.agg.wins}승`]]) : "-")}
+    ${a && !a.guest ? pfCard("랭크", pfKv([["티어", a.rank.shown && a.rank.shown.hidden ? `배치 중 ${a.rank.placed}/${a.rank.of}` : rankTag(a.rank.now)], ["숨은 MMR", num(a.rank.mmr) + " (운영자만)"]])) : ""}</div>
+    <h4 style="color:var(--steel)">최근 경기 (계정에 남은 ${hist.length}판)</h4>
+    ${hist.length ? `<div class="pf-scroll"><table><tr><th>시각</th><th>결과</th><th>모드·맵</th><th>요원</th><th>K/D/A</th><th>피해</th><th>XP</th><th>골드</th><th>RR</th></tr>${rows}</table></div>` : '<p class="muted">경기 기록이 없습니다.</p>'}
+    <h4 style="color:var(--steel)">경기·티어·레벨 기록</h4>${pfRows(p.log.filter((e) => ["match", "rank", "level"].includes(e.k)), p)}`;
+}
+function pfOrder(p) {
+  const st = (s) => (typeof OD_ST !== "undefined" && OD_ST[s]) || [s, ""];
+  const rows = p.orders.map((o) => `<tr><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${(o.items || []).map((k) => `<span class="tag blue">${esc(p.itemNames[k] || k)}</span>`).join(" ")}</td><td>${o.days ? o.days + "일" : "영구"}</td><td>${pfNum(o.total)}원</td><td><span class="tag ${st(o.status)[1]}">${esc(st(o.status)[0])}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}</td></tr>`).join("");
+  return `${p.orders.length ? `<div class="pf-scroll"><table><tr><th>주문번호</th><th>시각</th><th>내용</th><th>기간</th><th>금액</th><th>상태</th></tr>${rows}</table></div>` : '<p class="muted">주문이 없습니다.</p>'}<h4 style="color:var(--steel)">주문 기록</h4>${pfRows(p.log.filter((e) => e.k === "order"), p)}`;
+}
+// the log as CSV (opens in Excel: UTF-8 with a mark; cells that start like a formula are quoted off)
+function pfCsv(p, list) {
+  const cell = (v) => { v = String(v == null ? "" : v); /^[=+\-@\t\r]/.test(v) && (v = "'" + v); return '"' + v.replace(/"/g, '""') + '"'; };
+  const rows = [["시각(UTC)", "시각(한국)", "종류", "출처", "내용", "상세"]].concat(list.map((e) => [new Date(e.t).toISOString(), when(e.t), e.k, e.s === "u" ? "계정 기록" : PF_SRC[e.s], e.m, e.d ? JSON.stringify(e.d) : ""]));
+  const blob = new Blob(["﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `profile-${p.id}-${kday(Date.now()).replace(/-/g, "")}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function openProfile(id, tab) {
+  document.getElementById("pf")?.remove();
+  const box = document.createElement("div");
+  box.className = "modal"; box.id = "pf";
+  box.innerHTML = `<div class="sheet pf"><div class="pfh"><h3>프로필 · ${esc(id)}</h3><span class="sp"></span><button id="pf-x">닫기</button></div><p class="muted">불러오는 중…</p></div>`;
+  document.body.appendChild(box);
+  const close = () => { box.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => e.key === "Escape" && close();
+  document.addEventListener("keydown", onKey);
+  box.onclick = (e) => e.target === box && close();
+  $("#pf-x", box).onclick = close;
+  let p;
+  try { p = (await call("a_user_profile", { id })).profile; }
+  catch (e) { box.querySelector(".muted").outerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
+  const a = p.acct, kinds = {};
+  p.log.forEach((e) => (kinds[e.k] = (kinds[e.k] || 0) + 1));
+  const sheet = box.querySelector(".sheet");
+  const conn = p.agg;
+  const connKinds = ["login", "join", "guest", "loginfail", "blocked"];
+  sheet.innerHTML = `<div class="pfh"><h3>프로필 · ${esc(p.id)}</h3>${a ? `<span class="tag">Lv.${a.level}</span> ${a.guest ? '<span class="tag">게스트</span>' : rankTag(a.rank.shown.hidden ? null : a.rank.now)} ${a.ban && a.ban.active ? '<span class="tag red">차단</span>' : ""} <span class="muted">마지막 접속 ${when(a.lastSeen)}</span>` : '<span class="tag red">계정 없음</span>'}<span class="sp"></span><button id="pf-re">새로 고침</button><button id="pf-x">닫기</button></div>
+    <div class="pf-tabs">${PF_TABS.map(([k, n]) => `<button data-t="${k}" class="${k === (tab || "info") ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div class="pf-body" data-p="info" ${(tab || "info") === "info" ? "" : "hidden"}>${pfInfo(p)}</div>
+    <div class="pf-body" data-p="conn" ${tab === "conn" ? "" : "hidden"}>
+      <div class="pf-grid">${pfCard("접속 요약 <span class='muted'>(기록된 줄 기준)</span>", pfKv([["로그인·가입", pfNum(conn.logins) + "번"], ["로그인 실패", pfNum(conn.fails) + "번"], ["마지막 접속", a ? when(a.lastSeen) : "-"], ["마지막 IP", a ? esc(a.lastIp || "-") : "-"]]))}
+        ${pfCard("최근 IP 10", conn.ips.length ? conn.ips.map((x) => `<div>${esc(x.v)} <span class="muted">${x.n}번 · ${when(x.t)}</span></div>`).join("") : '<span class="muted">기록 없음</span>')}
+        ${pfCard("최근 기기 10", conn.devs.length ? conn.devs.map((x) => `<div>${esc(String(x.v).slice(0, 24))} <span class="muted">${x.n}번 · ${when(x.t)}</span></div>`).join("") : '<span class="muted">기록 없음</span>')}</div>
+      ${pfRows(p.log.filter((e) => connKinds.includes(e.k)), p)}</div>
+    <div class="pf-body" data-p="shop" ${tab === "shop" ? "" : "hidden"}>${pfShop(p)}</div>
+    <div class="pf-body" data-p="match" ${tab === "match" ? "" : "hidden"}>${pfMatch(p)}</div>
+    <div class="pf-body" data-p="order" ${tab === "order" ? "" : "hidden"}>${pfOrder(p)}</div>
+    <div class="pf-body" data-p="all" ${tab === "all" ? "" : "hidden"}>
+      <div class="bar"><select id="pf-k"><option value="">모든 종류 (${p.log.length})</option>${Object.keys(kinds).map((k) => `<option value="${esc(k)}">${esc((PF_KIND[k] || [k])[0])} (${kinds[k]})</option>`).join("")}</select><input id="pf-q" placeholder="검색 (내용·IP·스킨 이름…)" style="flex:1;min-width:160px"><span class="muted" id="pf-n"></span><button id="pf-csv" class="gold">CSV로 내보내기</button></div>
+      <div id="pf-list"></div></div>`;
+  const shown = () => { const k = $("#pf-k", box).value, s = $("#pf-q", box).value.trim().toLowerCase(); return p.log.filter((e) => (!k || e.k === k) && (!s || (e.m + " " + (e.d ? JSON.stringify(e.d) : "") + " " + (PF_KIND[e.k] || [""])[0]).toLowerCase().includes(s))); };
+  const draw = () => { const l = shown(); $("#pf-n", box).textContent = `${l.length}줄`; $("#pf-list", box).innerHTML = pfRows(l, p); };
+  $("#pf-k", box).onchange = draw; $("#pf-q", box).oninput = draw;
+  $("#pf-csv", box).onclick = () => pfCsv(p, shown());
+  draw();
+  $("#pf-x", box).onclick = close;
+  $("#pf-re", box).onclick = () => { const cur = box.querySelector(".pf-tabs .on").dataset.t; close(); openProfile(id, cur); };
+  box.querySelector(".pf-tabs").onclick = (e) => {
+    const b = e.target.closest("button[data-t]");
+    if (!b) return;
+    box.querySelectorAll(".pf-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+    box.querySelectorAll("[data-p]").forEach((x) => (x.hidden = x.dataset.p !== b.dataset.t));
+  };
+}
 const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
 const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
@@ -438,7 +624,7 @@ VIEWS.dash = async () => {
   const maxS = Math.max(1, ...S.signups), maxR = Math.max(1, ...S.ranks);
   const usage = Math.round((100 * s.usage) / s.usageLimit);
   const modes = Object.entries(R.modes).map(([m, n]) => `<span class="tag">${esc(MODE_KO[m] || m)} ${n}</span>`).join(" ") || '<span class="muted">없음</span>';
-  const who = (list, f) => list.length ? `<table class="mini">${list.map((u, i) => `<tr><td class="muted">${i + 1}</td><td><b>${esc(u.id)}</b> <span class="muted">Lv.${u.level}</span></td><td>${f(u)}</td></tr>`).join("")}</table>` : '<p class="muted">아직 없음</p>';
+  const who = (list, f) => list.length ? `<table class="mini">${list.map((u, i) => `<tr><td class="muted">${i + 1}</td><td><b>${uname(u.id)}</b> <span class="muted">Lv.${u.level}</span></td><td>${f(u)}</td></tr>`).join("")}</table>` : '<p class="muted">아직 없음</p>';
   $("#main").innerHTML = `
     <div class="db-head"><h2>한눈에 보기</h2><span class="muted">${when(sm.t)} 기준${S.scanned < S.users ? ` · 최근 ${num(S.scanned)}명 집계` : ""}</span><span class="sp"></span><button id="db-re">새로 고침</button></div>
     <div class="chips" id="db-sw" style="margin-bottom:14px">${QUICK_SW.map(([p, n, warn]) => `<span class="chip ${warn ? "warn" : ""} ${getPath(C, p) ? "on" : ""}" data-p="${p}" title="눌러서 ${getPath(C, p) ? "끄기" : "켜기"}"><i></i>${n} ${getPath(C, p) ? "켬" : "끔"}</span>`).join("")}</div>
@@ -527,7 +713,7 @@ VIEWS.users = async () => {
     const j = await call("a_users", { q: $("#uq").value });
     $("#ut").textContent = `${j.total}명`;
     $("#ul").innerHTML = `<table><tr><th>아이디</th><th>레벨 / 티어</th><th>골드 / 스킨</th><th>상태</th><th>마지막 접속</th><th>전적</th><th>가입</th><th>IP / 기기</th><th></th></tr>${j.users.map((u) => `<tr data-id="${esc(u.id)}">
-      <td><b>${esc(u.id)}</b>${u.note ? `<div class="muted">${esc(u.note)}</div>` : ""}</td>
+      <td><b>${uname(u.id)}</b>${u.note ? `<div class="muted">${esc(u.note)}</div>` : ""}</td>
       <td>Lv.${u.level} <span class="muted">${u.xp}xp</span><div>${rankTag(u.rank)}</div></td>
       <td>🪙 ${(u.gold || 0).toLocaleString()}<div class="muted">초월 코인 ${u.championCoins || 0} · 스킨 ${u.owned || 0}/${u.items || 973} · 뽑기 ${u.pulls || 0}회</div></td>
       <td>${(u.ban && (!u.ban.until || u.ban.until > Date.now())) ? `<span class="tag red">차단 ${u.ban.until ? "~" + when(u.ban.until) : "영구"}</span><div class="muted">${esc(u.ban.reason)}</div>` : '<span class="tag green">정상</span>'} ${adminTag(u)}${permTag(u)}${aimTag(u)}</td>
@@ -574,8 +760,8 @@ VIEWS.rooms = async () => {
       Object.keys(by).filter((k) => !config.channels.some((c) => c.id === k)).map((k) => `<div class="sec"><h3>${esc(chName(k))}</h3>${by[k].map(roomHtml).join("")}</div>`).join("");
   };
   const roomHtml = (r) => `<div class="room" data-code="${esc(r.code)}"><h4>${esc(r.name)} <span class="tag">${esc(r.code)}</span> <span class="tag">${esc(r.mode)} · ${esc(r.map)}</span> <span class="tag ${r.state === "lobby" ? "" : "green"}">${r.state === "lobby" ? "대기실" : "경기 중"}</span>${r.private ? '<span class="tag gold">비공개</span>' : ""}</h4>
-    <div class="muted">방장 ${esc(r.host)} · ${esc(r.ip)} · 열린 시각 ${when(r.created)} · 마지막 신호 ${Math.round((Date.now() - r.seen) / 1000)}초 전</div>
-    <div class="pl">${(r.players || []).map((p) => `<span>${esc(p)} <button data-c="move" data-n="${esc(p)}" data-t="atk">공격</button><button data-c="move" data-n="${esc(p)}" data-t="def">수비</button><button data-c="hp" data-n="${esc(p)}">체력</button><button data-c="kill" data-n="${esc(p)}" class="bad">즉사</button><button data-c="god" data-n="${esc(p)}" data-v="1">무적</button><button data-c="god" data-n="${esc(p)}" data-v="0">무적 끄기</button><button data-c="bind" data-n="${esc(p)}" data-v="1">묶기</button><button data-c="bind" data-n="${esc(p)}" data-v="0">풀기</button><button data-c="cheat" data-n="${esc(p)}" data-v="1">치트 부여</button><button data-c="cheat" data-n="${esc(p)}" data-v="0">치트 회수</button><button data-c="kick" data-n="${esc(p)}" class="bad">내보내기</button></span>`).join("")}</div>
+    <div class="muted">방장 ${uname(r.host)} · ${esc(r.ip)} · 열린 시각 ${when(r.created)} · 마지막 신호 ${Math.round((Date.now() - r.seen) / 1000)}초 전</div>
+    <div class="pl">${(r.players || []).map((p) => `<span>${uname(p)} <button data-c="move" data-n="${esc(p)}" data-t="atk">공격</button><button data-c="move" data-n="${esc(p)}" data-t="def">수비</button><button data-c="hp" data-n="${esc(p)}">체력</button><button data-c="kill" data-n="${esc(p)}" class="bad">즉사</button><button data-c="god" data-n="${esc(p)}" data-v="1">무적</button><button data-c="god" data-n="${esc(p)}" data-v="0">무적 끄기</button><button data-c="bind" data-n="${esc(p)}" data-v="1">묶기</button><button data-c="bind" data-n="${esc(p)}" data-v="0">풀기</button><button data-c="cheat" data-n="${esc(p)}" data-v="1">치트 부여</button><button data-c="cheat" data-n="${esc(p)}" data-v="0">치트 회수</button><button data-c="kick" data-n="${esc(p)}" class="bad">내보내기</button></span>`).join("")}</div>
     <div class="acts" style="display:flex;gap:6px;flex-wrap:wrap"><button data-c="msg">공지 보내기</button><button data-c="close" class="bad">방 닫기</button></div></div>`;
   $("#main").onclick = async (e) => {
     const b = e.target.closest("button[data-c]"); if (!b) return;
@@ -595,7 +781,7 @@ VIEWS.bans = async () => {
   const j = await call("a_bans");
   $("#main").innerHTML = `<div class="sec"><h3>기기·IP 차단 추가</h3><div class="d">기기 ID는 가입자 목록이나 로그에서 볼 수 있습니다.</div>
     <div class="bar"><select id="bk"><option value="dev">기기</option><option value="ip">IP</option></select><input id="bv" placeholder="기기 ID 또는 IP"><input id="bd" type="number" value="0" style="width:80px" title="일 (0=영구)"><input id="br" placeholder="사유"><button class="go" id="ba">차단</button></div></div>
-    <table><tr><th>종류</th><th>대상</th><th>사유</th><th>기간</th><th>차단 시각</th><th></th></tr>${j.bans.map((b) => `<tr><td>${{ user: "계정", dev: "기기", ip: "IP" }[b.kind]}</td><td>${esc(b.key)}</td><td>${esc(b.reason)}</td><td>${b.until ? "~" + when(b.until) : "영구"}</td><td>${when(b.at)}</td><td><button data-k="${b.kind}" data-v="${esc(b.key)}">풀기</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">차단 없음</td></tr>'}</table>`;
+    <table><tr><th>종류</th><th>대상</th><th>사유</th><th>기간</th><th>차단 시각</th><th></th></tr>${j.bans.map((b) => `<tr><td>${{ user: "계정", dev: "기기", ip: "IP" }[b.kind]}</td><td>${b.kind === "user" ? uname(b.key) : esc(b.key)}</td><td>${esc(b.reason)}</td><td>${b.until ? "~" + when(b.until) : "영구"}</td><td>${when(b.at)}</td><td><button data-k="${b.kind}" data-v="${esc(b.key)}">풀기</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">차단 없음</td></tr>'}</table>`;
   $("#ba").onclick = async () => { await call("a_ban_set", { kind: $("#bk").value, key: $("#bv").value.trim(), days: +$("#bd").value || 0, reason: $("#br").value }); toast("차단했습니다"); VIEWS.bans(); };
   $("#main").querySelector("table").onclick = async (e) => {
     const b = e.target.closest("button"); if (!b) return;
@@ -638,10 +824,10 @@ const FB_REASON = { cheat: "치트·핵", abuse: "욕설·비매너", grief: "�
 async function fbBadge() { try { const j = await call("a_feedback", { limit: 1 }); const e = $("#fbBadge"); e && (e.textContent = j.counts.new ? String(j.counts.new) : ""); return j.counts; } catch (e) {} }
 function fbCard(r) {
   const k = FB_KIND[r.type] || ["💬", r.type], st = FB_ST[r.status] || FB_ST.new;
-  const who = `${esc(r.by.id)}${r.by.guest ? " <span class='tag'>게스트</span>" : ` <span class="muted">Lv.${r.by.level}</span>`}`;
+  const who = `${uname(r.by.id)}${r.by.guest ? " <span class='tag'>게스트</span>" : ` <span class="muted">Lv.${r.by.level}</span>`}`;
   let extra = "";
   if (r.type === "agent" && r.agent) extra = `<div class="kv"><span>요원 이름</span><span><b>${esc(r.agent.name)}</b> ${r.agent.role ? `<span class="tag blue">${esc(r.agent.role)}</span>` : ""}</span></div><div class="abl">${r.agent.abilities.map((a) => `<i>${esc(a.key)}</i><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>`).join("")}</div>`;
-  if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${esc(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
+  if (r.type === "report" && r.report) extra = `<div class="kv"><span>신고 대상</span><span><b>${uname(r.report.target)}</b></span><span>이유</span><span>${esc(FB_REASON[r.report.reason] || r.report.reason)}</span><span>방 코드</span><span>${esc(r.report.room || "-")}</span></div>`;
   if (r.type === "bug" && r.bug) extra = `<div class="kv"><span>어디서</span><span>${esc(r.bug.where || "-")}</span>${r.bug.steps ? `<span>재현 방법</span><span style="white-space:pre-wrap">${esc(r.bug.steps)}</span>` : ""}</div>`;
   const c = r.ctx || {};
   const diagnostic=c.diagnostic?`<div class="kv"><span>진단 요약</span><span>${esc(c.diagnostic.quality)} · p95 ${esc(c.diagnostic.p95Ms)}ms · GPU ${esc(c.diagnostic.geometries)}/${esc(c.diagnostic.textures)}<br>${esc(c.diagnostic.version)} · ${esc(c.diagnostic.commit)}</span></div>`:'';
@@ -688,7 +874,7 @@ VIEWS.feedback = async () => {
 VIEWS.logs = async () => {
   $("#main").innerHTML = `<div class="bar"><select id="lt"><option value="">전체</option><option value="login">로그인</option><option value="join">가입</option><option value="guest">게스트</option><option value="auth">로그인 실패</option><option value="room">방</option><option value="level">레벨</option><option value="admin">운영</option><option value="gacha">뽑기</option><option value="shop">상점</option></select><input id="lq" placeholder="검색"><button id="lr">새로고침</button><button id="lc" class="bad">로그 비우기</button></div><div id="ll"></div>`;
   const load = async () => { const j = await call("a_logs", { type: $("#lt").value, q: $("#lq").value, limit: 2000 });
-    $("#ll").innerHTML = `<table class="log"><tr><th>시각</th><th>종류</th><th>내용</th><th>IP</th></tr>${j.logs.map((r) => `<tr><td>${when(r.t)}</td><td><span class="tag">${esc(r.type)}</span></td><td>${esc(r.msg)}</td><td>${esc(r.ip || "")}</td></tr>`).join("")}</table>`; };
+    $("#ll").innerHTML = `<table class="log"><tr><th>시각</th><th>종류</th><th>계정</th><th>내용</th><th>IP</th></tr>${j.logs.map((r) => `<tr><td>${when(r.t)}</td><td><span class="tag">${esc(r.type)}</span></td><td>${uname(r.user)}</td><td>${esc(r.msg)}</td><td>${esc(r.ip || "")}</td></tr>`).join("")}</table>`; };
   $("#lr").onclick = load; $("#lt").onchange = load; $("#lq").onkeydown = (e) => { if (e.key === "Enter") load(); };
   $("#lc").onclick = async () => { if (confirm("로그를 모두 지울까요?")) { await call("a_logs_clear"); load(); } };
   await load();
