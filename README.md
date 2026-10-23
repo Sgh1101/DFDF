@@ -98,6 +98,23 @@
 | `sw.js`, `manifest.webmanifest` | PWA |
 | `vercel.json` | 배포 설정 |
 
+## Competitive (server)
+
+RR and the hidden MMR are computed only in `api/v1.js` from a match the host attested; what a player reports about himself (`humans`, `win`) is never used for ranked RR. All calls are `POST /api/v1?a=<action>` with a JSON body.
+
+1. `ranked_start` `{token, room, a: [ids], b: [ids]}` (host, ranked room) returns `{id, t0, rm, a, b, ownerPlayed}`. `rm` is a signed ticket for the host. Unknown, guest and banned accounts are dropped from the roster; the host must stay in it. MMR of everyone is snapshotted here.
+2. `match_start` `{token, ranked: true, room}` (every player) returns `{ticket, ranked}`; the ticket (`mt`) carries the match id. 403 if the account is not in the roster, 409 until the host has called `ranked_start`. Asking again returns the same ticket.
+3. `ranked_result` `{token, rm, w: "a"|"b"|"draw", k: {id: kills}}` (host, after at least 60 s) returns `{accepted, duplicate, w}`. The first result stands.
+4. `progress` `{token, mt, kills, win, outcome, match, giveUp?}` (every player, unchanged for normal matches). In a ranked match `win`/`outcome` must equal the attested result for the player's team (else 409, counted as a dissent); `humans` is ignored. 425 means the host has not reported yet (retry); `giveUp: true` takes the plain XP/gold reward without RR. The answer adds `rankedCounted`, `rankedWhy` (`few_humans`, `draw`, `disputed`, `no_result`, `duplicate`), `placement: {done, of: 5}` and `rr` (the change; 0 while placing).
+
+Rules: at least `rank.minHumans` roster accounts must have fetched a ticket; a draw, a match under 60 s and a disputed match move nothing; a match is disputed when a strict majority of the non-host players of a team dissent; an account settles a match once; `rank.maxPerDay` still caps daily RR gain. The operator's matches count like anyone's (`ownerPlayed: true` is kept on the match record); cheats are closed in ranked rooms for everyone but the operator (`owner_ticket` is issued to the owner only, `perm_ticket` never).
+
+MMR (Elo, field `mmr`, `placed`): older accounts get `1000 + RR` on first read (placed if they have RR or ranked history). The first 5 counted matches are placement (K = 120, tier hidden: `user.rank.hidden === true`, `user.placement`); after the fifth, RR = MMR - 1000. After that RR change = base win/loss x clamp(0.5 + (1 - expected) | 0.5 + expected, 0.5, 1.5) + the kill bonus, with `expected` from the two teams' average MMR (pure helpers in `module.exports.rankMath`). A season roll shrinks MMR toward 1000 by the same `season.keep` factor as RR.
+
+`leaderboard` `{n?}` (public, default 50, max 100) returns `{season: {n, end}, rows: [{pos, name, tier, t, div, rr, wins, played}]}`: placed accounts that counted a ranked match this season (Redis sorted set `lb:<season>`), no MMR or private data.
+
+Matchmaking: `rooms` and `room_up` give a ranked room `band` (its average MMR rounded to 50, `null` when unknown) and `range` (150 MMR, +50 per minute the room has been open, up to 600). `ranked_can_join` `{token, code}` returns `{ranked, ok, range, band}`; the operator and rooms without a measured average are always open.
+
 ## 환경변수 (Vercel)
 
 | 이름 | 용도 |
