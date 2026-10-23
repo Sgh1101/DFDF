@@ -88,3 +88,10 @@
   #pause .pz-sw.on span{left:calc(100% - 19px)!important}
   #pause .pz-sw::before{content:none}
 }
+
+/* The match result is centred, but centring a column taller than the screen pushes its top (the title, the
+   score and the stat tiles) above the scrollable area where no scroll can reach it (on a 844x390 phone all
+   of them). Auto margins centre it while it fits and start it at the top when it does not. */
+#s-over{justify-content:flex-start!important}
+#s-over>:first-child{margin-top:auto!important}
+#s-over>:last-child{margin-bottom:auto!important}
