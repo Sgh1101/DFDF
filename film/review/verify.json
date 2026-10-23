@@ -24,8 +24,8 @@
   "determinism": {
     "t": 20.6,
     "twoBrowsers": [
-      "03868e5e2df5ac7be99a81390593bb278f89ec06a52106429ed7a1005e803005",
-      "03868e5e2df5ac7be99a81390593bb278f89ec06a52106429ed7a1005e803005"
+      "4431639402495b510537d1405d5b2b351deb1c805122202a05aaa00aecef1ea7",
+      "4431639402495b510537d1405d5b2b351deb1c805122202a05aaa00aecef1ea7"
     ],
     "identical": true,
     "seekAwayAndBack": true
@@ -76,7 +76,7 @@
   ],
   "stills": {
     "16x9": [
-      "review/beats/16x9/16x9-01.20.png",
+      "review/beats/16x9/16x9-01.40.png",
       "review/beats/16x9/16x9-02.75.png",
       "review/beats/16x9/16x9-04.00.png",
       "review/beats/16x9/16x9-05.80.png",
@@ -96,7 +96,7 @@
       "review/beats/16x9/16x9-38.50.png"
     ],
     "9x16": [
-      "review/beats/9x16/9x16-01.20.png",
+      "review/beats/9x16/9x16-01.40.png",
       "review/beats/9x16/9x16-02.75.png",
       "review/beats/9x16/9x16-04.00.png",
       "review/beats/9x16/9x16-05.80.png",
@@ -116,7 +116,7 @@
       "review/beats/9x16/9x16-38.50.png"
     ],
     "1x1": [
-      "review/beats/1x1/1x1-01.20.png",
+      "review/beats/1x1/1x1-01.40.png",
       "review/beats/1x1/1x1-02.75.png",
       "review/beats/1x1/1x1-04.00.png",
       "review/beats/1x1/1x1-05.80.png",
@@ -136,7 +136,7 @@
       "review/beats/1x1/1x1-38.50.png"
     ],
     "16x9-reduced": [
-      "review/beats/16x9-reduced/16x9-reduced-01.20.png",
+      "review/beats/16x9-reduced/16x9-reduced-01.40.png",
       "review/beats/16x9-reduced/16x9-reduced-02.75.png",
       "review/beats/16x9-reduced/16x9-reduced-04.00.png",
       "review/beats/16x9-reduced/16x9-reduced-05.80.png",
@@ -1222,13 +1222,13 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "18190379"
+          "size": "16610068"
         }
       },
       "loudness": {
         "I": -16.1,
         "TP": -1.9,
-        "LRA": 1.2
+        "LRA": 1.8
       },
       "flashes": {
         "frames": 2400,
@@ -1260,13 +1260,13 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "14201561"
+          "size": "13732109"
         }
       },
       "loudness": {
         "I": -16.1,
         "TP": -1.9,
-        "LRA": 1.2
+        "LRA": 1.8
       },
       "flashes": {
         "frames": 2400,
@@ -1298,13 +1298,13 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "11434019"
+          "size": "10698632"
         }
       },
       "loudness": {
         "I": -16.1,
         "TP": -1.9,
-        "LRA": 1.2
+        "LRA": 1.8
       },
       "flashes": {
         "frames": 2400,
@@ -1336,13 +1336,13 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "17405761"
+          "size": "15652443"
         }
       },
       "loudness": {
         "I": -16.1,
         "TP": -1.9,
-        "LRA": 1.2
+        "LRA": 1.8
       },
       "flashes": {
         "frames": 2400,
