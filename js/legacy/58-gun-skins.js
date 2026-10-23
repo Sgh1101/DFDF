@@ -1368,29 +1368,73 @@
     }
     uv.needsUpdate = !0;
   }
+  // the imported guns are painted from one small atlas, so a pattern drawn for a whole gun (the waves) comes out on them in
+  // scraps, a few pixels to a face. Lay it flat along the gun instead: a side face takes the side view, a top or bottom face
+  // the plan view, a muzzle or butt face the end view, so the pattern runs on from part to part as it does on the built guns
+  function flowUV(mesh, root, tile, vOff) {
+    const g = mesh.geometry,
+      uv = g && g.attributes.uv,
+      pos = g && g.attributes.position;
+    if (!uv || !pos || g.userData.shared || g.userData.uvFlow === tile) return;
+    g.userData.uv0 = g.userData.uv0 || uv.array.slice();
+    g.userData.uvFlow = tile;
+    const to = root.matrixWorld.clone().invert().multiply(mesh.matrixWorld),
+      normalMatrix = new T.Matrix3().getNormalMatrix(to),
+      nor = g.attributes.normal,
+      p = new T.Vector3(),
+      n = new T.Vector3();
+    for (let i = 0; i < uv.count; i++) {
+      p.fromBufferAttribute(pos, i).applyMatrix4(to);
+      nor ? n.fromBufferAttribute(nor, i).applyMatrix3(normalMatrix) : n.set(1, 0, 0);
+      const ax = Math.abs(n.x),
+        ay = Math.abs(n.y),
+        az = Math.abs(n.z),
+        [a, b] = ax >= ay && ax >= az ? [p.z, p.y] : ay >= az ? [p.z, p.x] : [p.x, p.y];
+      uv.setXY(i, a / tile, b / tile + (vOff || 0));
+    }
+    uv.needsUpdate = !0;
+  }
   // ── a skin's own shell: parts added over the gun so its outline changes, sized from the gun's own box ──
   const KITS = {
-    // 챔피언의 물결: finely worked armour — bevelled grey plates down both sides edged in gold with seams, rivets and vents,
-    // a lit core in nested gold rings, orange light strips, a six-sided open stock with its own gold frame, a toothed top
-    // rail with a scope housing, a gold fin under the fore-end, a ringed muzzle crown. Every part is small and sized from
-    // the gun's own box, so a pistol and a sniper both read as the same piece
+    // 챔피언의 물결: finely worked armour — bevelled grey receiver plates down both sides edged in gold with seams, rivets and
+    // vents, a lit core in nested gold rings, orange light strips, a toothed top rail with a scope housing, a ringed muzzle
+    // crown. Every part is small and sized from the gun's own box, and none of it stands out of the gun's outline, so a
+    // pistol and a sniper both stay recognisably the gun they are
     champion(root, skin) {
       root.updateMatrixWorld(!0);
       const inv = root.matrixWorld.clone().invert(),
-        box = new T.Box3();
-      root.traverse((o) => {
-        if (!o.isMesh || !o.geometry || o.userData.kit) return;
+        box = new T.Box3(),
+        parts = [],
+        size = new T.Vector3();
+      // the gun's drawn metal only: shown, and with some thickness. The imported guns carry flat sight and scope overlay
+      // quads (the operator's reaches 3.8 m across), which the old box counted, so every plate grew to the size of the quad
+      root.traverseVisible((o) => {
+        if (!o.isMesh || !o.geometry || o.userData.kit || Math.abs(o.matrixWorld.determinant()) < 1e-12) return;
         o.geometry.boundingBox || o.geometry.computeBoundingBox();
-        box.union(o.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld)));
+        const b = o.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld));
+        b.getSize(size);
+        if (Math.min(size.x, size.y, size.z) < 1e-4) return;
+        box.union(b);
+        parts.push({ y: (b.min.y + b.max.y) / 2, w: size.x * size.y * size.z });
       });
       if (box.isEmpty()) return;
       const z0 = box.min.z,
         z1 = box.max.z,
-        y0 = box.min.y,
-        y1 = box.max.y,
         L = z1 - z0,
-        H = y1 - y0;
-      if (L < 0.2 || H < 0.08) return;
+        H0 = box.max.y - box.min.y;
+      if (L < 0.2 || H0 < 0.08) return;
+      // the plates sit on the body, not on the magazine, grip and sights that stretch the box. The built guns were drawn
+      // to this box and keep it; an imported gun is thin for its box (the Vandal's stock is 0.21 m tall, the stock plate
+      // sized from the box was 0.44 m), so it gets its height from where its metal is, never under 60% of the box, and
+      // the parts keep to that band
+      let imported = !1;
+      root.traverse((n) => n.userData.valorantRig && (imported = !0));
+      const wsum = parts.reduce((a, p) => a + p.w, 0) || 1,
+        cy = parts.reduce((a, p) => a + p.w * p.y, 0) / wsum,
+        sd = Math.sqrt(parts.reduce((a, p) => a + p.w * (p.y - cy) ** 2, 0) / wsum),
+        H = imported ? H0 * Math.min(1, Math.max(0.6, (4 * sd) / H0)) : H0,
+        y0 = imported ? Math.min(box.max.y - H, Math.max(box.min.y, cy - H / 2)) : box.min.y,
+        y1 = y0 + H;
       const hw = Math.max(0.03, Math.min(0.07, (box.max.x - box.min.x) * 0.3)),
         kit = new T.Group();
       kit.userData.kitOf = skin.id;
@@ -1447,23 +1491,26 @@
         m.position.set(x, Y(v), Z(u));
         return add(m);
       };
-      const armour = [[0.2, 0.42], [0.3, 0.86], [0.62, 0.94], [0.74, 0.7], [0.66, 0.34], [0.44, 0.28]];
+      // the side plate is a squared receiver panel (straight top and bottom, a cut corner at each end), so it reads as
+      // armour on the gun. It used to be a pointed lozenge that, with the six-sided stock behind it and the gold fin
+      // under it, made the gun read as a fish
+      const armour = [[0.2, 0.44], [0.2, 0.84], [0.26, 0.92], [0.7, 0.92], [0.75, 0.84], [0.75, 0.4], [0.68, 0.3], [0.28, 0.3]];
       for (const sd of [-1, 1]) {
         const x0 = sd * (hw + T0 * 0.5),
           xo = sd * (hw + T0 * 1.05); // the outer face of the plate
         // 1. the plate, a gold rim round it, a second inset line in orange
         plate(armour, null, T0, x0, panel);
         outline(grow(armour, 1.015), xo + sd * T0 * 0.1, T0 * 0.28, gold, T0 * 0.28);
-        outline([[0.245, 0.5], [0.325, 0.8], [0.615, 0.875], [0.69, 0.68]], xo + sd * T0 * 0.15, T0 * 0.3, glow, T0 * 0.18);
+        outline(grow(armour, 0.9), xo + sd * T0 * 0.15, T0 * 0.3, glow, T0 * 0.18);
         // 2. seams across the plate, and a block of vents at the rear
-        bar([0.43, 0.3], [0.47, 0.9], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
-        bar([0.2, 0.62], [0.72, 0.64], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
+        bar([0.44, 0.31], [0.44, 0.91], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
+        bar([0.2, 0.62], [0.75, 0.62], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
         for (let k = 0; k < 5; k++) {
           const v = 0.4 + k * 0.045;
           bar([0.52, v], [0.62, v + 0.01], T0 * 0.2, xo + sd * T0 * 0.1, seam, T0 * 0.2);
         }
         // 3. rivets at the corners
-        [[0.23, 0.45], [0.31, 0.83], [0.6, 0.9], [0.71, 0.69], [0.64, 0.38], [0.45, 0.32]].forEach(([u, v]) => stud(xo + sd * T0 * 0.3, u, v, T0 * 0.28));
+        grow(armour, 0.965).forEach(([u, v]) => stud(xo + sd * T0 * 0.3, u, v, T0 * 0.28));
         // 4. the core: a lit disc, a hot centre, two gold rings, eight ticks round it
         const cu = 0.52,
           cv = 0.55,
@@ -1489,47 +1536,31 @@
           tk.rotation.x = -a + Math.PI / 2;
         }
         // 5. light strips low on the plate
-        bar([0.3, 0.38], [0.6, 0.355], T0 * 0.25, xo + sd * T0 * 0.15, glow, T0 * 0.16);
-        bar([0.34, 0.33], [0.58, 0.31], T0 * 0.2, xo + sd * T0 * 0.12, hot, T0 * 0.12);
+        bar([0.26, 0.38], [0.5, 0.38], T0 * 0.25, xo + sd * T0 * 0.15, glow, T0 * 0.16);
+        bar([0.28, 0.35], [0.48, 0.35], T0 * 0.2, xo + sd * T0 * 0.12, hot, T0 * 0.12);
       }
-      // 6. the open six-sided stock at the back: a bevelled grey frame, a gold frame inside, ticks, studs
-      const hex = (cu, cv, ru, rv) => [[cu - ru, cv], [cu - ru * 0.5, cv + rv], [cu + ru * 0.5, cv + rv], [cu + ru, cv], [cu + ru * 0.5, cv - rv], [cu - ru * 0.5, cv - rv]];
-      const sU = 0.86,
-        sV = 0.5;
-      plate(hex(sU, sV, 0.15, 0.58), [hex(sU, sV, 0.098, 0.355).reverse()], hw * 0.7, 0, panel);
-      plate(hex(sU, sV, 0.1, 0.38), [hex(sU, sV, 0.088, 0.325).reverse()], hw * 0.58, 0, gold);
-      for (const sd of [-1, 1]) {
-        const x = sd * hw * 0.36;
-        outline(hex(sU, sV, 0.148, 0.575), x, T0 * 0.28, gold, T0 * 0.28);
-        outline(hex(sU, sV, 0.104, 0.4), x, T0 * 0.22, glow, T0 * 0.16);
-        hex(sU, sV, 0.126, 0.5).forEach(([u, v]) => stud(x + sd * T0 * 0.05, u, v, T0 * 0.3));
-      }
-      // 7. a gold fin under the fore-end, pointing back: a stripe and three slits
-      plate([[0.3, 0.3], [0.52, 0.3], [0.44, -0.12], [0.32, -0.02]], null, hw * 0.45, 0, gold);
-      for (const sd of [-1, 1]) {
-        const x = sd * (hw * 0.225 + T0 * 0.12);
-        bar([0.35, 0.22], [0.47, 0.05], T0 * 0.22, x, glow, T0 * 0.18);
-        for (let k = 0; k < 3; k++) bar([0.36 + k * 0.03, 0.26 - k * 0.02], [0.4 + k * 0.03, 0.27 - k * 0.02], T0 * 0.18, x, seam, T0 * 0.14);
-      }
-      // 8. the top: a rail with teeth along it, a scope housing and its lens, a gold hood; a ringed muzzle crown
+      // (no stock frame and no fin under the fore-end: they stood out of the gun's own outline, the tail and the fin of the fish)
+      // 6. the top: a rail with teeth along it, a scope housing and its lens, a gold hood; a ringed muzzle crown
       const railU0 = 0.3,
         railU1 = 0.74,
         rh = H * 0.07;
-      add(new T.Mesh(new T.BoxGeometry(hw * 0.7, rh, L * (railU1 - railU0)), dark)).position.set(0, y1 + rh * 0.5, Z((railU0 + railU1) / 2));
+      // (on an imported gun the rail is sunk a little into the top of the body, so it sits on the gun and does not hover over it)
+      const yr = y1 - (imported ? rh * 0.6 : 0);
+      add(new T.Mesh(new T.BoxGeometry(hw * 0.7, rh, L * (railU1 - railU0)), dark)).position.set(0, yr + rh * 0.5, Z((railU0 + railU1) / 2));
       const teeth = Math.max(8, Math.round(L * 55));
       for (let k = 0; k < teeth; k++) {
         const u = railU0 + ((k + 0.5) / teeth) * (railU1 - railU0);
-        add(new T.Mesh(new T.BoxGeometry(hw * 0.86, rh * 0.5, (L * (railU1 - railU0)) / teeth * 0.5), gold)).position.set(0, y1 + rh * 1.2, Z(u));
+        add(new T.Mesh(new T.BoxGeometry(hw * 0.86, rh * 0.5, (L * (railU1 - railU0)) / teeth * 0.5), gold)).position.set(0, yr + rh * 1.2, Z(u));
       }
       const hood = add(new T.Mesh(new T.CylinderGeometry(H * 0.06, H * 0.07, L * 0.15, 16), dark));
       hood.rotation.x = Math.PI / 2;
-      hood.position.set(0, y1 + rh * 1.6 + H * 0.06, Z(0.47));
-      for (const dz of [-0.05, 0.05]) add(new T.Mesh(new T.BoxGeometry(hw * 0.4, H * 0.06, L * 0.02), gold)).position.set(0, y1 + rh * 1.6 + H * 0.02, Z(0.47) + L * dz);
+      hood.position.set(0, yr + rh * 1.6 + H * 0.06, Z(0.47));
+      for (const dz of [-0.05, 0.05]) add(new T.Mesh(new T.BoxGeometry(hw * 0.4, H * 0.06, L * 0.02), gold)).position.set(0, yr + rh * 1.6 + H * 0.02, Z(0.47) + L * dz);
       const hoodRing = add(new T.Mesh(new T.TorusGeometry(H * 0.067, H * 0.01, 6, 20), gold));
-      hoodRing.position.set(0, y1 + rh * 1.6 + H * 0.06, Z(0.47) - L * 0.075);
+      hoodRing.position.set(0, yr + rh * 1.6 + H * 0.06, Z(0.47) - L * 0.075);
       const lens = add(new T.Mesh(new T.CylinderGeometry(H * 0.05, H * 0.05, L * 0.01, 16), core));
       lens.rotation.x = Math.PI / 2;
-      lens.position.set(0, y1 + rh * 1.6 + H * 0.06, Z(0.47) - L * 0.077);
+      lens.position.set(0, yr + rh * 1.6 + H * 0.06, Z(0.47) - L * 0.077);
       const crown = add(new T.Mesh(new T.BoxGeometry(hw * 1.5, Math.min(H * 0.3, 0.05), L * 0.05), gold));
       crown.position.set(0, Y(0.7), z0 + L * 0.02);
       for (let k = 0; k < 3; k++) {
@@ -1551,7 +1582,13 @@
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
     if (window.VALORANT_PACK && skin.pack) return VALORANT_PACK.dress(root, skin);
-    if ("default" !== skin.id)
+    if ("default" !== skin.id) {
+      // the waves are one pattern for the whole gun: an imported gun gets it laid flat along its length (see flowUV)
+      let flow = !1;
+      if ("champion" === skin.pat) {
+        root.updateMatrixWorld(!0);
+        root.traverse((n) => n.userData.valorantRig && (flow = !0));
+      }
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
         const kind = o.material.userData && o.material.userData.kind,
@@ -1561,7 +1598,9 @@
         if (!m) return;
         o.material = m;
         m.map && fitUV(o, skin.tile, skin.vOff);
+        m.map && flow && flowUV(o, root, skin.tile || TILE, skin.vOff);
       });
+    }
     root.userData.skin = skin.id;
     if (skin.kit && KITS[skin.kit])
       try {

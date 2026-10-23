@@ -18,6 +18,47 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.deepEqual([r.rar, r.tier, r.knife], [4, true, true]);
     const cat = await f.h.api("catalog", {});
     assert.equal(cat.tiers.champion, 4);
+    // the shell keeps inside the gun's own outline, on every gun (the Vandal and the rest of the pack included), so a gun in the
+    // skin is still that gun, and the waves run along the imported ones. The old shell had a pointed plate, a six-sided stock
+    // behind it and a fin under it (1.37 times the built guns' height: a fish), followed a box that counted the pack's flat scope
+    // overlay quads (the operator's: 3.3 m of armour on a 1.9 m gun), and the pattern, drawn from the pack's small atlas,
+    // came out in scraps.
+    await page.waitForFunction(() => window.VALORANT_PACK && VALORANT_PACK.status === "ready", null, { timeout: 120000 });
+    const fit = await page.evaluate(() => {
+      const T = THREE, skin = GUN_SKINS.list.find((s) => s.id === "champion"), res = {};
+      const body = (root) => {
+        root.updateMatrixWorld(true);
+        const inv = root.matrixWorld.clone().invert(), box = new T.Box3(), s = new T.Vector3();
+        root.traverseVisible((o) => {
+          if (!o.isMesh || o.userData.kit || Math.abs(o.matrixWorld.determinant()) < 1e-12) return;
+          o.geometry.boundingBox || o.geometry.computeBoundingBox();
+          const b = o.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld));
+          b.getSize(s); if (Math.min(s.x, s.y, s.z) >= 1e-4) box.union(b);
+        });
+        return box.getSize(new T.Vector3());
+      };
+      for (const key of GUN_SKINS.guns().filter((g) => GUN_SKINS.skinsFor(g).some((x) => x.id === "champion"))) {
+        const gun = body(GUN_SKINS.buildFor(key, skin)), g = GUN_SKINS.buildFor(key, skin);
+        GUN_SKINS.apply(g, skin); g.updateMatrixWorld(true);
+        const kit = g.children.find((c) => c.userData && c.userData.kitOf), kb = new T.Box3().setFromObject(kit).getSize(new T.Vector3());
+        let lo = Infinity, hi = -Infinity, imported = false;
+        g.traverse((o) => {
+          if (o.userData.valorantRig) imported = true;
+          if (!o.isMesh || o.userData.kit || !o.material.map) return;
+          const uv = o.geometry.attributes.uv;
+          for (let i = 0; i < uv.count; i++) { lo = Math.min(lo, uv.getX(i)); hi = Math.max(hi, uv.getX(i)); }
+        });
+        res[key] = { imported, kitH: +(kb.y / gun.y).toFixed(2), kitL: +(kb.z / gun.z).toFixed(2), flow: +(((hi - lo) * skin.tile) / gun.z).toFixed(2) };
+      }
+      return res;
+    });
+    console.log("champion shell vs gun:", JSON.stringify(fit));
+    for (const [key, r] of Object.entries(fit)) {
+      assert.ok(r.kitL <= 1, key + " shell is " + r.kitL + " times as long as the gun");
+      assert.ok(r.kitH <= 1, key + " shell is " + r.kitH + " times as tall as the gun");
+      if (r.imported) assert.ok(r.flow >= 0.8, key + " pattern spans only " + r.flow + " of the gun's length (atlas scraps)");
+    }
+    assert.ok(Object.values(fit).filter((r) => r.imported).length >= 9, "the imported guns were checked");
     // the armoury draws it
     await page.evaluate(() => GUN_SKINS.open("rifle", "gun"));
     await page.waitForSelector('#ar-skins .ar-sk[data-s="champion"]');
