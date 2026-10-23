@@ -1,3 +1,6 @@
+// Playwright's offline switch reaches a service worker's own fetches only with its service-worker network events
+// on; without them the worker still reaches the server and the offline screen is never shown.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ||= '1';
 const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture');
 // The diagnostics/update and reconnect screen were inspected before this check.
 (async()=>{const f=await fixture();try{
