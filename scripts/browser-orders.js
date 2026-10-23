@@ -101,6 +101,24 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const mine = await page.textContent("#od-body");
     assert.match(mine, /열림/); assert.match(mine, /지금 쓸 수 있는 치트/);
     assert.equal(await page.locator("#od [data-cancel]").count(), 0);
+    // the books: the opened order is a paid line; the revoke button is on the opened order and takes back only the cheats
+    await ap.click('#nav [data-v="ledger"]');
+    await ap.waitForSelector("#ll table tr:nth-child(3)");
+    const books = await ap.textContent("#ll"), sum = await ap.textContent("#lsum");
+    assert.match(books, /입금 확인/); assert.match(books, /주문 접수/); assert.match(books, /\+24,000원/); assert.match(sum, /순매출 24,000원/);
+    await ap.screenshot({ path: dir + "/order-ledger.png" });
+    await ap.click('#nav [data-v="orders"]');
+    await ap.waitForSelector('#ol [data-op="revoke"]');
+    assert.equal(await ap.locator('#ol [data-op="refund"]').count(), 1, "refund stays next to the revoke");
+    await ap.click('#ol [data-op="revoke"]');
+    await ap.waitForFunction(() => /회수/.test(document.querySelector("#ol tr[data-id] td:nth-child(8)").textContent));
+    assert.equal(f.h.user("buyer").perm.on, false, "the cheats are taken back");
+    assert.equal(await ap.locator('#ol [data-op="revoke"]').count(), 0, "once");
+    await ap.click('#nav [data-v="ledger"]');
+    await ap.waitForFunction(() => /회수/.test(document.getElementById("ll").textContent));
+    assert.match(await ap.textContent("#lsum"), /회수 1건/);
+    await ap.selectOption("#lk", "revoke");
+    await ap.waitForFunction(() => document.querySelectorAll("#ll tr").length === 2);
     await ctx.close();
     assert.deepEqual(f.errors, []);
     console.log("orders: hidden until opened, pick and price, pay screen, my orders, the owner's list with badge, open by hand, the buyer sees it opened, phone fit");

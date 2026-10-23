@@ -165,6 +165,7 @@ table.sk td:not(.na):hover{outline:2px solid var(--gold);outline-offset:-2px}
       <button data-v="rooms">서버·방</button>
       <button data-v="bans">차단</button>
       <button data-v="orders">구매 주문<span id="odBadge"></span></button>
+      <button data-v="ledger">장부</button>
       <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
       <button data-v="agents">요원</button>
@@ -607,7 +608,7 @@ VIEWS.bans = async () => {
 
 
 // ── paid cheats: orders waiting for the money, to open by hand once it has arrived ──
-const OD_ST = { pending: ["입금 대기", "gold"], granted: ["열어 줌", "green"], rejected: ["거절", "red"], cancelled: ["취소", ""], refunded: ["환불", "red"] };
+const OD_ST = { pending: ["입금 대기", "gold"], granted: ["열어 줌", "green"], rejected: ["거절", "red"], cancelled: ["취소", ""], refunded: ["환불", "red"], revoked: ["회수", "red"] };
 async function odBadge() { try { const j = await call("a_orders", { limit: 1 }); const e = $("#odBadge"); e && (e.textContent = j.counts.pending ? String(j.counts.pending) : ""); return j.counts; } catch (e) {} }
 VIEWS.orders = async () => {
   $("#main").innerHTML = `<div id="osum" class="fbx"></div><div class="bar"><select id="os"><option value="">모든 상태</option>${Object.entries(OD_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="oq" placeholder="검색 (주문번호·계정·입금자)"><button id="or">새로고침</button></div><div id="ol"><p class="muted">불러오는 중…</p></div>`;
@@ -617,7 +618,7 @@ VIEWS.orders = async () => {
     $("#osum").innerHTML = `<span class="tag ${j.on ? "green" : "red"}">${j.on ? "판매 중" : "판매 꺼짐"}</span>${j.bank ? "" : `<span class="tag red">입금 계좌 없음</span>`}<span class="tag gold">입금 대기 ${j.counts.pending}</span><span class="tag">열어 준 금액 합계 ${j.counts.sum.toLocaleString()}원</span><span class="muted">판매 열기·계좌·가격은 <a href="#" id="ocfg">게임 설정 → order</a></span>`;
     $("#ocfg").onclick = (e) => { e.preventDefault(); view = "config"; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x.dataset.v === "config")); show(); };
     const nm = (k) => j.names[k] || k, dur = (d) => (d ? d + "일" : "영구");
-    $("#ol").innerHTML = j.orders.length ? `<table><tr><th>주문번호</th><th>시각</th><th>계정</th><th>내용</th><th>기간</th><th>금액</th><th>입금자</th><th>상태</th><th></th></tr>${j.orders.map((o) => { const st = OD_ST[o.status] || OD_ST.pending; return `<tr data-id="${esc(o.id)}"><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${esc(o.by)}</td><td>${o.items.map((k) => `<span class="tag blue">${esc(nm(k))}</span>`).join(" ")}</td><td>${dur(o.days)}</td><td><b>${o.total.toLocaleString()}원</b></td><td>${esc(o.depositor)}</td><td><span class="tag ${st[1]}">${st[0]}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}${o.note ? `<div class="muted">📝 ${esc(o.note)}</div>` : ""}</td><td>${o.status === "pending" ? `<button data-op="grant" class="gold">입금 확인 · 열어주기</button> <button data-op="reject" class="red">거절</button>` : o.status === "granted" ? `<button data-op="refund" class="red">환불·회수</button>` : ""} <button data-op="note">메모</button></td></tr>`; }).join("")}</table>` : `<p class="muted">주문이 없습니다.</p>`;
+    $("#ol").innerHTML = j.orders.length ? `<table><tr><th>주문번호</th><th>시각</th><th>계정</th><th>내용</th><th>기간</th><th>금액</th><th>입금자</th><th>상태</th><th></th></tr>${j.orders.map((o) => { const st = OD_ST[o.status] || OD_ST.pending; return `<tr data-id="${esc(o.id)}"><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${esc(o.by)}</td><td>${o.items.map((k) => `<span class="tag blue">${esc(nm(k))}</span>`).join(" ")}</td><td>${dur(o.days)}</td><td><b>${o.total.toLocaleString()}원</b></td><td>${esc(o.depositor)}</td><td><span class="tag ${st[1]}">${st[0]}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}${o.note ? `<div class="muted">📝 ${esc(o.note)}</div>` : ""}</td><td>${o.status === "pending" ? `<button data-op="grant" class="gold">입금 확인 · 열어주기</button> <button data-op="reject" class="red">거절</button>` : o.status === "granted" ? `<button data-op="revoke" class="red">회수</button> <button data-op="refund" class="red">환불</button>` : o.status === "revoked" ? `<button data-op="refund" class="red">환불</button>` : ""} <button data-op="note">메모</button></td></tr>`; }).join("")}</table>` : `<p class="muted">주문이 없습니다.</p>`;
   };
   $("#or").onclick = load; $("#os").onchange = load; $("#oq").onkeydown = (e) => { if (e.key === "Enter") load(); };
   $("#ol").onclick = async (e) => {
@@ -625,9 +626,32 @@ VIEWS.orders = async () => {
     const id = tr.dataset.id, op = b.dataset.op;
     if (op === "grant") { if (!confirm(`주문 ${id}: 입금을 확인하셨나요?\n확인을 누르면 그 계정에 바로 치트가 열립니다.`)) return; await call("a_order_set", { id, op: "grant" }); toast("열어 줬습니다"); }
     else if (op === "reject") { const r = prompt("거절 사유 (보낸 사람에게 보입니다)", "입금이 확인되지 않았습니다"); if (r === null) return; await call("a_order_set", { id, op: "reject", reason: r }); toast("거절했습니다"); }
+    else if (op === "revoke") { if (!confirm(`주문 ${id}: 이 주문으로 열린 치트(골드가 있으면 그 골드도)만 회수합니다.\n입금 기록은 장부에 그대로 남고, 돈은 돌려주지 않습니다.`)) return; const r = prompt("회수 사유 (장부에 남습니다)", ""); if (r === null) return; await call("a_order_set", { id, op: "revoke", reason: r }); toast("회수했습니다"); }
     else if (op === "refund") { const rv = confirm(`주문 ${id}: 환불 처리합니다.\n이 계정의 치트도 함께 끌까요? (확인=끔, 취소=그대로 둠)`); const r = prompt("환불 사유", "환불"); if (r === null) return; await call("a_order_set", { id, op: "refund", revoke: rv, reason: r }); toast("환불 처리했습니다"); }
     else if (op === "note") { const n = prompt("운영자 메모 (보낸 사람에겐 안 보임)", ""); if (n === null) return; await call("a_order_set", { id, op: "note", note: n }); toast("저장했습니다"); }
     await load(); odBadge();
+  };
+  await load();
+};
+// ── the books: every money event of the paid orders (order made, money confirmed, taken back, refunded, declined) ──
+const LG_KIND = { order: ["주문 접수", "gold"], paid: ["입금 확인", "green"], revoke: ["회수", "red"], refund: ["환불", "red"], reject: ["거절", "red"], cancel: ["취소", ""] };
+VIEWS.ledger = async () => {
+  $("#main").innerHTML = `<div id="lsum" class="fbx"></div><div class="bar"><select id="lk"><option value="">모든 기록</option>${Object.entries(LG_KIND).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><select id="lp"><option value="">전체 기간</option><option value="today">오늘</option><option value="month">이번 달</option><option value="last">지난 달</option></select><input id="lq" placeholder="검색 (주문번호·계정·입금자)"><button id="lr">새로고침</button><button id="lx" class="gold">CSV 내려받기</button></div><div id="ll"></div>`;
+  let last = [];
+  const range = () => { const d = new Date(), y = d.getFullYear(), m = d.getMonth(), v = $("#lp").value; return v === "today" ? { from: new Date(y, m, d.getDate()).getTime(), to: 0 } : v === "month" ? { from: new Date(y, m, 1).getTime(), to: 0 } : v === "last" ? { from: new Date(y, m - 1, 1).getTime(), to: new Date(y, m, 1).getTime() } : { from: 0, to: 0 }; };
+  const won = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toLocaleString() + "원";
+  const load = async () => {
+    const j = await call("a_ledger", Object.assign({ kind: $("#lk").value, q: $("#lq").value }, range()));
+    last = j.rows;
+    const t = j.totals, nm = (k) => j.names[k] || k, dur = (d) => (d ? d + "일" : "영구");
+    $("#lsum").innerHTML = `<span class="tag green">입금 확인 ${t.paid.toLocaleString()}원 (${t.paidCount}건)</span><span class="tag red">환불 ${t.refund.toLocaleString()}원 (${t.refunded}건)</span><span class="tag gold"><b>순매출 ${t.net.toLocaleString()}원</b></span><span class="tag">주문 접수 ${t.orders}건</span><span class="tag red">회수 ${t.revoked}건</span><span class="tag">거절 ${t.rejected}건</span>`;
+    $("#ll").innerHTML = j.rows.length ? `<table><tr><th>시각</th><th>종류</th><th>주문번호</th><th>계정</th><th>내용</th><th>기간</th><th>입금자</th><th>금액</th><th>사유</th></tr>${j.rows.map((r) => { const k = LG_KIND[r.kind] || [r.kind, ""]; return `<tr><td>${when(r.t)}</td><td><span class="tag ${k[1]}">${k[0]}</span></td><td><b>${esc(r.id)}</b></td><td>${esc(r.user)}</td><td>${(r.items || []).map((x) => `<span class="tag blue">${esc(nm(x))}</span>`).join(" ")}</td><td>${dur(r.days)}</td><td>${esc(r.depositor || "")}</td><td><b style="color:${r.money > 0 ? "var(--green)" : r.money < 0 ? "#ff9aa5" : "var(--dim)"}">${r.money ? won(r.money) : "-"}</b></td><td class="muted">${esc(r.reason || "")}</td></tr>`; }).join("")}</table>${j.total > j.rows.length ? `<p class="muted">최근 ${j.rows.length}건만 보여 줍니다 (조건에 맞는 기록 ${j.total}건)</p>` : ""}` : `<p class="muted">기록이 없습니다.</p>`;
+  };
+  $("#lr").onclick = load; $("#lk").onchange = load; $("#lp").onchange = load; $("#lq").onkeydown = (e) => { if (e.key === "Enter") load(); };
+  $("#lx").onclick = () => {
+    const q = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const csv = ["시각,종류,주문번호,계정,내용,기간,입금자,금액,사유", ...last.map((r) => [new Date(r.t).toLocaleString("ko-KR"), (LG_KIND[r.kind] || [r.kind])[0], r.id, r.user, (r.items || []).join(" "), r.days ? r.days + "일" : "영구", r.depositor, r.money || 0, r.reason].map(q).join(","))].join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })); a.download = "ledger-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   await load();
 };

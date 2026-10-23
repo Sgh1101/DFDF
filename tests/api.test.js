@@ -976,3 +976,63 @@ test("two devices never share a guest name, and a device keeps its own", async (
   assert.equal((await h.api("guest", { device: "guest-device-0" })).user.id, first);
   assert.ok(names.has(first));
 });
+
+test("the order books: every money event is a line, a revoke takes back only that order, a refund after a revoke is allowed", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  const order = (b) => h.api("order_create", Object.assign({ token: p.token }, b));
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동";
+  await h.api("a_config_set", { atoken: owner.atoken, config: c });
+  h.advance(30000);
+  const a = await order({ items: ["radar"], days: 7 }), b2 = await order({ items: ["wall", "gold1k"], days: 7 }), r = await order({ items: ["noRecoil"], days: 0 });
+  const set = (id, op, extra) => h.api("a_order_set", Object.assign({ atoken: owner.atoken, id, op }, extra));
+  // a player who is not the owner has no books
+  assert.equal((await h.api("a_ledger", { atoken: p.token })).status, 401);
+  assert.equal((await set(a.order.id, "grant")).status, 200);
+  assert.equal((await set(b2.order.id, "grant")).status, 200);
+  const gold0 = h.user("player").gold;
+  assert.equal((await set(r.order.id, "reject", { reason: "입금 없음" })).status, 200);
+  // revoke: only the order's own cheats and gold go, the other order's cheats stay
+  assert.equal((await set(r.order.id, "revoke")).status, 409, "only an opened order can be taken back");
+  const rv = await set(b2.order.id, "revoke", { reason: "부정 사용" });
+  assert.equal(rv.status, 200); assert.equal(rv.order.status, "revoked");
+  const u = h.user("player");
+  assert.equal(u.perm.wall, false); assert.equal(u.perm.radar, true); assert.equal(u.perm.on, true, "the other order still runs");
+  assert.equal(u.gold, Math.max(0, gold0 - 1000), "its gold went");
+  assert.equal((await set(b2.order.id, "revoke")).status, 409, "once");
+  // the last cheat gone: the permission goes off
+  assert.equal((await set(a.order.id, "revoke")).status, 200);
+  assert.equal(h.user("player").perm.on, false);
+  // a revoked order can still be refunded (the money is still held); the refund counts the money out
+  const rf = await set(b2.order.id, "refund", { reason: "환불" });
+  assert.equal(rf.status, 200); assert.equal(rf.order.status, "refunded");
+  const lg = await h.api("a_ledger", { atoken: owner.atoken });
+  assert.equal(lg.status, 200);
+  const kinds = lg.rows.map((x) => x.kind).sort();
+  assert.deepEqual(kinds, ["order", "order", "order", "paid", "paid", "refund", "reject", "revoke", "revoke"].sort());
+  const paid = a.order.total + b2.order.total;
+  assert.equal(lg.totals.paid, paid); assert.equal(lg.totals.refund, b2.order.total); assert.equal(lg.totals.net, a.order.total);
+  assert.equal(lg.rows.find((x) => "reject" === x.kind).reason, "입금 없음");
+  assert.equal(lg.rows.find((x) => "refund" === x.kind).money, -b2.order.total);
+  // filters
+  assert.equal((await h.api("a_ledger", { atoken: owner.atoken, kind: "paid" })).rows.length, 2);
+  assert.equal((await h.api("a_ledger", { atoken: owner.atoken, q: a.order.id })).rows.length, 3);
+  assert.equal((await h.api("a_ledger", { atoken: owner.atoken, from: h.now() + 1e9 })).rows.length, 0);
+  // what the player sees
+  const mine = await h.api("order_mine", { token: p.token });
+  assert.deepEqual(mine.orders.map((x) => x.status).sort(), ["refunded", "rejected", "revoked"].sort());
+});
+
+test("the books are written for orders made before they existed, once", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  const c = JSON.parse(JSON.stringify(h.config));
+  c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동";
+  await h.api("a_config_set", { atoken: owner.atoken, config: c });
+  h.advance(30000);
+  const o = await h.api("order_create", { token: p.token, items: ["radar"], days: 7 });
+  await h.api("a_order_set", { atoken: owner.atoken, id: o.order.id, op: "grant" });
+  h.db.delete("ledger");
+  const one = await h.api("a_ledger", { atoken: owner.atoken });
+  assert.deepEqual(one.rows.map((x) => x.kind).sort(), ["order", "paid"]);
+  assert.equal((await h.api("a_ledger", { atoken: owner.atoken })).rows.length, 2, "not seeded twice");
+});

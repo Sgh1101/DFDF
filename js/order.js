@@ -17,7 +17,7 @@
       if (!data.ok) throw Object.assign(new Error(data.error || "error"), { status: response.status });
       return data;
     }
-    const STATUS = { pending: [L("입금 대기", "Waiting for payment"), "#ffc849"], granted: [L("열림", "Opened"), "#4ade80"], rejected: [L("거절됨", "Declined"), "#ff6b6b"], cancelled: [L("취소함", "Cancelled"), "#8a97ab"], refunded: [L("환불됨", "Refunded"), "#ff9a4d"] };
+    const STATUS = { pending: [L("입금 대기", "Waiting for payment"), "#ffc849"], granted: [L("열림", "Opened"), "#4ade80"], rejected: [L("거절됨", "Declined"), "#ff6b6b"], cancelled: [L("취소함", "Cancelled"), "#8a97ab"], refunded: [L("환불됨", "Refunded"), "#ff9a4d"], revoked: [L("회수됨", "Taken back"), "#ff9a4d"] };
     const CSS = `
 #od-back{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(3,5,9,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:var(--f-body,system-ui,sans-serif);color:var(--ink,#e8edf4)}
 #od-back[hidden]{display:none}

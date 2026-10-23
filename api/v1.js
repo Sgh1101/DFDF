@@ -918,7 +918,7 @@ const orderPick = (list) => {
   return [...new Set((Array.isArray(list) ? list : []).map(String))].filter((k) => known.has(k));
 };
 const ORDER_DUR = [{ id: "d1", days: 1, label: "1일" }, { id: "d7", days: 7, label: "7일" }, { id: "d30", days: 30, label: "30일" }, { id: "d0", days: 0, label: "영구" }];
-const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded"];
+const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded", "revoked"];
 const orderTotal = (c, items, days) => {
   const dur = ORDER_DUR.find((d) => d.days === days);
   if (!dur) return 0;
@@ -930,6 +930,44 @@ const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.
 const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
 const orderMe = (u) => "u:" + u.id.toLowerCase();
 const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
+// The books of the paid orders: one line for each thing that happened (order made, money confirmed and opened,
+// taken back, refunded, declined, cancelled), kept for good. `money` is what moved in (+) or out (-) in won.
+const LEDGER_KINDS = ["order", "paid", "revoke", "refund", "reject", "cancel"];
+const ledgerLine = (kind, o, extra) => JSON.stringify(Object.assign({ t: now(), kind, id: o.id, user: o.by, items: o.items, days: o.days, total: o.total, depositor: o.depositor, money: 0 }, extra));
+const ledgerAdd = (kind, o, extra) => pipe([["LPUSH", "ledger", ledgerLine(kind, o, extra)], ["LTRIM", "ledger", "0", "19999"]]);
+// the first time the books are opened, the orders made before them are written in (oldest first)
+async function ledgerSeed() {
+  if ((await redis(["LRANGE", "ledger", "0", "0"])).length) return;
+  const ids = await redis(["LRANGE", "ord", "0", "1999"]);
+  const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
+  const lines = [];
+  for (const o of rows.sort((a, b) => a.t - b.t)) {
+    lines.push(ledgerLine("order", o, { t: o.t }));
+    if (o.grantedAt) lines.push(ledgerLine("paid", o, { t: o.grantedAt, money: o.total }));
+    if ("refunded" === o.status) lines.push(ledgerLine("refund", o, { t: o.refundedAt || o.grantedAt || o.t, money: o.grantedAt ? -o.total : 0, reason: o.reason || "" }));
+    if ("revoked" === o.status) lines.push(ledgerLine("revoke", o, { t: o.revokedAt || o.grantedAt || o.t, reason: o.reason || "" }));
+    if ("rejected" === o.status) lines.push(ledgerLine("reject", o, { t: o.t, reason: o.reason || "" }));
+    if ("cancelled" === o.status) lines.push(ledgerLine("cancel", o, { t: o.t }));
+  }
+  for (const l of lines) await redis(["LPUSH", "ledger", l]);
+}
+// what an order gave is taken back, this order's part only: its cheats switched off, its gold taken from the wallet (never below nothing)
+function takeBackOrder(u, o) {
+  const cheats = o.items.filter((k) => !goldOf(k));
+  if (cheats.length && u.perm) {
+    const p = Object.assign({}, u.perm);
+    for (const k of cheats) {
+      if (PERM_SW.includes(k)) p[k] = !1;
+      else if ("speed" === k) p.speed = 1;
+      else if ("fastFire" === k) p.fastFire = 1;
+      else if ("buff" === k) p.buff = 0;
+    }
+    p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
+    u.perm = p;
+  }
+  const g = o.items.reduce((n, k) => n + goldOf(k), 0);
+  g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+}
 A.order_info = async () => {
   const c = await loadConfig();
   return Object.assign({ on: !!c.order.on }, orderCatalog(c));
@@ -962,6 +1000,7 @@ A.order_create = async (q, b) => {
     ["LPUSH", "ordu:" + me, id],
     ["LTRIM", "ordu:" + me, "0", "19"],
   ]);
+  await ledgerAdd("order", rec);
   await log("order", `주문 ${id} · ${u.id} · ${items.join(",")} · ${days || "영구"}일 · ${total}원`, { id, user: u.id });
   return { order: rec, pay: orderPay(c) };
 };
@@ -983,6 +1022,7 @@ A.order_cancel = async (q, b) => {
   if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
   if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
   o.status = "cancelled";
+  await ledgerAdd("cancel", o);
   await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
   return { ok: !0 };
 };
@@ -2067,9 +2107,9 @@ ADMIN.order_set = async (q, b) => {
   if (!raw) throw fail(404, "없는 주문입니다");
   const o = JSON.parse(raw);
   const op = String(b.op || "");
-  if (!["grant", "reject", "refund", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
+  if (!["grant", "reject", "refund", "revoke", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
   null != b.note && (o.note = fbStr(b.note, 300));
-  if ("grant" === op || "refund" === op) {
+  if ("grant" === op || "refund" === op || "revoke" === op) {
     const u = await getJ(userKey(o.by));
     if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
     if ("grant" === op) {
@@ -2080,9 +2120,20 @@ ADMIN.order_set = async (q, b) => {
       o.status = "granted";
       o.grantedAt = now();
       o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+      await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
       await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+    } else if ("revoke" === op) {
+      // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
+      if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
+      takeBackOrder(u, o);
+      await saveUser(u);
+      o.status = "revoked";
+      o.revokedAt = now();
+      o.reason = fbStr(b.reason, 200);
+      await ledgerAdd("revoke", o, { reason: o.reason });
+      await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
     } else {
-      if ("granted" !== o.status && "pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
+      if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
       if (b.revoke && "granted" === o.status) {
         // what the order gave is taken back: the cheats, the gold (never below nothing)
         if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
@@ -2090,18 +2141,37 @@ ADMIN.order_set = async (q, b) => {
         g && (u.gold = Math.max(0, (+u.gold || 0) - g));
         await saveUser(u);
       }
+      const paid = "pending" !== o.status;
       o.status = "refunded";
+      o.refundedAt = now();
       o.reason = fbStr(b.reason, 200);
+      await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
       await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
     }
   } else if ("reject" === op) {
     if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
     o.status = "rejected";
     o.reason = fbStr(b.reason, 200);
+    await ledgerAdd("reject", o, { reason: o.reason });
     await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
   }
   await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
   return { order: o };
+};
+// the books: every money event of the paid orders, newest first, with the totals of what is shown
+ADMIN.ledger = async (q, b) => {
+  await ledgerSeed();
+  const raw = await redis(["LRANGE", "ledger", "0", "19999"]);
+  const kind = String(b.kind || ""),
+    from = +b.from || 0,
+    to = +b.to || 0,
+    s = String(b.q || "").toLowerCase();
+  const rows = raw.map((x) => JSON.parse(x)).filter((r) => (!kind || r.kind === kind) && (!from || r.t >= from) && (!to || r.t < to) && (!s || JSON.stringify(r).toLowerCase().includes(s)));
+  rows.sort((a, c) => c.t - a.t);
+  const sum = (k) => rows.filter((r) => r.kind === k).reduce((n, r) => n + (r.money || 0), 0);
+  const count = (k) => rows.filter((r) => r.kind === k).length;
+  const totals = { paid: sum("paid"), refund: -sum("refund"), net: sum("paid") + sum("refund"), orders: count("order"), paidCount: count("paid"), revoked: count("revoke"), refunded: count("refund"), rejected: count("reject") };
+  return { rows: rows.slice(0, 1000), total: rows.length, totals, names: orderNames() };
 };
 ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_CONFIG });
 ADMIN.config_set = async (q, b) => {
