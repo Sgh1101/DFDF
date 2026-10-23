@@ -11,6 +11,7 @@
     "test:blocky": "node scripts/browser-blocky.js",
     "test:killcam": "node scripts/browser-killcam.js",
     "test:spider-swing": "node scripts/browser-spider-swing.js",
+    "test:spider-silk": "node scripts/browser-spider-silk.js",
     "test:abilities": "node scripts/browser-ability-upgrade.js",
     "test:abilities-online": "node scripts/browser-abilities-online.js",
     "test:phantom-carbine": "node scripts/browser-phantom-carbine.js",
