@@ -32,6 +32,7 @@
     "test:home-layout": "node scripts/browser-home-layout.js",
     "test:online": "node scripts/browser-online.js",
     "test:ranked": "node scripts/browser-ranked.js",
+    "test:bot-skill": "node scripts/browser-bot-skill.js",
     "test:shift": "node scripts/browser-shift.js",
     "test:followup": "node scripts/browser-followup.js",
     "test:maps": "node scripts/browser-map-cleanup.js",

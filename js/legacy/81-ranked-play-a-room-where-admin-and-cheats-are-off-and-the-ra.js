@@ -97,7 +97,9 @@
     if (room.ranked) {
       room.mode = "std";
       room.rounds = 7;
+      // "normal" is the automatic one: the bots' skill follows the humans' tiers (js/bot-skill.js, set each round)
       room.diff = "normal";
+      BOT_RT.skill = null;
       const ok = MAP_KEYS.filter((k) => "undefined" == typeof MAPS || MAPS[k]);
       room.map = ok[Math.floor(Math.random() * ok.length)] || room.map;
     }
