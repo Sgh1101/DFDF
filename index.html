@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>13 소개 영상</title>
+<meta name="description" content="13은 브라우저 탭 하나로 바로 하는 5대5 전술 FPS입니다. 40초 소개 영상.">
+<meta property="og:title" content="13 — 브라우저 탭 하나로 바로 하는 5대5 전술 FPS">
+<meta property="og:description" content="가입은 클릭 한 번, 교전까지 클릭 네 번. 40초 소개 영상.">
+<meta property="og:image" content="poster.jpg">
+<meta property="og:type" content="video.other">
+<style>
+:root{--bg:#0a0d12;--panel:#121722;--line:#232c3b;--ink:#e8edf4;--dim:#8a97ab;--gold:#ffc849}
+@media (prefers-color-scheme:light){:root{--bg:#f4f6fa;--panel:#fff;--line:#d5dbe6;--ink:#141a24;--dim:#5a6679;--gold:#b87d00}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{min-height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.6;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px;gap:18px}
+header{width:min(960px,100%);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header b{font-size:34px;font-weight:900;letter-spacing:-1.5px;color:var(--gold);line-height:1}
+header span{color:var(--dim);font-size:14px}
+main{width:min(960px,100%);display:flex;flex-direction:column;gap:16px}
+.frame{background:#000;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:16/9;display:grid}
+.frame.tall{aspect-ratio:9/16;max-height:78dvh;width:min(100%,calc(78dvh*9/16));justify-self:center}
+video{width:100%;height:100%;display:block;background:#000}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+a.btn,button.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+a.btn.go{background:var(--gold);border-color:var(--gold);color:#14100a}
+a.btn:hover,button.btn:hover{border-color:var(--gold)}
+a.btn:focus-visible,button.btn:focus-visible,video:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+p{color:var(--dim);font-size:14px}
+#msg{min-height:20px;color:var(--gold);font-size:13px}
+</style>
+</head>
+<body>
+<header><b>13</b><span>브라우저 탭 하나로 바로 하는 5대5 전술 FPS · 40초 소개 영상</span></header>
+<main>
+  <div class="frame" id="frame">
+    <video id="v" controls playsinline preload="metadata" poster="poster.jpg">
+      <track kind="captions" srclang="ko" label="한국어" src="captions.ko.vtt" default>
+      영상을 재생할 수 없는 브라우저입니다. <a href="v/master_16x9.mp4">영상 파일 열기</a>
+    </video>
+  </div>
+  <div class="row">
+    <a class="btn go" href="https://13fps.vercel.app/">지금 바로 플레이</a>
+    <button class="btn" id="share" type="button">링크 복사</button>
+  </div>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <p>다운로드 없이 가입은 클릭 한 번, 요원·스킬·맵·스킨이 다 들어 있고 혼자여도 5대5입니다. 소리가 있는 영상이고, 한국어 자막은 플레이어의 자막(CC) 버튼으로 켜고 끌 수 있습니다.</p>
+</main>
+<script>
+(function () {
+  var v = document.getElementById("v"), frame = document.getElementById("frame");
+  // the 9:16 cut for a phone held upright, the calm cut (no camera moves) when the system asks for less motion
+  var portrait = matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+  var calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  var src = portrait ? "v/cut_9x16.mp4" : calm ? "v/cut_reduced_16x9.mp4" : "v/master_16x9.mp4";
+  if (portrait) frame.classList.add("tall");
+  v.src = src;
+  document.getElementById("share").onclick = function () {
+    var msg = document.getElementById("msg");
+    var done = function (t) { msg.textContent = t; setTimeout(function () { msg.textContent = ""; }, 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(location.href.split("#")[0]).then(function () { done("링크를 복사했습니다"); }, function () { done("복사하지 못했습니다. 주소창의 링크를 쓰세요"); });
+    else done("복사하지 못했습니다. 주소창의 링크를 쓰세요");
+  };
+})();
+</script>
+</body>
+</html>
