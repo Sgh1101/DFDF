@@ -38,7 +38,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       for (const id of Object.keys(FINISHER_LEGEND.themes)) {
         world.round++; startRound(); world.phase = "live";
         const ok = FINISHER_LEGEND.play({ x: me.pos.x + 5, y: 1, z: me.pos.z }, { id });
-        for (let i = 0; i < (id === "champion" ? 162 : 70); i++) step(0.05);
+        for (let i = 0; i < 90; i++) step(0.05);
         res.themes[id] = ok && sky() === base;
       }
       // a new round ends one in the middle
@@ -49,12 +49,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(out));
     assert.ok(out.legendAdded >= 2, "figure and sky: " + out.legendAdded);
-    assert.equal(out.activeLegend, 2);
+    assert.equal(out.activeLegend, 3, "the ordinary ring, the figure and the burst around it");
     assert.equal(out.skyDuring, true); assert.equal(out.skyAfter, true);
     assert.equal(out.activePlain, 0, "no finisher with the stock skin");
     assert.equal(out.skyPlain, true);
     assert.equal(out.rareActive, 1);
-    assert.ok(Object.keys(out.themes).length >= 12);
+    assert.ok(Object.keys(out.themes).length >= 18);
     for (const [k, v] of Object.entries(out.themes)) assert.equal(v, true, k);
     assert.equal(out.roundEnds, true);
     assert.deepEqual(f.errors, []);

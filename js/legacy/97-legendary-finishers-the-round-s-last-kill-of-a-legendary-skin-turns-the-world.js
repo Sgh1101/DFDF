@@ -2,7 +2,9 @@
   // Legendary finishers: in a standard match the kill that ends the round, made with a legendary skin, plays a
   // short cinematic over the ordinary finisher ring (game-events.js calls FINISHER_LEGEND.play): the world's
   // sky and fog turn to the skin's colour, a screen glow, and a signature figure over where the target fell
-  // (a serpent that coils up, a firebird's wings, a storm of bolts, a ring of laurel, slashes for the knives...).
+  // (a serpent that coils up, a firebird's wings, a storm of bolts, a ring of laurel, slashes for the knives...),
+  // drawn larger than life, with a flash, shockwaves over the ground, a pillar of light, falling sparks and a crown.
+  // The Champions Phantom has its own finisher (champions-phantom.js); these are the legendary skins'.
   // Pure show: it never touches the fight, is cleaned up with the other finishers when the next round starts,
   // and runs for everyone in the room because the finisher event is itself shared.
   if ("undefined" == typeof addFx || "undefined" == typeof scene) return;
@@ -26,7 +28,16 @@
     karambit: { world: 0x5a0a22, glow: "255,60,100", fig: "slash", c: [0xff3b6b, 0xffffff] },
     butterfly: { world: 0x083a5a, glow: "60,200,255", fig: "slash", c: [0x3fd0ff, 0xffffff] },
     stiletto: { world: 0x241a40, glow: "170,130,255", fig: "slash", c: [0xb18bff, 0xffffff] },
+    vp_desire_blade: { world: 0x4a0820, glow: "255,70,130", fig: "slash", c: [0xff4f8b, 0xffd0e0] },
+    vp_eternal_axe: { world: 0x3a2a08, glow: "255,190,80", fig: "bolts", c: [0xffc04d, 0xffffff] },
+    vp_eternal_karambit: { world: 0x2a0a4a, glow: "190,100,255", fig: "slash", c: [0xb26bff, 0xffffff] },
+    vp_future_butterfly: { world: 0x06304a, glow: "60,220,255", fig: "slash", c: [0x3fe0ff, 0xffffff] },
+    vp_future_dagger: { world: 0x063a30, glow: "60,255,200", fig: "slash", c: [0x3fffc8, 0xffffff] },
+    vp_thunder_hammer: { world: 0x0a1c40, glow: "110,170,255", fig: "bolts", c: [0x9fd2ff, 0xffffff], flicker: !0 },
   };
+  // how long a legendary finisher lasts and how much bigger than life its figure is drawn
+  const LIFE = 4.2,
+    SIZE = 1.7;
   const ring = (r, tube) => new T.TorusGeometry(r, tube, 6, 48);
 
   // ── the world: sky and fog fade to the colour and back; a glowing screen edge ──
@@ -42,7 +53,6 @@
     el && (el.style.opacity = "0");
   }
   function world(th, life) {
-    const started = performance.now();
     if (!tint) tint = { bg: scene.background && scene.background.clone ? scene.background.clone() : hex(0), fog: scene.fog ? scene.fog.color.clone() : hex(0) };
     const base = tint,
       target = hex(th.world),
@@ -56,12 +66,11 @@
       document.body.appendChild(el);
     }
     const wc = `${(th.world >> 16) & 255},${(th.world >> 8) & 255},${th.world & 255}`;
-    el.style.background = `radial-gradient(ellipse at center, rgba(${wc},.3) 0%, rgba(${wc},.62) 100%)`;
-    el.style.boxShadow = `inset 0 0 240px 30px rgba(${th.glow},.55)`;
+    el.style.background = `radial-gradient(ellipse at center, rgba(${th.glow},.08) 0%, rgba(${wc},.2) 45%, rgba(${wc},.6) 100%)`;
+    el.style.boxShadow = `inset 0 0 340px 70px rgba(${th.glow},.78)`;
     const ctl = new T.Group();
     ctl.userData.noCollide = !0;
     addFx(ctl, life, (o, t) => {
-      if (life === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
       if (tint !== base) return; // a newer finisher or a new round took over
       let k = hold(t, 0.12, 0.7);
       th.flicker && (k *= 0.7 + 0.3 * Math.abs(Math.sin(t * 38) * Math.sin(t * 11)));
@@ -286,11 +295,11 @@
   function slash(g, th) {
     // knives: three crossing cuts of light, each swept across in turn
     const cuts = [];
-    for (let i = 0; i < 3; i++) {
-      const arc = new T.Mesh(new T.TorusGeometry(1.5, 0.045, 5, 36, 2.2), mat(i % 2 ? th.c[1] : th.c[0]));
+    for (let i = 0; i < 5; i++) {
+      const arc = new T.Mesh(new T.TorusGeometry(1.7, 0.07, 5, 40, 2.4), mat(i % 2 ? th.c[1] : th.c[0]));
       arc.position.y = 1.1;
-      arc.rotation.set(0.2 * (i - 1), (i / 3) * 6.28 * 0.5, -0.9 + i * 0.9);
-      arc.userData.at = 0.08 + i * 0.16;
+      arc.rotation.set(0.25 * (i - 2), (i / 5) * 6.28 * 0.5, -1.2 + i * 0.6);
+      arc.userData.at = 0.05 + i * 0.11;
       g.add(arc);
       cuts.push(arc);
     }
@@ -306,20 +315,105 @@
   }
   const FIG = { serpent, wings, bolts, stars, grid, laurel, slash };
 
+  // ── what every legendary adds around its figure: a white flash, shockwaves running out over the ground, a
+  //    pillar of light, a fountain of sparks that fall back, and a turning crown of diamonds overhead ──
+  function burst(g, th, life) {
+    const flash = new T.Mesh(new T.SphereGeometry(1, 18, 12), mat(0xffffff, 1));
+    flash.position.y = 1.2;
+    g.add(flash);
+    const waves = [];
+    for (let i = 0; i < 3; i++) {
+      const w = new T.Mesh(ring(1, 0.07), mat(th.c[i % 2]));
+      w.rotation.x = Math.PI / 2;
+      w.position.y = 0.08;
+      w.userData.at = i * 0.11;
+      g.add(w);
+      waves.push(w);
+    }
+    const pillar = new T.Mesh(new T.CylinderGeometry(1, 1, 28, 24, 1, !0), mat(th.c[1], 0.45));
+    pillar.geometry.translate(0, 14, 0);
+    const core = new T.Mesh(new T.CylinderGeometry(0.32, 0.32, 28, 12, 1, !0), mat(0xffffff, 0.85));
+    core.geometry.translate(0, 14, 0);
+    g.add(pillar, core);
+    const sparks = [],
+      n = Math.round(70 * q()) + 16;
+    for (let i = 0; i < n; i++) {
+      const sp = new T.Mesh(new T.TetrahedronGeometry(0.1 + (i % 3) * 0.04), mat(th.c[i % 2]));
+      const a = Math.random() * 6.28,
+        out = 2.5 + Math.random() * 6.5;
+      sp.userData.v = [Math.cos(a) * out, 6 + Math.random() * 9, Math.sin(a) * out];
+      sp.userData.spin = 4 + Math.random() * 8;
+      g.add(sp);
+      sparks.push(sp);
+    }
+    const crown = new T.Group();
+    for (let i = 0; i < 10; i++) {
+      const d = new T.Mesh(new T.OctahedronGeometry(0.24), mat(i % 2 ? th.c[1] : th.c[0]));
+      d.scale.set(0.7, 1.4, 0.7);
+      d.position.set(Math.cos((i / 10) * 6.28) * 2.4, 0, Math.sin((i / 10) * 6.28) * 2.4);
+      crown.add(d);
+    }
+    g.add(crown);
+    return (t) => {
+      const sec = t * life,
+        k0 = t / 0.09;
+      flash.visible = k0 < 1;
+      if (k0 < 1) {
+        flash.scale.setScalar(1 + k0 * 5);
+        flash.material.opacity = 1 - k0;
+      }
+      waves.forEach((w) => {
+        const k = (t - w.userData.at) / 0.5;
+        w.visible = k > 0 && k < 1;
+        if (!w.visible) return;
+        w.scale.setScalar(0.5 + k * 10);
+        w.material.opacity = 0.95 * (1 - k);
+      });
+      const open = hold(t, 0.04, 0.55);
+      pillar.scale.set(0.5 + open * 1.1, open, 0.5 + open * 1.1);
+      pillar.material.opacity = 0.42 * open;
+      core.scale.set(1, open, 1);
+      core.material.opacity = 0.85 * open * (0.75 + 0.25 * Math.sin(sec * 40));
+      sparks.forEach((sp) => {
+        const v = sp.userData.v,
+          y = v[1] * sec - 7 * sec * sec;
+        sp.position.set(v[0] * sec, Math.max(0.06, y), v[2] * sec);
+        sp.rotation.set(sec * sp.userData.spin, sec * 3, 0);
+        sp.material.opacity = 0.95 * (1 - t);
+      });
+      crown.position.y = 5.2 + 0.4 * Math.sin(sec * 2);
+      crown.rotation.y = sec * 1.6;
+      crown.scale.setScalar(0.4 + 0.8 * hold(t, 0.12, 0.8));
+      crown.children.forEach((d, i) => {
+        d.rotation.y = sec * 4 + i;
+        d.material.opacity = hold(t, 0.12, 0.8) * (0.6 + 0.4 * Math.abs(Math.sin(sec * 6 + i)));
+      });
+    };
+  }
+
   function play(event, skin) {
     const th = skin && THEMES[skin.id];
     if (!th || !FIG[th.fig] || event.x == null) return !1;
-    const started = performance.now(), life = window.GAME_RULES && GAME_RULES.championsSkin(skin.id) ? 8 : 2.9,
-      g = new T.Group();
-    g.position.set(event.x, Math.max(0, event.y - 0.6), event.z);
+    const life = LIFE,
+      at = new T.Vector3(event.x, Math.max(0, event.y - 0.6), event.z),
+      g = new T.Group(),
+      fxg = new T.Group();
+    // the figure, drawn larger than life
+    g.position.copy(at);
+    g.scale.setScalar(SIZE);
     g.userData.noCollide = !0;
     const step = FIG[th.fig](g, th, life);
-    window.FINISHERS && FINISHERS.active.add(g);
-    addFx(g, life, (o, t) => {
-      if (life === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
-      step(t);
-      if (t > 0.985 && life !== 8) window.FINISHERS && FINISHERS.active.delete(o);
-    });
+    // the burst around it, at full size
+    fxg.position.copy(at);
+    fxg.userData.noCollide = !0;
+    const flare = burst(fxg, th, life);
+    for (const [grp, fn] of [[g, step], [fxg, flare]]) {
+      window.FINISHERS && FINISHERS.active.add(grp);
+      addFx(grp, life, (o, t) => {
+        fn(t);
+        if (t > 0.985) window.FINISHERS && FINISHERS.active.delete(o);
+      });
+    }
     world(th, life);
     return !0;
   }
