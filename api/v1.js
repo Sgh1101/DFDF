@@ -75,6 +75,8 @@ const DEFAULT_CONFIG = {
     maintenance: !1,
     maintenanceMsg: "점검 중입니다. 잠시 후 다시 접속해 주세요.",
     announcement: "",
+    // the promo film card in the notice that comes up after signing in on the homepage, and its ▶ button
+    promoNotice: !0,
     guestAllowed: !0,
     mobileServer: !0, // a server only phones and the app can play on
     registerOpen: !0,
@@ -856,11 +858,11 @@ A.prefs = async (q, b) => {
   return { prefs: u.prefs || null };
 };
 
-// ── feedback: bug reports, agent ideas, player reports, suggestions, questions ──
+// ── feedback: bug reports, agent ideas, player reports, suggestions, reviews, questions ──
 // Anyone signed in (an account or a guest) can send one; the owner reads them in the admin page and
 // can mark where each one stands and write a short reply that the sender sees. Each lives in its own
 // key for 90 days, newest first in the `fb` list (kept to the latest 3000).
-const FB_TYPES = { bug: "버그 신고", agent: "요원 제안", report: "사용자 신고", idea: "개선 제안", ask: "문의", other: "기타" };
+const FB_TYPES = { bug: "버그 신고", agent: "요원 제안", report: "사용자 신고", idea: "추가했으면 하는 점 (제안)", review: "후기", ask: "문의", other: "기타" };
 const FB_STATUS = ["new", "read", "doing", "done", "no"];
 const FB_ROLES = ["타격대", "감시자", "척후대", "전략가"];
 const FB_REASONS = ["cheat", "abuse", "grief", "afk", "name", "other"];
@@ -887,6 +889,11 @@ function cleanFeedback(b) {
   if ("bug" === type) {
     const g = isObj(b.bug) ? b.bug : {};
     f.bug = { where: fbStr(g.where, 30), steps: fbStr(g.steps, 600) };
+  }
+  if ("review" === type) {
+    // an optional star rating: 1 to 5 (more is five, less than one is none); only a review carries one
+    const n = Number(b.rating);
+    if (n >= 1) f.rating = Math.min(5, Math.round(n));
   }
   // no title: the agent's name, the reported name, or the first words
   f.title ||= "agent" === type ? "요원 제안: " + f.agent.name : "report" === type ? "신고: " + f.report.target : text.replace(/\s+/g, " ").slice(0, 40);
@@ -2357,6 +2364,7 @@ function validateConfig(c) {
     }
   };
   walk(DEFAULT_CONFIG, c);
+  c.game.promoNotice = !!c.game.promoNotice;
   if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
   if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
   // agents switched off: only known ids, in roster order; enough must stay on, every role with at least one

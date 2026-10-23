@@ -787,6 +787,55 @@ test("the feedback box: each kind is checked, rate limited and kept; the owner r
   assert.ok(h.db.get("logs").some((l) => /feedback/.test(l) && /상점이 안 열려요/.test(l)), "logged");
 });
 
+test("the owner's notice: the announcement text and the promo-film switch (game.promoNotice, on by default) are saved, read by the homepage, and a missing key falls back to on", async () => {
+  const h = harness(), owner = await login(h, "owner");
+  const pub = async () => (await h.api("config", {})).config.game;
+  assert.equal((await h.api("a_config_get", { atoken: owner.atoken })).defaults.game.promoNotice, true, "on by default");
+  assert.equal((await pub()).promoNotice, true);
+  assert.equal((await pub()).announcement, "");
+  const set = (game) => { const c = JSON.parse(JSON.stringify(h.config)); Object.assign(c.game, game); return h.api("a_config_set", { atoken: owner.atoken, config: c }); };
+  const off = await set({ promoNotice: false, announcement: "주말 이벤트" });
+  assert.equal(off.status, 200); assert.equal(off.config.game.promoNotice, false);
+  assert.deepEqual([(await pub()).promoNotice, (await pub()).announcement], [false, "주말 이벤트"], "the homepage reads both from the public settings");
+  // settings saved before the key existed, and a value that is not a boolean
+  const c = JSON.parse(JSON.stringify(h.config)); delete c.game.promoNotice;
+  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).config.game.promoNotice, true, "a missing key is the default, on");
+  assert.equal((await set({ promoNotice: "no" })).config.game.promoNotice, true, "a string is not a switch: the default stays");
+  assert.equal((await set({ promoNotice: true })).config.game.promoNotice, true);
+});
+
+test("the feedback box takes reviews: an optional rating kept between 1 and 5, a guest may leave one, the owner sees them", async () => {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  const guest = await h.api("guest", { device: "device-review-guest" });
+  const send = (b, who = p) => h.api("feedback_submit", Object.assign({ token: who.token }, b));
+  const text = (n) => "영상 잘 봤습니다 후기 " + n + " 번째 입니다";
+  assert.equal((await send({ type: "reviews", text: text(0) })).status, 400, "a kind that does not exist");
+  assert.equal((await send({ type: "review", text: "짧" })).status, 400, "words are still needed");
+  assert.equal((await send({ type: "review", title: "재밌어요", text: text(1), rating: 4 })).status, 200);
+  assert.equal((await send({ type: "review", text: text(2), rating: 9 })).status, 200, "more than five is five");
+  assert.equal((await send({ type: "review", text: text(3), rating: 2.6 })).status, 200, "rounded");
+  assert.equal((await send({ type: "review", text: text(4), rating: "abc" })).status, 200, "not a number is no rating");
+  assert.equal((await send({ type: "review", text: text(5) })).status, 200, "the rating is optional");
+  assert.equal((await send({ type: "review", text: text(6), rating: -3 }, guest)).status, 200, "a guest may review; below one is no rating");
+  assert.equal((await send({ type: "idea", text: text(7), rating: 5 }, guest)).status, 200);
+  const o = await login(h, "owner");
+  const all = await h.api("a_feedback", { atoken: o.atoken, type: "review" });
+  assert.equal(all.status, 200);
+  assert.equal(all.items.length, 6);
+  assert.equal(all.types.review, "후기"); assert.equal(all.types.idea, "추가했으면 하는 점 (제안)");
+  const by = (n) => all.items.find((x) => x.text === text(n));
+  assert.equal(by(1).rating, 4); assert.equal(by(1).title, "재밌어요");
+  assert.equal(by(2).rating, 5); assert.equal(by(3).rating, 3);
+  for (const n of [4, 5, 6]) assert.equal("rating" in by(n), false, "no rating kept for " + n);
+  assert.equal(by(6).by.guest, true);
+  assert.equal(by(5).title, text(5).slice(0, 40), "no title: the first words");
+  const idea = (await h.api("a_feedback", { atoken: o.atoken, type: "idea" })).items[0];
+  assert.equal("rating" in idea, false, "only a review carries a rating");
+  assert.equal((await h.api("a_feedback", { atoken: o.atoken })).counts.byType.review, 6);
+  // the sender sees it in the list of mine
+  assert.equal((await h.api("feedback_mine", { token: p.token })).items.filter((x) => x.type === "review").length, 5);
+});
+
 test("paid cheats by bank transfer: an order with a code and the account to pay; the owner opens it, it merges into the account's cheats; reject, refund, cancel", async () => {
   const h = harness(), p = await login(h), owner = await login(h, "owner"), other = await login(h, "second");
   const guest = await h.api("guest", { device: "device-guest-1" });

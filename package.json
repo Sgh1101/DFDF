@@ -82,6 +82,7 @@
     "test:ctf": "node scripts/browser-ctf.js",
     "test:zone": "node scripts/browser-zone.js",
     "test:feedback": "node scripts/browser-feedback.js",
+    "test:promo": "node scripts/browser-promo.js",
     "test:orders": "node scripts/browser-orders.js",
     "test:champion": "node scripts/browser-champion.js",
     "test:buildings": "node scripts/browser-buildings.js",
