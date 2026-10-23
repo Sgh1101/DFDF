@@ -144,8 +144,8 @@
       const kind = cause ? cause.kind : gunDepth ? gun === "knife" ? "melee" : "gun" : "ability";
       const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
       event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, finisherYaw: Math.atan2(killer.pos.x - victim.pos.x, killer.pos.z - victim.pos.z), kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
-      // a player's round-ending kill always plays the Champions finisher, whatever the gun wears (a Champions skin keeps its own); a bot's never does
-      if (typeof isAI == "function" && isAI(killer)) event.byBot = true; else if (!GAME_RULES.championsSkin(skin)) event.finisherSkin = GAME_RULES.playerFinisherSkin(killer.team);
+      // a player's round-ending kill plays the finisher of the skin the gun wears (the Champions one only for a Champions skin); a bot's never does
+      if (typeof isAI == "function" && isAI(killer)) event.byBot = true;
       event.finisherTick = Math.floor(performance.now() / 50);
       event.distance = Math.round(Math.hypot(killer.pos.x-victim.pos.x,(killer.y||0)-(victim.y||0),killer.pos.z-victim.pos.z));
       event.armorAbsorbed = victim._lastArmorBlocked || 0;

@@ -20,7 +20,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       foesOf(me).forEach((o, i) => { o.pos.x = me.pos.x + 400 + i; o.pos.z = me.pos.z + 400; });
       const ropes = () => scene.children.filter((o) => o.userData && o.userData.radius && o.material && o.material.color.getHex() === 0xf2f4f7).length;
       let aim = null;
-      for (let yaw = 0; yaw < 6.28 && !aim; yaw += 0.1) { me.yaw = yaw; me.pitch = 0.3; const a = aimPoint(48); if (a && a.hit && (a.y || 0) > 2) { const d = Math.hypot(a.x - me.pos.x, a.z - me.pos.z); if (d > 18 && d < 40) aim = { yaw, d }; } }
+      // a point on the side of a wall (the wall goes on above it), not on top of something
+      for (let yaw = 0; yaw < 6.28 && !aim; yaw += 0.1) { me.yaw = yaw; me.pitch = 0.3; const a = aimPoint(48); if (a && a.hit && (a.y || 0) > 2) { const d = Math.hypot(a.x - me.pos.x, a.z - me.pos.z), ux = (a.x - me.pos.x) / d, uz = (a.z - me.pos.z) / d; if (d > 18 && d < 40 && blockerTopAt(a.x + ux * 0.35, a.z + uz * 0.35, 0, 0.1) > a.y + 0.6) aim = { yaw, d }; } }
       out.aimed = !!aim;
       const home = [me.pos.x, me.y, me.pos.z], fov0 = viewFOV.now;
       const reset = () => { me.pos.x = home[0]; me.pos.z = home[2]; me.y = home[1]; me.vy = 0; me.__carry = null; me.__hangY = null; me.__climbT = 0; };
