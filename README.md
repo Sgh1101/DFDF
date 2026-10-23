@@ -3,8 +3,8 @@
 `13fps.vercel.app`(게임)과는 별도의 Vercel 프로젝트(`13fps-film`)가 이 브랜치(`film-site`)를 올립니다.
 영상은 영상 세션(`ccr-b13d9aff-wdadkp`, `film/out/`)이 만든 것을 그대로 가져왔습니다.
 
-- `index.html` 재생 페이지 (세로 폰은 9:16 컷, 동작 줄이기 설정은 동작 줄인 컷, 나머지는 원본)
-- `v/master_16x9.mp4` · `v/cut_9x16.mp4` · `v/cut_reduced_16x9.mp4`
+- `index.html` 재생 페이지 (항상 가로 16:9: 동작 줄이기 설정은 동작 줄인 컷, 나머지는 원본)
+- `v/master_16x9.mp4` · `v/cut_reduced_16x9.mp4` (세로 컷은 쓰지 않아 뺐습니다)
 - `captions.ko.vtt` 한국어 자막 (영상 세션의 `captions.srt`를 변환)
 - `poster.jpg` 영상 한 장면
 

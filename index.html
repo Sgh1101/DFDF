@@ -20,7 +20,6 @@ header b{font-size:34px;font-weight:900;letter-spacing:-1.5px;color:var(--gold);
 header span{color:var(--dim);font-size:14px}
 main{width:min(960px,100%);display:flex;flex-direction:column;gap:16px}
 .frame{background:#000;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:16/9;display:grid}
-.frame.tall{aspect-ratio:9/16;max-height:78dvh;width:min(100%,calc(78dvh*9/16));justify-self:center}
 video{width:100%;height:100%;display:block;background:#000}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 a.btn,button.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
@@ -49,12 +48,10 @@ p{color:var(--dim);font-size:14px}
 </main>
 <script>
 (function () {
-  var v = document.getElementById("v"), frame = document.getElementById("frame");
-  // the 9:16 cut for a phone held upright, the calm cut (no camera moves) when the system asks for less motion
-  var portrait = matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+  var v = document.getElementById("v");
+  // always the landscape cut; the calm one (no camera moves) when the system asks for less motion
   var calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
-  var src = portrait ? "v/cut_9x16.mp4" : calm ? "v/cut_reduced_16x9.mp4" : "v/master_16x9.mp4";
-  if (portrait) frame.classList.add("tall");
+  var src = calm ? "v/cut_reduced_16x9.mp4" : "v/master_16x9.mp4";
   v.src = src;
   document.getElementById("share").onclick = function () {
     var msg = document.getElementById("msg");
