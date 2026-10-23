@@ -1035,6 +1035,7 @@ test("the books are written for orders made before they existed, once", async ()
   const one = await h.api("a_ledger", { atoken: owner.atoken });
   assert.deepEqual(one.rows.map((x) => x.kind).sort(), ["order", "paid"]);
   assert.equal((await h.api("a_ledger", { atoken: owner.atoken })).rows.length, 2, "not seeded twice");
+});
 
 test("the per-account log: sign-ins, pulls and the owner's changes land in the account's own list, with no secrets", async () => {
   const h = harness(), owner = await login(h, "owner"), p = await login(h);
