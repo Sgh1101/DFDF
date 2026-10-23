@@ -10,9 +10,29 @@ function harness(options = {}) {
     if (expires.has(key) && expires.get(key) <= clock) { db.delete(key); expires.delete(key); }
     return db.get(key) ?? null;
   };
+  // real sorted sets for the season boards ("lb:*") and the room list; the other keys keep their old stand-ins
+  const zsets = new Map();
+  function zcommand(op, key, args) {
+    const z = zsets.get(key) || new Map();
+    zsets.set(key, z);
+    switch (op) {
+      case "ZADD": z.set(args[1], +args[0]); return 1;
+      case "ZREM": return +z.delete(args[0]);
+      case "ZCARD": return z.size;
+      case "ZREMRANGEBYSCORE": { let n = 0; for (const [m, sc] of z) if (sc >= (args[0] === "-inf" ? -Infinity : +args[0]) && sc <= +args[1]) { z.delete(m); n++; } return n; }
+      case "ZRANGE": {
+        const rows = [...z].sort((p, q) => p[1] - q[1] || (p[0] < q[0] ? -1 : 1));
+        args.includes("REV") && rows.reverse();
+        const hi = +args[1] < 0 ? rows.length + +args[1] : +args[1];
+        return rows.slice(+args[0], hi + 1).flatMap(([m, sc]) => (args.includes("WITHSCORES") ? [m, String(sc)] : [m]));
+      }
+    }
+  }
   function command(cmd) {
     if (options.redisCommand) return options.redisCommand(cmd);
     const [op, key, ...args] = cmd;
+    if (/^(lb:|rooms$)/.test(key) && ["ZADD", "ZREM", "ZCARD", "ZRANGE", "ZREMRANGEBYSCORE"].includes(op)) return zcommand(op, key, args);
+    if (/^lb:/.test(key) && op === "EXPIRE") return 1;
     switch (op) {
       case "GET": return get(key);
       case "MGET": return [key, ...args].map(get);
@@ -62,6 +82,6 @@ function harness(options = {}) {
     return response;
   }
   const sign = (value) => { const p = Buffer.from(JSON.stringify(value)).toString("base64url"); return p + "." + crypto.createHmac("sha256", "test-secret").update(p).digest("base64url"); };
-  return { api, db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG };
+  return { api, db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
 }
 module.exports = { harness };

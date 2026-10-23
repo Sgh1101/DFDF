@@ -2,6 +2,27 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { harness } = require("./api-harness");
 const login = (h, id = "player") => h.api("auth", { id, pw: id === "owner" ? "owner-password" : "password", device: "device-123" });
+// A ranked match through the attested flow: the host's room opens, the host sends the
+// roster (ranked_start), everyone fetches his ticket (match_start), the host reports the
+// result (ranked_result), and each player settles his own match (progress).
+const rankedOpen = async (h, tok, a, b, o = {}) => {
+  const room = o.room || "RNK001", host = a[0], all = a.concat(b);
+  assert.equal((await h.api("room_up", { token: tok[host], code: room, ranked: true, players: all })).status, 200);
+  const start = await h.api("ranked_start", { token: tok[host], room, a, b });
+  assert.equal(start.status, 200);
+  const mt = {};
+  for (const id of all) if (!(o.skip || []).includes(id)) { const r = await h.api("match_start", { token: tok[id], ranked: true, room }); assert.equal(r.status, 200); mt[id] = r.ticket; }
+  return { h, tok, a, b, room, start, mt, host };
+};
+const rankedEnd = async (m, w = "a", k = {}) => {
+  m.h.advance(61000);
+  m.w = w; m.k = k;
+  return m.h.api("ranked_result", { token: m.tok[m.host], rm: m.start.rm, w, k });
+};
+const rankedSettle = (m, id, extra = {}) => m.h.api("progress", { token: m.tok[id], mt: m.mt[id], kills: (m.k || {})[id] || 0, win: m.a.includes(id) === (m.w === "a"), match: { mode: "std", s: [7, 3] }, ...extra });
+const squad = async (h, ids) => Object.fromEntries(await Promise.all(ids.map(async (id) => [id, (await login(h, id)).token])));
+const setRR = async (h, ids, rr) => { const o = await login(h, "owner"); for (const id of ids) assert.equal((await h.api("a_user_set", { atoken: o.atoken, id, op: "rr", rr })).status, 200); };
+
 
 test("owner attestation cannot be used as a player or admin credential", async () => {
   const h = harness(), owner = await login(h, "owner");
@@ -152,37 +173,264 @@ test("records without a session version require login instead of accepting an un
   assert.equal((await login(h)).status, 200);
 });
 
-test("RR moves only in a ranked room, with enough people; the owner's powers stay out of it", async () => {
-  const h = harness(), p = await login(h), owner = await login(h, "owner");
+test("RR moves only in a ranked room the host attested, with enough people; cheats stay out of it except for the operator", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]), owner = await login(h, "owner");
+  const p = { token: tok.player };
+  await setRR(h, ["player", "bobby", "carol", "dave1"], 200); // placed, so the rank shows
   const rr = () => h.user("player").rr || 0;
-  const play = async (opts, report) => {
-    const mt = await h.api("match_start", { token: p.token, ...opts });
-    assert.equal(mt.status, 200);
-    h.advance(61000);
-    return h.api("progress", { token: p.token, mt: mt.ticket, kills: 3, win: true, match: { mode: "std", s: [7, 3] }, ...report });
-  };
   // a normal room: XP and gold, but the rank stays
-  assert.equal((await play({}, { humans: 8 })).status, 200);
-  assert.equal(rr(), 0);
-  // a ranked ticket needs a ranked room that exists
+  const mt0 = await h.api("match_start", { token: p.token }); h.advance(61000);
+  assert.equal((await h.api("progress", { token: p.token, mt: mt0.ticket, kills: 3, win: true, humans: 8, match: { mode: "std", s: [7, 3] } })).rankedCounted, false);
+  assert.equal(rr(), 200);
+  // a ranked ticket needs a ranked room that exists, and the host's roster
   assert.equal((await h.api("match_start", { token: p.token, ranked: true, room: "RNK001" })).status, 409);
   assert.equal((await h.api("room_up", { token: p.token, code: "RNK001", ranked: true, players: ["player"] })).status, 200);
+  assert.equal((await h.api("match_start", { token: p.token, ranked: true, room: "RNK001" })).status, 409);
   const listed = await h.api("rooms", {});
   assert.equal((listed.rooms || []).every((r) => r.ranked === !!r.ranked), true);
-  // the owner's powers: no ticket for a ranked room, no room commands
-  assert.equal((await h.api("owner_ticket", { token: owner.token, room: "RNK001", p: "peer-1" })).ticket, null);
+  // cheats: no ticket in a ranked room for a player, or for paid cheats; the operator keeps his
+  assert.equal((await h.api("owner_ticket", { token: tok.bobby, room: "RNK001", p: "peer-1" })).ticket, null);
   assert.equal((await h.api("perm_ticket", { token: p.token, room: "RNK001" })).ticket, null);
+  assert.equal(typeof (await h.api("owner_ticket", { token: owner.token, room: "RNK001", p: "peer-1" })).ticket, "string");
   // too few real people: counted as a match, no RR
-  assert.equal((await play({ ranked: true, room: "RNK001" }, { humans: 2 })).status, 200);
-  assert.equal(rr(), 0);
+  const few = await rankedOpen(h, tok, ["player"], ["bobby"]);
+  await rankedEnd(few);
+  const r2 = await rankedSettle(few, "player");
+  assert.equal(r2.status, 200); assert.equal(r2.rankedCounted, false); assert.equal(r2.rankedWhy, "few_humans");
+  assert.equal(rr(), 200);
   // enough people: RR moves
-  const ok = await play({ ranked: true, room: "RNK001" }, { humans: 6 });
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "RNK002" });
+  await rankedEnd(m, "a", { player: 3 });
+  const ok = await rankedSettle(m, "player", { kills: 3 });
   assert.equal(ok.status, 200);
   assert.equal(ok.ranked, true); assert.equal(ok.rankedCounted, true);
-  assert.ok(rr() > 0, "a ranked win raises RR");
-  // a ticket for a normal match cannot be used as a ranked one
+  assert.ok(rr() > 200, "a ranked win raises RR");
   const hist = h.user("player").hist;
   assert.equal(hist[0].rk, 1); assert.equal(hist[2].rk, undefined);
+});
+
+test("a report cannot invent humans or a win; a replay, a ticket of another match and a stranger change nothing", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1", "erin1"]);
+  await setRR(h, ["player", "bobby", "carol", "dave1", "erin1"], 300);
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+  // the result is not in yet: wait, nothing used up
+  assert.equal((await rankedSettle(m, "player")).status, 425);
+  assert.equal((await rankedEnd(m, "b")).status, 200); // team b won: the player lost
+  const rr = () => h.user("player").rr;
+  // a forged win is refused, and so is a ticket that is not his
+  assert.equal((await rankedSettle(m, "player", { win: true, humans: 40 })).status, 409);
+  assert.equal(rr(), 300); assert.equal(h.user("player").matches || 0, 0);
+  h.advance(21000); // a refused report still uses the 20 s rate limit
+  assert.equal((await h.api("progress", { token: tok.player, mt: m.mt.bobby, win: false })).status, 409);
+  // the truth, with a forged crowd: the server counts its own humans, and a loss costs
+  h.advance(21000);
+  const body = { token: tok.player, mt: m.mt.player, kills: 0, win: false, humans: 99, match: { mode: "std", s: [3, 7] } };
+  const first = await h.api("progress", body), replay = await h.api("progress", body);
+  assert.equal(first.status, 200); assert.equal(first.rankedCounted, true); assert.ok(first.rr < 0 && rr() < 300);
+  assert.deepEqual(replay, first); assert.equal(h.user("player").matches, 1);
+  // the host's result stands once: only the host reports, and a second result is ignored
+  assert.equal((await h.api("ranked_result", { token: tok.bobby, rm: m.start.rm, w: "a", k: {} })).status, 409);
+  const again = await h.api("ranked_result", { token: tok[m.host], rm: m.start.rm, w: "a", k: {} });
+  assert.equal(again.duplicate, true); assert.equal(again.w, "b");
+  // asking for a ticket again hands back the same one, and the match settles once per account
+  const t2 = await h.api("match_start", { token: tok.player, ranked: true, room: m.room });
+  assert.equal(t2.ticket, m.mt.player);
+  const rrAfter = rr();
+  assert.deepEqual(await h.api("progress", body), first);
+  assert.equal(rr(), rrAfter);
+  // a ticket from another room is of no use to him, and a stranger gets none
+  const other = await rankedOpen(h, tok, ["erin1"], ["carol"], { room: "RNK002" });
+  assert.equal((await h.api("match_start", { token: tok.player, ranked: true, room: "RNK002" })).status, 403);
+  assert.equal((await h.api("ranked_result", { token: tok[m.host], rm: other.start.rm, w: "a" })).status, 409, "a ticket of another host");
+  assert.equal((await h.api("ranked_start", { token: tok.player, room: "RNK002", a: ["player"], b: [] })).status, 409, "not his room");
+  // a plain ticket cannot pose as a ranked one
+  const plain = await h.api("match_start", { token: tok.dave1 }); h.advance(61000);
+  const pr = await h.api("progress", { token: tok.dave1, mt: plain.ticket, win: true, humans: 9, kills: 2 });
+  assert.equal(pr.rankedCounted, false); assert.equal(h.user("dave1").rr, 300);
+});
+
+test("a disputed result (a team's majority says otherwise), a draw, and a host who never reports", async () => {
+  const h = harness(), ids = ["player", "bobby", "carol", "dave1", "erin1", "frank"], tok = await squad(h, ids);
+  await setRR(h, ids, 300);
+  // the host says team a won; team b (three of them) say they did
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1", "erin1"]);
+  await rankedEnd(m, "a");
+  for (const id of ["carol", "dave1"]) assert.equal((await rankedSettle(m, id, { win: true })).status, 409);
+  const ok = await rankedSettle(m, "bobby");
+  assert.equal(ok.status, 200); assert.equal(ok.rankedCounted, false); assert.equal(ok.rankedWhy, "disputed");
+  assert.equal(h.user("bobby").rr, 300);
+  // a draw moves nothing
+  const d = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "RNK003" });
+  await rankedEnd(d, "draw");
+  const dr = await rankedSettle(d, "player", { win: false, outcome: "draw" });
+  assert.equal(dr.rankedCounted, false); assert.equal(dr.rankedWhy, "draw"); assert.equal(h.user("player").rr, 300);
+  // no result from the host: wait, or give up and keep the plain reward
+  const g = await rankedOpen(h, tok, ["frank", "bobby"], ["carol", "dave1"], { room: "RNK004" });
+  h.advance(61000);
+  assert.equal((await rankedSettle(g, "bobby", { win: true })).status, 425);
+  const gu = await rankedSettle(g, "bobby", { win: true, giveUp: true });
+  assert.equal(gu.status, 200); assert.equal(gu.rankedCounted, false); assert.equal(gu.rankedWhy, "no_result"); assert.ok(gu.gain > 0);
+  // too early a result is refused
+  const e = await rankedOpen(h, tok, ["frank"], ["carol"], { room: "RNK005" });
+  assert.equal((await h.api("ranked_result", { token: tok.frank, rm: e.start.rm, w: "a" })).status, 409);
+  assert.equal((await h.api("ranked_result", { token: tok.frank, rm: "x", w: "a" })).status, 409);
+});
+
+test("placement: five counted matches with big swings and no tier shown, then RR is set from MMR", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]);
+  const me = async () => (await h.api("me", { token: tok.player })).user;
+  let u = await me();
+  assert.deepEqual([u.placement.done, u.placement.of, u.rank.hidden, u.rank.rr], [0, 5, true, 0]);
+  const mmr0 = h.user("player").mmr;
+  assert.equal(mmr0, 1000);
+  for (let i = 0; i < 5; i++) {
+    const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "PLC00" + i });
+    await rankedEnd(m, "a", { player: 2 });
+    const r = await rankedSettle(m, "player", { kills: 2 });
+    assert.equal(r.rankedCounted, true);
+    assert.deepEqual([r.placement.done, r.placement.of], [i + 1, 5]);
+    if (i < 4) {
+      assert.equal(r.rank.hidden, true); assert.equal(r.rr, 0); assert.equal(r.user.rank.hidden, true);
+      assert.equal(h.user("player").rr || 0, 0, "RR waits for the fifth");
+      assert.ok(h.user("player").mmr >= mmr0 + 40 * (i + 1) - 1, "a placement win swings MMR hard");
+    }
+  }
+  u = await me();
+  assert.equal(u.placement.done, 5); assert.equal(u.rank.hidden, undefined);
+  assert.equal(u.rank.rr, h.user("player").mmr - 1000, "RR set from MMR");
+  assert.ok(u.rank.rr > 200);
+  // after placement a win moves RR by the base value, scaled
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "PLC009" });
+  await rankedEnd(m, "a");
+  const before = u.rank.rr, r = await rankedSettle(m, "player");
+  assert.ok(r.rr > 0 && r.user.rank.rr === before + r.rr);
+});
+
+test("RR after placement follows the opponent's strength: pure helper and the whole flow", async () => {
+  const { rankMath: M } = harness();
+  const R = { win: 20, loss: 12, perKill: 1, maxKill: 8 };
+  // symmetric, between 0 and 1, and more MMR means better odds
+  assert.equal(M.eloExpected(1500, 1500), 0.5);
+  assert.ok(Math.abs(M.eloExpected(1600, 1400) + M.eloExpected(1400, 1600) - 1) < 1e-12);
+  assert.ok(M.eloExpected(1600, 1400) > M.eloExpected(1500, 1400));
+  // beating a stronger team pays more than beating a weaker one; losing to a weaker one costs more
+  const wins = [0.1, 0.3, 0.5, 0.7, 0.9].map((e) => M.rrDelta(R, true, e, 0));
+  const losses = [0.1, 0.3, 0.5, 0.7, 0.9].map((e) => -M.rrDelta(R, false, e, 0));
+  for (let i = 1; i < wins.length; i++) { assert.ok(wins[i] < wins[i - 1], "wins " + wins); assert.ok(losses[i] > losses[i - 1], "losses " + losses); }
+  // the scale stays within half to one and a half times the base value
+  assert.ok(M.rrDelta(R, true, 0, 0) <= 30 && M.rrDelta(R, true, 1, 0) >= 10);
+  assert.ok(-M.rrDelta(R, false, 1, 0) <= 18 && -M.rrDelta(R, false, 0, 0) >= 6);
+  assert.equal(M.rrDelta(R, true, 0.5, 0), 20);
+  assert.equal(M.rrDelta(R, false, 0.5, 0), -12);
+  // kills: a win adds them (up to maxKill), a loss costs less, never under half
+  assert.equal(M.rrDelta(R, true, 0.5, 5), 25); assert.equal(M.rrDelta(R, true, 0.5, 50), 28);
+  assert.equal(M.rrDelta(R, false, 0.5, 4), -10); assert.equal(M.rrDelta(R, false, 0.5, 50), -8);
+  // placement swings harder than a ranked match; a win never lowers MMR
+  assert.ok(M.mmrAfter(1000, 0.5, 1, true) - 1000 > M.mmrAfter(1000, 0.5, 1, false) - 1000);
+  assert.ok(M.mmrAfter(1000, 0.9, 1, false) >= 1000 && M.mmrAfter(1000, 0.1, 0, false) <= 1000);
+  assert.deepEqual([M.rrFromMMR(M.mmrFromRR(730)), M.rrFromMMR(500), M.mmrFromRR(0)], [730, 0, 1000]);
+  // the whole flow: the same win against a stronger and a weaker team
+  const gain = async (enemyRR) => {
+    const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]);
+    await setRR(h, ["player", "bobby"], 500); await setRR(h, ["carol", "dave1"], enemyRR);
+    const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+    await rankedEnd(m, "a");
+    return (await rankedSettle(m, "player")).rr;
+  };
+  const strong = await gain(1500), even = await gain(500), weak = await gain(0);
+  assert.ok(strong > even && even > weak, [strong, even, weak].join());
+  assert.equal(even, 20);
+});
+
+test("the operator's ranked matches count like anyone's and are flagged on the match record", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]);
+  tok.owner = (await login(h, "owner")).token;
+  await setRR(h, ["player", "bobby", "carol", "dave1", "owner"], 400);
+  const m = await rankedOpen(h, tok, ["player", "owner"], ["carol", "dave1"]);
+  assert.equal(m.start.ownerPlayed, true);
+  assert.equal(JSON.parse(h.db.get("rm:" + m.start.id)).ownerPlayed, true);
+  await rankedEnd(m, "a");
+  const r = await rankedSettle(m, "owner");
+  assert.equal(r.rankedCounted, true); assert.ok(h.user("owner").rr > 400);
+  assert.equal((await rankedSettle(m, "player")).rankedCounted, true);
+  assert.ok(h.user("player").rr > 400, "the others in the owner's match are not left out");
+  // a match without him carries no flag
+  const n = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "RNK009" });
+  assert.equal(n.start.ownerPlayed, false);
+});
+
+test("the leaderboard: placed accounts of this season by RR, nothing private, a new board each season", async () => {
+  const h = harness({ now: Date.parse("2026-10-20T03:00:00Z") }), ids = ["player", "bobby", "carol", "dave1", "erin1"], tok = await squad(h, ids);
+  const board = async (n) => { h.advance(11000); return h.api("leaderboard", n ? { n } : {}); };
+  assert.deepEqual((await board()).rows, []);
+  await setRR(h, ["player", "bobby", "carol", "dave1"], 300);
+  await setRR(h, ["bobby"], 700);
+  // erin has not finished placement; the others are placed and play one ranked match each
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+  await rankedEnd(m, "a");
+  for (const id of ["player", "bobby", "carol", "dave1"]) assert.equal((await rankedSettle(m, id)).rankedCounted, true);
+  const e = await rankedOpen(h, tok, ["erin1", "player"], ["carol", "dave1"], { room: "RNK002" });
+  await rankedEnd(e, "a");
+  assert.equal((await rankedSettle(e, "erin1")).rankedCounted, true);
+  const j = await board();
+  assert.equal(j.status, 200);
+  assert.deepEqual(j.rows.map((r) => r.name), ["bobby", "player", "carol", "dave1"].sort((x, y) => h.user(y).rr - h.user(x).rr || (x < y ? -1 : 1)));
+  assert.ok(!j.rows.some((r) => r.name === "erin1"), "unplaced accounts are left out");
+  assert.deepEqual(Object.keys(j.rows[0]).sort(), ["div", "name", "played", "pos", "rr", "t", "tier", "wins"]);
+  assert.equal(j.rows[0].pos, 1); assert.equal(j.rows[0].name, "bobby");
+  assert.ok(!/mmr|pass|token|email|dev|ip/i.test(JSON.stringify(j)), "no private data");
+  assert.equal((await board(2)).rows.length, 2);
+  assert.equal(j.season.n, 1);
+  // the season turns: the new board starts empty, the old accounts come back when they play
+  h.advance(9 * 864e5);
+  const fresh = await board();
+  assert.deepEqual(fresh.rows, []); assert.equal(fresh.season.n, 2);
+  await h.api("me", { token: tok.bobby });
+  const n2 = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "RNK010" });
+  await rankedEnd(n2, "a");
+  await rankedSettle(n2, "bobby");
+  const j2 = await board();
+  assert.deepEqual(j2.rows.map((r) => r.name), ["bobby"]);
+  assert.equal(j2.rows[0].rr, h.user("bobby").rr);
+});
+
+test("an account from before MMR gets one from its RR on first read, the same every time", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol"]);
+  const strip = (id, patch) => { const u = h.user(id); delete u.mmr; delete u.placed; Object.assign(u, patch); h.db.set("user:" + id, JSON.stringify(u)); };
+  strip("player", { rr: 730 });
+  strip("bobby", { rr: 0, hist: [{ rk: 1, mode: "std" }] });
+  strip("carol", { rr: 0 });
+  for (const t of [1, 2]) {
+    const me = async (id) => (await h.api("me", { token: tok[id] })).user;
+    const u = await me("player");
+    assert.deepEqual([u.placement.done, u.rank.rr, u.rank.hidden], [5, 730, undefined]);
+    assert.equal(h.user("player").mmr, 1730);
+    assert.equal((await me("bobby")).placement.done, 5, "played ranked before: placed at 0 RR");
+    assert.equal(h.user("bobby").mmr, 1000);
+    assert.deepEqual([(await me("carol")).placement.done, h.user("carol").mmr], [0, 1000]);
+  }
+});
+
+test("a ranked room shows its average MMR rounded, and the join check widens with the room's age", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol"]);
+  await setRR(h, ["player", "bobby"], 400); await setRR(h, ["carol"], 0);
+  assert.equal((await h.api("room_up", { token: tok.player, code: "BND001", ranked: true, players: ["player", "bobby"] })).status, 200);
+  const list = (await h.api("rooms", {})).rooms.find((r) => r.code === "BND001");
+  assert.equal(list.band, 1400); assert.equal(list.range, 150);
+  assert.ok(!("mmr" in list));
+  const can = (id) => h.api("ranked_can_join", { token: tok[id], code: "BND001" });
+  assert.deepEqual([(await can("bobby")).ok, (await can("carol")).ok], [true, false]);
+  assert.equal((await can("carol")).band, 1400);
+  for (let i = 0; i < 5; i++) { h.advance(60000); await h.api("room_up", { token: tok.player, code: "BND001", ranked: true, players: ["player", "bobby"] }); } // the room keeps reporting
+  assert.deepEqual([(await can("carol")).ok, (await can("carol")).range], [true, 400], "400 apart fits after five minutes");
+  // not a ranked room: open to all
+  await h.api("room_up", { token: tok.bobby, code: "OPN001", players: ["bobby"] });
+  assert.deepEqual([(await h.api("ranked_can_join", { token: tok.carol, code: "OPN001" })).ok, (await h.api("ranked_can_join", { token: tok.carol, code: "NOPE01" })).status], [true, 404]);
+  const { rankMath: M } = harness();
+  assert.equal(M.canJoinRanked({ mmr: 1000 }, { ranked: true, mmr: 1500, created: 0 }, 0).ok, false);
+  assert.equal(M.canJoinRanked({ mmr: 1000, owner: true }, { ranked: true, mmr: 9000, created: 0 }, 0).ok, true);
+  assert.equal(M.canJoinRanked({ mmr: 1000 }, { ranked: true, mmr: null, created: 0 }, 0).ok, true);
+  assert.equal(M.joinRange(0), 150); assert.equal(M.joinRange(10 * 60000), 600); assert.equal(M.joinRange(99 * 60000), 600);
 });
 
 test("a guest cannot open or play a ranked room", async () => {
@@ -323,11 +571,12 @@ test("seasons: the end of one pays by tier, gives the season skin from gold up, 
   assert.deepEqual([u.season.n, u.season.played, u.season.last], [1, 0, null]);
   assert.equal(u.season.end, Date.parse("2026-10-28T15:00:00Z"), "four weeks from 1 October, midnight in Korea");
   // a season played: three counted ranked matches, finished at 1000 RR (gold 2)
-  assert.equal((await h.api("room_up", { token: p.token, code: "SSN001", ranked: true, players: ["player"] })).status, 200);
+  const tok = await squad(h, ["bobby", "carol", "dave1"]); tok.player = p.token;
+  await setRR(h, ["player", "bobby", "carol", "dave1"], 100);
   for (let i = 0; i < 3; i++) {
-    const mt = await h.api("match_start", { token: p.token, ranked: true, room: "SSN001" });
-    h.advance(61000);
-    assert.equal((await h.api("progress", { token: p.token, mt: mt.ticket, kills: 2, win: true, humans: 6, match: { mode: "std", s: [7, 3] } })).rankedCounted, true);
+    const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "SSN00" + i });
+    await rankedEnd(m, "a", { player: 2 });
+    assert.equal((await rankedSettle(m, "player", { kills: 2 })).rankedCounted, true);
   }
   assert.equal((await me()).season.played, 3);
   await h.api("a_user_set", { atoken: owner.atoken, id: "player", op: "rr", rr: 1000 });

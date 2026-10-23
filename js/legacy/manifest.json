@@ -1,4 +1,5 @@
 [
+  "js/bot-skill.js",
   "js/legacy/01-entry.js",
   "js/legacy/02-graphics-setup.js",
   "js/legacy/03-engine.js",
@@ -109,5 +110,7 @@
   "js/legacy/105-the-operator-kills-with-any-hit.js",
   "js/legacy/106-browser-shortcuts-no-longer-stick-keys-ctrl-is-not-a-game-key.js",
   "js/legacy/107-twenty-eight-agents-fifteen-retired-their-best-abilities-moved-to-the-rest.js",
-  "js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js"
+  "js/legacy/108-agents-the-owner-switched-off-leave-the-picker-the-bots-and-the-random-pick.js",
+  "js/legacy/109-ranked-flow-the-host-attests-the-match-and-the-server-sets-the-rank.js",
+  "js/legacy/109-bot-skill-from-the-humans-in-the-room-and-a-level-chip-on-names.js"
 ]
