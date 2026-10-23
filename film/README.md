@@ -79,5 +79,7 @@ node scripts/contact.js                # contact.png
 | 디자인 검토 | 완성 합성의 18개 비트 스틸을 검토 서브에이전트에 보냄 | 반드시 3·권장 5 중 7개 반영, 1개 보류(`DECISIONS.md`); 전후 쌍 `review/fixes/v2-*.png` |
 | 카피 검토 | 한국어 카피 검토 서브에이전트 1회 | 문체 통일·오프닝 교체 등 반영, 1개 거절(`DECISIONS.md`) |
 
+**2026-10-23 다시 확인(게임 숫자 맞추기).** 게임이 세는 값(`GAME_CATALOG.counts()`, `origin/main` 0364a02)은 요원 28 · 능력 112 · 맵 22 · 스킨 607(무기 19 · 모드 11)로 자막·`timeline.js`와 같아 자막은 그대로다. 낡은 것은 녹화된 홈 화면의 “맵 21종”(버튼 부제와 아래 줄, 두 곳)뿐이었고, 게임이 이제 22종으로 센다. 그래서 `capture-screens.js`·`capture-content.js`·`capture-skins.js`로 화면을 다시 찍고(`screens/*.png`, `path.json`, `content.json`, `skins.json`) 네 컷을 다시 렌더했다. 클립은 HUD만 있고 숫자가 없어 그대로 둔다. 공지 팝업은 `localStorage.lgp_notice_seen`을 미리 넣어 프레임에 나오지 않게 했다(▶ 홍보영상 단추는 창 밖). 이 환경엔 ffprobe가 없어 `verify.js`는 `ffmpeg -i`로 만든 대용품으로 돌렸다(결과 파일은 같은 형식). 전후 비교: `review/fixes/v4-home-map-count.png`(위 21종, 아래 22종).
+
 하지 않은 것: 사람이 실제 화면과 스피커로 보고 들은 검사(소리는 수치로만 확인했다), 실제 폰에서의 재생, 음성 해설, 실제 GPU에서 녹화한 플레이(클립은 소프트웨어 렌더), 9:16·1:1의 동작 줄이기 판(16:9만 있다), 헤드샷 오프닝과 스킨 다섯 개를 넣은 뒤의 디자인 검토 서브에이전트 재검토(직접 390 px 시트와 스틸로만 확인했다).
 

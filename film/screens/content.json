@@ -1,6 +1,6 @@
 {
-  "capturedAt": "2026-10-22T14:39:46.673Z",
-  "base": "http://127.0.0.1:3000",
+  "capturedAt": "2026-10-23T14:03:26.461Z",
+  "base": "http://127.0.0.1:3600",
   "counts": {
     "agents": 28,
     "abilities": 112,
@@ -9,7 +9,7 @@
     "modes": 11,
     "skins": 607
   },
-  "homeFoot": "요원 28명 · 무기 19종 · 맵 21종 · 스킨 607종",
+  "homeFoot": "요원 28명 · 무기 19종 · 맵 22종 · 스킨 607종",
   "agent": {
     "key": "hwaryeong",
     "name": "화령",

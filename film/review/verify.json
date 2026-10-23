@@ -24,8 +24,8 @@
   "determinism": {
     "t": 20.6,
     "twoBrowsers": [
-      "4431639402495b510537d1405d5b2b351deb1c805122202a05aaa00aecef1ea7",
-      "4431639402495b510537d1405d5b2b351deb1c805122202a05aaa00aecef1ea7"
+      "93b3ad22f4730a52381c7bd71ac9f51ebe37b28335f31f898e1697b7f1281792",
+      "93b3ad22f4730a52381c7bd71ac9f51ebe37b28335f31f898e1697b7f1281792"
     ],
     "identical": true,
     "seekAwayAndBack": true
@@ -431,11 +431,11 @@
       {
         "t": 33,
         "id": "mk1",
-        "ratio": 5.1,
+        "ratio": 5.07,
         "fg": [
-          22,
-          23,
-          29
+          21,
+          24,
+          30
         ],
         "bg": [
           254,
@@ -1132,9 +1132,9 @@
           30
         ],
         "bg": [
-          255,
-          59,
-          78
+          254,
+          58,
+          77
         ]
       },
       {
@@ -1202,7 +1202,6 @@
   "media": {
     "out/master_16x9.mp4": {
       "probe": {
-        "programs": [],
         "streams": [
           {
             "codec_name": "h264",
@@ -1215,14 +1214,12 @@
           {
             "codec_name": "aac",
             "sample_rate": "48000",
-            "channels": 2,
-            "r_frame_rate": "0/0",
-            "nb_frames": "1876"
+            "channels": 2
           }
         ],
         "format": {
           "duration": "40.000000",
-          "size": "16610068"
+          "size": "16740260"
         }
       },
       "loudness": {
@@ -1240,7 +1237,6 @@
     },
     "out/cut_9x16.mp4": {
       "probe": {
-        "programs": [],
         "streams": [
           {
             "codec_name": "h264",
@@ -1253,14 +1249,12 @@
           {
             "codec_name": "aac",
             "sample_rate": "48000",
-            "channels": 2,
-            "r_frame_rate": "0/0",
-            "nb_frames": "1876"
+            "channels": 2
           }
         ],
         "format": {
           "duration": "40.000000",
-          "size": "13732109"
+          "size": "13798154"
         }
       },
       "loudness": {
@@ -1278,7 +1272,6 @@
     },
     "out/cut_1x1.mp4": {
       "probe": {
-        "programs": [],
         "streams": [
           {
             "codec_name": "h264",
@@ -1291,14 +1284,12 @@
           {
             "codec_name": "aac",
             "sample_rate": "48000",
-            "channels": 2,
-            "r_frame_rate": "0/0",
-            "nb_frames": "1876"
+            "channels": 2
           }
         ],
         "format": {
           "duration": "40.000000",
-          "size": "10698632"
+          "size": "10777119"
         }
       },
       "loudness": {
@@ -1316,7 +1307,6 @@
     },
     "out/cut_reduced_16x9.mp4": {
       "probe": {
-        "programs": [],
         "streams": [
           {
             "codec_name": "h264",
@@ -1329,14 +1319,12 @@
           {
             "codec_name": "aac",
             "sample_rate": "48000",
-            "channels": 2,
-            "r_frame_rate": "0/0",
-            "nb_frames": "1876"
+            "channels": 2
           }
         ],
         "format": {
           "duration": "40.000000",
-          "size": "15652443"
+          "size": "15728697"
         }
       },
       "loudness": {

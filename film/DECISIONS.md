@@ -43,6 +43,13 @@ A design-review subagent went through all 18 beat stills at 1920×1080 and at ph
 - **The title line is bigger** (taken): 44 → 56 px (16:9); it is the film's one sentence and was its smallest text. Kickers 44 → 48 px.
 - **Not taken: re-recording the play without “경기 크레딧 무제한”** in the HUD (the solo mode's economy readout, legible only at desktop size): a full re-record costs about an hour of frame-stepped capture for a line most viewers will not resolve. Noted here instead. Also kept: the agent-grid shot that pans into one agent's four abilities (the reviewer wanted more whole cards; the pan is what sets up the 스킬 count that follows).
 
+## Numbers re-checked against the current game (2026-10-23)
+
+- **Counts are unchanged, one screen was stale.** `GAME_CATALOG.counts()` on `origin/main` still gives 28 / 112 / 22 / 607 (weapons 19, modes 11), so the captions and `timeline.js` stay as they were. The recorded home screen said “맵 21종” in two places; the game now recounts the map list and says 22종. `03-home.png`, the other path screens, `11-abilities.png` and the skin screens were re-captured from the current game (`path.json`, `content.json`, `skins.json` rewritten); all four cuts (`master_16x9`, `cut_9x16`, `cut_1x1`, `cut_reduced_16x9`) were re-rendered and `scripts/verify.js` re-run.
+- **Clips kept.** They show HUD only, no counts or fixed text that changed.
+- **The new notice popup is kept out of the frames** by presetting `lgp_notice_seen` in the capture browser, the same state a returning visitor has; the ▶ 홍보영상 button stays (it is the game) and sits outside the cropped window.
+- **The earlier entry “맵 22, not the home screen's 21” is obsolete**: the game fixed the footer, so the film no longer has two different map numbers on screen.
+
 ## Brief
 
 - **Topic “13fps 게임”** = this repository's game, “13” (`manifest.webmanifest`), served at 13fps.vercel.app. “13fps” is the address, not a frame-rate claim; the film makes no frame-rate claim.
