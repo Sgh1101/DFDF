@@ -33,7 +33,10 @@
     if (skin && GAME_RULES.championsSkin(skin.id)) window.CHAMPIONS_AUDIO?.playMusic("finisher_music", preview, 8 - 3.03, 3.03);
     if (!skin || skin.id === "default" || SETTINGS.motion === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     const pack = SOUNDPACK.skins[skin.id], color = skin.glow || skin.edge || 0x80caff;
-    const duration = GAME_RULES.championsSkin(skin.id) ? 8 : 1.8;
+    // an Epic skin (and a Legendary one without a figure of its own) plays its ring larger and longer, with a
+    // flash, shockwaves over the ground, a pillar of light, a fountain of sparks and a turning halo in its colour
+    const grand = (skin.rar || 0) >= 3 && !GAME_RULES.championsSkin(skin.id) && !(window.FINISHER_LEGEND && FINISHER_LEGEND.themes[skin.id]);
+    const duration = GAME_RULES.championsSkin(skin.id) ? 8 : grand ? 2.8 : 1.8;
     const started = performance.now();
     const studio = preview && GUN_SKINS._pv();
     if (preview && !studio) return false;
@@ -42,13 +45,27 @@
     const phantom = window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id) ? CHAMPIONS_PHANTOM.finisher(group, skin, event) : null;
     if (window.CHAMPIONS_PHANTOM?.isSkin(skin.id) && !phantom) return false;
     if (!phantom) {
-      const rings = pack === "cosmic" ? 3 : 2;
+      const rings = (pack === "cosmic" ? 3 : 2) + (grand ? 1 : 0);
       for (let i = 0; i < rings; i++) {
-        const ring = new T.Mesh(new T.TorusGeometry(0.5 + i * 0.18, 0.018, 5, 36), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false }));
+        const ring = new T.Mesh(new T.TorusGeometry(0.5 + i * 0.18, grand ? 0.03 : 0.018, 5, 36), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false }));
         ring.rotation.x = Math.PI / 2; ring.position.y = 0.1 + i * 0.3;
         group.add(ring);
       }
-      const count = Math.max(6, Math.round(16 * Math.min(1, GFX.fx)));
+      if (grand) {
+        const glow = (c, o) => new T.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+        const add = (mesh, kind, data) => { mesh.userData.kind = kind; Object.assign(mesh.userData, data); group.add(mesh); return mesh; };
+        add(new T.Mesh(new T.SphereGeometry(0.5, 14, 10), glow(0xffffff, 1)), "flash").position.y = 0.9;
+        for (let i = 0; i < 2; i++) add(new T.Mesh(new T.TorusGeometry(1, 0.04, 5, 48), glow(color, 0.9)), "wave", { at: i * 0.12 }).rotation.x = Math.PI / 2;
+        const pillar = add(new T.Mesh(new T.CylinderGeometry(0.45, 0.45, 9, 18, 1, true), glow(color, 0.4)), "pillar");
+        pillar.geometry.translate(0, 4.5, 0);
+        const sparks = Math.round(26 * Math.min(1, GFX.fx)) + 8;
+        for (let i = 0; i < sparks; i++) {
+          const a = Math.random() * Math.PI * 2, out = 1 + Math.random() * 2.6;
+          add(new T.Mesh(new T.TetrahedronGeometry(0.06 + (i % 3) * 0.025), glow(i % 3 ? color : 0xffffff, 1)), "spark", { v: [Math.cos(a) * out, 3.5 + Math.random() * 4, Math.sin(a) * out], spin: 4 + Math.random() * 8 });
+        }
+        for (let i = 0; i < 6; i++) add(new T.Mesh(new T.OctahedronGeometry(0.13), glow(i % 2 ? 0xffffff : color, 1)), "halo", { a: i * Math.PI / 3 }).scale.set(0.7, 1.4, 0.7);
+      }
+      const count = Math.max(6, Math.round((grand ? 30 : 16) * Math.min(1, GFX.fx)));
       for (let i = 0; i < count; i++) {
         const crystal = pack === "crystal" || pack === "royal";
         const mesh = new T.Mesh(crystal ? new T.OctahedronGeometry(0.09) : new T.TetrahedronGeometry(0.08), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
@@ -62,17 +79,47 @@
     const animate = (mesh, t) => {
       if (duration === 8) t = Math.min(1, Math.max(t, (performance.now() - started) / 8000));
       if (phantom) phantom(t);
-      const radius = pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t;
+      const reach = grand ? 1.8 : 1;
+      const radius = (pack === "cosmic" ? 1.1 * (1 - t) : 0.35 + 0.9 * t) * reach;
+      const sec = t * duration, fade = Math.min(1, t / 0.08) * (1 - t);
       mesh.children.forEach((part, i) => {
         if (part.userData.phantom) return;
+        const u = part.userData;
+        if (u.kind === "flash") {
+          const k = t / 0.1; part.visible = k < 1;
+          if (k < 1) { part.scale.setScalar(1 + k * 6); part.material.opacity = 1 - k; }
+          return;
+        }
+        if (u.kind === "wave") {
+          const k = (t - u.at) / 0.5; part.visible = k > 0 && k < 1;
+          if (part.visible) { part.scale.setScalar(0.4 + k * 5); part.material.opacity = 0.9 * (1 - k); }
+          return;
+        }
+        if (u.kind === "pillar") {
+          part.scale.set(0.4 + fade * 1.2, Math.min(1, t / 0.12), 0.4 + fade * 1.2);
+          part.material.opacity = 0.4 * fade * (pack === "energy" ? 0.7 + 0.3 * Math.sin(sec * 40) : 1);
+          return;
+        }
+        if (u.kind === "spark") {
+          const y = u.v[1] * sec - 6 * sec * sec;
+          part.position.set(u.v[0] * sec, Math.max(0.05, y), u.v[2] * sec);
+          part.rotation.set(sec * u.spin, sec * 3, 0); part.material.opacity = 1 - t;
+          return;
+        }
+        if (u.kind === "halo") {
+          const a = u.a + sec * (pack === "dragon" ? 3 : 1.8);
+          part.position.set(Math.cos(a) * 1.4, 2.6 + 0.2 * Math.sin(sec * 3 + u.a), Math.sin(a) * 1.4);
+          part.rotation.y = sec * 4; part.material.opacity = fade;
+          return;
+        }
         part.material.opacity = (1 - t) * 0.8;
         if (part.userData.angle == null) {
           part.rotation.z = t * Math.PI * (i % 2 ? -2 : 2);
-          part.scale.setScalar(0.6 + t * 1.3);
+          part.scale.setScalar((0.6 + t * 1.3) * reach);
           if (pack === "energy") part.rotation.x = Math.PI / 2 + Math.sin(t * 9) * 0.4;
         } else {
           const angle = part.userData.angle + t * (pack === "dragon" ? 9 : 5);
-          part.position.set(Math.cos(angle) * radius, part.userData.height + Math.sin(t * Math.PI) * (pack === "dragon" ? 1.5 : 1), Math.sin(angle) * radius);
+          part.position.set(Math.cos(angle) * radius, part.userData.height * reach + Math.sin(t * Math.PI) * (pack === "dragon" ? 1.5 : 1) * reach, Math.sin(angle) * radius);
           part.rotation.set(t * 7, angle, t * 4); part.scale.setScalar(1 - t * 0.7);
         }
       });
@@ -144,8 +191,8 @@
       const kind = cause ? cause.kind : gunDepth ? gun === "knife" ? "melee" : "gun" : "ability";
       const head = kind === "gun" && gun !== "rpg" && !!victim._lastHead;
       event = { t: "kill-detail", id: `${NET.room || "solo"}:${world.round}:${++serial}`, round: world.round, mode: room.mode || "std", killer: killer.id, victim: victim.id, name: victim.name || victim.agent.name, gun, skin, head, finisherYaw: Math.atan2(killer.pos.x - victim.pos.x, killer.pos.z - victim.pos.z), kind: head ? "head" : kind, last, ace: last && foes.length >= 3 && victims.size === foes.length, x: victim.pos.x, y: (victim.y || 0) + 0.6, z: victim.pos.z };
-      // a player's round-ending kill always plays the Champions finisher, whatever the gun wears (a Champions skin keeps its own); a bot's never does
-      if (typeof isAI == "function" && isAI(killer)) event.byBot = true; else if (!GAME_RULES.championsSkin(skin)) event.finisherSkin = GAME_RULES.playerFinisherSkin(killer.team);
+      // a player's round-ending kill plays the finisher of the skin the gun wears (the Champions one only for a Champions skin); a bot's never does
+      if (typeof isAI == "function" && isAI(killer)) event.byBot = true;
       event.finisherTick = Math.floor(performance.now() / 50);
       event.distance = Math.round(Math.hypot(killer.pos.x-victim.pos.x,(killer.y||0)-(victim.y||0),killer.pos.z-victim.pos.z));
       event.armorAbsorbed = victim._lastArmorBlocked || 0;
