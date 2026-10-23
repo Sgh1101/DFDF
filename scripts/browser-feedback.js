@@ -11,7 +11,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(await page.locator("#go-feedback").count(), 1, "a Feedback item in the title menu");
     await page.evaluate(() => { document.getElementById("go-feedback").click(); });
     await page.waitForSelector("#fb-back:not([hidden])");
-    assert.equal(await page.evaluate(() => document.querySelectorAll("#fb .fb-types button").length), 6, "six kinds");
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#fb .fb-types button").length), 7, "seven kinds");
     await page.keyboard.press("Escape");
     assert.equal(await page.evaluate(() => document.getElementById("fb-back").hidden), true, "Escape closes it");
     assert.equal(await page.locator("#pz-feedback").count(), 1, "and the settings window has a button");

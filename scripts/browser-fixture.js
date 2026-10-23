@@ -16,6 +16,9 @@ async function fixture() {
     });
     if (process.env.DFDF_THREE_PATH) await page.route("https://cdnjs.cloudflare.com/ajax/libs/three.js/**", (route) => route.fulfill({ path: process.env.DFDF_THREE_PATH, contentType: "text/javascript" }));
     if (process.env.DFDF_PEERJS_PATH) await page.route("**/peerjs.min.js", (route) => route.fulfill({ path: process.env.DFDF_PEERJS_PATH, contentType: "text/javascript" }));
+    // the homepage's notice card (js/notice-popup.js) would cover its buttons after every sign-in: the film is left out
+    // (the placeholder address) unless a test is about it (options.promo)
+    if (!options.promo) await page.route("**/js/promo.js", async (route) => { const res = await route.fetch(); await route.fulfill({ response: res, body: (await res.text()).replace(/video: "https?:[^"]*"/, 'video: "PROMO_VIDEO_URL"'), contentType: "text/javascript" }); });
     await page.route("https://fonts.googleapis.com/**", (route) => route.abort());
     await page.route("https://fonts.gstatic.com/**", (route) => route.abort());
     await page.addInitScript((s) => {
