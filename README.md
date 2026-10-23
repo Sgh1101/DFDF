@@ -80,6 +80,17 @@
 - **홈 화면 카드**: 오른쪽 열 위에 새 맵(폐병원)의 층별 평면도와 `이 맵으로 시작` 버튼이 있고, 플레이 안내는 최신 3개만 보이다가 `지난 소식 보기`로 펼쳐집니다. 요원 그림은 이 열 밑으로 들어가지 않고 비켜 섭니다 (`js/home-newmap.js`, `css/home-newmap.css`).
 - **짧은 가로 화면**: 요원 선택의 맵·모드 칩은 `맵 · 모드 ▾` 버튼 하나로 접히고, 누르면 아래에서 올라옵니다 (`css/review-fixes.css`, `js/select-compact.js`).
 
+## 봇 난이도와 레벨 표시
+
+봇의 세기는 `skill` 숫자 하나로 정합니다 (`js/bot-skill.js`, 순수 함수라 `tests/bot-skill.test.js`가 직접 읽습니다). `skill`은 예전 **보통** 봇의 배수로, 1.00이 정확히 예전 보통입니다. 1.00 아래에서는 회전 속도·사거리·피해·헤드샷은 곱하고 조준 오차·탄 퍼짐은 나눕니다 (0.60이면 보통의 60%). 1.00 위에서는 보통에서 예전 **빡셈**까지 직선으로 올라 1.20이 빡셈과 같고, 그 위는 잘라내므로 에임봇은 없습니다.
+
+- 경쟁(랭크)방: 사람 플레이어의 평균 티어 → 아이언 0.60 … 레디언트 1.20 (9단계 직선).
+- 그 밖의 모드(일반·신속·TDM·DM 등): 사람 플레이어의 평균 계정 레벨 → Lv1 0.60 … Lv50 이상 1.00 (보통 이상은 없음). 계정이 없는 게스트는 평균에서 빠지고, 아무도 없으면 0.80입니다.
+- `room.diff`의 `easy`는 0.60, `hard`는 1.20으로 고정되고 `normal`(기본값, 경쟁방 포함)이 위의 자동 값을 따릅니다.
+- 방장이 라운드가 시작될 때 한 번 계산해 `BOT_RT.skill`에 두고, `diffTune()`(`js/legacy/03-engine.js`)과 탄 퍼짐(모듈 31)과 피해 배율이 그 숫자만 읽습니다.
+
+점수판·로비 슬롯·킬 피드의 이름 옆에 `Lv N` 칩이 붙습니다 (`js/legacy/109-*`). 게스트의 레벨·티어는 `hello` 메시지로 방장에게 가고, 방장이 로비·참가자 목록·`ctrl` 이벤트로 나머지에게 전합니다. 계정이 없는 게스트와 봇에는 칩이 없습니다. 검사는 `npm test`(표)와 `npm run test:bot-skill`(실제 게임 두 창)입니다.
+
 ## 테스트
 
 `npm test`는 단위 테스트(`tests/`)입니다. 브라우저 검사(`npm run test:browser`, `test:regression`, `test:startup`, `test:maps`, `test:online`, `test:ranked`, `test:shift`, `test:reload`, `test:knife`, `test:aim`, `test:admin`, `test:shop`, `test:modes2`, `test:wish`, `test:train`, `test:agents4`, `test:season`, `test:infection`, `test:conquest`, `test:range`, `test:cosmetics`, `test:newmaps`, `test:hospital`, `test:hospital-bots`, `test:landing`, `test:gunshots`, `test:details`, `test:ui-fixes`, `test:ctf`, `test:zone`, `test:feedback`, `test:orders`, `test:followup`)는 Playwright가 필요하고 `DFDF_PLAYWRIGHT_MODULE`, `DFDF_BASE_URL` 등을 설정합니다. 소프트웨어 GL(헤드리스) 환경에서는 느려서 `test:regression`의 첫 클릭과 `test:followup`의 실제 클릭이 간헐적으로 시간 초과됩니다. 코드를 바꾸지 않은 브랜치에서도 같았습니다.
