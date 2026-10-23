@@ -85,6 +85,58 @@
     return { g, Z, Y, add, side, bar };
   }
 
+  // ── the finishing pass every design gets: each sizeable block has its edges picked out, a lit line along the top
+  //    edges and a shadow line along the bottom ones, so the blocks read as machined parts with chamfers rather than
+  //    flat slabs. The lines are children of the block (in its own unit space), so they follow any slant. ──
+  const tones = new Map();
+  const tone = (m, k) => {
+    const key = m.uuid + k;
+    let t = tones.get(key);
+    if (!t) {
+      t = m.clone();
+      t.name = m.name + (k > 0 ? "-edge" : "-shade");
+      k > 0 ? t.color.lerp(new T.Color(0xffffff), k) : t.color.multiplyScalar(1 + k);
+      t.metalness = m.metalness * 0.7;
+      t.emissive && m.emissive && t.emissive.copy(m.emissive);
+      t.userData.shared = !0;
+      tones.set(key, t);
+    }
+    return t;
+  };
+  const SKIP = /bore|lens|glow|stripe|dot|mark|line|slot|vent|groove|rib|seam|shine|screw|pin|window|round|shell|bead|fuse/;
+  function refine(g) {
+    const blocks = [];
+    g.traverse((o) => {
+      if (!o.isMesh || o.geometry !== BOX || o.userData.edge || SKIP.test(o.name)) return;
+      const s = o.scale;
+      if (Math.min(s.x, s.y) < 0.012 || Math.max(s.y, s.z) < 0.03) return;
+      blocks.push(o);
+    });
+    const e = 0.0022;
+    for (const o of blocks) {
+      const s = o.scale, lit = tone(o.material, 0.32), dim = tone(o.material, -0.45);
+      // along the block's length (z) on both sides: lit at the top edge, shadow at the bottom edge
+      for (const sx of [-1, 1]) {
+        for (const [m, sy] of [[lit, 1], [dim, -1]]) {
+          const line = new T.Mesh(BOX, m);
+          line.userData.edge = !0;
+          line.scale.set(e / s.x, e / s.y, 1 - (2 * e) / s.z);
+          line.position.set(sx * (0.5 + 0.0003 / s.x - e / (2 * s.x)), sy * (0.5 - e / (2 * s.y) + 0.0003 / s.y), 0);
+          o.add(line);
+        }
+      }
+      // across the top at both ends
+      for (const sz of [-1, 1]) {
+        const cap = new T.Mesh(BOX, lit);
+        cap.userData.edge = !0;
+        cap.scale.set(1, e / s.y, e / s.z);
+        cap.position.set(0, 0.5 - e / (2 * s.y) + 0.0003 / s.y, sz * (0.5 - e / (2 * s.z) + 0.0003 / s.z));
+        o.add(cap);
+      }
+    }
+    return g;
+  }
+
   // ── 밴달 (rifle): the long block stock with its brace, the stepped top cover with four vents, the slanted
   // handguard, tall front post, slotted brake, raked grip and curved ribbed magazine with the orange tips ──
   function vandal() {
@@ -2020,5 +2072,5 @@
   }
 
   const DESIGNS = { rifle: vandal, scout: phantom, pistol: classic, silenced: ghost, revolver: sheriff, autoshot: judge, hmg: odin, marksman: outlaw, sniper: operator, machpist, knife, smg, whisper, shotgun, pocketshot, carbine, burst, bullpup, rpg };
-  window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
+  window.GUN_DESIGNS = { keys: Object.keys(DESIGNS), build: (key) => (DESIGNS[key] ? refine(DESIGNS[key]()) : null), raw: (key) => (DESIGNS[key] ? DESIGNS[key]() : null), materials: M };
 })();
