@@ -8,8 +8,31 @@
   const title=document.createElement('strong');title.textContent='마크X발로';
   const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='원본 지형을 준비하는 중…';msg.style.margin='8px 0';
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
-  const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px';
+  const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px;display:inline-block;min-height:32px;line-height:32px;padding:0 6px';
   panel.append(title,msg,start,exit);panel.hidden=!trial;document.body.append(panel);
+  // picked from the map list it is only a loading notice: a slim strip at the top that taps pass through, so it
+  // never sits on the select screen's back button or map list; it takes taps again only to offer a retry
+  const notice=(on)=>{
+    if(trial)return;
+    start.style.display=exit.style.display=on?'':'none';
+    panel.style.pointerEvents=on?'auto':'none';
+    // the retry needs room for its button: the strip opens into a card
+    panel.style.whiteSpace=on?'normal':'nowrap';
+    panel.style.borderRadius=on?'12px':'999px';
+  };
+  if(!trial){
+    panel.style.cssText+=';left:50%;right:auto;bottom:auto;top:calc(env(safe-area-inset-top,0px) + 6px);transform:translateX(-50%);max-width:calc(100vw - 32px);padding:4px 12px;font-size:12px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#101c29d9;border-radius:999px;box-shadow:0 4px 14px #0006';
+    msg.style.cssText='margin:0 0 0 8px;display:inline';
+    notice(false);
+  }
+  // on the select screen the strip sits just above the map picker that was used; elsewhere at the top
+  const placeNotice=()=>{
+    if(trial)return;
+    const anchor=['sel-pick','sel-maps'].map(id=>document.getElementById(id)).find(e=>e&&e.offsetParent&&!e.closest('[hidden]'));
+    const r=anchor&&anchor.getBoundingClientRect();
+    if(r&&r.width){Object.assign(panel.style,{left:Math.max(8,Math.round(r.left))+'px',top:'auto',bottom:Math.round(innerHeight-r.top+8)+'px',transform:'none'});}
+    else Object.assign(panel.style,{left:'50%',top:'calc(env(safe-area-inset-top,0px) + 6px)',bottom:'auto',transform:'translateX(-50%)'});
+  };
   MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[],graphicsStatic:true};
   const entry={key:KEY,name:'마크X발로',size:5};
   (window.MAP_EXTRA||=[]).push(entry);
@@ -368,11 +391,12 @@
       msg.textContent='마크X발로 준비 완료 · 원본 지형과 마인크래프트 기본 텍스처를 사용합니다.';
       if(!trial)panel.hidden=true;
       return true;
-    }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;return false;}
+    }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;notice(true);return false;}
   }
   S.ensure=()=>{
     if(S.status==='ready')return Promise.resolve(true);
-    if(!pending){panel.hidden=false;pending=load().finally(()=>{pending=null;});}
+    // placed again once the screen that asked for the map has been laid out
+    if(!pending){panel.hidden=false;placeNotice();setTimeout(placeNotice,250);pending=load().finally(()=>{pending=null;});}
     return pending;
   };
   function prepare(fn,args,key){
@@ -389,7 +413,7 @@
   paintSelMaps=function(){const r=selectMaps.apply(this,arguments);if(room.map===KEY)S.ensure();return r;};
   paintMaps=function(snapshot){const r=lobbyMaps.apply(this,arguments);if(snapshot.map===KEY)S.ensure();return r;};
   start.onclick=async()=>{
-    if(S.status==='error'){start.textContent='이 맵으로 연습 시작';await load();return;}
+    if(S.status==='error'){start.textContent='이 맵으로 연습 시작';notice(false);await load();return;}
     start.disabled=true;msg.textContent='지형과 이동 경로를 만드는 중…';
     await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,30)));
     try{room.map=KEY;room.mode='std';await startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();panel.hidden=true;S.started=true;}
