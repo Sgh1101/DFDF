@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await p.waitForFunction(()=>VALORANT_PACK.status==='ready');
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'rifle-owner'});
  for(const skin of ['champions_atk','champions_def'])await f.h.api('a_user_set',{atoken:owner.atoken,id:'rifleidentity',op:'grant',item:'scout|'+skin});
- await p.locator('#go-play').click();await p.locator('#sel-maps button').filter({hasText:/^빙하 관측소$/}).click();await p.locator('#sel-go').click();
+ await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^빙하 관측소$/}).click();await p.locator('#sel-go').click();
  await p.waitForFunction(()=>!!myActor());
  await p.evaluate(async()=>{await GUN_SKINS.sync();ADMIN.freezeAI=true;closeShop();world.phase='buy';world.roundTime=999;openShop();});
  await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===18,null,{timeout:120000});

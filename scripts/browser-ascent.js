@@ -7,6 +7,8 @@ const {fixture}=require('./browser-fixture');
   assert.equal(await page.evaluate(()=>ASCENT_TRIAL.status),'idle');
   assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length),0);
   await page.locator('#go-play').click();
+  // a laptop folds the map chips into one button, as a phone does
+  if(await page.locator('#sel-pick').isVisible())await page.locator('#sel-pick').click();
   await page.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
   await page.waitForFunction(()=>window.ASCENT_TRIAL?.status==='ready');
   await page.locator('#sel-go').click({timeout:120000});
