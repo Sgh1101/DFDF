@@ -137,6 +137,55 @@
     return g;
   }
 
+  // ── small finishing parts on a kit, in its side-view units: a pin or screw head through the body (it shows on
+  //    both sides), an engraved seam, a panel outline, and the maker's roll mark in a 3 × 5 block font. The roll
+  //    mark is cut on each side so it reads left to right from both; its blocks are a fraction of a millimetre
+  //    proud of the face at half width w. ──
+  const FONT = {
+    A: "010101111101101", B: "110101110101110", C: "011100100100011", D: "110101101101110", E: "111100110100111",
+    F: "111100110100100", G: "011100101101011", K: "101101110101101", M: "101111111101101", N: "101111111111101",
+    O: "010101101101010", P: "110101110100100", R: "110101110101101", S: "011100010001110", T: "111010010010010",
+    X: "101101010101101", 0: "010101101101010", 1: "010110010010111", 2: "110001010100111", 3: "110001010001110",
+    4: "101101111001001", 9: "111101111001111", "-": "000000111000000", ".": "000000000000010", " ": "000000000000000",
+  };
+  const fine = (k) => {
+    const D = M.dark(), ST = M.steel();
+    const pin = (px, py, r, w, m) => k.side(m || ST, px - r, px + r, py - r, py + r, w, { name: "pin" });
+    const screw = (px, py, r, w) => {
+      pin(px, py, r, w);
+      k.side(D, px - r * 0.75, px + r * 0.75, py - 0.45, py + 0.45, w + 0.0002, { name: "screw-slot" });
+    };
+    const seam = (a, b, py, w, m) => k.side(m || D, a, b, py, py + 1.4, w, { name: "seam" });
+    const vseam = (px, top, bot, w, m) => k.side(m || D, px, px + 1.4, top, bot, w, { name: "seam" });
+    const outline = (a, b, top, bot, w, m) => {
+      seam(a, b, top, w, m);
+      seam(a, b, bot - 1.4, w, m);
+      vseam(a, top, bot, w, m);
+      vseam(b - 1.4, top, bot, w, m);
+    };
+    // text from px a with its top at py, pixel size p; each row's lit pixels are joined into runs
+    const mark = (text, a, top, w, m, p) => {
+      p = p || 1.2;
+      const width = text.length * 4 * p - p;
+      for (const s of [-1, 1]) {
+        [...text].forEach((ch, i) => {
+          const f = FONT[ch] || FONT[" "];
+          for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 3; c++) {
+              if (f[r * 3 + c] !== "1" || (c && f[r * 3 + c - 1] === "1")) continue;
+              let n = 1;
+              while (c + n < 3 && f[r * 3 + c + n] === "1") n++;
+              const u = i * 4 * p + c * p, x0 = s > 0 ? a + u : a + width - u - n * p;
+              k.side(m || D, x0, x0 + n * p * 0.92, top + r * p, top + r * p + p * 0.92, 0.0002, { x: s * w, name: "mark" });
+            }
+          }
+        });
+      }
+      return a + width;
+    };
+    return { pin, screw, seam, vseam, outline, mark };
+  };
+
   // ── 밴달 (rifle): the long block stock with its brace, the stepped top cover with four vents, the slanted
   // handguard, tall front post, slotted brake, raked grip and curved ribbed magazine with the orange tips ──
   function vandal() {
@@ -1321,6 +1370,18 @@
     gb(A, -0.03, 0.026, -0.25, -0.235, 0.0135, "magazine-floorplate");
     gb(D, -0.03, 0.026, -0.252, -0.249, 0.0138);
 
+    // finishing: the roll mark on the slide, the extractor by the port, the striker indicator at the back, slide
+    // screws, safe and fire dots by the selector, a mag release
+    const F = fine(k);
+    F.mark("DFDF MX-2", 210, 25, 0.0138, PA, 1);
+    side(ME, 120, 150, 15, 19, 0.0139, { name: "extractor" });
+    side(A, 12, 16, 22, 30, 0.004, { name: "striker-indicator" });
+    F.pin(64, 39, 1.8, 0.0137);
+    F.pin(232, 41, 1.8, 0.0137);
+    F.pin(58, 54, 1.4, 0.0146, PA);
+    F.pin(58, 60, 1.4, 0.0146, A);
+    side(ST, 92, 104, 76, 84, 0.0132, { name: "mag-release" });
+
     // the old model was twice as thick; the parts are drawn slim and the whole body is widened to match it
     const body = new T.Group();
     body.name = "machpist-body";
@@ -1406,6 +1467,12 @@
     side(D, 8, 18, 86, 94, 0.017, { name: "lanyard-hole" });
     side(A, 8, 18, 104, 118, 0.004, { name: "lanyard" });
     side(A, 2, 24, 116, 120, 0.004);
+
+    // finishing: the maker's mark on the coated flat, two screws through the handle, a pin in the guard
+    const F = fine(k);
+    F.mark("DFDF", 312, 21, 0.0074, PA, 1.1);
+    for (const px of [62, 196]) F.screw(px, lerp(px, hTop) + 9, 2.4, 0.017);
+    F.pin(260, 60, 2.4, 0.0184);
 
     g.name = "dfdf-knife";
     g.userData.weaponModel = "dfdf-knife";
@@ -1512,6 +1579,22 @@
 
     // barrel collar out of the handguard
     side(ST, 628, 640, 56, 84, 0.012, { name: "barrel-collar" });
+
+    // finishing: the roll mark, safe and fire dots by the selector, a mag release, lightening cuts in the stock
+    // arm, a QD socket and a row of small slots low on the handguard, the receiver's seam and takedown pins
+    const F = fine(k);
+    F.mark(name === "dfdf-whisper" ? "DFDF K9-S" : "DFDF K9", 424, 40, 0.0244, PA);
+    F.pin(262, 94, 1.6, 0.0227, PA);
+    F.pin(262, 101, 1.6, 0.0227, A);
+    side(ST, 362, 374, 124, 132, 0.0232, { name: "mag-release" });
+    for (let i = 0; i < 3; i++) side(D, 66 + i * 38, 92 + i * 38, 60, 70, 0.0163, { name: "stock-cut" });
+    for (let i = 0; i < 4; i++) side(D, 500 + i * 30, 516 + i * 30, 104, 110, 0.0263, { name: "mlok-slot" });
+    F.pin(612, 118, 4, 0.0264, ST);
+    F.pin(612, 118, 2, 0.0266, D);
+    F.seam(214, 600, 82, 0.0242);
+    F.seam(486, 624, 94, 0.0262);
+    for (const px of [228, 462]) F.pin(px, 88, 2.4, 0.0228);
+    F.screw(30, 52, 2.6, 0.0202);
     g.name = name;
     g.userData.weaponModel = name;
     return k;
@@ -1641,6 +1724,18 @@
       side(GD, 326, 340, py, py + 9, 0.005, { x: -0.032 });
     }
 
+    // finishing: the roll mark and an engraved border on the receiver, grain running along the stock, butt
+    // screws in the pad, the choke's rim and notches at the muzzle, a sling loop on the tube cap
+    const F = fine(k);
+    F.mark("DFDF 12GA", 300, 30, 0.0224, D);
+    F.outline(276, 524, 54, 92, 0.0223, PA);
+    for (const [a, b, c, d] of [[30, 120, 240, 86], [26, 140, 220, 112], [40, 160, 200, 134], [60, 102, 180, 92]]) bar(WL, a, b, c, d, 0.0016, 0.0203, "grain-line");
+    for (const py of [96, 170]) F.screw(8, py, 2.4, 0.0213);
+    roundRod(k, D, 974, 976, 23, 59, "choke-line");
+    for (const py of [24, 56]) side(D, 980, 986, py, py + 2, 0.006, { name: "choke-notch" });
+    side(ST, 932, 940, 100, 112, 0.004, { name: "sling-loop" });
+    side(D, 934, 938, 104, 108, 0.0042);
+
     g.name = "dfdf-shotgun";
     g.userData.weaponModel = "dfdf-shotgun";
     g.userData.design = { key: "shotgun", revision: 1 };
@@ -1715,6 +1810,20 @@
     for (let i = 0; i < 6; i++) gb(D, -0.02, 0.022, -0.03 - i * 0.014, -0.028 - i * 0.014, 0.0196, "checker-line");
     gb(ST, -0.032, 0.036, -0.148, -0.136, 0.0195, "butt-cap");
     gb(CH, 0.012, 0.022, -0.162, -0.148, 0.004, "lanyard-ring");
+
+    // finishing: a scroll of leaves engraved on the frame, the roll mark, two screws, the matted rib, and the
+    // extractor's line at the breech
+    const F = fine(k);
+    for (let i = 0; i < 9; i++) {
+      const px = 66 + i * 13, py = 24 + (i % 2 ? 6 : 0);
+      bar(PA, px, py + 4, px + 13, py + (i % 2 ? -2 : 8), 0.0012, 0.0433, "scroll-line");
+      side(PA, px + 5, px + 8, py + (i % 2 ? 10 : -1), py + (i % 2 ? 13 : 2), 0.0433, { name: "scroll-leaf" });
+    }
+    F.mark("DFDF 410", 76, 76, 0.0434, D);
+    F.screw(48, 34, 3, 0.0434);
+    F.screw(176, 34, 3, 0.0434);
+    for (let i = 0; i < 12; i++) side(D, 204 + i * 17, 210 + i * 17, 12, 13.5, 0.0102, { name: "rib-slot" });
+    for (const x of [-0.023, 0.023]) roundRod(k, D, 214, 215.5, 16, 66, "breech-line", x);
 
     g.name = "dfdf-pocketshot";
     g.userData.weaponModel = "dfdf-pocketshot";
@@ -1834,6 +1943,29 @@
     for (let i = 0; i < 3; i++) side(D, 802 + i * 10, 808 + i * 10, 118, 148, 0.0172, { name: "brake-slot" });
     side(D, 830, 834, 126, 140, 0.008, { name: "muzzle-bore" });
 
+    // finishing: the roll mark, safe and fire dots, a mag release, receiver pins and seam, rail numbers, a QD
+    // socket and seam on the handguard, stock screws, magnification rings on the eyepiece, ring screws, and the
+    // parallax knob on the left of the turret
+    const F = fine(k);
+    F.mark("DFDF RECON", 302, 138, 0.0237, PA);
+    F.pin(280, 134, 1.6, 0.0247, PA);
+    F.pin(280, 141, 1.6, 0.0247, A);
+    side(ST, 404, 414, 156, 166, 0.0245, { name: "mag-release" });
+    F.pin(560, 100, 2.4, 0.0243);
+    F.pin(250, 100, 2.4, 0.0243);
+    F.seam(236, 430, 122, 0.0237);
+    for (let i = 0; i < 8; i++) side(PA, 251 + i * 40, 253 + i * 40, 74, 77, 0.0166, { name: "rail-mark" });
+    F.pin(760, 150, 4, 0.0264);
+    F.pin(760, 150, 2, 0.0266, D);
+    F.seam(594, 772, 130, 0.0262, TD);
+    F.screw(118, 106, 2.6, 0.0213);
+    F.screw(30, 168, 2.6, 0.0213);
+    for (let i = 0; i < 4; i++) roundRod(k, D, 282 + i * 7, 284 + i * 7, 5, 57, "eyepiece-ring");
+    for (const px of [334, 458]) F.screw(px + 4, 46, 2, 0.0242);
+    roundRod(k, ST, 384, 398, 24, 38, "parallax-knob", -0.028);
+    side(PA, 386, 396, 30, 32, 0.0122, { x: -0.034, name: "knob-mark" });
+    for (let i = 0; i < 4; i++) side(PA, 384 + i * 4, 385 + i * 4, 0, 2, 0.0122, { name: "turret-mark" });
+
     g.name = "dfdf-recon";
     g.userData.weaponModel = "dfdf-recon";
     g.userData.design = { key: "carbine", revision: 1 };
@@ -1924,6 +2056,23 @@
     for (let i = 0; i < 3; i++) mb(D, -0.045, 0.045, -0.016 - i * 0.024, -0.012 - i * 0.024, 0.0148, "mag-rib");
     mb(PL, -0.048, 0.048, -0.1, -0.085, 0.016, "mag-base");
 
+    // finishing: the roll mark, a mag release, a windage knob on the rear sight, stock screws and a QD socket,
+    // receiver pins and seam, handguard seams, and a front sight pin
+    const F = fine(k);
+    F.mark("DFDF B3", 428, 110, 0.0244, PA);
+    side(ST, 398, 408, 186, 196, 0.0236, { name: "mag-release" });
+    roundRod(k, ST, 318, 330, 8, 18, "windage-knob", 0.012);
+    F.screw(210, 100, 2.6, 0.0224);
+    F.screw(60, 100, 2.6, 0.0224);
+    F.pin(36, 236, 4, 0.0224);
+    F.pin(36, 236, 2, 0.0226, D);
+    F.pin(250, 120, 2.4, 0.0243);
+    F.pin(574, 120, 2.4, 0.0243);
+    F.seam(250, 452, 150, 0.0242);
+    F.seam(592, 806, 176, 0.0262);
+    F.vseam(700, 104, 190, 0.0262);
+    F.pin(767, 62, 2.4, 0.0134);
+
     g.name = "dfdf-burst";
     g.userData.weaponModel = "dfdf-burst";
     g.userData.design = { key: "burst", revision: 1 };
@@ -1996,6 +2145,27 @@
     for (let i = 0; i < 3; i++) side(D, 924 + i * 18, 934 + i * 18, 136, 184, 0.0222, { name: "brake-port" });
     side(D, 983, 987, 150, 170, 0.01, { name: "muzzle-bore" });
 
+    // finishing: a darker moulded panel on the body with its outline and the roll mark, the charging slot with
+    // its handle, takedown pins, a QD socket and cheek seam on the stock, a short bottom rail and hand stop on
+    // the handguard, the sight's battery cap and brightness buttons
+    const F = fine(k);
+    side(TD, 334, 566, 136, 176, 0.0303, { name: "body-panel" });
+    F.outline(334, 566, 136, 176, 0.0304);
+    F.mark("DFDF COMET", 352, 148, 0.0305, D, 1.4);
+    side(D, 300, 560, 110, 115, 0.0304, { name: "charging-slot" });
+    side(ST, 532, 546, 104, 120, 0.006, { x: -0.036, name: "charging-handle" });
+    side(ST, 528, 550, 106, 118, 0.003, { x: -0.042 });
+    for (const [px, py] of [[250, 208], [578, 208], [120, 196]]) F.pin(px, py, 3, 0.0304);
+    F.pin(40, 300, 4, 0.0284);
+    F.pin(40, 300, 2, 0.0286, D);
+    F.seam(18, 226, 162, 0.0284);
+    F.seam(170, 598, 216, 0.0304, TD);
+    side(ME, 610, 724, 212, 220, 0.012, { name: "bottom-rail" });
+    for (let i = 0; i < 6; i++) side(D, 616 + i * 18, 624 + i * 18, 216, 220, 0.0125, { name: "rail-slot" });
+    side(P, 724, 738, 212, 236, 0.012, { name: "hand-stop" });
+    roundRod(k, ST, 456, 468, 28, 44, "sight-battery", 0.022);
+    for (const px of [418, 434]) side(D, px, px + 8, 56, 64, 0.0185, { name: "sight-button" });
+
     g.name = "dfdf-comet";
     g.userData.weaponModel = "dfdf-comet";
     g.userData.design = { key: "bullpup", revision: 1 };
@@ -2063,6 +2233,21 @@
     ring(D, 1258, 1262, 65);
     for (let i = 0; i < 8; i++) ring(OL, 1360 + i * 20, 1381 + i * 20, 62 - i * 7.2, "warhead-nose");
     ring(BR, 1520, 1534, 5, "fuse");
+
+    // finishing: the roll mark on the tube, clamp bolts, the trigger housing under the tube, a rubber eyecup and
+    // side knobs on the optic, the warhead's stencilled lot marks, a steel ring at its nose and the fuse cap
+    const F = fine(k);
+    F.mark("DFDF RK-1", 494, 72, 0.0402, D);
+    for (const px of [312, 474, 584, 790]) side(ST, px, px + 10, 24, 30, 0.005, { name: "clamp-bolt" });
+    side(ME, 410, 500, 122, 134, 0.016, { name: "trigger-housing" });
+    F.pin(420, 128, 2.4, 0.0162);
+    F.pin(488, 128, 2.4, 0.0162);
+    roundRod(k, M.rubber(), 360, 374, 6, 44, "eyecup");
+    for (const x of [-0.019, 0.019]) roundRod(k, OL, 520, 540, 16, 34, "optic-knob", x);
+    F.mark("PG-1", 410, 18, 0.0172, D);
+    F.mark("LOT 09", 1270, 74, 0.0642, TN, 1.4);
+    ring(ST, 1456, 1462, 30, "nose-ring");
+    ring(ST, 1512, 1520, 8, "fuse-cap");
 
     g.name = "dfdf-rpg";
     g.userData.weaponModel = "dfdf-rpg";
