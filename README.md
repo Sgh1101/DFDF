@@ -221,3 +221,7 @@ RR은 서버에서 발급한 랭크 경기 확인표와 최소 실제 참가자 
 일반~전설 수집을 끝낸 계정도 기존 확률로 초월 뽑기를 시도하며, 받을 일반 스킨이 없는 미당첨 회차는 골드를 반환합니다. 700코인 구매와 경기 완료당 1코인은 그대로입니다.
 
 재현: `npm ci` 후 `npx playwright install chromium`, `npm run check`, `npm run check:assets`, `npm test`, `npm run test:suite`(핵심) 또는 `npm run test:full`(전체). Node 20 이상. API 계정·구매는 격리된 fixture이며 실제 결제를 하지 않습니다. GitHub CI는 PR 핵심 검사, 야간 전체 검사와 임시 Redis Lua 통합 검사를 실행합니다.
+
+## ICE 로그 (멀티플레이 연결 진단)
+
+게임이 여는 모든 WebRTC 연결(방장과 게스트)은 `js/legacy/110-…js`가 기록합니다. 만들어짐, 찾은 후보 종류별 개수(host / srflx / relay), ICE 상태 변화, 연결되거나 끊길 때 실제 쓰인 경로(로컬·원격 후보 종류, 왕복 시간), 앱이 직접 닫았는지(`closed-by-app`)를 남깁니다. 기록은 브라우저 안에만 있고 어디로도 보내지 않으며 최근 300줄입니다. 콘솔에서 `[ice]`로 보거나 `iceLogText()`로 전체를 복사할 수 있습니다. 테스트는 `npm run test:ice-log`입니다.
