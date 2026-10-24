@@ -1,91 +1,72 @@
 {
-  "capturedAt": "2026-10-23T04:02:43.342Z",
+  "capturedAt": "2026-10-24T07:03:01.729Z",
   "clips": [
-    {
-      "name": "map-pogu",
-      "map": "pogu",
-      "fps": 24,
-      "frames": 48,
-      "seconds": 2,
-      "took": 134.826
-    },
-    {
-      "name": "map-neon",
-      "map": "neon",
-      "fps": 24,
-      "frames": 48,
-      "seconds": 2,
-      "took": 169.938
-    },
-    {
-      "name": "map-train",
-      "map": "train",
-      "fps": 24,
-      "frames": 48,
-      "seconds": 2,
-      "took": 88.425
-    },
     {
       "name": "open",
       "map": "glacier",
       "agent": "hwaryeong",
       "skin": {
-        "rifle": "phoenix"
+        "scout": "champions_atk"
       },
       "fps": 30,
       "frames": 150,
       "seconds": 5,
       "events": [
         {
-          "frame": 36,
+          "frame": 24,
           "fire": true,
-          "speed": 0.02
+          "speed": 0.13
         },
         {
-          "frame": 36,
+          "frame": 24,
           "hit": "head"
         },
         {
-          "frame": 40,
+          "frame": 28,
           "fire": true,
-          "speed": 0.01
+          "speed": 0.04
         },
         {
-          "frame": 40,
+          "frame": 28,
           "kill": "태양",
           "head": true,
-          "d": 5.71
+          "d": 6.34
+        },
+        {
+          "frame": 28,
+          "hit": "head"
+        },
+        {
+          "frame": 40,
+          "fire": true,
+          "speed": 0
         },
         {
           "frame": 40,
           "hit": "head"
         },
         {
-          "frame": 52,
+          "frame": 44,
           "fire": true,
           "speed": 0
         },
         {
-          "frame": 52,
-          "hit": "head"
+          "frame": 44,
+          "finisher": "champions_atk",
+          "champions": true
         },
         {
-          "frame": 56,
-          "fire": true,
-          "speed": 0
+          "frame": 44,
+          "finisher": "champions_atk"
         },
         {
-          "frame": 56,
-          "finisher": "phoenix"
-        },
-        {
-          "frame": 56,
+          "frame": 44,
           "kill": "세인",
           "head": true,
-          "d": 5.83
+          "d": 6.52
         },
         {
-          "frame": 56,
+          "frame": 44,
           "hit": "head"
         }
       ],
@@ -136,16 +117,16 @@
           }
         ],
         "phase": "live",
-        "clock": 91.24806666666717
+        "clock": 91.49906666666679
       },
       "skinSet": [
         [
-          "rifle",
-          "phoenix",
+          "scout",
+          "champions_atk",
           true
         ]
       ],
-      "took": 686.254
+      "took": 712.727
     },
     {
       "name": "cast",
@@ -222,8 +203,36 @@
           true
         ]
       ],
-      "took": 262.02
+      "took": 367.685
+    },
+    {
+      "name": "map-pogu",
+      "map": "pogu",
+      "fps": 24,
+      "frames": 48,
+      "seconds": 2,
+      "took": 144.623
+    },
+    {
+      "name": "map-neon",
+      "map": "neon",
+      "fps": 24,
+      "frames": 48,
+      "seconds": 2,
+      "took": 230.191
+    },
+    {
+      "name": "map-train",
+      "map": "train",
+      "fps": 24,
+      "frames": 48,
+      "seconds": 2,
+      "took": 108.445
     }
+  ],
+  "championsGrant": [
+    200,
+    200
   ],
   "account": {
     "id": "hana",

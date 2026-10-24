@@ -24,8 +24,8 @@
   "determinism": {
     "t": 20.6,
     "twoBrowsers": [
-      "93b3ad22f4730a52381c7bd71ac9f51ebe37b28335f31f898e1697b7f1281792",
-      "93b3ad22f4730a52381c7bd71ac9f51ebe37b28335f31f898e1697b7f1281792"
+      "00feb4e27af7e5285c88c7216eb16ee5866504708ecc2b1a2420e40786c3ed60",
+      "00feb4e27af7e5285c88c7216eb16ee5866504708ecc2b1a2420e40786c3ed60"
     ],
     "identical": true,
     "seekAwayAndBack": true
@@ -76,7 +76,7 @@
   ],
   "stills": {
     "16x9": [
-      "review/beats/16x9/16x9-01.40.png",
+      "review/beats/16x9/16x9-01.50.png",
       "review/beats/16x9/16x9-02.75.png",
       "review/beats/16x9/16x9-04.00.png",
       "review/beats/16x9/16x9-05.80.png",
@@ -96,7 +96,7 @@
       "review/beats/16x9/16x9-38.50.png"
     ],
     "9x16": [
-      "review/beats/9x16/9x16-01.40.png",
+      "review/beats/9x16/9x16-01.50.png",
       "review/beats/9x16/9x16-02.75.png",
       "review/beats/9x16/9x16-04.00.png",
       "review/beats/9x16/9x16-05.80.png",
@@ -116,7 +116,7 @@
       "review/beats/9x16/9x16-38.50.png"
     ],
     "1x1": [
-      "review/beats/1x1/1x1-01.40.png",
+      "review/beats/1x1/1x1-01.50.png",
       "review/beats/1x1/1x1-02.75.png",
       "review/beats/1x1/1x1-04.00.png",
       "review/beats/1x1/1x1-05.80.png",
@@ -136,7 +136,7 @@
       "review/beats/1x1/1x1-38.50.png"
     ],
     "16x9-reduced": [
-      "review/beats/16x9-reduced/16x9-reduced-01.40.png",
+      "review/beats/16x9-reduced/16x9-reduced-01.50.png",
       "review/beats/16x9-reduced/16x9-reduced-02.75.png",
       "review/beats/16x9-reduced/16x9-reduced-04.00.png",
       "review/beats/16x9-reduced/16x9-reduced-05.80.png",
@@ -1219,7 +1219,7 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "16740260"
+          "size": "18784257"
         }
       },
       "loudness": {
@@ -1230,7 +1230,7 @@
       "flashes": {
         "frames": 2400,
         "maxFlashesPerSecond": {
-          "general": 2,
+          "general": 1,
           "red": 0
         }
       }
@@ -1254,7 +1254,7 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "13798154"
+          "size": "15016208"
         }
       },
       "loudness": {
@@ -1289,7 +1289,7 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "10777119"
+          "size": "11996497"
         }
       },
       "loudness": {
@@ -1300,7 +1300,7 @@
       "flashes": {
         "frames": 2400,
         "maxFlashesPerSecond": {
-          "general": 2,
+          "general": 1,
           "red": 0
         }
       }
@@ -1324,7 +1324,7 @@
         ],
         "format": {
           "duration": "40.000000",
-          "size": "15728697"
+          "size": "17663344"
         }
       },
       "loudness": {
@@ -1335,7 +1335,7 @@
       "flashes": {
         "frames": 2400,
         "maxFlashesPerSecond": {
-          "general": 2,
+          "general": 1,
           "red": 0
         }
       }

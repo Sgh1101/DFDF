@@ -28,16 +28,16 @@ const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 // A clip is a plan: which map and agent, and what the player does on each second.
 // mv: [strafe, forward] like gatherInput; yaw/pitch in radians; q/fire: press on that frame.
 // aim: [from, to, mix] blends the free look (-1) and the head of foe n, so a flick lands on a head.
-const OPEN_SHOTS = [36, 40, 52, 56]; // frames at 30 fps: two taps on each head (the rifle is 585 rpm: 3.1 frames apart)
+const OPEN_SHOTS = [24, 28, 40, 44]; // frames at 30 fps: two taps on each head (the Phantom is 660 rpm: 2.7 frames apart). Early on purpose: the Champions finisher's dragon rises 2.66 s after the last kill and the film shrinks the picture into a window at 2.5 s, so the later the kills, the less of the dragon is seen
 const CLIPS = [
   // the opening: walk out of spawn, two taps to one head, flick, two taps to the next (hip fire:
   // aiming down sights puts the rifle's front sight over the target's head in this game; at 6-7 m the
   // hip spread, 0.018 rad, still keeps a first shot inside the 0.17 m head sphere).
   // The other three enemies are taken out by teammates before the clip starts, so the second kill
-  // ends the round and the legendary skin plays its finisher over where that enemy fell.
-  { name: "open", map: "glacier", agent: "hwaryeong", fps: 30, seconds: 5, mode: "round", skin: { rifle: "phoenix" },
+  // ends the round and the Champions skin plays its finisher over where that enemy fell.
+  { name: "open", map: "glacier", agent: "hwaryeong", fps: 30, seconds: 5, mode: "round", gun: "scout", skin: { scout: "champions_atk" },
     // spawn points are picked at random each round: start from one of glacier's (probed, open ahead).
-    // The player stops walking at 0.42 s and is standing still by the first shot (the spread grows with
+    // The player stops walking at 0.25 s and is standing still by the first shot (the spread grows with
     // speed: 0.34 × m/s); the foes are about 6 m away, where the hip spread (±0.018 rad) stays inside the head.
     // Heavy armour on both (what bots usually buy): a head shot is 102 before fall-off, so it takes two.
     duel: { at: { x: -132.545, z: -6.183, yaw: -Math.PI / 2 }, foes: [{ d: 9.8, l: 2.4, armor: 50 }, { d: 10.3, l: -1.5, armor: 50 }] },
@@ -45,9 +45,9 @@ const CLIPS = [
       const i = Math.round(t * 30), last = OPEN_SHOTS.filter((f) => f < i).pop();
       const kick = last == null || OPEN_SHOTS.includes(i) ? 0 : 0.012 * Math.exp(-(i - last) / 1.8); // the camera's recoil after a shot, recovered in a few frames
       const sway = 0.035 * Math.sin(t * 1.3);
-      const aim = t < 0.8 ? [-1, -1, 0] : t < 1.38 ? [-1, 0, ease((t - 0.8) / 0.32)] : t < 1.62 ? [0, 1, ease((t - 1.38) / 0.24)] : [1, 1, 1];
-      const after = ease((t - 2.0) / 1.2); // after the round ends: lift the eyes to the finisher over the body
-      return { mv: [0, t < 0.42 ? -1 : 0], yaw: a.yaw0 + sway, pitch: -0.03, aim, dpitch: kick + 0.1 * after, dyaw: 0.02 * Math.sin(t * 0.9) * after,
+      const aim = t < 0.4 ? [-1, -1, 0] : t < 0.98 ? [-1, 0, ease((t - 0.4) / 0.32)] : t < 1.22 ? [0, 1, ease((t - 0.98) / 0.24)] : [1, 1, 1];
+      const after = ease((t - 1.6) / 1.2); // after the round ends: lift the eyes to the finisher over the body
+      return { mv: [0, t < 0.25 ? -1 : 0], yaw: a.yaw0 + sway, pitch: -0.03, aim, dpitch: kick + 0.1 * after, dyaw: 0.02 * Math.sin(t * 0.9) * after,
         fire: OPEN_SHOTS.includes(i) };
     } },
   { name: "cast", map: "neon", agent: "hwaryeong", fps: 30, seconds: 2.5, mode: "round", skin: { rifle: "abyss" },
@@ -98,11 +98,20 @@ function removeClock() {
   const made = await h.api("auth", { id: ACCOUNT.id, pw: ACCOUNT.pw, device: "film-capture" });
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "film-capture" });
   const grant = await h.api("a_user_set", { atoken: owner.atoken, id: ACCOUNT.id, op: "grant", item: "all" });
+  // the Champions Phantom skins are coin-only (not in "all"): the owner page grants them one by one, "gun|skin"
+  const grantChampions = await Promise.all(["champions_atk", "champions_def"].map((s) => h.api("a_user_set", { atoken: owner.atoken, id: ACCOUNT.id, op: "grant", item: "scout|" + s })));
+  log.championsGrant = grantChampions.map((r) => r.status);
   log.account = { id: ACCOUNT.id, signup: made.status, grantAll: grant.status };
   if (made.status !== 200 || grant.status !== 200) throw new Error("test account setup failed: " + JSON.stringify(log.account));
   const page = await ctx.newPage();
   page.setDefaultTimeout(240000);
   page.on("pageerror", (e) => errors.push(e.message));
+  // the notice card (#np-back) and the header's ▶ 홍보영상 button (#promo-open) are the homepage's, not the game's: never in a clip
+  await page.addInitScript(() => {
+    try { localStorage.setItem("lgp_notice_seen", "film"); } catch (e) {}
+    const st = () => { const s = document.createElement("style"); s.textContent = "#np-back,#np,#promo-open{display:none!important}"; (document.head || document.documentElement).appendChild(s); };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", st) : st();
+  });
   await page.goto(BASE + "/", { waitUntil: "networkidle" });
   await page.fill("#uid", ACCOUNT.id); await page.fill("#upw", ACCOUNT.pw);
   await page.locator("#doAuth").click();
@@ -112,6 +121,7 @@ function removeClock() {
   await page.evaluate(() => setQuality("visual"));
   await page.waitForTimeout(1500);
   log.owned = await page.evaluate(async () => { for (let k = 0; k < 20 && !GUN_SKINS.mineItems().length; k++) { try { await GUN_SKINS.sync(); } catch (e) {} if (!GUN_SKINS.mineItems().length) await new Promise((r) => setTimeout(r, 1500)); } return GUN_SKINS.mineItems().length; });
+  await page.waitForFunction(() => window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.loaded(), null, { timeout: 120000 });
   await page.evaluate(`window.installClock = ${installClock.toString()}; window.removeClock = ${removeClock.toString()};`);
   console.log("signed in as", ACCOUNT.id, "skins owned", log.owned);
 
@@ -120,12 +130,12 @@ function removeClock() {
     const dir = path.join(OUT, clip.name); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
     const frames = PROBE ? 10 : clip.fps * clip.seconds, t0 = Date.now();
     if (clip.mode === "round") {
-      await page.evaluate(({ map, agent, skin }) => {
+      await page.evaluate(({ map, agent, skin, clip }) => {
         room.mode = "std"; room.map = map; startGame(AGENTS.find((a) => a.key === agent) || AGENTS[0], false); closeShop();
-        const me = myActor(); me.weapons.primary = "rifle"; me.slot = "primary"; me.ammo.rifle = 30; me.reserve.rifle = 90;
+        const me = myActor(); const gun = clip.gun || "rifle"; me.weapons.primary = gun; me.slot = "primary"; me.ammo[gun] = 30; me.reserve[gun] = 90;
         window.__skinSet = Object.entries(skin || {}).map(([g, s]) => [g, s, GUN_SKINS.set(g, s)]);
         world.roundTime = 0.01;
-      }, { map: clip.map, agent: clip.agent, skin: clip.skin });
+      }, { map: clip.map, agent: clip.agent, skin: clip.skin, clip: { gun: clip.gun } });
       // take the loop over: no more animation frames, we call tick ourselves. There is no
       // pointer lock in headless Chrome, which the game answers by pausing: pretend it is locked.
       // The buy phase ends inside tick(), so we step until the round is live.
@@ -138,6 +148,10 @@ function removeClock() {
       // stand where the plan says, the rest of their team is taken out by ours and the kill feed clears
       const staged = clip.duel ? await page.evaluate((duel) => {
         ADMIN.freezeAI = true; ADMIN.god = true;
+        // the two foes are random agents; a Spider's silk or a sleep powder aimed at the player pulls or roots him
+        // (and prints "거미줄 이동" / "잠듦" over the picture) before the first shot. A duel has no casting.
+        if (!window.__noCast) { window.__noCast = true; const _s = aiUseSkill, _b = botCast; aiUseSkill = function () { if (window.__duelClip) return; return _s.apply(this, arguments); }; botCast = function () { if (window.__duelClip) return; return _b.apply(this, arguments); }; }
+        window.__duelClip = true;
         const me = myActor();
         if (duel.at) { me.pos.x = duel.at.x; me.pos.z = duel.at.z; me.y = groundAt(me.pos.x, me.pos.z, me.y + 2); me.yaw = duel.at.yaw; if (me.input) me.input.yaw = me.yaw; if (me.vel) { me.vel.x = 0; me.vel.z = 0; } }
         const y = me.yaw, f = [-Math.sin(y), -Math.cos(y)], r = [Math.cos(y), -Math.sin(y)];
@@ -168,13 +182,14 @@ function removeClock() {
           const _dd = dealDamage; dealDamage = function (e, t, o, a) { const was = e && e.alive; const r = _dd.apply(this, arguments); if (was && !e.alive && a === myActor()) __events.push({ frame: __frame, kill: e.name, head: !!o, d: +Math.hypot(e.pos.x - a.pos.x, e.pos.z - a.pos.z).toFixed(2) }); return r; };
           const _hm = hitMarker; hitMarker = function (h) { __events.push({ frame: __frame, hit: h ? "head" : "body" }); return _hm.apply(this, arguments); };
           if (window.FINISHER_LEGEND) { const _p = FINISHER_LEGEND.play; FINISHER_LEGEND.play = function (ev, skin) { __events.push({ frame: __frame, finisher: skin && skin.id }); return _p.apply(this, arguments); }; }
+          if (window.CHAMPIONS_PHANTOM) { const _f = CHAMPIONS_PHANTOM.finisher; CHAMPIONS_PHANTOM.finisher = function (g, skin, ev) { __events.push({ frame: __frame, finisher: skin && skin.id, champions: true }); return _f.apply(this, arguments); }; }
         } });
       await page.waitForTimeout(400);
       console.log(clip.name, "map", await page.evaluate(() => CUR_MAP_KEY), "phase", await page.evaluate(() => world.phase), "skin", JSON.stringify(await page.evaluate(() => window.__skinSet)), "staged", JSON.stringify(staged));
       for (let i = 0; i < frames; i++) {
         const t = i / clip.fps, a = { yaw0: await page.evaluate(() => window.__yaw0) };
         const cmd = clip.script(t, a);
-        await page.evaluate(({ cmd, dt, i, draw }) => {
+        await page.evaluate(({ cmd, dt, i, draw, dbg }) => {
           // the pointer-lock change event (there is no pointer lock here) flips `locked` back and
           // shows the "click the screen" hint; every frame says again that we are locked
           locked = true; document.getElementById("pause").hidden = true; const lh = document.getElementById("lockhint"); if (lh) lh.hidden = true;
@@ -198,7 +213,8 @@ function removeClock() {
           if (cmd.e) useAbility(1);
           if (cmd.fire && window.__events) __events.push({ frame: i, fire: true, speed: me.vel ? +Math.hypot(me.vel.x, me.vel.z).toFixed(2) : null });
           __advance(dt * 1000, draw);
-        }, { cmd, dt: 1 / clip.fps, i, draw: i % EVERY === 0 || i === frames - 1 });
+          if (dbg && i >= 38 && i <= 70 && i % 3 === 0) { const k = document.getElementById("killfx"), b = document.getElementById("kf-badge"), r = b.getBoundingClientRect(); __events.push({ dbg: i, cls: k.className, hidden: k.hidden, rect: [r.x, r.y, r.width, r.height].map(Math.round).join(","), op: getComputedStyle(b).opacity, disp: getComputedStyle(k).display, anim: getComputedStyle(b).animationName, bg: getComputedStyle(b).backgroundImage.slice(0, 50), main: document.getElementById("kf-main").textContent }); }
+        }, { cmd, dt: 1 / clip.fps, i, draw: i % EVERY === 0 || i === frames - 1, dbg: !!process.env.FILM_DEBUG });
         if (i % EVERY === 0 || i === frames - 1) await page.screenshot({ path: path.join(dir, String(i).padStart(3, "0") + ".jpg"), type: "jpeg", quality: 80 });
         if (i % 30 === 0) console.log(clip.name, i, "/", frames, ((Date.now() - t0) / 1000).toFixed(0) + "s");
       }
@@ -206,7 +222,7 @@ function removeClock() {
       clip.staged = staged;
       clip.skinSet = await page.evaluate(() => window.__skinSet);
       console.log(clip.name, "events", JSON.stringify(clip.events));
-      await page.evaluate(() => { keys.w = keys.s = keys.a = keys.d = keys.fire = keys.ads = false; ADMIN.freezeAI = false; ADMIN.god = false; window.__duel = false; world.phase = "menu"; show("s-title"); removeClock(); });
+      await page.evaluate(() => { keys.w = keys.s = keys.a = keys.d = keys.fire = keys.ads = false; ADMIN.freezeAI = false; ADMIN.god = false; window.__duel = false; world.phase = "menu"; window.__duelClip = false; show("s-title"); removeClock(); });
     } else {
       await page.evaluate(({ map }) => { window.requestAnimationFrame = () => 0; loadMap(map); titleCam(0.001); document.querySelectorAll(".screen, #hud, #tb-menu, #lockhint, .home-guide, #acct-notice").forEach((n) => (n.style.visibility = "hidden")); const lh = document.getElementById("lockhint"); if (lh) lh.hidden = true; }, { map: clip.map });
       await page.waitForTimeout(3000);
