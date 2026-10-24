@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-23T14:05:59.478Z",
+  "capturedAt": "2026-10-24T09:47:09.720Z",
   "account": {
     "id": "hana",
     "signup": 200,
@@ -206,62 +206,74 @@
     {
       "id": "phoenix",
       "file": "14-skin-phoenix.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "abyss",
       "file": "14-skin-abyss.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "synth",
       "file": "14-skin-synth.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "opal",
       "file": "14-skin-opal.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "galaxy",
       "file": "14-skin-galaxy.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "lava",
       "file": "14-skin-lava.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "storm",
       "file": "14-skin-storm.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "champion",
       "file": "14-skin-champion.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "laurel",
       "file": "14-skin-laurel.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "kintsugi",
       "file": "14-skin-kintsugi.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "prism",
       "file": "14-skin-prism.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     },
     {
       "id": "koi",
       "file": "14-skin-koi.png",
-      "shown": "스킨 뽑기"
+      "shown": "스킨 뽑기",
+      "yaw": "3.0"
     }
   ],
   "errors": []

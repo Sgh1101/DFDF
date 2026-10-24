@@ -14,6 +14,12 @@ const MAPS = (process.env.FILM_MAPS || "pogu,neon,shift,train,nightport,dunes").
   const h = harness({ now: Date.now() }), errors = [];
   const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || "/opt/pw-browsers/chromium", headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const ctx = await browser.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", serviceWorkers: "block", viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1.25 });
+  // the notice card (#np-back) is the homepage's, not part of the film's path: never in a frame
+  await ctx.addInitScript(() => {
+    try { localStorage.setItem("lgp_notice_seen", "film"); } catch (e) {}
+    const st = () => { const s = document.createElement("style"); s.textContent = "#np-back,#np{display:none!important}"; (document.head || document.documentElement).appendChild(s); };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", st) : st();
+  });
   await ctx.addInitScript(() => { const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120); });
   await ctx.route("**/api/v1?*", async (route) => {
     const result = await h.api(new URL(route.request().url()).searchParams.get("a"), route.request().postDataJSON() || {});

@@ -79,12 +79,12 @@
       { t0: 6.5, d: 0, cx: 1396, cy: 554, s: 1.5 }, // the login card, whole (title to 게스트 button)
       { t0: 9.35, d: 0, cx: 1396, cy: 488, s: 1.5 }, // the account card, whole, 게임 들어가기 at its foot
       { t0: 10.85, d: 0, cx: 560, cy: 560, s: 1.5 }, // the home: the 13 mark, 혼자 하기, 같이 하기
-      { t0: 12.35, d: 0, cx: 1200, cy: 675, s: 1.25 }, // the select: six whole columns, 전체 22, 전투 투입
+      { t0: 12.35, d: 0, cx: 1000, cy: 600, s: 1 }, // the select (2026-10-24 layout): the whole screen, first column to 전투 투입 (at s > 1 one of the two is cut off)
       { t0: 13.85, d: 0, cx: 1000, cy: 562.5, s: 1 }, // the buy phase, whole
       { t0: 14.6, d: 0, cx: 1000, cy: 300, s: 1.6 }, // the live round: clock and 5:5 roster
       { t0: 15.6, d: 0.5, cx: 1000, cy: 562.5, s: 1 },
       { t0: 17.0, d: 0, cx: 760, cy: 470, s: 1.35 }, // the agent grid
-      { t0: 18.2, d: 0.8, cx: 1760, cy: 545, s: 2.1 }, // pan to the same agent's four abilities
+      { t0: 18.2, d: 0.8, cx: 1470, cy: 720, s: 1.9 }, // pan to the same agent's four abilities (the whole list, 불꽃 장막 to 업화)
       { t0: 19.5, d: 0, cx: 1000, cy: 562.5, s: 1 }, // clips and tiles: whole
       { t0: 24.5, d: 0, cx: 1150, cy: 700, s: 1.25 }, // the armoury: the spinning gun and the skin grid, one skin per beat
     ],
@@ -94,8 +94,8 @@
     clicks: [
       { show: 8.5, t: 9.0, n: 1, label: "로그인 / 가입", at: [1560, 607.1] },
       { show: 9.5, t: 10.5, n: 2, label: "게임 들어가기", at: [1560, 723.8] },
-      { show: 11.0, t: 12.0, n: 3, label: "혼자 하기", at: [395, 541.4] },
-      { show: 12.5, t: 13.5, n: 4, label: "전투 투입", at: [1940, 995.5] },
+      { show: 11.0, t: 12.0, n: 3, label: "혼자 하기", at: [395, 531.4] },
+      { show: 12.5, t: 13.5, n: 4, label: "전투 투입", at: [1930, 1087.5] },
     ],
     ring: 0.35,
     counter: { t0: 8.5, t1: 14.6, kicker: "클릭" },

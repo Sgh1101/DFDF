@@ -12,6 +12,12 @@ const CHROME = process.env.CHROME_BIN || "/opt/pw-browsers/chromium";
 const SIGNUP = { id: "hana", pw: "film-demo-1" }; // typed into the landing form; the harness makes the account
 
 async function prepare(context, h) {
+  // the notice card (#np-back) is the homepage's, not part of the film's path: never in a frame
+  await context.addInitScript(() => {
+    try { localStorage.setItem("lgp_notice_seen", "film"); } catch (e) {}
+    const st = () => { const s = document.createElement("style"); s.textContent = "#np-back,#np{display:none!important}"; (document.head || document.documentElement).appendChild(s); };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", st) : st();
+  });
   // Same rAF throttle as scripts/browser-fixture.js so SwiftShader keeps up.
   await context.addInitScript(() => { const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120); });
   context.on("response", async (r) => { if (r.url().includes("/api/") && !r.url().includes("/api/v1?")) console.error("unrouted api", r.status(), r.url()); });

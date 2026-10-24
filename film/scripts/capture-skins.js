@@ -7,7 +7,9 @@ const path = require("node:path"), fs = require("node:fs");
 const { chromium } = require("playwright");
 const { harness } = require("../../tests/api-harness");
 const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
-const OUT = path.resolve(__dirname, "../screens");
+const OUT = process.env.FILM_OUT ? path.resolve(process.env.FILM_OUT) : path.resolve(__dirname, "../screens");
+// FILM_YAW: turn the spinning gun to this angle (radians, auto-spin off) so every skin is shot from the same side; a list tries several (files get a -y<angle> suffix)
+const YAWS = (process.env.FILM_YAW || "").split(",").filter(Boolean);
 const GUN = process.env.FILM_GUN || "rifle";
 const SKINS = (process.env.FILM_SKINS || "phoenix,abyss,synth,opal,galaxy,lava,storm,champion,laurel,kintsugi,prism,koi").split(",").filter(Boolean);
 const ACCOUNT = { id: "hana", pw: "film-demo-1" };
@@ -20,6 +22,12 @@ const ACCOUNT = { id: "hana", pw: "film-demo-1" };
   if (made.status !== 200 || grant.status !== 200) throw new Error("test account setup failed");
   const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || "/opt/pw-browsers/chromium", headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const ctx = await browser.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", serviceWorkers: "block", viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1.25 });
+  // the notice card (#np-back) is the homepage's, not part of the film's path: never in a frame
+  await ctx.addInitScript(() => {
+    try { localStorage.setItem("lgp_notice_seen", "film"); } catch (e) {}
+    const st = () => { const s = document.createElement("style"); s.textContent = "#np-back,#np{display:none!important}"; (document.head || document.documentElement).appendChild(s); };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", st) : st();
+  });
   await ctx.addInitScript(() => { const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120); });
   await ctx.route("**/api/v1?*", async (route) => {
     const result = await h.api(new URL(route.request().url()).searchParams.get("a"), route.request().postDataJSON() || {});
@@ -50,11 +58,14 @@ const ACCOUNT = { id: "hana", pw: "film-demo-1" };
     const ok = await page.locator(`#ar-skins [data-s="${id}"]`).click({ timeout: 10000 }).then(() => true, () => false);
     if (!ok) { errors.push("no tile for " + id); continue; }
     await page.waitForTimeout(3000);
-    const file = `14-skin-${id}.png`;
+    for (const yaw of YAWS.length ? YAWS : [null]) {
+    if (yaw != null) { await page.evaluate((y) => { const p = GUN_SKINS._pv(); p.auto = false; p.yaw = +y; }, yaw); await page.waitForTimeout(1200); }
+    const file = `14-skin-${id}${yaw != null && YAWS.length > 1 ? "-y" + yaw : ""}.png`;
     await page.screenshot({ path: path.join(OUT, file), timeout: 180000 });
     const shown = await page.evaluate(() => { const t = document.querySelector("#armory .ar-pv-name, #ar-pv-name, #armory h3"); return t ? t.textContent.trim().slice(0, 40) : null; });
-    shot.push({ id, file, shown });
+    shot.push({ id, file, shown, yaw });
     console.log(id, file, shown);
+    }
   }
   const log = { capturedAt: new Date().toISOString(), account: { id: ACCOUNT.id, signup: made.status, grantAll: grant.status, owned }, gun: GUN, pickedGun: pick, guns, shot, errors };
   fs.writeFileSync(path.join(OUT, "skins.json"), JSON.stringify(log, null, 2) + "\n");
