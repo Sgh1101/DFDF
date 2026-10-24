@@ -160,6 +160,7 @@ button.uname:hover{color:var(--gold);border:0}
 .fbc .in{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
 .fbc .txt{white-space:pre-wrap;word-break:break-word;line-height:1.6;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
 .fbc .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:12.5px}.fbc .kv span:nth-child(odd){color:var(--dim)}
+.fbc .icet{overflow:auto;max-height:260px;border:1px solid var(--line);border-radius:8px}.fbc .icet table{border:0;border-radius:0;font-size:11.5px}.fbc .icet th,.fbc .icet td{padding:3px 8px;text-align:left;white-space:nowrap;border-bottom:1px solid #1c2533}.fbc .icet tr.bad td{color:#ff9aa5}
 .fbc .abl{display:grid;grid-template-columns:36px 150px 1fr;gap:6px 10px;align-items:start;font-size:12.5px}
 .fbc .abl i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid #5c2630;color:#ff9aa5;font-style:normal;font-weight:700}
 .fbc textarea{width:100%;min-height:58px}.fbc .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -846,6 +847,16 @@ const FB_ST = { new: ["새 문의", "gold"], read: ["확인함", "blue"], doing:
 const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "추가했으면 하는 점 (제안)"], review: ["⭐", "후기"], ask: ["❓", "문의"], other: ["💬", "기타"] };
 const FB_REASON = { cheat: "치트·핵", abuse: "욕설·비매너", grief: "팀킬·방해", afk: "자리 비움", name: "부적절한 이름", other: "기타" };
 async function fbBadge() { try { const j = await call("a_feedback", { limit: 1 }); const e = $("#fbBadge"); e && (e.textContent = j.counts.new ? String(j.counts.new) : ""); return j.counts; } catch (e) {} }
+const ICE_REASON = { failed: "ICE 실패", disconnected: "ICE 끊김", "host-gone": "방장 연결 끊김" };
+// the connection story a bug report carries (ctx.ice): time, connection, role, event and the route in use
+function iceTable(ice) {
+  const route = (l) => {
+    if (l.local || l.remote) return `${l.local || "?"} → ${l.remote || "?"}${l.proto ? ` (${l.proto})` : ""}${l.rtt != null ? ` · ${l.rtt}ms` : ""}`;
+    const g = ["host", "srflx", "prflx", "relay"].filter((k) => l[k]).map((k) => `${k} ${l[k]}`).join(" · ");
+    return g || (l.ice ? "상태 " + l.ice : l.servers != null ? `서버 ${l.servers} (TURN ${l.turn || 0})` : l.ev.startsWith("route:") ? "경로 없음" : "");
+  };
+  return `<div class="kv"><span>연결 기록</span><span>${esc(ICE_REASON[ice.reason] || ice.reason)} · ${ice.lines.length}줄</span></div><div class="icet"><table class="ice-log"><thead><tr><th>시각</th><th>pc</th><th>역할</th><th>이벤트</th><th>경로</th></tr></thead><tbody>${ice.lines.map((l) => `<tr class="${/failed|disconnected/.test(l.ev) ? "bad" : ""}"><td>${esc((l.t || "").slice(11, 23))}</td><td>${esc(l.pc)}</td><td>${esc(l.role)}</td><td>${esc(l.ev)}</td><td>${esc(route(l))}</td></tr>`).join("")}</tbody></table></div>`;
+}
 function fbCard(r) {
   const k = FB_KIND[r.type] || ["💬", r.type], st = FB_ST[r.status] || FB_ST.new;
   const who = `${uname(r.by.id)}${r.by.guest ? " <span class='tag'>게스트</span>" : ` <span class="muted">Lv.${r.by.level}</span>`}`;
@@ -856,9 +867,10 @@ function fbCard(r) {
   if (r.type === "review" && r.rating) extra = `<div class="kv"><span>별점</span><span><b style="color:var(--gold,#ffc849)">${"★".repeat(r.rating)}</b><span class="muted">${"★".repeat(5 - r.rating)}</span> ${r.rating}/5</span></div>`;
   const c = r.ctx || {};
   const diagnostic=c.diagnostic?`<div class="kv"><span>진단 요약</span><span>${esc(c.diagnostic.quality)} · p95 ${esc(c.diagnostic.p95Ms)}ms · GPU ${esc(c.diagnostic.geometries)}/${esc(c.diagnostic.textures)}<br>${esc(c.diagnostic.version)} · ${esc(c.diagnostic.commit)}</span></div>`:'';
+  const iceLog = c.ice && c.ice.lines && c.ice.lines.length ? iceTable(c.ice) : "";
   const ctx = [c.page && "페이지 " + c.page, c.view && "화면 " + c.view, c.mode && "모드 " + c.mode, c.map && "맵 " + c.map, c.lang && c.lang].filter(Boolean).join(" · ");
-  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span>${r.type === "review" && r.rating ? `<span class="tag" title="별점 ${r.rating}/5" style="color:var(--gold,#ffc849)">${"★".repeat(r.rating)}</span>` : ""}<b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
-    <div class="in">${extra}${diagnostic}<div class="txt">${esc(r.text)}</div>
+  return `<details class="fbc ${r.status === "new" ? "new" : ""}" data-id="${esc(r.id)}"><summary><span class="tag gold">${k[0]} ${k[1]}</span>${c.ice && c.ice.lines && c.ice.lines.length ? `<span class="tag blue" title="연결 기록 첨부">ICE</span>` : ""}${r.type === "review" && r.rating ? `<span class="tag" title="별점 ${r.rating}/5" style="color:var(--gold,#ffc849)">${"★".repeat(r.rating)}</span>` : ""}<b>${esc(r.title)}</b><span class="tag ${st[1]}" data-st>${st[0]}</span><span class="sp"></span><span class="muted">${who} · ${when(r.t)}</span></summary>
+    <div class="in">${extra}${diagnostic}${iceLog}<div class="txt">${esc(r.text)}</div>
     <div class="kv">${r.contact ? `<span>연락처</span><span>${esc(r.contact)}</span>` : ""}${ctx ? `<span>환경</span><span class="muted">${esc(ctx)}${c.ua ? `<br>${esc(c.ua)}` : ""}</span>` : ""}</div>
     <div class="acts"><span class="muted">상태</span>${["read", "doing", "done", "no"].map((x) => `<button data-s="${x}" class="${r.status === x ? "gold" : ""}">${FB_ST[x][0]}</button>`).join("")}<span class="sp"></span><button data-del class="red">삭제</button></div>
     <label class="muted">운영자 메모 (보낸 사람에겐 안 보임)<textarea data-note maxlength="500">${esc(r.note)}</textarea></label>
@@ -866,15 +878,15 @@ function fbCard(r) {
     <div class="acts"><button data-save class="gold">메모·답장 저장</button><span class="muted">${r.replyT ? "답장 " + when(r.replyT) : ""}</span></div></div></details>`;
 }
 VIEWS.feedback = async () => {
-  $("#main").innerHTML = `<div class="bar"><select id="ft"><option value="">모든 종류</option>${Object.entries(FB_KIND).map(([k, v]) => `<option value="${k}">${v[0]} ${v[1]}</option>`).join("")}</select><select id="fs"><option value="">모든 상태</option>${Object.entries(FB_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="fq" placeholder="검색 (제목·내용·보낸 사람)"><button id="fr">새로고침</button></div><div id="fsum" class="fbx"></div><div id="fl"><p class="muted">불러오는 중…</p></div>`;
+  $("#main").innerHTML = `<div class="bar"><select id="ft"><option value="">모든 종류</option>${Object.entries(FB_KIND).map(([k, v]) => `<option value="${k}">${v[0]} ${v[1]}</option>`).join("")}</select><select id="fs"><option value="">모든 상태</option>${Object.entries(FB_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><label class="muted"><input type="checkbox" id="fi"> 연결 기록 있는 것만</label><input id="fq" placeholder="검색 (제목·내용·보낸 사람)"><button id="fr">새로고침</button></div><div id="fsum" class="fbx"></div><div id="fl"><p class="muted">불러오는 중…</p></div>`;
   const load = async () => {
-    const j = await call("a_feedback", { type: $("#ft").value, status: $("#fs").value, q: $("#fq").value, limit: 300 });
+    const j = await call("a_feedback", { type: $("#ft").value, status: $("#fs").value, q: $("#fq").value, ice: $("#fi").checked, limit: 300 });
     $("#fbBadge").textContent = j.counts.new ? String(j.counts.new) : "";
-    $("#fsum").innerHTML = `<span class="tag gold">새 문의 ${j.counts.new}</span><span class="tag">전체 ${j.counts.total}</span>${Object.entries(j.counts.byType).map(([k, n]) => `<span class="tag">${(FB_KIND[k] || [""])[0]} ${(FB_KIND[k] || [0, k])[1]} ${n}</span>`).join("")}`;
+    $("#fsum").innerHTML = `<span class="tag gold">새 문의 ${j.counts.new}</span><span class="tag">전체 ${j.counts.total}</span>${j.counts.ice ? `<span class="tag blue">연결 기록 ${j.counts.ice}</span>` : ""}${Object.entries(j.counts.byType).map(([k, n]) => `<span class="tag">${(FB_KIND[k] || [""])[0]} ${(FB_KIND[k] || [0, k])[1]} ${n}</span>`).join("")}`;
     $("#fl").innerHTML = j.items.length ? j.items.map(fbCard).join("") : `<p class="muted">조건에 맞는 문의가 없습니다.</p>`;
     window.__fb = Object.fromEntries(j.items.map((x) => [x.id, x]));
   };
-  $("#fr").onclick = load; $("#ft").onchange = load; $("#fs").onchange = load; $("#fq").onkeydown = (e) => { if (e.key === "Enter") load(); };
+  $("#fr").onclick = load; $("#ft").onchange = load; $("#fs").onchange = load; $("#fi").onchange = load; $("#fq").onkeydown = (e) => { if (e.key === "Enter") load(); };
   const mark = async (card, status) => {
     const id = card.dataset.id;
     const j = await call("a_feedback_set", { id, status });

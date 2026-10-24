@@ -17,7 +17,7 @@
     ["ask", "❓", L("문의", "Question"), L("궁금한 것", "Anything you want to ask")],
     ["other", "💬", L("기타", "Other"), L("위에 없는 이야기", "Anything else")],
   ];
-  const BUG_WHERE = [L("게임 중", "In a match"), L("메뉴 · 홈", "Menus · home"), L("상점 · 무기고", "Shop · armoury"), L("온라인 방", "Online room"), L("모바일 조작", "Touch controls"), L("소리 · 화면", "Sound · graphics"), L("기타", "Other")];
+  const BUG_WHERE = [L("게임 중", "In a match"), L("메뉴 · 홈", "Menus · home"), L("상점 · 무기고", "Shop · armoury"), L("온라인 방", "Online room"), L("연결 끊김", "Connection lost"), L("모바일 조작", "Touch controls"), L("소리 · 화면", "Sound · graphics"), L("기타", "Other")];
   const ROLES = ["타격대", "감시자", "척후대", "전략가"];
   const ROLE_EN = { 타격대: "Striker", 감시자: "Sentinel", 척후대: "Scout", 전략가: "Strategist" };
   const REASONS = [["cheat", L("치트 · 핵", "Cheating")], ["abuse", L("욕설 · 비매너", "Abuse")], ["grief", L("팀킬 · 방해", "Griefing")], ["afk", L("자리 비움", "AFK")], ["name", L("부적절한 이름", "Bad name")], ["other", L("기타", "Other")]];
@@ -87,6 +87,9 @@
   const draft = () => { try { return JSON.parse(sessionStorage.getItem("lgp_fb_draft") || "{}"); } catch (e) { return {}; } };
   const keep = (d) => { try { sessionStorage.setItem("lgp_fb_draft", JSON.stringify(d)); } catch (e) {} };
 
+  // the connection story saved when a multiplayer connection broke (js/legacy/110-…): sessionStorage "lgp_ice_report"
+  const ice = () => { try { const r = window.iceSaved ? window.iceSaved() : JSON.parse(sessionStorage.getItem("lgp_ice_report") || "null"); return r && Array.isArray(r.lines) && r.lines.length && Date.now() - r.saved <= 30 * 60000 ? r : null; } catch (e) { return null; } };
+
   function build() {
     if (root) return root;
     const st = document.createElement("style");
@@ -145,6 +148,14 @@
     body.innerHTML = `<div class="fb-types" role="group" aria-label="${L("종류", "Kind")}">${TYPES.map(([k, ic, n, s]) => `<button type="button" data-k="${k}" class="${k === state.type ? "on" : ""}" aria-pressed="${k === state.type}"><b>${ic} ${esc(n)}</b><span>${esc(s)}</span></button>`).join("")}</div>${f("fb-title", L("제목 (선택)", "Title (optional)"), "", d.title, 60)}${extra}${f("fb-text", "agent" === state.type ? L("요원 소개와 콘셉트", "The agent in a few lines") : "report" === state.type ? L("무슨 일이 있었나요?", "What happened?") : "review" === state.type ? L("후기", "Your review") : L("내용", "Details"), t[3], d.text, 2000, "textarea")}<div class="fb-cnt" id="fb-cnt">0 / 2000</div>${f("fb-contact", L("답장 받을 곳 (선택)", "Where to answer (optional)"), L("디스코드·이메일 등. 비워 두면 '내 문의'에서 답을 확인합니다", "Discord, e-mail… or leave it and check “Mine”"), d.contact, 80)}<div class="fb-note">${L("보낸 분의 계정 이름과 레벨, 화면 크기, 지금 하던 모드·맵이 함께 전달됩니다. 비밀번호는 전달되지 않습니다.", "Your account name and level, screen size and the mode and map you were in go with it. Never your password.")}</div>`;
     const cnt = body.querySelector("#fb-cnt"),
       tx = body.querySelector("#fb-text");
+    const attached = "bug" === state.type && ice();
+    if (attached) {
+      const row = document.createElement("div");
+      row.id = "fb-ice";
+      row.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,200,73,.35);background:rgba(255,200,73,.07);font-size:12px";
+      row.innerHTML = `<b id="fb-ice-line">${L(`연결 기록 첨부됨 (${attached.lines.length}줄)`, `Connection log attached (${attached.lines.length} lines)`)}</b><label style="flex-direction:row;align-items:center;gap:6px;font-weight:500"><input id="fb-ice-skip" type="checkbox" style="width:18px;min-height:18px">${L("첨부하지 않기", "Leave it out")}</label><span class="fb-note" style="flex-basis:100%">${L("시간·연결 상태·후보 종류(직접/중계)만 담기고 주소는 담기지 않습니다.", "Times, states and candidate types (direct / relayed) only. No addresses.")}</span>`;
+      body.append(row);
+    }
     if(window.GAME_DIAGNOSTICS){const label=document.createElement('label');label.style.cssText='display:flex;flex-direction:row;align-items:center;gap:8px';const check=document.createElement('input');check.id='fb-diagnostic';check.type='checkbox';check.style.cssText='width:18px;min-height:18px';label.append(check,document.createTextNode(L('진단 요약 함께 보내기 (버전·품질·프레임·자원 수)','Include diagnostic summary (version, quality, frames, resource counts)')));body.append(label);}
     const upd = () => (cnt.textContent = `${tx.value.length} / 2000`);
     tx.oninput = upd;
@@ -191,11 +202,14 @@
     if ("review" === d.type) +d.rating >= 1 ? (d.rating = +d.rating) : delete d.rating;
     d.ctx = { ua: navigator.userAgent, view: `${innerWidth}x${innerHeight}`, page: /play\.html/.test(location.pathname) ? "play" : "home", mode: (typeof room!=='undefined' && room.mode) || "", map: (typeof room!=='undefined' && room.map) || "", lang: EN ? "en" : "ko" };
     if(root.querySelector('#fb-diagnostic')?.checked&&window.GAME_DIAGNOSTICS){const r=GAME_DIAGNOSTICS.report();d.ctx.diagnostic={version:r.release.version,commit:r.release.commit,quality:r.game.quality,medianMs:r.frameMs.median,p95Ms:r.frameMs.p95,geometries:r.gpu.geometries,textures:r.gpu.textures};}
+    const att = "bug" === d.type && !root.querySelector("#fb-ice-skip")?.checked && root.querySelector("#fb-ice") && ice();
+    if (att) d.ctx.ice = { reason: att.reason, lines: att.lines };
     state.busy = !0;
     go.disabled = !0;
     msg.textContent = L("보내는 중…", "Sending…");
     try {
       await call("feedback_submit", Object.assign({ token: s.token }, d));
+      if (att && window.iceClear) window.iceClear();
       const all = draft();
       delete all[state.type];
       keep(all);
@@ -217,6 +231,13 @@
     opener = document.activeElement;
     o = o || {};
     o.type && TYPES.some((x) => x[0] === o.type) && (state.type = o.type);
+    if ("connection" === o.where) {
+      // from the "connection lost" card: where = connection lost, and a first line so it can be sent at once
+      const all = draft(), b = (all.bug = all.bug || {});
+      b.bug = Object.assign({}, b.bug, { where: L("연결 끊김", "Connection lost") });
+      b.text || (b.text = L("멀티플레이 중 연결이 끊겼습니다.", "I was disconnected during multiplayer."));
+      keep(all);
+    }
     state.tab = o.tab || "new";
     root.hidden = !1;
     paint();
