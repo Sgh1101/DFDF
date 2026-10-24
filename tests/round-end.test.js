@@ -41,10 +41,17 @@ test('simultaneous elimination follows the existing planted/unplanted rule and s
     f.ctx.checkRoundEnd();f.ctx.checkRoundEnd();assert.equal(f.world.scoreAtk,winner==='atk'?1:0);assert.equal(f.world.scoreDef,winner==='def'?1:0);assert.equal(f.timers.size,winner?1:0);
   }
 });
+// detonate() only builds throw-away fx meshes that addFx (stubbed below) discards, so a minimal stand-in keeps this logic test independent of the three package being installed.
+function threeStub(){
+  const vec=()=>({x:0,y:0,z:0,set(){return this},addScaledVector(){return this},setScalar(){return this}});
+  class Obj{constructor(g,m){this.geometry=g;this.material=m;this.position=vec();this.rotation=vec();this.scale=vec()}}
+  class Plain{constructor(...a){this.args=a}}
+  return{Mesh:Obj,SphereGeometry:Plain,RingGeometry:Plain,MeshBasicMaterial:Plain,Vector3:class extends Plain{constructor(x=0,y=0,z=0){super();Object.assign(this,vec(),{x,y,z})}},DoubleSide:2};
+}
 test('defuse and detonation in one processing window keep the first committed result once',()=>{
   for(const first of ['defuseDone','detonate']){
     const f=fixture();f.world.spike={state:'planted',x:0,z:0};f.world.entities=[];f.world.actors=[];
-    Object.assign(f.ctx,{T:require('three'),SFX:{defused(){},boom(){}},screenShake(){},fxFlash(){},addFx(){},rnd:(a,b)=>(a+b)/2});
+    Object.assign(f.ctx,{T:threeStub(),SFX:{defused(){},boom(){}},screenShake(){},fxFlash(){},addFx(){},rnd:(a,b)=>(a+b)/2});
     vm.runInContext(engine.slice(engine.indexOf('function defuseDone('),engine.indexOf('function spikeUI(')),f.ctx);
     f.ctx[first]('player');f.ctx[first==='defuseDone'?'detonate':'defuseDone']('player');
     assert.equal(f.world.scoreAtk,first==='detonate'?1:0);assert.equal(f.world.scoreDef,first==='defuseDone'?1:0);
