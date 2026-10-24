@@ -281,7 +281,21 @@
       a.onGround = !1;
       a.__carry = { x: v.x * 0.9, z: v.z * 0.9, t: 0 };
     } else if (hit && (a.y || 0) > floor + 0.5) {
-      // against a wall above the floor: hang on it, as the old pull did
+      // against a wall above the floor: hang on it, as the old pull did. The swing is over once the chest is within
+      // 1.8 m of the web, which on a flat approach can leave the body more than a metre short of the wall; the hang
+      // code lets go of a hang that touches nothing, so the body would drop from the height it swung to. Close the
+      // gap first (up to the wall, never through it).
+      const gx = S.C.x - a.pos.x,
+        gz = S.C.z - a.pos.z,
+        gd = Math.hypot(gx, gz);
+      if (gd > 0.01)
+        for (let k = 0; k < 30; k++) {
+          const px = a.pos.x + (gx / gd) * 0.1,
+            pz = a.pos.z + (gz / gd) * 0.1;
+          if (hitsWall(px, pz, a.y || 0) || Math.hypot(S.C.x - px, S.C.z - pz) < 0.3) break;
+          a.pos.x = px;
+          a.pos.z = pz;
+        }
       a.__climbT = Math.max(a.__climbT || 0, 4);
       a.__hangY = a.y || 0;
       a.vy = 0;

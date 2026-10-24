@@ -11,10 +11,15 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const page = await f.page("spiderswing", { width: 1280, height: 720 });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.mouse.click(640, 360);
+    // the spawn point jitters by a few metres and the wall the test aims at depends on it, so besides wherever the
+    // game puts the spider, start from two spots (found by scanning the spawn area) that used to leave the body short
+    // of the wall and drop it instead of hanging
+    for (const start of [null, [-103.6, -9.8], [-100.7, -10.1]]) {
     await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "glacier"; startGame(AGENTS.find((a) => "geomi" === a.id), false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
     await page.waitForTimeout(800);
-    const r = await page.evaluate(() => {
+    const r = await page.evaluate((start) => {
       const out = {}, me = myActor() || player, def = AGENTS.find((a) => "geomi" === a.id).abilities.find((a) => "y_webzip" === a.type);
+      if (start) { me.pos.x = start[0]; me.pos.z = start[1]; }
       const dt = 1 / 60, step = (n) => { for (let i = 0; i < n; i++) { abilTick(dt); simMove(me, dt); followCamera(me, dt); } };
       // the swing is what E does with no enemy in the line: keep the bots out of the way (an enemy in the line is pulled instead, see browser-spider-silk.js)
       foesOf(me).forEach((o, i) => { o.pos.x = me.pos.x + 400 + i; o.pos.z = me.pos.z + 400; });
@@ -74,8 +79,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       step(120);
       out.leftover = ropes() - ropes0;
       return out;
-    });
-    console.log(JSON.stringify(r));
+    }, start);
+    console.log(JSON.stringify(start), JSON.stringify(r));
     assert.ok(r.aimed && r.hasSwing && !r.refunded, "a cast at a wall holds and keeps its charge");
     assert.equal(r.ropes, 4, "two hands, two strands each");
     assert.ok(r.heldAtFirst, "the body waits while the tips fly");
@@ -93,6 +98,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(r.noWiden < 0.3 && r.noLean < 0.006, "the motion setting off keeps the view still");
     assert.ok(r.missRefund, "a cast at nothing gives the charge back");
     assert.equal(r.leftover, 0, "nothing is left behind");
+    }
     assert.deepEqual(errors, [], "no page errors");
     console.log("Spider swing: two hands, tips that fly and land, an arc that gathers speed, a view that widens and leans and comes back, let-go keeps the speed, motion setting honoured, miss refunded, scene clean");
   } finally { await f.browser.close(); }
