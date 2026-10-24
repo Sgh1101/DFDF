@@ -1188,3 +1188,71 @@ test("a counted ranked match logs RR and the hidden MMR on the account's log, an
   assert.equal(e.d.mmr[1], h.user("player").mmr);
   assert.ok(pr.log.some((x) => x.k === "room"), "the room the account opened");
 });
+
+test("levels: the host reads each player's level and tier from the server; public fields only, guests and unknown names read as null", async () => {
+  const h = harness(), ids = ["player", "bobby", "carol"], tok = await squad(h, ids), o = await login(h, "owner");
+  assert.equal((await h.api("a_user_set", { atoken: o.atoken, id: "player", op: "level", level: 30 })).status, 200);
+  assert.equal((await h.api("a_user_set", { atoken: o.atoken, id: "bobby", op: "level", level: 1 })).status, 200);
+  await setRR(h, ["bobby"], 700);
+  // bobby has finished placement (700 RR = Silver 2), carol is still placing and player has never ranked
+  const u = h.user("bobby"); u.placed = 5; h.db.set("user:bobby", JSON.stringify(u));
+  const guest = await h.api("guest", { device: "guest-device-lv" });
+  const r = await h.api("levels", { ids: ["Player", "bobby", "carol", "NoSuchOne", "플레이어123", "x", "bad id!", guest.user.id] });
+  assert.equal(r.status, 200);
+  assert.equal(r.users.Player.level, 30);
+  assert.deepEqual(r.users.bobby, { level: 1, t: 2, tier: "silver", div: 2, placed: true });
+  // an account still placing: its tier stays hidden, same as everywhere else
+  assert.deepEqual(r.users.carol, { level: 1, t: null, tier: null, div: null, placed: false });
+  const none = { level: null, t: null, tier: null, div: null, placed: false };
+  for (const id of ["NoSuchOne", "플레이어123", "x", "bad id!", guest.user.id]) assert.deepEqual(r.users[id], none, id + " reads as nothing");
+  // only these fields leave the server
+  for (const v of Object.values(r.users)) assert.deepEqual(Object.keys(v).sort(), ["div", "level", "placed", "t", "tier"]);
+  assert.ok(!/mmr|rr|pass|token|email|dev|ip|ban|gold|xp/i.test(JSON.stringify(Object.values(r.users)).replace(/"(tier|placed)"/g, "")), "no private data");
+  assert.deepEqual(Object.keys(r).sort(), ["ok", "status", "users"]);
+  // a banned account's level is still just its level; a changed account level is read live
+  assert.equal((await h.api("a_user_set", { atoken: o.atoken, id: "player", op: "level", level: 31 })).status, 200);
+  assert.equal((await h.api("levels", { ids: ["player"] })).users.player.level, 31);
+});
+
+test("levels: at most 12 ids, bad bodies are empty, duplicates collapse, a guest cannot be told apart from an unknown name", async () => {
+  const h = harness();
+  await squad(h, ["player", "bobby"]);
+  const many = Array.from({ length: 20 }, (_, i) => "name" + String(i).padStart(2, "0"));
+  assert.equal(Object.keys((await h.api("levels", { ids: many })).users).length, 12);
+  assert.deepEqual(Object.keys((await h.api("levels", { ids: ["player", "player", "player"] })).users), ["player"], "the same id twice is one row");
+  for (const body of [{}, { ids: "player" }, { ids: null }, { ids: [] }, { ids: [null, 7, {}, "", "  "] }]) {
+    const r = await h.api("levels", body);
+    assert.equal(r.status, 200);
+    assert.ok(Object.keys(r.users).every((k) => ["7", "[object Object]"].includes(k)), JSON.stringify(body) + " " + JSON.stringify(r.users));
+  }
+  // an id that would be a prototype key is just another unknown name
+  const r = await h.api("levels", { ids: ["__proto__", "constructor"] });
+  assert.equal(r.status, 200); assert.equal(Object.keys(r.users).length, 2);
+  assert.equal(r.users.constructor.level, null);
+});
+
+test("levels: a public read with its own rate limit per address", async () => {
+  const h = harness();
+  await squad(h, ["player"]);
+  let last;
+  for (let i = 0; i < 120; i++) last = await h.api("levels", { ids: ["player"] });
+  assert.equal(last.status, 200);
+  const over = await h.api("levels", { ids: ["player"] });
+  assert.equal(over.status, 429);
+  // other public reads are not touched, and the window ends
+  assert.equal((await h.api("leaderboard", {})).status, 200);
+  h.advance(61000);
+  assert.equal((await h.api("levels", { ids: ["player"] })).status, 200);
+});
+
+test("ranked_start hands the host the roster's public levels and tiers (the server's, not what a guest says)", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol", "dave1"]);
+  const o = await login(h, "owner");
+  await h.api("a_user_set", { atoken: o.atoken, id: "carol", op: "level", level: 12 });
+  await setRR(h, ["player", "bobby", "carol", "dave1"], 400);
+  const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+  assert.deepEqual(Object.keys(m.start.lv).sort(), ["bobby", "carol", "dave1", "player"]);
+  assert.equal(m.start.lv.carol.level, 12);
+  assert.deepEqual(Object.keys(m.start.lv.carol).sort(), ["div", "level", "placed", "t", "tier"]);
+  assert.ok(!/mmr/i.test(JSON.stringify(m.start.lv)));
+});

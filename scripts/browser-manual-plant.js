@@ -8,9 +8,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await p.locator("#sel-grid .acard").first().click();
     await p.locator("#sel-go").click();
     await p.waitForFunction(() => !!myActor() && world.actors.length >= 4);
+    // the test steps the spike logic itself: stop the game's own frame loop so the two never race. One frame is
+    // already scheduled when the loop is cut (tick() asks for the next frame first), and it would run at a random
+    // moment between two of the test's steps and undo a position change (the "walking pauses it" check).
+    // So wait until that last frame has fired into the stub before touching anything.
+    await p.evaluate(() => { window.__rafCut = 0; window.requestAnimationFrame = () => { window.__rafCut++; return 0; }; });
+    await p.waitForFunction(() => window.__rafCut > 0, null, { timeout: 60000 });
     const setup = await p.evaluate(() => {
-      // the test steps the spike logic itself: stop the game's own frame loop so the two never race
-      window.requestAnimationFrame = () => 0;
       closeShop(); ADMIN.freezeAI = true;
       const me = myActor();
       for (const a of world.actors) if (a !== me) { a.pos.x = 400; a.pos.z = 400; a.invuln = 999; }

@@ -10,6 +10,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   await p.locator('#sel-go').click();
   await p.waitForFunction(()=>!!myActor()&&world.actors.length>=4);
   await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.phaseT=999;myActor().invuln=999;});
+  // The game only reads ability keys while the pointer is locked, and the lock is granted a moment after deploy
+  // (a long while on a loaded machine): a Q pressed before that is dropped, so wait for the lock first.
+  await p.waitForFunction(()=>locked&&world.phase==='live',null,{timeout:60000});
   // Real Q input consumes a charge and takes the new authored gesture.
   const q=await p.evaluate(()=>{const ab=myActor().abilities[0];ab.charges=Math.max(1,ab.charges|0);ab.cd=0;return ab.charges;});await p.keyboard.press('q');
   await p.waitForFunction(n=>myActor().abilities[0].charges===n-1,q);

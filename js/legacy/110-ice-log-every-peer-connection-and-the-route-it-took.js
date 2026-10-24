@@ -14,6 +14,8 @@
     LOG.push(line);
     if (LOG.length > MAX) LOG.shift();
     console.info("[ice]", line);
+    // a connection that broke (or is breaking): keep the story where a reload cannot lose it
+    if (/^(ice|route):(failed|disconnected)$/.test(ev)) window.iceSave && window.iceSave(ev.slice(4));
   };
   class Logged extends Native {
     constructor(config, constraints) {
@@ -63,5 +65,41 @@
   Logged.__iceLog = true;
   window.RTCPeerConnection = Logged;
   window.iceLog = () => LOG.slice();
+  // The compact copy that can go with a bug report: the last 40 lines reduced to times, states, candidate TYPES, the
+  // protocol and the round-trip time. Never a candidate address, and never the server list itself (only how many).
+  const KEEP = 40, STORE = "lgp_ice_report";
+  window.iceSummary = (n) => LOG.slice(-(n || KEEP)).map((l) => {
+    const g = l.gathered || l.candidates || {}, out = { t: String(l.t || "").slice(0, 24), pc: l.pc, role: l.role, ev: l.ev };
+    if (l.local) out.local = l.local;
+    if (l.remote) out.remote = l.remote;
+    if (l.localProtocol) out.proto = l.localProtocol;
+    if (l.rttMs != null) out.rtt = l.rttMs;
+    if (l.ice) out.ice = l.ice;
+    if (l.servers) { out.servers = l.servers.length; out.turn = l.servers.filter((u) => /^turns?:/i.test(u)).length; }
+    for (const k of ["host", "srflx", "prflx", "relay"]) if (g[k]) out[k] = g[k];
+    return out;
+  });
+  // kept in sessionStorage so it survives the redirect or reload that follows a drop; reason: failed / disconnected / host-gone
+  window.iceSave = (reason, offer) => {
+    try {
+      let prev = null;
+      try { prev = JSON.parse(sessionStorage.getItem(STORE) || "null"); } catch (e) {}
+      sessionStorage.setItem(STORE, JSON.stringify({ saved: Date.now(), reason, offer: offer == null ? (prev && prev.offer ? 1 : 0) : offer ? 1 : 0, lines: window.iceSummary() }));
+    } catch (e) {}
+  };
+  // only the "offer the report card" flag changes; the saved lines stay (after a reload the in-memory log is empty)
+  window.iceOffer = (offer) => {
+    try {
+      const r = JSON.parse(sessionStorage.getItem(STORE) || "null");
+      r && (r.offer = offer ? 1 : 0, sessionStorage.setItem(STORE, JSON.stringify(r)));
+    } catch (e) {}
+  };
+  window.iceSaved = (maxAgeMs) => {
+    try {
+      const r = JSON.parse(sessionStorage.getItem(STORE) || "null");
+      return r && Array.isArray(r.lines) && r.lines.length && Date.now() - r.saved <= (maxAgeMs || 30 * 60000) ? r : null;
+    } catch (e) { return null; }
+  };
+  window.iceClear = () => { try { sessionStorage.removeItem(STORE); } catch (e) {} };
   window.iceLogText = () => LOG.map((line) => JSON.stringify(line)).join("\n");
 })();
