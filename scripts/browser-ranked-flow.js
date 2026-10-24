@@ -19,9 +19,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       render = () => {}; titleCam = () => {};
       await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port, path: "/", secure: false, config: { iceServers: [] } });
     }, SIGNAL);
-    const host = await f.page("rkflowhost"), guest = await f.page("rkflowguest");
-    const op = await f.page("owner", undefined, {}, { pw: "owner-password" });
-    for (const page of [host, guest, op]) await wire(page);
+    // each page is wired (its drawing switched off) as soon as it exists: with the earlier pages still drawing the title
+    // screen through the software renderer, the next page's boot starved on a loaded machine and timed out
+    const host = await f.page("rkflowhost"); await wire(host);
+    const guest = await f.page("rkflowguest"); await wire(guest);
+    const op = await f.page("owner", undefined, {}, { pw: "owner-password" }); await wire(op);
 
     // ── A. one ranked match through the whole flow ──
     const code = await host.evaluate(async () => { await RANKED.open(); return NET.room; });
@@ -30,11 +32,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.equal(JSON.parse(f.h.db.get("room:" + code)).ranked, true);
     for (const page of [guest, op]) await page.evaluate((c) => joinRoom(c), code);
     await host.waitForFunction(() => NET.conns.size === 2 && room.members.size === 3, null, { timeout: 60000 });
-    for (const page of [guest, op]) await page.waitForFunction(() => room.ranked === true, null, { timeout: 30000 });
+    for (const page of [guest, op]) await page.waitForFunction(() => room.ranked === true, null, { timeout: 90000 });
 
     // the lock: the normal accounts are shut out, the operator keeps his own cheats once the server confirmed him
-    await op.waitForFunction(() => RANKED.isOperator() && RANKED.operator === true && RANKED.locked === false, null, { timeout: 30000 });
-    await host.waitForFunction(() => HUNTX.OWNP.size === 1, null, { timeout: 30000 });
+    await op.waitForFunction(() => RANKED.isOperator() && RANKED.operator === true && RANKED.locked === false, null, { timeout: 90000 });
+    await host.waitForFunction(() => HUNTX.OWNP.size === 1, null, { timeout: 90000 });
     const peers = await host.evaluate(() => ({ guest: [...room.members].find(([, m]) => m.name === "rkflowguest")[0], op: [...room.members].find(([, m]) => m.name === "owner")[0] }));
     const g1 = await guest.evaluate(async () => {
       ADMIN.god = true; ADMIN.infAmmo = true; ADMIN2.setPersonal("god", true); ADMIN2.afterChange(); HUNTX.HUNT.unlocked = true; window.IS_OWNER = true;
@@ -49,7 +51,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     assert.deepEqual(o1, { god: true, pgod: true, owner: true, runShut: true, body: true }, "the operator keeps personal cheats; room-wide switches stay shut");
     // the host heard the operator's switch and nobody else's
-    await host.waitForFunction((p) => ADMIN2.PEERS.has(p) && ADMIN2.PEERS.get(p).god === true, peers.op, { timeout: 15000 });
+    await host.waitForFunction((p) => ADMIN2.PEERS.has(p) && ADMIN2.PEERS.get(p).god === true, peers.op, { timeout: 45000 });
     assert.equal(await host.evaluate((p) => ADMIN2.PEERS.has(p), peers.guest), false);
     const refused = await host.evaluate((p) => {
       NET.onAction(p, { t: "padm", p: { cheat: true, god: true, oneShot: true, speed: 3 } });
@@ -62,7 +64,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // the match: the host opens it on the server and tells the room
     await host.evaluate(() => { room.mode = "std"; hostStartMatch(); });
     for (const page of [guest, op]) await page.waitForFunction(() => "client" === NET.mode && world.actors.length > 0 && myActor(), null, { timeout: 90000 });
-    await host.waitForFunction(() => RANKED.flow.current() && RANKED.flow.current().info, null, { timeout: 30000 });
+    await host.waitForFunction(() => RANKED.flow.current() && RANKED.flow.current().info, null, { timeout: 90000 });
     const info = await host.evaluate(() => RANKED.flow.current().info);
     assert.deepEqual([info.a.concat(info.b).sort(), typeof info.rm], [["owner", "rkflowguest", "rkflowhost"], "string"]);
     assert.equal(info.ownerPlayed, true);
@@ -102,17 +104,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.equal(res.k.rkflowguest, 4, "kills per account come from the host's tally");
     // each player settles: placement 1/5 for all three, the operator's match counts like the others
     for (const [who, page] of [["rkflowhost", host], ["rkflowguest", guest], ["owner", op]]) {
-      await page.waitForFunction(() => (ACCOUNT.session().user.placement || {}).done === 1, null, { timeout: 60000 });
+      await page.waitForFunction(() => ((((ACCOUNT.session() || {}).user || {}).placement) || {}).done === 1, null, { timeout: 60000 });
       const u = f.h.user(who);
       assert.deepEqual([u.placed, u.rr, u.rmDone.length], [1, 0, 1], who + " is placing: counted, RR untouched");
     }
     assert.equal(JSON.parse(f.h.db.get("rm:" + info.id)).ownerPlayed, true);
     // the result screen says "Placement 1/5" instead of an RR change
-    await guest.waitForFunction(() => /배치 1\/5/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 15000 });
+    await guest.waitForFunction(() => /배치 1\/5/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 45000 });
     await guest.screenshot({ path: dir + "/ranked-flow-over.png" });
     // and the title chip hides the tier
     await guest.evaluate(() => { netShutdown(); world.phase = "menu"; show("s-title"); });
-    await guest.waitForFunction(() => /배치 1\/5/.test((document.getElementById("rank-chip") || {}).textContent || ""), null, { timeout: 10000 });
+    await guest.waitForFunction(() => /배치 1\/5/.test((document.getElementById("rank-chip") || {}).textContent || ""), null, { timeout: 30000 });
     for (const page of [host, op]) await page.evaluate(() => { try { netShutdown(); } catch (e) {} });
     await sleep(700);
     assert.deepEqual(await op.evaluate(() => ({ locked: RANKED.locked, operator: RANKED.operator, ranked: room.ranked })), { locked: false, operator: false, ranked: false });
@@ -137,7 +139,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (let n = 1; n <= 4; n++) { last = await match(n); assert.equal(last.lbp1.rankedCounted, true); }
     assert.deepEqual([last.lbp1.placement, last.lbp1.rank.hidden], [{ done: 4, of: 5 }, true]);
     const p1 = await f.page("lbp1", { width: 1280, height: 800 });
-    await p1.waitForFunction(() => /배치 4\/5/.test((document.getElementById("rank-chip") || {}).textContent || ""), null, { timeout: 15000 });
+    await p1.waitForFunction(() => /배치 4\/5/.test((document.getElementById("rank-chip") || {}).textContent || ""), null, { timeout: 45000 });
     assert.equal(await p1.evaluate(() => document.getElementById("rank-chip").textContent.includes("아이언")), false, "no tier while placing");
     // the room list: the band of a ranked room as a tier, and "Find a ranked match" shows my standing
     const stub = {};
@@ -149,7 +151,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await p1.evaluate(() => MULTI.open());
     await p1.waitForSelector(".mu-room .mu-band");
     assert.equal(await p1.evaluate(() => document.querySelector(".mu-room .mu-band").textContent), "브론즈 1", "band 1350 = 350 RR = Bronze 1");
-    await p1.waitForFunction(() => /배치 4\/5/.test(document.getElementById("mu-rank-me").textContent), null, { timeout: 10000 });
+    await p1.waitForFunction(() => /배치 4\/5/.test(document.getElementById("mu-rank-me").textContent), null, { timeout: 30000 });
     await p1.screenshot({ path: dir + "/ranked-flow-rooms.png" });
     // out of range: a clear message and no connection attempt
     stub.ranked_can_join = { ok: false, ranked: true, range: 150, band: 1350 };
@@ -178,7 +180,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       dispatchEvent(new CustomEvent("account-reward", { detail: j }));
     }, j);
     const tierName = await p1.evaluate((j) => RANK.names[j.user.rank.t] + (j.user.rank.div ? " " + j.user.rank.div : ""), j);
-    await p1.waitForFunction((t) => (document.getElementById("ov-rank") || {}).textContent.includes(t) && /배치 완료/.test(document.getElementById("ov-rank").textContent), tierName, { timeout: 15000 });
+    await p1.waitForFunction((t) => { const text = (document.getElementById("ov-rank") || {}).textContent || ""; return text.includes(t) && /배치 완료/.test(text); }, tierName, { timeout: 45000 });
     await p1.screenshot({ path: dir + "/ranked-flow-reveal.png" });
     // a counted match after placement shows the RR change; one that did not count says why
     await p1.evaluate((j) => { world.phase = "menu"; }, j);
@@ -187,17 +189,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const j2 = Object.assign({}, j, { rr: 14, rankedCounted: true, placement: { done: 5, of: 5 } });
       world.phase = "over"; dispatchEvent(new CustomEvent("account-reward", { detail: j2 }));
     }, j);
-    await p1.waitForFunction(() => /\+14/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 15000 });
+    await p1.waitForFunction(() => /\+14/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 45000 });
     await p1.evaluate(() => { world.phase = "menu"; });
     await p1.waitForTimeout(700);
     await p1.evaluate((j) => { world.phase = "over"; dispatchEvent(new CustomEvent("account-reward", { detail: Object.assign({}, j, { rr: 0, rankedCounted: false, rankedWhy: "few_humans" }) })); }, j);
-    await p1.waitForFunction(() => /사람이 부족해/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 15000 });
+    await p1.waitForFunction(() => /사람이 부족해/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 45000 });
 
     // the leaderboard screen: from the home menu, the season, my row marked
     await p1.evaluate(() => { world.phase = "menu"; show("s-title"); });
     await p1.waitForSelector("#go-ranks");
     await p1.click("#go-ranks");
-    await p1.waitForSelector("#s-ranks:not([hidden]) .lbd-row.me", { timeout: 15000 });
+    await p1.waitForSelector("#s-ranks:not([hidden]) .lbd-row.me", { timeout: 45000 });
     const board = await p1.evaluate(() => ({ rows: document.querySelectorAll("#lbd-body .lbd-row:not(.hd)").length, me: document.querySelector("#lbd-body .lbd-row.me .nm").textContent, season: document.getElementById("lbd-season").textContent, mine: document.getElementById("lbd-me").textContent, rr: [...document.querySelectorAll("#lbd-body .lbd-row:not(.hd)")].map((r) => +r.querySelector(".n").textContent) }));
     assert.equal(board.rows, 3);
     assert.match(board.me, /^lbp1/);
