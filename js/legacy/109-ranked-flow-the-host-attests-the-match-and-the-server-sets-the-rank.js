@@ -92,6 +92,10 @@
       rec.start = startOnServer(r).then(
         (j) => {
           rec.info = j;
+          // what the server says each player is (level, tier): the room's bot skill reads these, not what a guest claims
+          try {
+            j && j.lv && window.dispatchEvent(new CustomEvent("dfdf:roster-levels", { detail: j.lv }));
+          } catch (e) {}
           try {
             sendEventAll({ t: "rk-go", id: j.id });
           } catch (e) {}

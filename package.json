@@ -39,6 +39,7 @@
     "test:ranked": "node scripts/browser-ranked.js",
     "test:ranked-flow": "node scripts/browser-ranked-flow.js",
     "test:bot-skill": "node scripts/browser-bot-skill.js",
+    "test:verified-levels": "node scripts/browser-bot-skill.js",
     "test:shift": "node scripts/browser-shift.js",
     "test:followup": "node scripts/browser-followup.js",
     "test:maps": "node scripts/browser-map-cleanup.js",

@@ -3,9 +3,14 @@
   //  · The bots' skill (js/bot-skill.js). When a round starts the host reads the average account level of the
   //    humans (their average tier in a ranked room), turns it into one skill number and caches it in BOT_RT;
   //    diffTune() in the engine only reads that number afterwards.
-  //  · A "Lv N" chip beside a player's name on the scoreboard, the lobby slots and the kill feed. A guest says its
-  //    level (and tier) in the hello message, the host passes it on in the lobby, the actor list and the ctrl
-  //    event. A guest without an account has none and shows no chip; bots never do.
+  //  · A "Lv N" chip beside a player's name on the scoreboard, the lobby slots and the kill feed.
+  // A guest still says its level (and tier) in the hello message, but that is only a claim. The host asks the server
+  // (api `levels`, public info only) what the account of each name in the room really is, and the server's numbers
+  // replace the claim: they set the room's skill and they are what the lobby, the actor list and the ctrl event hand
+  // on. In a ranked room the roster the server answers to ranked_start brings the same numbers. A name with no account
+  // (a guest) has no level: its claim is dropped, it is left out of the average and has no chip. If the server cannot
+  // be reached the claim still counts for the skill (as before) but is marked unverified and NO chip shows for it:
+  // a chip only ever shows a number the server gave. Bots never have one.
   if ("undefined" == typeof world || "undefined" == typeof room || "undefined" == typeof NET || "undefined" == typeof BOT_RT || "undefined" == typeof startRound) return;
 
   const $ = (id) => document.getElementById(id);
@@ -24,20 +29,101 @@
       return null;
     }
   };
-  // what the host heard in each guest's hello
+  // what the host heard in each guest's hello: a CLAIM
   const PEER = new Map();
+  // what the server says about each guest's account, by peer: { id, lv (null: no account), tr, placed }
+  const VER = new Map();
+  const nameOf = (peer) => {
+    const m = room.members && room.members.get(peer);
+    return m && m.name ? String(m.name) : "";
+  };
+  // the server's numbers for a peer, only while the peer still has the name they were read for
+  const verified = (peer) => {
+    const v = VER.get(peer);
+    return v && v.id === nameOf(peer).toLowerCase() ? v : null;
+  };
+  // a ranked room reads the tier: an account still placing has its tier hidden and counts as Iron (what it always did)
+  const fromServer = (u) => (u && Number.isFinite(+u.level) && +u.level >= 1 ? { lv: Math.floor(+u.level), tr: u.placed && Number.isFinite(+u.t) ? u.t : 0 } : null);
+  // what is SHOWN for an actor: mine, a guest's as the host handed it on, or what the server verified; never a claim
   const of = (a) => {
     if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return null;
     if ("me" === a.ctrl) return own();
     if (a.__lv) return { lv: a.__lv, tr: null == a.__tr ? null : a.__tr };
+    const v = verified(a.ctrl);
+    return v && v.lv ? { lv: v.lv, tr: v.tr } : null;
+  };
+  // what the bots' skill reads: the same, and the claim only while the server has not answered (or cannot be reached)
+  const forSkill = (a) => {
+    if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return null;
+    if ("me" === a.ctrl) return own();
+    if (a.__lv) return of(a);
+    const v = verified(a.ctrl);
+    if (v) return v.lv ? { lv: v.lv, tr: v.tr } : null;
     return PEER.get(a.ctrl) || null;
   };
 
+  // ── asking the server (host only) ──
+  const ask = { timer: 0, busy: false, tries: 0 };
+  // the guests in the room that the server has not been asked about yet
+  const pending = () => [...(room.members ? room.members.keys() : [])].filter((p) => p !== NET.id && nameOf(p) && !verified(p));
+  async function verifyNow() {
+    if ("host" !== NET.mode || ask.busy || !window.ACCOUNT || !ACCOUNT.api || !ACCOUNT.online) return;
+    const peers = pending();
+    if (!peers.length) return;
+    const ids = [...new Set(peers.map((p) => nameOf(p)))].slice(0, 12);
+    ask.busy = true;
+    try {
+      const j = await ACCOUNT.api("levels", { ids });
+      const users = (j && j.users) || {};
+      const low = {};
+      for (const k of Object.keys(users)) low[k.toLowerCase()] = users[k];
+      for (const p of peers) {
+        const id = nameOf(p).toLowerCase();
+        if (!ids.some((x) => x.toLowerCase() === id) || !low[id]) continue;
+        const f = fromServer(low[id]);
+        VER.set(p, { id, lv: f ? f.lv : null, tr: f ? f.tr : null });
+      }
+      ask.tries = 0;
+      changed();
+    } catch (e) {
+      // the server cannot be reached: the claims stay, unverified, and we try again a few times
+      ask.tries++ < 3 && (ask.timer = setTimeout(() => ((ask.timer = 0), verifyNow()), 5000 * ask.tries));
+    } finally {
+      ask.busy = false;
+    }
+    // somebody else joined while we were asking
+    pending().some((p) => !peers.includes(p)) && schedule(50);
+  }
+  function schedule(ms) {
+    if ("host" !== NET.mode || ask.timer) return;
+    ask.timer = setTimeout(() => {
+      ask.timer = 0;
+      verifyNow();
+    }, ms);
+  }
+  // the server's numbers changed: the room's skill, the lobby and the chips of a match under way follow
+  function changed() {
+    try {
+      room.started && refresh();
+    } catch (e) {}
+    try {
+      if ("host" !== NET.mode) return;
+      if (!room.started) {
+        const snap = lobbySnapshot();
+        renderLobby(snap);
+        sendEventAll(snap);
+      } else {
+        // a match under way: tell the guests what the server says about each of them
+        const list = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl && "me" !== a.ctrl).map((a) => ({ id: a.id, o: of(a) }));
+        sendEventAll({ t: "lvs", list: list.map((x) => ({ id: x.id, lv: x.o ? x.o.lv : 0, tr: x.o ? x.o.tr : null })) });
+      }
+    } catch (e) {}
+  }
   // ── the room's skill, once per round ──
   const refresh = () => {
     const B = window.BOT_SKILL;
     if (!B) return;
-    const humans = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl).map(of).filter(Boolean);
+    const humans = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl).map(forSkill).filter(Boolean);
     BOT_RT.skill = B.roomSkill(humans.map((h) => ({ level: h.lv, tier: h.tr })), !!room.ranked);
   };
   const _sr = startRound;
@@ -65,7 +151,7 @@
     s.textContent = text;
     return s;
   };
-  window.LV_CHIP = { own, of, peers: PEER, text: chipText, html: (a) => (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
+  window.LV_CHIP = { own, of, peers: PEER, verified: VER, ask: verifyNow, refresh, forSkill, text: chipText, html: (a) => (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
 
   // ── what travels ──
   const _sa = sendAction;
@@ -82,6 +168,10 @@
       if (msg && "hello" === msg.t && "host" === NET.mode) {
         const c = clean(msg.lv, msg.tr);
         c ? PEER.set(peer, c) : PEER.delete(peer);
+        // whatever it claims, the server is asked who this name really is
+        VER.delete(peer);
+        ask.tries = 0;
+        schedule(80);
       }
     } catch (e) {}
     const r = _oa && _oa.apply(this, arguments);
@@ -94,10 +184,18 @@
   const _lr = lobbyReset;
   lobbyReset = function () {
     PEER.clear();
+    VER.clear();
+    clearTimeout(ask.timer);
+    ask.timer = 0;
+    ask.tries = 0;
     return _lr.apply(this, arguments);
   };
   // the host's own entry too
-  const infoOfPeer = (p) => (p === NET.id ? own() : PEER.get(p) || null);
+  const infoOfPeer = (p) => {
+    if (p === NET.id) return own();
+    const v = verified(p);
+    return v && v.lv ? { lv: v.lv, tr: v.tr } : null;
+  };
   const _ls = lobbySnapshot;
   lobbySnapshot = function () {
     const s = _ls.apply(this, arguments);
@@ -153,9 +251,42 @@
           c = clean(e.lv, e.tr);
         a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null));
       }
+      // the host has heard from the server: the numbers of the guests in a match under way
+      if (e && "lvs" === e.t && Array.isArray(e.list))
+        for (const m of e.list.slice(0, 24)) {
+          const a = m && world.actors.find((x) => x.id === m.id),
+            c = a && clean(m.lv, m.tr);
+          a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null));
+        }
     } catch (err) {}
     return r;
   };
+
+  // ── the match starts: whoever the server has not answered for yet is asked again right now ──
+  if ("function" == typeof hostStartMatch) {
+    const _hs = hostStartMatch;
+    hostStartMatch = function () {
+      try {
+        "host" === NET.mode && pending().length && verifyNow();
+      } catch (e) {}
+      return _hs.apply(this, arguments);
+    };
+  }
+  // ── a ranked room: the roster the server opened the match with (ranked_start) says the same, by account id ──
+  window.addEventListener("dfdf:roster-levels", (ev) => {
+    try {
+      const lv = (ev && ev.detail) || {};
+      const low = {};
+      for (const k of Object.keys(lv)) low[k.toLowerCase()] = lv[k];
+      for (const [peer] of room.members) {
+        const id = nameOf(peer).toLowerCase();
+        if (peer === NET.id || !id || !low[id]) continue;
+        const f = fromServer(low[id]);
+        VER.set(peer, { id, lv: f ? f.lv : null, tr: f ? f.tr : null });
+      }
+      changed();
+    } catch (e) {}
+  });
 
   // ── the lobby slots ──
   const _rl = renderLobby;

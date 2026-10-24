@@ -1560,14 +1560,15 @@ A.ranked_start = async (q, b) => {
   const side = (t) => t.filter((id) => ok.has(id)).map((id) => ok.get(id).id);
   const a = side(ta), bb = side(tb), mmr = {};
   if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
-  for (const x of ok.values()) mmr[x.id] = mmrOf(x);
+  const per = (await loadConfig()).xp.perLevel, lv = {};
+  for (const x of ok.values()) ((mmr[x.id] = mmrOf(x)), (lv[x.id] = lvInfo(x, per)));
   const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
   // a team with no human takes the other's average (bots are the same strength)
   const avgA = avg(a) ?? avg(bb), avgB = avg(bb) ?? avg(a);
   const id = crypto.randomBytes(12).toString("hex"), t0 = now();
   const rec = { id, room: code, host: u.id, t0, a, b: bb, mmr, avgA, avgB, ownerPlayed: [...ok.values()].some((x) => x.owner && isOwnerId(x.id)) };
   await pipe([["SET", "rm:" + id, JSON.stringify(rec), "EX", String(RESULT_TTL)], ["SET", "rmroom:" + code, id, "EX", String(RESULT_TTL)]]);
-  return { id, t0, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
+  return { id, t0, lv, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
 };
 // the host's result, once: w = "a" | "b" | "draw", k = kills per account
 A.ranked_result = async (q, b) => {
@@ -1594,6 +1595,25 @@ A.ranked_can_join = async (q, b) => {
   if (!room) throw fail(404, "없는 방입니다");
   const r = canJoinRanked({ mmr: mmrOf(u), owner: !!u.owner }, room);
   return { ranked: !!room.ranked, ok: r.ok, range: r.range, band: room.ranked && Number.isFinite(room.mmr) ? bandOf(room.mmr) : null };
+};
+// What the room host may know about a player, to set the bots' skill and show a Lv chip: the account level, and the
+// tier once placement is over. A guest, an unknown name and a malformed id all read the same (nulls), so this is not a
+// way to find out who has an account. Never MMR, RR, email, tokens, IP or device.
+const lvInfo = (x, per) => {
+  if (!x || x.guest) return { level: null, t: null, tier: null, div: null, placed: false };
+  const placed = placedOf(x) >= PLACE_N, r = rankOf(x.rr);
+  return { level: levelOf(x.xp || 0, per).level, t: placed ? r.t : null, tier: placed ? r.tier : null, div: placed ? r.div : null, placed };
+};
+const LV_MAX = 12;
+A.levels = async (q, b) => {
+  if (await limited("lv:" + (requestState.getStore()?.get("requestIp") || "-"), 120, 60)) throw fail(429, "너무 자주 보냈습니다");
+  const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).slice(0, LV_MAX).map((x) => String(x == null ? "" : x).trim()))].filter(Boolean);
+  const valid = ids.filter((id) => ID_OK.test(id)), per = (await loadConfig()).xp.perLevel;
+  const recs = valid.length ? (await pipe(valid.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null)) : [];
+  const users = Object.create(null);
+  for (const id of ids) users[id] = lvInfo(null);
+  valid.forEach((id, i) => (users[id] = lvInfo(recs[i], per)));
+  return { users };
 };
 // the season's top accounts by RR: only placed accounts that played ranked this season
 const LB_MAX = 100;
