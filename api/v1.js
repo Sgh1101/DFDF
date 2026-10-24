@@ -868,6 +868,31 @@ const FB_ROLES = ["타격대", "감시자", "척후대", "전략가"];
 const FB_REASONS = ["cheat", "abuse", "grief", "afk", "name", "other"];
 const FB_KEYS = ["Q", "E", "C", "X"];
 const fbStr = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, n);
+// The connection story a guest's game saves when a multiplayer link breaks (js/legacy/110-…): at most 40 lines of
+// times, states, candidate TYPES, protocol and round-trip time. Every field is checked against a fixed shape; anything
+// else (addresses, server lists, free text) is dropped, so an address can never be stored through here.
+const ICE_REASONS = ["failed", "disconnected", "host-gone"], ICE_TYPES = ["host", "srflx", "prflx", "relay"], ICE_ROLES = ["host", "client", "solo", "-"], ICE_STATES = ["new", "checking", "connected", "completed", "failed", "disconnected", "closed"];
+function cleanIce(v) {
+  if (!isObj(v) || !Array.isArray(v.lines)) return null;
+  const n = (x, max) => (Number.isFinite(x) ? Math.max(0, Math.min(max, Math.round(x))) : 0);
+  const lines = [];
+  for (const l of v.lines.slice(-200)) {
+    if (!isObj(l)) continue;
+    const ev = typeof l.ev === "string" && /^(created|gathered|closed-by-app|route-error|(ice|conn|route):[a-z]{3,12})$/.test(l.ev) ? l.ev : "";
+    if (!ev) continue;
+    const o = { t: typeof l.t === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,3})?Z?$/.test(l.t) ? l.t : "", pc: typeof l.pc === "string" && /^pc\d{1,5}$/.test(l.pc) ? l.pc : "", role: ICE_ROLES.includes(l.role) ? l.role : "-", ev };
+    if (ICE_TYPES.includes(l.local)) o.local = l.local;
+    if (ICE_TYPES.includes(l.remote)) o.remote = l.remote;
+    if (l.proto === "udp" || l.proto === "tcp") o.proto = l.proto;
+    if (Number.isFinite(l.rtt)) o.rtt = n(l.rtt, 60000);
+    if (ICE_STATES.includes(l.ice)) o.ice = l.ice;
+    if (Number.isFinite(l.servers)) o.servers = n(l.servers, 20);
+    if (Number.isFinite(l.turn)) o.turn = n(l.turn, 20);
+    for (const k of ICE_TYPES) if (Number.isFinite(l[k]) && l[k] > 0) o[k] = n(l[k], 999);
+    lines.push(o);
+  }
+  return lines.length ? { reason: ICE_REASONS.includes(v.reason) ? v.reason : "failed", lines: lines.slice(-40) } : null;
+}
 function cleanFeedback(b) {
   const type = FB_TYPES[b.type] ? b.type : "";
   if (!type) throw fail(400, "종류를 골라 주세요");
@@ -902,6 +927,10 @@ function cleanFeedback(b) {
   if (isObj(c.diagnostic)) {
     const d=c.diagnostic,number=(v,max)=>Number.isFinite(v)?Math.max(0,Math.min(max,Math.round(v*10)/10)):0;
     f.ctx.diagnostic={version:fbStr(d.version,30),commit:/^[a-f0-9]{40}$/.test(d.commit)?d.commit:'local',quality:['mobile','perf','visual','ultra'].includes(d.quality)?d.quality:'unknown',medianMs:number(d.medianMs,1000),p95Ms:number(d.p95Ms,1000),geometries:number(d.geometries,1e6),textures:number(d.textures,1e6)};
+  }
+  if ("bug" === type && isObj(c.ice)) {
+    const ice = cleanIce(c.ice);
+    if (ice) f.ctx.ice = ice;
   }
   return f;
 }
@@ -2235,12 +2264,14 @@ ADMIN.feedback = async (q, b) => {
   const t = String(b.type || ""),
     st = String(b.status || ""),
     s = String(b.q || "").toLowerCase();
-  const counts = { total: rows.length, new: 0, byType: {} };
+  const counts = { total: rows.length, new: 0, ice: 0, byType: {} };
+  const hasIce = (r) => !!(r.ctx && r.ctx.ice && r.ctx.ice.lines && r.ctx.ice.lines.length);
   for (const r of rows) {
     "new" === r.status && counts.new++;
+    hasIce(r) && counts.ice++;
     counts.byType[r.type] = (counts.byType[r.type] || 0) + 1;
   }
-  const items = rows.filter((r) => (!t || r.type === t) && (!st || r.status === st) && (!s || JSON.stringify(r).toLowerCase().includes(s))).slice(0, Math.max(1, Math.min(500, (b.limit | 0) || 200)));
+  const items = rows.filter((r) => (!t || r.type === t) && (!st || r.status === st) && (!b.ice || hasIce(r)) && (!s || JSON.stringify(r).toLowerCase().includes(s))).slice(0, Math.max(1, Math.min(500, (b.limit | 0) || 200)));
   return { items, counts, types: FB_TYPES };
 };
 ADMIN.feedback_set = async (q, b) => {
