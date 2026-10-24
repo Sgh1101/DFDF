@@ -871,7 +871,7 @@ const fbStr = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u0008\u000b
 // The connection story a guest's game saves when a multiplayer link breaks (js/legacy/110-…): at most 40 lines of
 // times, states, candidate TYPES, protocol and round-trip time. Every field is checked against a fixed shape; anything
 // else (addresses, server lists, free text) is dropped, so an address can never be stored through here.
-const ICE_REASONS = ["failed", "disconnected", "host-gone"], ICE_TYPES = ["host", "srflx", "prflx", "relay"], ICE_ROLES = ["host", "client", "-"], ICE_STATES = ["new", "checking", "connected", "completed", "failed", "disconnected", "closed"];
+const ICE_REASONS = ["failed", "disconnected", "host-gone"], ICE_TYPES = ["host", "srflx", "prflx", "relay"], ICE_ROLES = ["host", "client", "solo", "-"], ICE_STATES = ["new", "checking", "connected", "completed", "failed", "disconnected", "closed"];
 function cleanIce(v) {
   if (!isObj(v) || !Array.isArray(v.lines)) return null;
   const n = (x, max) => (Number.isFinite(x) ? Math.max(0, Math.min(max, Math.round(x))) : 0);
