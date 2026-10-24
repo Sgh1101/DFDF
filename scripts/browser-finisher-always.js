@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// A player's round-ending kill always plays the Champions finisher (whatever the gun wears); a bot's never does.
+// A player's round-ending kill plays the finisher of the skin the gun wears: none with the stock skin, the skin's own
+// with a legendary, the Champions one (and its 8 s hold) only with a Champions skin; a bot's never does.
 // Bots wear a random skin on every gun, any tier but Transcendent.
 (async () => {
   const f = await fixture();
@@ -29,41 +30,37 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(bots.skinned >= bots.guns * 0.9, "bots wear a skin on (nearly) every gun they could: " + JSON.stringify(bots));
     assert.ok(Math.max(...bots.tiers) <= 4 && bots.tiers.length >= 2, "a spread of tiers up to Legendary: " + JSON.stringify(bots.tiers));
     assert.ok(bots.differentBots >= 2, "bots do not all wear the same skins");
-    // 2. my last kill of a round, with the plain default skin: the Champions finisher plays, and the round waits for it
+    // 2. my last kill of a round with each kind of skin: the stock skin has none, a legendary its own finisher and no
+    //    Champions hold, the Champions Phantom the Champions finisher with the round waiting for it
     const mine = await p.evaluate(() => {
-      room.mode = "std"; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live";
-      const me = myActor(), victim = world.actors.find((a) => a.team !== me.team);
-      for (const a of world.actors) { a.fireCd = 999; if (a.team !== me.team) a.alive = a === victim; }
-      me.weapons.primary = "rifle"; me.slot = "primary"; GUN_SKINS.set("rifle", "default");
-      victim.hp = 1; victim.armor = victim.invuln = victim.shielded = 0; victim.pos.set(me.pos.x + 8, 0, me.pos.z); victim.y = 0;
-      const events = []; addEventListener("kill-confirmed", (e) => events.push(e.detail));
-      const at = performance.now();
-      DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "rifle", "gun", world.round, "default"), () => dealDamage(victim, 999, false, me));
-      checkRoundEnd(); updateHUD();
-      const e = events.find((x) => x.victim === victim.id) || {};
-      return { skin: e.skin, finisherSkin: e.finisherSkin, finisher: e.finisher, byBot: !!e.byBot, active: FINISHERS.active.size, wait: world.championsFinishUntil - at, team: me.team };
+      const one = (gun, skin) => {
+        room.mode = "std"; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live"; world.championsFinishUntil = 0;
+        const me = myActor(), victim = world.actors.find((a) => a.team !== me.team);
+        for (const a of world.actors) { a.fireCd = 999; if (a.team !== me.team) a.alive = a === victim; }
+        me.weapons.primary = gun; me.slot = "primary"; GUN_SKINS.set(gun, skin);
+        victim.hp = 1; victim.armor = victim.invuln = victim.shielded = 0; victim.pos.set(me.pos.x + 8, 0, me.pos.z); victim.y = 0;
+        const events = [], on = (e) => events.push(e.detail); addEventListener("kill-confirmed", on);
+        const legend = [], play = FINISHER_LEGEND.play; FINISHER_LEGEND.play = function (e, sk) { legend.push(sk && sk.id); return play.apply(this, arguments); };
+        const at = performance.now();
+        DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, gun, "gun", world.round, skin), () => dealDamage(victim, 999, false, me));
+        checkRoundEnd(); updateHUD();
+        FINISHER_LEGEND.play = play; removeEventListener("kill-confirmed", on);
+        const e = events.find((x) => x.victim === victim.id) || {};
+        return { skin: e.skin, finisherSkin: e.finisherSkin || null, finisher: !!e.finisher, byBot: !!e.byBot, active: FINISHERS.active.size, legend: legend.join(), wait: (world.championsFinishUntil || 0) - at };
+      };
+      return { plain: one("rifle", "default"), lava: one("rifle", "lava"), wave: one("smg", "champion"), champions: one(VALORANT_DATA.championsWeapon, "champions_atk") };
     });
-    assert.equal(mine.skin, "default");
-    assert.equal(mine.finisher, true, JSON.stringify(mine));
-    assert.equal(mine.finisherSkin, mine.team === "atk" ? "champions_atk" : "champions_def");
-    assert.equal(mine.byBot, false);
-    assert.ok(mine.active > 0, "the finisher is on screen");
-    assert.ok(mine.wait > 7000 && mine.wait <= 8100, "the round waits for the Champions finisher: " + mine.wait);
-    // 3. the same in the next round (every round), still with the default skin
-    const again = await p.evaluate(async () => {
-      startRound(); closeShop(); ADMIN.freezeAI = true; world.phase = "live";
-      const me = myActor(), victim = world.actors.find((a) => a.team !== me.team);
-      for (const a of world.actors) { a.fireCd = 999; if (a.team !== me.team) a.alive = a === victim; }
-      me.weapons.primary = "rifle"; me.slot = "primary";
-      victim.hp = 1; victim.armor = victim.invuln = victim.shielded = 0; victim.pos.set(me.pos.x + 8, 0, me.pos.z); victim.y = 0;
-      const events = []; addEventListener("kill-confirmed", (e) => events.push(e.detail));
-      DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "rifle", "gun", world.round, "default"), () => dealDamage(victim, 999, false, me));
-      checkRoundEnd();
-      const e = events.find((x) => x.victim === victim.id) || {};
-      return { finisher: e.finisher, active: FINISHERS.active.size, round: world.round };
-    });
-    assert.equal(again.finisher, true, JSON.stringify(again));
-    assert.ok(again.active > 0);
+    assert.equal(mine.plain.finisherSkin, null, "no skin is put in place of the gun's: " + JSON.stringify(mine.plain));
+    assert.equal(mine.plain.finisher, false, "no finisher with the stock skin");
+    assert.ok(mine.plain.wait <= 0, "and no Champions hold");
+    for (const k of ["lava", "wave"]) {
+      assert.equal(mine[k].finisher, true, k + ": " + JSON.stringify(mine[k]));
+      assert.equal(mine[k].legend, mine[k].skin, k + " plays its own legendary finisher");
+      assert.ok(mine[k].wait <= 0, k + " does not hold the round like the Champions finisher");
+    }
+    assert.equal(mine.champions.finisher, true, JSON.stringify(mine.champions));
+    assert.ok(mine.champions.active > 0, "the Champions finisher is on screen");
+    assert.ok(mine.champions.wait > 7000 && mine.champions.wait <= 8100, "the round waits for the Champions finisher: " + mine.champions.wait);
     // 4. a bot's round-ending kill: no finisher, no hold
     const bot = await p.evaluate(() => {
       startRound(); closeShop(); ADMIN.freezeAI = true; world.phase = "live";
@@ -83,6 +80,6 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(bot.hold, false);
     assert.equal(bot.active, 0);
     assert.deepEqual(f.errors, []);
-    console.log("Finisher every round for a player's last kill (default skin too); none for a bot; bots wear a skin on every gun up to Legendary, never Transcendent. Browser only.");
+    console.log("A player's last kill plays its own skin's finisher (none for the stock skin, Champions only for Champions); none for a bot; bots wear a skin on every gun up to Legendary, never Transcendent. Browser only.");
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exit(1); });
