@@ -155,3 +155,36 @@ test("ghosts listed on a team cannot dilute its dissent", async () => {
   const rest = await settleAll(m, ["bobby", "erin1", "player"]);
   for (const id of ["player", "bobby", "erin1"]) { assert.equal(rest[id].status, 200, id); assert.equal(rest[id].rankedCounted, false, id); assert.equal(rest[id].rankedWhy, "disputed", id); }
 });
+
+// ── client: the host's roster leaves out a name two people in the room share ──
+test("the host's roster leaves out a name that two people in the room carry; the host's own seat stays", async () => {
+  const read = (name) => fs.readFileSync(fs.readdirSync("js/legacy").filter((f) => f.startsWith(name)).map((f) => "js/legacy/" + f)[0], "utf8");
+  const node = () => new Proxy(function () {}, { get: (t, k) => (k === Symbol.toPrimitive ? () => "" : node()), set: () => true, apply: () => node() });
+  const sb = {
+    console, Date, Map, Set, Promise, JSON, Math, Object, Array, String, Number, Error, atob, URL, setTimeout, clearTimeout, setInterval() {},
+    localStorage: { getItem: () => null, setItem() {} }, document: { getElementById: () => null, createElement: () => node(), head: node(), body: node() },
+    addEventListener() {}, GAME_LANG: "ko", banner() {},
+    room: { ranked: true, members: new Map(), code: "ABC123" }, NET: { mode: "host", room: "ABC123", id: "hp", onEvent() {} },
+    hostStartMatch() {}, clientBeginMatch() {}, joinRoom: async () => {}, netAlert() {}, sendEventAll() {}, netShutdown() {}, hideAll() {}, show() {},
+    RANK: { names: [] },
+  };
+  sb.window = sb; sb.RANKED = {};
+  sb.ACCOUNT = { online: true, session: () => ({ token: "tok", user: { id: "Host1", guest: false } }), api: async () => ({}) };
+  vm.createContext(sb);
+  vm.runInContext(read("109-ranked-flow"), sb);
+  const roster = (members) => { sb.room.members = new Map(members); return JSON.parse(JSON.stringify(sb.RANKED.flow.roster())); };
+  // unique names: every account has a seat, by team
+  assert.deepEqual(roster([["hp", { name: "Host1", team: "atk" }], ["p1", { name: "alice", team: "atk" }], ["p2", { name: "bob", team: "def" }]]), { a: ["Host1", "alice"], b: ["bob"] });
+  // a guest who names himself after another player takes nobody's seat: neither gets one (case does not matter)
+  assert.deepEqual(roster([["hp", { name: "Host1", team: "atk" }], ["p1", { name: "alice", team: "atk" }], ["p2", { name: "Alice", team: "def" }], ["p3", { name: "bob", team: "def" }]]), { a: ["Host1"], b: ["bob"] });
+  // three of a kind, too
+  assert.deepEqual(roster([["hp", { name: "Host1", team: "atk" }], ["p1", { name: "x", team: "atk" }], ["p2", { name: "X", team: "def" }], ["p3", { name: "x", team: "def" }]]), { a: ["Host1"], b: [] });
+  // somebody wearing the host's name: the host's account is the one that is signed in here, so his seat stays
+  assert.deepEqual(roster([["hp", { name: "Host1", team: "atk" }], ["p1", { name: "HOST1", team: "def" }], ["p2", { name: "bob", team: "def" }]]), { a: ["Host1"], b: ["bob"] });
+  // a player without a seat just takes the plain ticket: one 403, no retries
+  sb.NET.mode = "client";
+  sb.NET.onEvent({ t: "rk-go", id: "m1" });
+  let asked = 0;
+  assert.equal(await sb.RANKED.flow.ticket("tok", async () => { asked++; throw Object.assign(new Error("no"), { status: 403 }); }), null);
+  assert.equal(asked, 1);
+});
