@@ -909,7 +909,10 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   assert.equal((await h.api("a_order_set", { atoken: ow.atoken, id: o30.order.id, op: "grant" })).status, 409, "no opening a rejected one");
   const ref = await h.api("a_order_set", { atoken: ow.atoken, id: o2.order.id, op: "refund", revoke: true, reason: "환불" });
   assert.equal(ref.order.status, "refunded");
-  assert.equal(h.user("player").perm.on, false, "taken back");
+  // only this order's cheats go: the first order still grants radar and wall, for its own length
+  const left = h.user("player").perm;
+  assert.deepEqual([left.on, left.radar, left.wall, left.oneShot, left.speed, left.buff], [true, true, true, false, 1, 0], "this order's part taken back");
+  assert.equal(left.until, perm.until, "its thirty days come off again");
   mine = await h.api("order_mine", { token: p.token });
   assert.deepEqual(mine.orders.map((x) => x.status).sort(), ["cancelled", "granted", "refunded", "rejected"].sort());
   assert.equal(mine.pay, null, "nothing waits: no account shown");
