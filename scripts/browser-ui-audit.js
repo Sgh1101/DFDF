@@ -58,6 +58,8 @@ const only = (process.env.DFDF_UI_ONLY || "").split(",").filter(Boolean), viewOn
     const by = {};
     for (const p of found) (by[p.kind] = by[p.kind] || []).push(p);
     for (const [k, v] of Object.entries(by)) console.log(k, v.length);
+    // each finding on one line too: on CI the audit file is in the artifact, the log's tail is what a failure annotation carries
+    for (const p of found.slice(0, 30)) console.log(" -", JSON.stringify(p).slice(0, 400));
     console.log("pages errors:", f.errors.length ? f.errors.slice(0, 3) : 0);
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
