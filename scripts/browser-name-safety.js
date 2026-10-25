@@ -71,9 +71,10 @@ const EVIL = '<img src=x onerror="window.__xss=1">' + "x".repeat(300);
       QOL.openBoard("sb", true);
       const score = { imgs: document.querySelectorAll('#bd-body img[src="x"]').length };
       QOL.closeBoard();
-      const mode = room.mode; let ffa = null;
-      try { room.mode = "dm"; updateHUD(); const b = document.getElementById("mode-board"); ffa = { imgs: b ? b.querySelectorAll('img[src="x"]').length : -1, text: !!b && b.textContent.includes("<img") }; }
-      finally { room.mode = mode; }
+      // the board lists the top five by kills: the hostile name leads it so it is surely on it
+      const mode = room.mode, kills = foe.kills; let ffa = null;
+      try { room.mode = "dm"; foe.kills = 99; updateHUD(); const b = document.getElementById("mode-board"); ffa = { imgs: b ? b.querySelectorAll('img[src="x"]').length : -1, text: !!b && b.textContent.includes("<img") }; }
+      finally { room.mode = mode; foe.kills = kills; }
       await new Promise((r) => setTimeout(r, 300));
       return { combat, score, ffa, xss: window.__xss || 0 };
     });
