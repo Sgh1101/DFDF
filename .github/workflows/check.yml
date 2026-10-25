@@ -47,7 +47,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Pull request smoke / scheduled full regression
-        run: node scripts/run-browser-suite.js ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '--full' || '' }}
+        run: node scripts/run-browser-suite.js ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '--full --keep-going --retries=1' || '' }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

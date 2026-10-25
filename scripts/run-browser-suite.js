@@ -11,6 +11,12 @@ const env={...process.env,DFDF_BOOT_TIMEOUT:process.env.DFDF_BOOT_TIMEOUT||'1200
 env.DFDF_THREE_PATH ||= path.join(path.dirname(require.resolve('three')), 'three.min.js');
 env.DFDF_PEERJS_PATH ||= path.join(path.dirname(require.resolve('peerjs')), 'peerjs.min.js');
 if(!env.DFDF_PEER_SERVER_MODULE)env.DFDF_PEER_SERVER_MODULE=require.resolve('peer');
+// --keep-going runs every check and fails at the end; --retries=N runs a failed check again up to N times (a pass on
+// a retry is reported as flaky, not hidden)
+const keepGoing=process.argv.includes('--keep-going'),retries=Math.max(0,+(process.argv.find(a=>a.startsWith('--retries='))||'').slice(10)||0);
+// On GitHub the job log and the artifact live on blob storage; an annotation is shown on the run and the pull
+// request and can be read through the checks API, so a failure also says which check and its last lines there
+const annotate=(level,title,text)=>{if(process.env.GITHUB_ACTIONS)console.log('::'+level+' title='+title.replace(/[%\r\n:,]/g,' ')+'::'+String(text).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A'));};
 let server;
 function gameHash(){const hash=crypto.createHash('sha256');function add(file){hash.update(path.relative(root,file).replaceAll('\\','/')+'\0');hash.update(fs.readFileSync(file));}function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){const p=path.join(dir,e.name);e.isDirectory()?walk(p):add(p);}}for(const name of ['js','css','api'])walk(path.join(root,name));for(const name of ['play.html','index.html','admin.html','sw.js','vercel.json','package.json','package-lock.json'])add(path.join(root,name));return hash.digest('hex');}
 const testHash=name=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,pkg.scripts[name].slice(5)))).update(fs.readFileSync(path.join(root,'tests/api-harness.js'))).update(fs.readFileSync(path.join(root,'scripts/browser-fixture.js'))).digest('hex');
@@ -20,8 +26,16 @@ async function main(){
  const report=path.join(out,'summary.json'),resume=process.argv.includes('--resume'),reuse=process.argv.includes('--reuse-passed');
  const rows=resume&&fs.existsSync(report)?JSON.parse(fs.readFileSync(report)):[],hash=gameHash();
  fs.writeFileSync(path.join(out,'scope.json'),JSON.stringify({resume,reusePassedAcrossSource:reuse,gameTreeSha256:hash,started:new Date().toISOString()},null,2));
+ const failed=[];
  for(const name of jobs){const old=rows.find(r=>r.name===name),testSha256=testHash(name);
   if(resume&&old?.passed&&(reuse||old.gameTreeSha256===hash&&old.testSha256===testSha256)){if(old.gameTreeSha256!==hash||old.testSha256!==testSha256)old.reusedAcrossSource=true;continue;}
+  let row,attempt=0;
+  for(;;attempt++){row=await runOne(name,rows.find(r=>r.name===name),testSha256);if(row.passed||attempt>=retries)break;console.log('RETRY',name);}
+  if(row.passed&&attempt>0){row.flaky=attempt;fs.writeFileSync(report,JSON.stringify(rows,null,2));annotate('warning',name+' flaky','failed '+attempt+'x, then passed on a retry');}
+  if(!row.passed){const tail=fs.readFileSync(path.join(out,name.replaceAll(':','-'),'output.log'),'utf8').slice(-3500);console.error(tail);annotate('error',name+' failed',tail.slice(-3000));if(!keepGoing)throw Error(name+' failed');failed.push(name);}
+ }
+ if(failed.length)throw Error(failed.length+' browser check(s) failed: '+failed.join(', '));
+ async function runOne(name,old,testSha256){
   const dir=path.join(out,name.replaceAll(':','-'));fs.mkdirSync(dir,{recursive:true});const log=path.join(dir,'output.log');if(old&&fs.existsSync(log))fs.copyFileSync(log,path.join(dir,'output.previous-'+Date.now()+'.log'));
   const fd=fs.openSync(log,'w'),started=Date.now(),sha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   console.log('START',name);const child=spawn(process.execPath,[pkg.scripts[name].slice(5)],{cwd:root,env:{...env,SHOT_DIR:dir,DFDF_SCREENSHOT_DIR:dir,DFDF_UI_SHOTS:dir,DFDF_UI_OUT:path.join(dir,'audit.json')},stdio:['ignore',fd,fd]});
@@ -32,7 +46,7 @@ async function main(){
   const row={name,sha,gameTreeSha256:hash,testSha256,code,signals,sourceChanged,seconds:Math.round((Date.now()-started)/1000),passed:code===0&&signals===0&&!sourceChanged};
   if(old){row.previousAttempts=[...(old.previousAttempts||[]),{sha:old.sha,code:old.code,passed:old.passed,seconds:old.seconds}];rows[rows.indexOf(old)]=row;}else rows.push(row);
   fs.writeFileSync(report,JSON.stringify(rows,null,2));console.log(row.passed?'PASS':'FAIL',name,row.seconds+'s');
-  if(!row.passed){console.error(fs.readFileSync(path.join(dir,'output.log'),'utf8').slice(-3500));throw Error(name+' failed');}
+  return row;
  }
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server?.kill());
