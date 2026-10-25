@@ -19,7 +19,9 @@ const rankedEnd = async (m, w = "a", k = {}) => {
   m.w = w; m.k = k;
   return m.h.api("ranked_result", { token: m.tok[m.host], rm: m.start.rm, w, k });
 };
-const rankedSettle = (m, id, extra = {}) => m.h.api("progress", { token: m.tok[id], mt: m.mt[id], kills: (m.k || {})[id] || 0, win: m.a.includes(id) === (m.w === "a"), match: { mode: "std", s: [7, 3] }, ...extra });
+// The tests below settle one player at a time, so the others' votes never come: let the grace
+// since the host's result pass first (the waiting itself is tested in ranked-integrity.test.js).
+const rankedSettle = (m, id, extra = {}) => (m.w && !m.graced && (m.graced = true, m.h.advance(61000)), m.h.api("progress", { token: m.tok[id], mt: m.mt[id], kills: (m.k || {})[id] || 0, win: m.a.includes(id) === (m.w === "a"), match: { mode: "std", s: [7, 3] }, ...extra }));
 const squad = async (h, ids) => Object.fromEntries(await Promise.all(ids.map(async (id) => [id, (await login(h, id)).token])));
 const setRR = async (h, ids, rr) => { const o = await login(h, "owner"); for (const id of ids) assert.equal((await h.api("a_user_set", { atoken: o.atoken, id, op: "rr", rr })).status, 200); };
 

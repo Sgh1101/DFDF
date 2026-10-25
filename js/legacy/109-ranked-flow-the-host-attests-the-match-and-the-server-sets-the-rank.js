@@ -58,17 +58,26 @@
   resetGo();
   const waitGo = (ms) => (goSeen ? Promise.resolve() : Promise.race([goP, sleep(ms)]));
 
-  // who plays on which side, by account id (a bot is not in the room's members)
+  // who plays on which side, by account id (a bot is not in the room's members).
+  // Players are matched to accounts by name, so a name two humans share belongs to nobody: both are
+  // left out (no ranked ticket for either, a plain one instead), or a guest named after another player
+  // would take his seat and the real owner's report would land on the wrong team. The host's own seat
+  // comes from his signed-in account, not a name, so it stays and the others wearing his name go.
   function roster() {
     const sid = (me() && me().id) || "",
-      seen = new Set(),
+      rows = [],
+      count = new Map(),
       a = [],
       b = [];
     for (const [peer, m] of room.members) {
       const id = String(peer === NET.id ? sid : m.name || "");
-      if (!id || seen.has(id.toLowerCase())) continue;
-      seen.add(id.toLowerCase());
-      ("atk" === m.team ? a : b).push(id);
+      if (!id) continue;
+      rows.push({ id, own: peer === NET.id, team: m.team });
+      count.set(id.toLowerCase(), (count.get(id.toLowerCase()) || 0) + 1);
+    }
+    for (const r of rows) {
+      if (count.get(r.id.toLowerCase()) > 1 && !r.own) continue;
+      ("atk" === r.team ? a : b).push(r.id);
     }
     return { a, b };
   }
