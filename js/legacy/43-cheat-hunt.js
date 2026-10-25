@@ -294,7 +294,7 @@
       A2.PEERS.delete(peer);
       return;
     }
-    if (msg && "padm" === msg.t && msg.p && !free2(peer)) msg = Object.assign({}, msg, { p: tame(Object.assign({}, msg.p)) });
+    if (msg && "padm" === msg.t && msg.p && !free2(peer)) msg = Object.assign({}, msg, { p: tame(Object.assign({}, ...["buff", ...Object.keys(DEF)].filter((k) => k in Object(msg.p)).map((k) => ({ [k]: msg.p[k] })))) });
     return _oa(peer, msg);
   };
   function tame(p) {

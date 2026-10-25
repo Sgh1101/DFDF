@@ -163,7 +163,7 @@ const isObj = (v) => v && "object" == typeof v && !Array.isArray(v);
 function merge(base, over) {
   if (!isObj(base) || !isObj(over)) return over === undefined ? base : over;
   const out = Object.assign({}, base);
-  for (const k in over) out[k] = k in base ? (isObj(base[k]) ? merge(base[k], over[k]) : typeof over[k] === typeof base[k] || Array.isArray(base[k]) ? over[k] : base[k]) : out[k];
+  for (const k in over) out[k] = Object.hasOwn(base, k) ? (isObj(base[k]) ? merge(base[k], over[k]) : typeof over[k] === typeof base[k] || Array.isArray(base[k]) ? over[k] : base[k]) : out[k];
   return out;
 }
 let cfgCache = null;
@@ -192,7 +192,9 @@ function verify(t) {
   if (parts.length !== 2) return null;
   const [p, s] = parts;
   const want = crypto.createHmac("sha256", SECRET).update(p).digest("base64url");
-  if (s.length !== want.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want))) return null;
+  // multibyte characters pass the string-length check but not the byte-length one timingSafeEqual needs
+  const got = Buffer.from(s), exp = Buffer.from(want);
+  if (got.length !== exp.length || !crypto.timingSafeEqual(got, exp)) return null;
   try {
     const o = JSON.parse(Buffer.from(p, "base64url").toString());
     return o.exp > now() ? o : null;
@@ -221,6 +223,8 @@ const cleanId = (s) => String(s || "").trim();
 const ID_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
 // names a new account may not take: they read as a guest or a nameless player in a room
 const RESERVED_ID = /^(게스트|guest)|^(플레이어|player)\d+$/i;
+// names that are also keys of every plain object: as a key in a map of accounts they would be lost or break it
+const PROTO_ID = /^(__proto__|constructor|prototype)$/i;
 // ── the per-account activity log ──
 // `ulog:<id>` holds what one account did (sign-ins with IP and device, pulls, buys, matches, what the
 // owner changed on it), newest first: the latest ULOG_MAX lines, gone ULOG_DAYS days after the last one.
@@ -679,6 +683,7 @@ A.auth = async (q, b, req) => {
   } else {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
+    if (PROTO_ID.test(id)) throw fail(400, "쓸 수 없는 아이디입니다");
     u = { id, pass: hashPw(pw), created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -716,6 +721,7 @@ async function guestName(want, dev) {
   }
   return "게스트" + crypto.randomBytes(3).toString("hex");
 }
+const GUEST_NEW_MAX = 60;
 A.guest = async (q, b, req) => {
   const c = await loadConfig(),
     ip = ipOf(req),
@@ -724,6 +730,8 @@ A.guest = async (q, b, req) => {
   if (dev.length < 8) throw fail(400, "기기 정보가 없습니다");
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
   let u = await getJ(guestKey(dev));
+  // a new guest costs keys that never expire: 60 per address per ten minutes (a school or an internet cafe is one address); a device coming back is never counted
+  if (!u && (await limited("guestnew:" + ip, GUEST_NEW_MAX, 600))) throw fail(429, "잠시 후 다시 시도하세요");
   if (!u) u = { id: "게스트" + (parseInt(crypto.createHash("md5").update(dev).digest("hex").slice(0, 6), 16) % 9000 + 1000), guest: !0, dev, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
   u.id = await guestName(u.id, dev);
   ensureWallet(u, c);
@@ -894,7 +902,8 @@ function cleanIce(v) {
   return lines.length ? { reason: ICE_REASONS.includes(v.reason) ? v.reason : "failed", lines: lines.slice(-40) } : null;
 }
 function cleanFeedback(b) {
-  const type = FB_TYPES[b.type] ? b.type : "";
+  // only a string that is one of the types: not an inherited key ("constructor", "__proto__") and not an array that coerces to one
+  const type = typeof b.type === "string" && Object.hasOwn(FB_TYPES, b.type) ? b.type : "";
   if (!type) throw fail(400, "종류를 골라 주세요");
   const text = fbStr(b.text, 2000);
   if (text.length < 5) throw fail(400, "내용을 5자 이상 적어 주세요");
@@ -1013,6 +1022,16 @@ const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/
 const LEDGER_KINDS = ["order", "paid", "revoke", "refund", "reject", "cancel"];
 const ledgerLine = (kind, o, extra) => JSON.stringify(Object.assign({ t: now(), kind, id: o.id, user: o.by, items: o.items, days: o.days, total: o.total, depositor: o.depositor, money: 0 }, extra));
 const ledgerAdd = (kind, o, extra) => pipe([["LPUSH", "ledger", ledgerLine(kind, o, extra)], ["LTRIM", "ledger", "0", "19999"]]);
+// One order changes status one request at a time: a short lock per order (the owner's grant, refund, revoke and the
+// player's own cancel all take it), released only while it is still ours. Whoever finds it taken gets a 409.
+const ORDER_UNLOCK = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
+return 0`;
+async function withOrderLock(id, fn) {
+  const lock = "ordlock:" + id, nonce = crypto.randomBytes(12).toString("hex");
+  if ((await redis(["SET", lock, nonce, "NX", "EX", "30"])) === null) throw fail(409, "이 주문을 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요");
+  try { return await fn(); }
+  finally { try { await redis(["EVAL", ORDER_UNLOCK, "1", lock, nonce]); } catch (e) {} }
+}
 // the first time the books are opened, the orders made before them are written in (oldest first)
 async function ledgerSeed() {
   if ((await redis(["LRANGE", "ledger", "0", "0"])).length) return;
@@ -1093,17 +1112,21 @@ A.order_mine = async (q, b) => {
 A.order_cancel = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
-    raw = id && (await redis(["GET", "ord:" + id]));
-  if (!raw) throw fail(404, "없는 주문입니다");
-  const o = JSON.parse(raw);
-  if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
-  if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
-  o.status = "cancelled";
-  await ledgerAdd("cancel", o);
-  await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-  await ulog(u.id, "order", `주문 ${id} 취소`, { id });
-  return { ok: !0 };
+  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  if (!id) throw fail(404, "없는 주문입니다");
+  return withOrderLock(id, async () => {
+    const raw = await redis(["GET", "ord:" + id]);
+    if (!raw) throw fail(404, "없는 주문입니다");
+    const o = JSON.parse(raw);
+    if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
+    if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
+    o.status = "cancelled";
+    // the new status is written first: a failed ledger line can never let a retry act on the old one
+    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
+    await ledgerAdd("cancel", o);
+    await ulog(u.id, "order", `주문 ${id} 취소`, { id });
+    return { ok: !0 };
+  });
 };
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
@@ -1174,7 +1197,8 @@ cosAdd("card", 4, "laurelc aurorac prism eclipsec royalc");
 cosAdd("banner", 2, "gold bolt sakura");
 cosAdd("banner", 3, "neonpink flame frost");
 cosAdd("banner", 4, "ink stars");
-const COS_BY = Object.fromEntries(COS.map((x) => [x.id, x]));
+// no prototype: a request's id of "constructor" or "__proto__" must find nothing
+const COS_BY = Object.assign(Object.create(null), Object.fromEntries(COS.map((x) => [x.id, x])));
 const cosPrice = (c, x) => Math.max(0, Math.round(+(c.cos && c.cos.price && c.cos.price[x.r]) || 0));
 const cosOf = (u) => {
   const o = isObj(u.cos) ? u.cos : {},
@@ -1337,7 +1361,7 @@ A.wish = async (q, b) => {
     if (await limited("wish:" + rlKey(u), 30, 10)) throw fail(429, "너무 빨리 눌렀습니다");
     const it = String(b.item),
       [g, s] = it.split("|");
-    if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템입니다");
+    if (!GUNS.includes(g) || !Object.hasOwn(SKIN_TIER, s) || !fits(s, g)) throw fail(400, "없는 아이템입니다");
     if (EXCLUSIVE[s]) throw fail(400, "시즌 보상 스킨은 찜할 수 없습니다");
     const had = list.includes(it);
     if (!1 === b.on) list = list.filter((x) => x !== it);
@@ -1587,9 +1611,9 @@ A.ranked_start = async (q, b) => {
   const recs = (await pipe(all.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null));
   const ok = new Map(recs.filter((x) => x && !x.guest && !(x.ban && (!x.ban.until || x.ban.until > now()))).map((x) => [x.id.toLowerCase(), x]));
   const side = (t) => t.filter((id) => ok.has(id)).map((id) => ok.get(id).id);
-  const a = side(ta), bb = side(tb), mmr = {};
+  const a = side(ta), bb = side(tb), mmr = Object.create(null);
   if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
-  const per = (await loadConfig()).xp.perLevel, lv = {};
+  const per = (await loadConfig()).xp.perLevel, lv = Object.create(null);
   for (const x of ok.values()) ((mmr[x.id] = mmrOf(x)), (lv[x.id] = lvInfo(x, per)));
   const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
   // a team with no human takes the other's average (bots are the same strength)
@@ -1610,7 +1634,7 @@ A.ranked_result = async (q, b) => {
   const ms = now() - rec.t0;
   if (ms < MATCH_MIN_MS) throw fail(409, "경기가 너무 짧습니다");
   if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
-  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = {};
+  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = Object.create(null);
   for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
   // the first result stands; a second one is ignored
   const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now() }), "NX", "EX", String(RESULT_TTL)])) !== null;
@@ -1798,13 +1822,15 @@ A.ice = async () => {
 };
 // the room list (rooms report themselves every few seconds while open)
 const ROOM_TTL = 70;
+const ROOM_NEW_MAX = 10;
 let roomsCache = null;
 A.rooms = async () => {
   const c = await loadConfig();
   if (!c.game.roomListOpen) return { rooms: [] };
   if (roomsCache && roomsCache.until > now()) return { rooms: roomsCache.rooms };
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(now() - ROOM_TTL * 1000)]);
-  const codes = await redis(["ZRANGE", "rooms", "0", "199"]);
+  // scored by the last heartbeat: the newest 200, not the 200 that went quiet first
+  const codes = await redis(["ZRANGE", "rooms", "0", "199", "REV"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
   const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked, mmr }) => ({ code, name, ch, mode, map, ranked: !!ranked, band: ranked && Number.isFinite(mmr) ? bandOf(mmr) : null, range: ranked ? joinRange(now() - created) : null, n: (players || []).length, max, state, host, created }));
   roomsCache = { rooms, until: now() + 5000 };
@@ -1818,6 +1844,8 @@ A.room_up = async (q, b, req) => {
   if (6 !== code.length) throw fail(400, "방 코드가 이상합니다");
   const prev = await getJ("room:" + code);
   if (prev && prev.host !== u.id) throw fail(409, "다른 사람의 방입니다");
+  // opening a new code writes a log line and a list entry; a room that is already open just beats its heart
+  if (!prev && (await limited("roomnew:" + rlKey(u), ROOM_NEW_MAX, 600))) throw fail(429, "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요");
   const players = (Array.isArray(b.players) ? b.players : []).slice(0, 12).map((p) => String(p).slice(0, 20));
   const room = {
     code,
@@ -2087,7 +2115,7 @@ ADMIN.user_set = async (q, b) => {
       const list = Array.isArray(b.items) ? b.items.slice(0, ITEMS) : null,
         all = !list && "all" === b.item,
         pairs = list ? list.map((x) => String(x || "").split("|")) : all ? [] : [String(b.item || "").split("|")];
-      for (const [g, s] of pairs) if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템 (총|스킨): " + String(g).slice(0, 20) + "|" + String(s).slice(0, 20));
+      for (const [g, s] of pairs) if (!GUNS.includes(g) || !Object.hasOwn(SKIN_TIER, s) || !fits(s, g)) throw fail(400, "없는 아이템 (총|스킨): " + String(g).slice(0, 20) + "|" + String(s).slice(0, 20));
       if (b.remove) {
         if (all) u.own = {};
         else for (const [g, s] of pairs) u.own[g] = (u.own[g] || []).filter((x) => x !== s);
@@ -2311,61 +2339,75 @@ ADMIN.orders = async (q, b) => {
   return { orders: items, counts, names: orderNames(), on: !!c.order.on, bank: !!c.order.bank };
 };
 ADMIN.order_set = async (q, b) => {
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
-    raw = id && (await redis(["GET", "ord:" + id]));
-  if (!raw) throw fail(404, "없는 주문입니다");
-  const o = JSON.parse(raw);
+  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
   const op = String(b.op || "");
+  if (!id) throw fail(404, "없는 주문입니다");
   if (!["grant", "reject", "refund", "revoke", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
-  null != b.note && (o.note = fbStr(b.note, 300));
-  if ("grant" === op || "refund" === op || "revoke" === op) {
-    const u = await getJ(userKey(o.by));
-    if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
-    if ("grant" === op) {
-      if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
-      ensureWallet(u, await loadConfig());
-      const perm = applyOrder(u, o);
-      await saveUser(u);
-      o.status = "granted";
-      o.grantedAt = now();
-      o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
-      await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
-      await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-    } else if ("revoke" === op) {
-      // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
-      if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
-      takeBackOrder(u, o);
-      await saveUser(u);
-      o.status = "revoked";
-      o.revokedAt = now();
-      o.reason = fbStr(b.reason, 200);
-      await ledgerAdd("revoke", o, { reason: o.reason });
-      await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-    } else {
-      if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
-      if (b.revoke && "granted" === o.status) {
-        // what the order gave is taken back: the cheats, the gold (never below nothing)
-        if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
-        const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-        g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+  return withOrderLock(id, async () => {
+    const raw = await redis(["GET", "ord:" + id]);
+    if (!raw) throw fail(404, "없는 주문입니다");
+    const o = JSON.parse(raw);
+    // the books and the log come after the order's new status is saved, so a retry never applies it twice
+    let after = null;
+    null != b.note && (o.note = fbStr(b.note, 300));
+    if ("grant" === op || "refund" === op || "revoke" === op) {
+      const u = await getJ(userKey(o.by));
+      if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
+      if ("grant" === op) {
+        if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
+        ensureWallet(u, await loadConfig());
+        const perm = applyOrder(u, o);
         await saveUser(u);
+        o.status = "granted";
+        o.grantedAt = now();
+        o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+        after = async () => {
+          await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
+          await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+        };
+      } else if ("revoke" === op) {
+        // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
+        if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
+        takeBackOrder(u, o);
+        await saveUser(u);
+        o.status = "revoked";
+        o.revokedAt = now();
+        o.reason = fbStr(b.reason, 200);
+        after = async () => {
+          await ledgerAdd("revoke", o, { reason: o.reason });
+          await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+        };
+      } else {
+        if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
+        if (b.revoke && "granted" === o.status) {
+          // what the order gave is taken back: the cheats, the gold (never below nothing)
+          if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
+          const g = o.items.reduce((n, k) => n + goldOf(k), 0);
+          g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+          await saveUser(u);
+        }
+        const paid = "pending" !== o.status;
+        o.status = "refunded";
+        o.refundedAt = now();
+        o.reason = fbStr(b.reason, 200);
+        after = async () => {
+          await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
+          await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
+        };
       }
-      const paid = "pending" !== o.status;
-      o.status = "refunded";
-      o.refundedAt = now();
+    } else if ("reject" === op) {
+      if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
+      o.status = "rejected";
       o.reason = fbStr(b.reason, 200);
-      await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
-      await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
+      after = async () => {
+        await ledgerAdd("reject", o, { reason: o.reason });
+        await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
+      };
     }
-  } else if ("reject" === op) {
-    if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
-    o.status = "rejected";
-    o.reason = fbStr(b.reason, 200);
-    await ledgerAdd("reject", o, { reason: o.reason });
-    await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
-  }
-  await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-  return { order: o };
+    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
+    after && (await after());
+    return { order: o };
+  });
 };
 // the books: every money event of the paid orders, newest first, with the totals of what is shown
 ADMIN.ledger = async (q, b) => {
@@ -2441,14 +2483,14 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
     if (a.startsWith("a_")) {
       const s = verify(b.atoken || req.headers["x-admin"]);
       if (!s || "admin" !== s.k || s.pv !== 2) throw fail(401, "관리자 로그인이 필요합니다");
-      const fn = ADMIN[a.slice(2)];
+      const fn = Object.hasOwn(ADMIN, a.slice(2)) ? ADMIN[a.slice(2)] : null;
       if (!fn) throw fail(404, "없는 기능");
       for (let attempt = 0; ; attempt++) {
         try { out = await fn(q, b, req); break; }
         catch (e) { if (!e.retryUser || attempt >= 4) throw e; }
       }
     } else {
-      const fn = A[a];
+      const fn = Object.hasOwn(A, a) ? A[a] : null;
       if (!fn) throw fail(404, "없는 기능");
       for (let attempt = 0; ; attempt++) {
         try { out = await fn(q, b, req); break; }

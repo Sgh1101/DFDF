@@ -59,7 +59,13 @@
   NET.onAction = (peer, msg) => {
     if (msg && "padm" === msg.t) {
       const was = PEERS.get(peer);
-      PEERS.set(peer, Object.assign({}, P_DEF, msg.p || {}));
+      // only the switches in P_DEF (plus the buff seconds the owner module clamps) are kept
+      const q = Object.assign({}, P_DEF),
+        src = msg.p && "object" == typeof msg.p ? msg.p : {};
+      for (const k in P_DEF)
+        null != src[k] && (q[k] = "number" == typeof P_DEF[k] ? (Number.isFinite(+src[k]) ? +src[k] : P_DEF[k]) : !!src[k]);
+      null != src.buff && (q.buff = Math.max(0, +src.buff || 0));
+      PEERS.set(peer, q);
       // cheat turned off: give the body its own kit back
       if (was && was.cheat && !(msg.p && msg.p.cheat)) {
         const a = world.actors.find((o) => o.ctrl === peer);
