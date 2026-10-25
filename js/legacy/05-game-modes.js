@@ -675,7 +675,7 @@
       const b = $("mode-board");
       if (b) {
         b.hidden = !1;
-        const html = ranked.slice(0, 5).map((a, i) => `<div class="mb-row${a === me ? " me" : ""}"><b>${i + 1}</b><span>${a.name || (a.agent ? a.agent.name : "")}</span><em>${a.kills || 0}</em></div>`).join("");
+        const html = ranked.slice(0, 5).map((a, i) => `<div class="mb-row${a === me ? " me" : ""}"><b>${i + 1}</b><span>${String(a.name || (a.agent ? a.agent.name : "")).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";")}</span><em>${a.kills || 0}</em></div>`).join("");
         b.dataset.h !== html && ((b.innerHTML = html), (b.dataset.h = html));
       }
     }
