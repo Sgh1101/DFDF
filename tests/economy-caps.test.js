@@ -88,3 +88,148 @@ test("XP stops at the day's ceiling: the answer's gain is what was given, a repl
   await setConfig(h, owner2, (c) => { c.xp.maxPerDay = 0; });
   for (let i = 0; i < 3; i++) assert.equal((await play(h, p)).gain, 70);
 });
+
+// ---- orders -------------------------------------------------------------------------------------
+async function shop() {
+  const h = harness(), p = await login(h), owner = await login(h, "owner");
+  await setConfig(h, owner, (c) => { c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동"; });
+  const ow = await login(h, "owner");
+  const make = async (items, days) => { const r = await h.api("order_create", { token: p.token, items, days }); assert.equal(r.status, 200); return r.order.id; };
+  const set = (id, op, extra = {}) => h.api("a_order_set", Object.assign({ atoken: ow.atoken, id, op }, extra));
+  const grant = async (items, days) => { const id = await make(items, days); assert.equal((await set(id, "grant")).status, 200); return id; };
+  const perm = () => h.user("player").perm;
+  return { h, p, ow, make, set, grant, perm };
+}
+const on = (perm) => ["radar", "wall", "cheat", "oneShot", "infAmmo", "noRecoil"].filter((k) => perm[k]).join(",");
+
+test("a revoke takes back all the gold even if it is spent: the balance goes below nothing, pulls fail until it is earned back", async () => {
+  const { h, p, grant, set } = await shop();
+  const before = h.user("player").gold;
+  const id = await grant(["gold5k"], 0);
+  assert.equal(h.user("player").gold, before + 5000);
+  h.db.set("user:player", JSON.stringify({ ...h.user("player"), gold: 100 })); // spent
+  assert.equal((await set(id, "revoke", { reason: "x" })).status, 200);
+  assert.equal(h.user("player").gold, 100 - 5000);
+  const me = await h.api("me", { token: p.token });
+  assert.equal(me.user.gold, -4900, "reading the account keeps the debt");
+  assert.equal(h.user("player").gold, -4900);
+  const pull = await h.api("gacha", { token: p.token });
+  assert.equal(pull.status, 402); assert.equal(h.user("player").gold, -4900);
+  assert.equal((await h.api("shop_buy", { token: p.token, id: "x" })).status < 500, true);
+  // a match adds to the debt's balance, it does not reset it
+  const r = await play(h, p);
+  assert.equal(r.user.gold, -4900 + r.gold); assert.ok(r.user.gold < 0);
+  // refund with revoke is the same
+  const id2 = await grant(["gold1k"], 0);
+  const g = h.user("player").gold;
+  assert.equal((await set(id2, "refund", { revoke: true })).status, 200);
+  assert.equal(h.user("player").gold, g - 1000);
+  h.db.set("user:player", JSON.stringify({ ...h.user("player"), gold: 0 }));
+  const id3 = await grant(["gold1k"], 0);
+  h.db.set("user:player", JSON.stringify({ ...h.user("player"), gold: 0 }));
+  assert.equal((await set(id3, "refund", { revoke: true })).status, 200);
+  assert.equal(h.user("player").gold, -1000);
+});
+
+test("revoking one of two orders that grant the same cheat keeps that cheat on; the timed end drops by this order's days", async () => {
+  const { h, grant, set, perm } = await shop();
+  const t0 = h.now();
+  const a = await grant(["radar", "wall"], 7), b = await grant(["radar", "oneShot"], 30);
+  assert.equal(on(perm()), "radar,wall,oneShot");
+  assert.ok(Math.abs(perm().until - (t0 + 37 * DAY)) < 5000);
+  assert.equal((await set(a, "revoke")).status, 200);
+  assert.equal(on(perm()), "radar,oneShot", "radar stays (the other order grants it), wall goes");
+  assert.equal(perm().on, true);
+  assert.ok(Math.abs(perm().until - (t0 + 30 * DAY)) < 5000, "the seven days come off");
+  assert.equal((await set(b, "revoke")).status, 200);
+  assert.equal(perm().on, false); assert.equal(on(perm()), "");
+});
+
+test("the last order opened is taken back exactly: the end goes back to what it was; speed and buff levels follow the same rule", async () => {
+  const { h, grant, set, perm } = await shop();
+  const a = await grant(["speed"], 7), until = perm().until;
+  const b = await grant(["speed", "buff"], 30);
+  assert.deepEqual([perm().speed, perm().buff, perm().until], [1.5, 10, until + 30 * DAY]);
+  await set(b, "revoke");
+  assert.deepEqual([perm().on, perm().speed, perm().buff, perm().until], [true, 1.5, 0, until], "speed stays, buff goes, the end is as before");
+  await set(a, "revoke");
+  assert.equal(perm().on, false); assert.equal(perm().speed, 1);
+});
+
+test("timed and permanent orders: a permanent one left keeps the account permanent; when it goes the account falls to the latest end that remains", async () => {
+  const { h, grant, set, perm } = await shop();
+  const t0 = h.now();
+  // a timed order, then a permanent one on top; taking the timed one back leaves the permanent cheat
+  const t = await grant(["radar"], 7), pm = await grant(["radar", "wall"], 0);
+  assert.equal(perm().until, 0);
+  await set(t, "revoke");
+  assert.equal(perm().until, 0, "still permanent"); assert.equal(on(perm()), "radar,wall");
+  await set(pm, "revoke");
+  assert.equal(perm().on, false, "nothing remains");
+  // the other way round: a permanent order first, a timed one after it
+  const p2 = await grant(["wall"], 0), t2 = await grant(["radar"], 7);
+  assert.equal(perm().until, 0);
+  await set(p2, "revoke");
+  assert.equal(on(perm()), "radar", "only the cheat of the order that remains"); assert.equal(perm().on, true);
+  assert.ok(perm().until > 0 && Math.abs(perm().until - (h.now() + 7 * DAY)) < 5000, "it ends when the timed order ends");
+  await set(t2, "revoke");
+  assert.equal(perm().on, false);
+  void t0;
+});
+
+test("an order that has already run out leaves the end alone, and only the cheats nobody else grants go", async () => {
+  const { h, grant, perm } = await shop();
+  const a = await grant(["radar"], 1);
+  h.advance(2 * DAY);
+  const { ow: ow2, p: p2 } = { ow: await login(h, "owner"), p: await login(h) };
+  const bid = (await h.api("order_create", { token: p2.token, items: ["wall"], days: 7 })).order.id;
+  assert.equal((await h.api("a_order_set", { atoken: ow2.atoken, id: bid, op: "grant" })).status, 200);
+  const b = bid, until = perm().until;
+  assert.ok(until > h.now());
+  const set2 = (id, op) => h.api("a_order_set", { atoken: ow2.atoken, id, op });
+  assert.equal((await set2(a, "revoke")).status, 200);
+  assert.equal(perm().until, until); assert.equal(on(perm()), "wall");
+  assert.equal((await set2(b, "revoke")).status, 200);
+  assert.equal(perm().on, false);
+});
+
+test("a revoke leaves the cheats the owner gave by hand", async () => {
+  const { h, ow, grant, set, perm } = await shop();
+  assert.equal((await h.api("a_user_set", { atoken: ow.atoken, id: "player", op: "perm", perm: { on: true, noRecoil: true }, days: 0 })).status, 200);
+  const o = await grant(["radar"], 7);
+  assert.equal(on(perm()), "radar,noRecoil");
+  await set(o, "revoke");
+  assert.equal(on(perm()), "noRecoil"); assert.equal(perm().on, true);
+});
+
+test("refund with revoke takes back by the same rule: other orders' cheats and the hand-given ones stay, the gold goes below nothing", async () => {
+  const { h, ow, grant, set, perm } = await shop();
+  await h.api("a_user_set", { atoken: ow.atoken, id: "player", op: "perm", perm: { on: true, noRecoil: true }, days: 0 });
+  const a = await grant(["radar", "wall"], 7), until = perm().until;
+  assert.equal(until, 0, "the account was permanent already");
+  const b = await grant(["radar", "oneShot", "gold5k"], 30);
+  h.db.set("user:player", JSON.stringify({ ...h.user("player"), gold: 10 }));
+  const r = await set(b, "refund", { revoke: true, reason: "환불" });
+  assert.equal(r.status, 200); assert.equal(r.order.status, "refunded");
+  assert.equal(on(perm()), "radar,wall,noRecoil"); assert.equal(perm().on, true);
+  assert.equal(h.user("player").gold, 10 - 5000);
+  // refunding a pending order takes nothing; an already revoked one is not taken back twice
+  const c = await grant(["gold1k"], 0);
+  await set(c, "revoke");
+  const g = h.user("player").gold;
+  assert.equal((await set(c, "refund", { revoke: true })).status, 200);
+  assert.equal(h.user("player").gold, g, "revoked once, not twice");
+  void a;
+});
+
+test("the order lock and the status-before-ledger order of a take-back are unchanged", async () => {
+  const { h, make, grant, set, perm } = await shop();
+  const o = await grant(["radar"], 7);
+  const first = await set(o, "revoke");
+  assert.equal(first.status, 200); assert.equal(JSON.parse(h.db.get("ord:" + o)).status, "revoked");
+  assert.equal((await set(o, "revoke")).status, 409, "once");
+  assert.equal(perm().on, false);
+  const pending = await make(["wall"], 7);
+  h.db.set("ordlock:" + pending, "someone-else");
+  assert.equal((await set(pending, "grant")).status, 409, "another request holds the order");
+});

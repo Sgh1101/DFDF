@@ -1051,22 +1051,60 @@ async function ledgerSeed() {
   }
   for (const l of lines) await redis(["LPUSH", "ledger", l]);
 }
-// what an order gave is taken back, this order's part only: its cheats switched off, its gold taken from the wallet (never below nothing)
-function takeBackOrder(u, o) {
+// What an order gave is taken back, and only this order's part of it.
+//  - gold: the whole sum the order gave comes off, even if it is already spent; the balance may go below nothing
+//    (a debt the account earns back; every spend checks gold >= price, so nothing can be bought until it is paid off).
+//  - cheats: a cheat goes off only if no OTHER granted, unexpired order of the account also grants it.
+//  - perm.until: if another remaining order is permanent (days 0) the account stays permanent. Otherwise this order's
+//    own extension is removed: a timed order undoes its days (exactly, back to `prevUntil` recorded when it was
+//    opened, if it is still the last extension; else it subtracts its days; at or below now only the other orders' expiry keeps cheats on); an order that made the
+//    account permanent leaves the latest expiry of the remaining orders, or switches the cheats off if none remain.
+//    An order that has already run out leaves `until` alone (its days are used up). While the owner's admin mode
+//    lends its own full set (permAdmin), the account's own cheats underneath (permBefore) are the ones changed.
+// Orders are read from the account's order index (ordu:, the latest 200); older ones are not counted.
+const ordExp = (o) => (0 === o.days ? 0 : Number.isFinite(o.exp) ? o.exp : o.until > 0 ? o.until : (o.grantedAt || o.t || 0) + o.days * 864e5);
+async function takeBackOrder(u, o) {
   const cheats = o.items.filter((k) => !goldOf(k));
-  if (cheats.length && u.perm) {
-    const p = Object.assign({}, u.perm);
-    for (const k of cheats) {
-      if (PERM_SW.includes(k)) p[k] = !1;
-      else if ("speed" === k) p.speed = 1;
-      else if ("fastFire" === k) p.fastFire = 1;
-      else if ("buff" === k) p.buff = 0;
-    }
-    p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
-    u.perm = p;
+  if (cheats.length) {
+    const t = now(), ids = await redis(["LRANGE", "ordu:" + orderMe(u), "0", "199"]);
+    const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
+    const others = rows.filter((x) => x.id !== o.id && "granted" === x.status && x.items.some((k) => !goldOf(k)) && (0 === x.days || ordExp(x) > t));
+    const keep = new Set(others.flatMap((x) => x.items));
+    const permanent = others.some((x) => 0 === x.days);
+    const latest = others.reduce((n, x) => Math.max(n, ordExp(x)), 0);
+    const expired = o.days > 0 && ordExp(o) <= t;
+    const fix = (perm) => {
+      if (!isObj(perm)) return perm;
+      const p = Object.assign({}, perm);
+      for (const k of cheats) {
+        if (keep.has(k)) continue;
+        if (PERM_SW.includes(k)) p[k] = !1;
+        else if ("speed" === k) p.speed = 1;
+        else if ("fastFire" === k) p.fastFire = 1;
+        else if ("buff" === k) p.buff = 0;
+      }
+      p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
+      if (permanent) p.until = 0;
+      else if (!expired && p.on) {
+        if (0 === o.days) {
+          // this order made the account permanent: whatever the others still run to
+          if (latest > t) p.until = latest;
+          else p.on = !1;
+        } else if (p.until > 0) {
+          const to = Number.isFinite(o.prevUntil) && o.prevUntil > 0 && p.until === o.until ? o.prevUntil : p.until - o.days * 864e5;
+          // nothing of this order's time is left: only what the other orders still run to keeps the cheats on
+          if (to > t) p.until = to;
+          else if (latest > t) p.until = latest;
+          else p.on = !1;
+        }
+      }
+      return p;
+    };
+    if (u.permAdmin) u.permBefore && (u.permBefore = fix(u.permBefore));
+    else u.perm = fix(u.perm);
   }
   const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-  g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+  g && (u.gold = (+u.gold || 0) - g);
 }
 A.order_info = async () => {
   const c = await loadConfig();
@@ -1098,7 +1136,7 @@ A.order_create = async (q, b) => {
     ["LPUSH", "ord", id],
     ["LTRIM", "ord", "0", "1999"],
     ["LPUSH", "ordu:" + me, id],
-    ["LTRIM", "ordu:" + me, "0", "19"],
+    ["LTRIM", "ordu:" + me, "0", "199"],
   ]);
   await ledgerAdd("order", rec);
   await log("order", `주문 ${id} · ${u.id} · ${items.join(",")} · ${days || "영구"}일 · ${total}원`, { id, user: u.id });
@@ -1131,6 +1169,11 @@ A.order_cancel = async (q, b) => {
     return { ok: !0 };
   });
 };
+// the account's cheat end before an order is opened (0 = permanent or none) and the order's own end (0 = never)
+function orderEnds(u, o) {
+  const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+  return { until: cur ? cur.until || 0 : 0, exp: 0 === o.days ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5 };
+}
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
   const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
@@ -2368,11 +2411,14 @@ ADMIN.order_set = async (q, b) => {
       if ("grant" === op) {
         if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
         ensureWallet(u, await loadConfig());
-        const perm = applyOrder(u, o);
+        const prev = orderEnds(u, o),
+          perm = applyOrder(u, o);
         await saveUser(u);
         o.status = "granted";
         o.grantedAt = now();
         o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+        // kept for the take-back (see takeBackOrder): the account's end before this order, and this order's own end
+        if (o.items.some((k) => !goldOf(k))) { o.prevUntil = prev.until; o.exp = prev.exp; }
         after = async () => {
           await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
           await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
@@ -2380,7 +2426,7 @@ ADMIN.order_set = async (q, b) => {
       } else if ("revoke" === op) {
         // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
         if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
-        takeBackOrder(u, o);
+        await takeBackOrder(u, o);
         await saveUser(u);
         o.status = "revoked";
         o.revokedAt = now();
@@ -2392,10 +2438,8 @@ ADMIN.order_set = async (q, b) => {
       } else {
         if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
         if (b.revoke && "granted" === o.status) {
-          // what the order gave is taken back: the cheats, the gold (never below nothing)
-          if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
-          const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-          g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+          // what the order gave is taken back by the same rule as a revoke (see takeBackOrder)
+          await takeBackOrder(u, o);
           await saveUser(u);
         }
         const paid = "pending" !== o.status;
