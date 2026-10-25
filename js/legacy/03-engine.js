@@ -1382,6 +1382,17 @@ let locked = !1;
     ((locked = document.pointerLockElement === canvas),
       e && !locked && (lockCooldown = performance.now() + 1400),
       updateLockHint(),
+      // the lock lands a moment after it is asked for: if a menu opened in between (closeShop asked, then the
+      // shop or the pause menu came back), let it go again, or that menu has no cursor
+      locked &&
+        !FLY.on &&
+        ("menu" === world.phase ||
+          world.over ||
+          !$("pause").hidden ||
+          !$("shop").hidden ||
+          !$("lobby").hidden ||
+          !$("admin").hidden) &&
+        document.exitPointerLock(),
       locked ||
         IS_TOUCH ||
         FLY.on ||
