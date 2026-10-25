@@ -102,11 +102,14 @@ const DEFAULT_CONFIG = {
   },
   // room rules every host applies when `force` is on (0 = the game's own default)
   room: { force: !1, roundT: 0, buyT: 0, matchT: 0, run: 0, jumpV: 0, gravity: 0, aiSpeed: 0, infAll: !1, freezeAI: !1 },
-  xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600 },
+  // (maxPerDay: the day's ceiling on match XP, counted from midnight in Korea; 0 = none)
+  xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600, maxPerDay: 6000 },
   // gold after each match, spent on skin pulls
   // (maxPerDay: a match's result is what the game reports, so a day's match gold
   // has a ceiling and a modified game cannot report its way to every skin; 0 = none)
-  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000 },
+  // (coinsPerDay: the Champion coins one account earns from matches in a day, same day as
+  // maxPerDay; a match past it still counts but gives no coin; 0 = none)
+  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000, coinsPerDay: 30 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
@@ -1713,16 +1716,24 @@ A.progress = async (q, b) => {
   const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
     win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
-  const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
-  // the day's ceiling, counted from midnight in Korea
+  // the day's ceilings, counted from midnight in Korea: gold, XP and Champion coins each have their own
+  // counter ({d: day, n: used}); a match past a ceiling still counts (stats, missions) but gives none of it
   const day = new Date(now() + 9 * 36e5).toISOString().slice(0, 10),
-    cap = Math.max(0, +c.gold.maxPerDay || 0);
+    cap = Math.max(0, +c.gold.maxPerDay || 0),
+    xcap = Math.max(0, +c.xp.maxPerDay || 0),
+    ccap = Math.max(0, +c.gold.coinsPerDay || 0);
   (isObj(u.goldDay) && u.goldDay.d === day) || (u.goldDay = { d: day, n: 0 });
+  (isObj(u.xpDay) && u.xpDay.d === day) || (u.xpDay = { d: day, n: 0 });
+  (isObj(u.coinDay) && u.coinDay.d === day) || (u.coinDay = { d: day, n: 0 });
+  const xleft = xcap > 0 ? Math.max(0, xcap - (u.xpDay.n || 0)) : Infinity;
+  const gain = Math.max(0, Math.min(c.xp.maxPerReport, xleft, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch));
+  const coinGain = ccap > 0 && (u.coinDay.n || 0) >= ccap ? 0 : 1;
   const left = cap > 0 ? Math.max(0, cap - (u.goldDay.n || 0)) : Infinity;
   const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
-  u.championCoins += 1;
+  u.championCoins += coinGain;
+  u.coinDay.n = (u.coinDay.n || 0) + coinGain;
   u.goldDay.n = (u.goldDay.n || 0) + gold;
   // the rank: up with a win (more with kills), down a little with a loss
   const R = c.rank,
@@ -1760,16 +1771,17 @@ A.progress = async (q, b) => {
     isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
   }
   u.xp = (u.xp || 0) + gain;
+  u.xpDay.n = (u.xpDay.n || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
-  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain: 1, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
   const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain: 1, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   // the season board: a placed account that counted a ranked match this season
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
@@ -2233,7 +2245,7 @@ ADMIN.user_profile = async (q, b) => {
     owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
     equipped: (u.skins && isObj(u.skins.m) && u.skins.m) || {},
     wish: cleanWish(u), missions: misState(u, c), cos: cosOf(u),
-    goldDay: isObj(u.goldDay) ? u.goldDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
+    goldDay: isObj(u.goldDay) ? u.goldDay : null, xpDay: isObj(u.xpDay) ? u.xpDay : null, coinDay: isObj(u.coinDay) ? u.coinDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
     hist: histOf(u),
   };
   return { profile: Object.assign(out, { acct }) };
