@@ -11,7 +11,7 @@
 #s-title.home-original .home-current{color:#faf7f0;border-bottom:2px solid var(--red)}
 #s-title.home-original .home-header .tt-sub svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round;flex:none;width:15px;height:15px}
 #s-title.home-original .home-header #go-armory b{color:inherit}
-#s-title.home-original .home-header .home-practice{min-width:0;display:flex;position:relative}
+#s-title.home-original .home-header .home-practice{min-width:0;display:flex;position:relative;flex:none}
 #s-title.home-original .home-header .home-practice>summary{list-style:none;cursor:pointer}
 #s-title.home-original .home-header .home-practice>summary::-webkit-details-marker{display:none}
 #s-title.home-original .home-header .home-practice>div{position:absolute;top:100%;left:0;right:auto;z-index:80;width:210px;min-width:0;margin:8px 0 0;max-height:calc(100dvh - 150px);overflow:auto}
@@ -48,6 +48,11 @@
   #s-title.home-original .home-header{gap:10px;padding:var(--nav-safe-top) max(14px,var(--nav-safe-right)) 0 max(14px,var(--nav-safe-left))}
   #s-title.home-original .home-header #home-account{gap:3px}
   #s-title.home-original .tt-left{grid-template-columns:minmax(90px,120px) minmax(0,1fr);column-gap:18px}
+}
+@media(max-width:600px) and (orientation:landscape){
+  /* the smallest landscape phones: settings keeps its gear only (the word stays for screen readers), so the row fits with any font */
+  #s-title.home-original .home-header .tt-sub>#go-set b{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  #s-title.home-original .home-header .tt-sub>#go-set{padding:0 8px;min-width:36px}
 }
 @media(max-width:600px) and (orientation:portrait){
   #s-title.home-original{padding-top:calc(96px + var(--nav-safe-top))!important}
