@@ -186,3 +186,58 @@ test("60 new guests per address per ten minutes; a returning device is never lim
   h.advance(601000);
   assert.equal((await guest(60)).status, 200);
 });
+
+// ── rooms ──
+const logsOf = (h, re) => (h.db.get("logs") || []).map((x) => JSON.parse(x)).filter((l) => l.type === "room" && re.test(l.msg));
+
+test("an account opens 10 new room codes per ten minutes; heartbeats of open rooms are never limited", async () => {
+  const h = harness(), p = await login(h);
+  const up = (code, extra) => h.api("room_up", Object.assign({ token: p.token, code, players: ["player"] }, extra));
+  const codes = Array.from({ length: 10 }, (_, i) => "ROOM0" + i);
+  for (const code of codes) assert.equal((await up(code)).status, 200, code);
+  const over = await up("ROOM10");
+  assert.equal(over.status, 429);
+  assert.equal(h.db.has("room:ROOM10"), false);
+  assert.equal(logsOf(h, /방 열림/).length, 10, "one log line per opened room, none for the refused one");
+  for (let beat = 0; beat < 5; beat++) for (const code of codes) assert.equal((await up(code, { state: "play" })).status, 200, "heartbeat " + code);
+  assert.equal(logsOf(h, /방 열림/).length, 10, "heartbeats add no log lines");
+  // closing a room does not give the allowance back; another account has its own
+  await h.api("room_down", { token: p.token, code: "ROOM00" });
+  assert.equal((await up("ROOM11")).status, 429);
+  const other = await login(h, "other");
+  assert.equal((await h.api("room_up", { token: other.token, code: "OTHR01", players: ["other"] })).status, 200);
+  // ten minutes later it is allowed again
+  h.advance(601000);
+  assert.equal((await up("ROOM11")).status, 200);
+});
+
+test("a guest is limited by device, and the limit counts only new codes", async () => {
+  const h = harness();
+  const g = await h.api("guest", { device: "guest-device-1" });
+  for (let i = 0; i < 10; i++) assert.equal((await h.api("room_up", { token: g.token, code: "GST00" + i, players: [] })).status, 200);
+  assert.equal((await h.api("room_up", { token: g.token, code: "GST010", players: [] })).status, 429);
+  assert.equal((await h.api("room_up", { token: g.token, code: "GST000", players: [] })).status, 200);
+});
+
+test("the room list shows the 200 rooms that beat most recently", async () => {
+  const h = harness();
+  // 21 accounts, 10 rooms each: 210 rooms opened one second apart, the first 10 the oldest
+  const toks = [];
+  for (let i = 0; i < 21; i++) {
+    if (i && i % 15 === 0) h.advance(601000); // the sign-in box lets 20 through per address per ten minutes
+    toks.push((await login(h, "host" + String(i).padStart(2, "0"), "dev-" + i)).token);
+  }
+  h.advance(601000);
+  const codes = [];
+  for (let i = 0; i < 21; i++) for (let j = 0; j < 10; j++) {
+    const code = "R" + String(i).padStart(2, "0") + String(j).padStart(3, "0");
+    codes.push(code);
+    assert.equal((await h.api("room_up", { token: toks[i], code, name: code, players: [] })).status, 200, code);
+    h.advance(100);
+  }
+  const listed = (await h.api("rooms", {})).rooms.map((r) => r.code);
+  assert.equal(listed.length, 200);
+  assert.ok(listed.includes(codes[209]), "the newest is listed");
+  assert.ok(!listed.includes(codes[0]) && !listed.includes(codes[9]), "the ten oldest are the ones left out");
+  assert.deepEqual([...listed].sort(), codes.slice(10).sort());
+});

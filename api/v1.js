@@ -1822,13 +1822,15 @@ A.ice = async () => {
 };
 // the room list (rooms report themselves every few seconds while open)
 const ROOM_TTL = 70;
+const ROOM_NEW_MAX = 10;
 let roomsCache = null;
 A.rooms = async () => {
   const c = await loadConfig();
   if (!c.game.roomListOpen) return { rooms: [] };
   if (roomsCache && roomsCache.until > now()) return { rooms: roomsCache.rooms };
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(now() - ROOM_TTL * 1000)]);
-  const codes = await redis(["ZRANGE", "rooms", "0", "199"]);
+  // scored by the last heartbeat: the newest 200, not the 200 that went quiet first
+  const codes = await redis(["ZRANGE", "rooms", "0", "199", "REV"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
   const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked, mmr }) => ({ code, name, ch, mode, map, ranked: !!ranked, band: ranked && Number.isFinite(mmr) ? bandOf(mmr) : null, range: ranked ? joinRange(now() - created) : null, n: (players || []).length, max, state, host, created }));
   roomsCache = { rooms, until: now() + 5000 };
@@ -1842,6 +1844,8 @@ A.room_up = async (q, b, req) => {
   if (6 !== code.length) throw fail(400, "방 코드가 이상합니다");
   const prev = await getJ("room:" + code);
   if (prev && prev.host !== u.id) throw fail(409, "다른 사람의 방입니다");
+  // opening a new code writes a log line and a list entry; a room that is already open just beats its heart
+  if (!prev && (await limited("roomnew:" + rlKey(u), ROOM_NEW_MAX, 600))) throw fail(429, "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요");
   const players = (Array.isArray(b.players) ? b.players : []).slice(0, 12).map((p) => String(p).slice(0, 20));
   const room = {
     code,
