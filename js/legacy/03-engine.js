@@ -1383,16 +1383,8 @@ let locked = !1;
       e && !locked && (lockCooldown = performance.now() + 1400),
       updateLockHint(),
       // the lock lands a moment after it is asked for: if a menu opened in between (closeShop asked, then the
-      // shop or the pause menu came back), let it go again, or that menu has no cursor
-      locked &&
-        !FLY.on &&
-        ("menu" === world.phase ||
-          world.over ||
-          !$("pause").hidden ||
-          !$("shop").hidden ||
-          !$("lobby").hidden ||
-          !$("admin").hidden) &&
-        document.exitPointerLock(),
+      // shop, the pause menu or the armory opened and let go), let it go again, or that menu has no cursor
+      locked && lockLetGoAt > lockAskedAt && document.exitPointerLock(),
       locked ||
         IS_TOUCH ||
         FLY.on ||
@@ -1555,12 +1547,18 @@ function updateTouchBtn() {
   e && e.classList.toggle("on", IS_TOUCH);
 }
 let lockPending = !1,
-  lockCooldown = 0;
+  lockCooldown = 0,
+  lockAskedAt = 0,
+  lockLetGoAt = 0;
+// every place that opens a menu lets go of the lock through here: a lock that lands after that is let go again
+const exitLock = document.exitPointerLock && document.exitPointerLock.bind(document);
+exitLock && (document.exitPointerLock = () => ((lockLetGoAt = performance.now()), exitLock()));
 function tryLock() {
   if (IS_TOUCH) return;
   if (document.pointerLockElement === canvas) return;
   if (performance.now() < lockCooldown) return;
   lockPending = !0;
+  lockAskedAt = performance.now();
   const e = () => {
     try {
       const e = canvas.requestPointerLock();
