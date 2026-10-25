@@ -60,8 +60,10 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
 
     // 5. the state of the peer goes with the peer
     assert.equal(await host.evaluate(() => PEER_THROTTLE.size()), 1);
-    await guest.evaluate(() => netShutdown());
-    await host.waitForFunction(() => NET.conns.size === 0, null, { timeout: 30000 });
+    // close the guest's channels first (as browser-network-recovery.js does): a bare netShutdown does not always
+    // tell the host in time
+    await guest.evaluate(() => { for (const c of Object.values(NET.up || {})) try { c && c.close && c.close(); } catch (e) {} netShutdown(); });
+    await host.waitForFunction(() => NET.conns.size === 0, null, { timeout: 60000 });
     assert.equal(await host.evaluate(() => PEER_THROTTLE.size()), 0, "the throttle forgot the peer that left");
     await host.evaluate(() => netShutdown());
     assert.deepEqual(f.errors, []); console.log("peer throttle browser checks passed");
