@@ -39,11 +39,22 @@ function harness(options = {}) {
       case "ZCARD": case "ZCOUNT": return key === "users" ? [...db.keys()].filter((x) => x.startsWith("user:")).length : 0;
       case "LLEN": return (db.get(key) || []).length;
       case "KEYS": { const re = new RegExp("^" + key.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$"); return [...db.keys()].filter((x) => re.test(x)); }
-      case "SET": if (args.includes("NX") && get(key) != null) return null; db.set(key, args[0]); if (args[1] === "EX") expires.set(key, clock + +args[2] * 1000); return "OK";
+      case "SET": {
+        // SET key value [NX] [EX seconds], in any order; a plain SET drops the old expiry like real Redis
+        const [value, ...opts] = args;
+        let nx = false, ex = 0;
+        for (let i = 0; i < opts.length; i++) { const o = String(opts[i]).toUpperCase(); if (o === "NX") nx = true; else if (o === "EX") ex = +opts[++i]; else throw new Error("unsupported SET option: " + o); }
+        if (nx && get(key) != null) return null;
+        db.set(key, value);
+        ex ? expires.set(key, clock + ex * 1000) : expires.delete(key);
+        return "OK";
+      }
       case "INCR": case "INCRBY": { const n = +(get(key) || 0) + (op === "INCR" ? 1 : +args[0]); db.set(key, String(n)); return n; }
       case "EXPIRE": expires.set(key, clock + +args[0] * 1000); return 1;
       case "DEL": { const had = db.delete(key); expires.delete(key); return +had; }
       case "EVAL": {
+        // the per-order lock release: delete the key only while it still holds our nonce
+        if (args[0] === "1" && key.includes("redis.call('GET', KEYS[1]) == ARGV[1]")) { const [lockKey, nonce] = args.slice(1); return get(lockKey) === nonce ? command(["DEL", lockKey]) : 0; }
         if (commitFailure) { commitFailure = false; throw new Error("commit unavailable"); }
         const [count, userKey, ticketKey, receiptKey, before, value, owner, receipt] = args;
         if (+count !== 3 || !key.includes("redis.call('GET', KEYS[1])")) throw new Error("unexpected script");

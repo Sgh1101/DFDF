@@ -1013,6 +1013,16 @@ const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/
 const LEDGER_KINDS = ["order", "paid", "revoke", "refund", "reject", "cancel"];
 const ledgerLine = (kind, o, extra) => JSON.stringify(Object.assign({ t: now(), kind, id: o.id, user: o.by, items: o.items, days: o.days, total: o.total, depositor: o.depositor, money: 0 }, extra));
 const ledgerAdd = (kind, o, extra) => pipe([["LPUSH", "ledger", ledgerLine(kind, o, extra)], ["LTRIM", "ledger", "0", "19999"]]);
+// One order changes status one request at a time: a short lock per order (the owner's grant, refund, revoke and the
+// player's own cancel all take it), released only while it is still ours. Whoever finds it taken gets a 409.
+const ORDER_UNLOCK = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
+return 0`;
+async function withOrderLock(id, fn) {
+  const lock = "ordlock:" + id, nonce = crypto.randomBytes(12).toString("hex");
+  if ((await redis(["SET", lock, nonce, "NX", "EX", "30"])) === null) throw fail(409, "이 주문을 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요");
+  try { return await fn(); }
+  finally { try { await redis(["EVAL", ORDER_UNLOCK, "1", lock, nonce]); } catch (e) {} }
+}
 // the first time the books are opened, the orders made before them are written in (oldest first)
 async function ledgerSeed() {
   if ((await redis(["LRANGE", "ledger", "0", "0"])).length) return;
@@ -1093,17 +1103,21 @@ A.order_mine = async (q, b) => {
 A.order_cancel = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
-    raw = id && (await redis(["GET", "ord:" + id]));
-  if (!raw) throw fail(404, "없는 주문입니다");
-  const o = JSON.parse(raw);
-  if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
-  if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
-  o.status = "cancelled";
-  await ledgerAdd("cancel", o);
-  await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-  await ulog(u.id, "order", `주문 ${id} 취소`, { id });
-  return { ok: !0 };
+  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  if (!id) throw fail(404, "없는 주문입니다");
+  return withOrderLock(id, async () => {
+    const raw = await redis(["GET", "ord:" + id]);
+    if (!raw) throw fail(404, "없는 주문입니다");
+    const o = JSON.parse(raw);
+    if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
+    if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
+    o.status = "cancelled";
+    // the new status is written first: a failed ledger line can never let a retry act on the old one
+    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
+    await ledgerAdd("cancel", o);
+    await ulog(u.id, "order", `주문 ${id} 취소`, { id });
+    return { ok: !0 };
+  });
 };
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
@@ -2311,61 +2325,75 @@ ADMIN.orders = async (q, b) => {
   return { orders: items, counts, names: orderNames(), on: !!c.order.on, bank: !!c.order.bank };
 };
 ADMIN.order_set = async (q, b) => {
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
-    raw = id && (await redis(["GET", "ord:" + id]));
-  if (!raw) throw fail(404, "없는 주문입니다");
-  const o = JSON.parse(raw);
+  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
   const op = String(b.op || "");
+  if (!id) throw fail(404, "없는 주문입니다");
   if (!["grant", "reject", "refund", "revoke", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
-  null != b.note && (o.note = fbStr(b.note, 300));
-  if ("grant" === op || "refund" === op || "revoke" === op) {
-    const u = await getJ(userKey(o.by));
-    if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
-    if ("grant" === op) {
-      if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
-      ensureWallet(u, await loadConfig());
-      const perm = applyOrder(u, o);
-      await saveUser(u);
-      o.status = "granted";
-      o.grantedAt = now();
-      o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
-      await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
-      await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-    } else if ("revoke" === op) {
-      // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
-      if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
-      takeBackOrder(u, o);
-      await saveUser(u);
-      o.status = "revoked";
-      o.revokedAt = now();
-      o.reason = fbStr(b.reason, 200);
-      await ledgerAdd("revoke", o, { reason: o.reason });
-      await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-    } else {
-      if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
-      if (b.revoke && "granted" === o.status) {
-        // what the order gave is taken back: the cheats, the gold (never below nothing)
-        if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
-        const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-        g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+  return withOrderLock(id, async () => {
+    const raw = await redis(["GET", "ord:" + id]);
+    if (!raw) throw fail(404, "없는 주문입니다");
+    const o = JSON.parse(raw);
+    // the books and the log come after the order's new status is saved, so a retry never applies it twice
+    let after = null;
+    null != b.note && (o.note = fbStr(b.note, 300));
+    if ("grant" === op || "refund" === op || "revoke" === op) {
+      const u = await getJ(userKey(o.by));
+      if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
+      if ("grant" === op) {
+        if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
+        ensureWallet(u, await loadConfig());
+        const perm = applyOrder(u, o);
         await saveUser(u);
+        o.status = "granted";
+        o.grantedAt = now();
+        o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+        after = async () => {
+          await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
+          await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+        };
+      } else if ("revoke" === op) {
+        // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
+        if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
+        takeBackOrder(u, o);
+        await saveUser(u);
+        o.status = "revoked";
+        o.revokedAt = now();
+        o.reason = fbStr(b.reason, 200);
+        after = async () => {
+          await ledgerAdd("revoke", o, { reason: o.reason });
+          await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
+        };
+      } else {
+        if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
+        if (b.revoke && "granted" === o.status) {
+          // what the order gave is taken back: the cheats, the gold (never below nothing)
+          if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
+          const g = o.items.reduce((n, k) => n + goldOf(k), 0);
+          g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+          await saveUser(u);
+        }
+        const paid = "pending" !== o.status;
+        o.status = "refunded";
+        o.refundedAt = now();
+        o.reason = fbStr(b.reason, 200);
+        after = async () => {
+          await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
+          await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
+        };
       }
-      const paid = "pending" !== o.status;
-      o.status = "refunded";
-      o.refundedAt = now();
+    } else if ("reject" === op) {
+      if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
+      o.status = "rejected";
       o.reason = fbStr(b.reason, 200);
-      await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
-      await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
+      after = async () => {
+        await ledgerAdd("reject", o, { reason: o.reason });
+        await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
+      };
     }
-  } else if ("reject" === op) {
-    if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
-    o.status = "rejected";
-    o.reason = fbStr(b.reason, 200);
-    await ledgerAdd("reject", o, { reason: o.reason });
-    await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
-  }
-  await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-  return { order: o };
+    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
+    after && (await after());
+    return { order: o };
+  });
 };
 // the books: every money event of the paid orders, newest first, with the totals of what is shown
 ADMIN.ledger = async (q, b) => {
