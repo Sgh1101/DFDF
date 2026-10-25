@@ -86,10 +86,10 @@ function harness(options = {}) {
     }, URL, console,
   };
   vm.runInNewContext(fs.readFileSync("api/v1.js", "utf8"), sandbox, { filename: "api/v1.js" });
-  async function api(action, body = {}) {
+  async function api(action, body = {}, headers = {}) {
     let response;
     const res = { setHeader() {}, statusCode: 0, end(value) { response = { status: this.statusCode, ...JSON.parse(value) }; } };
-    await sandbox.module.exports({ method: "POST", url: "/api/v1?a=" + action, body, headers: { "x-forwarded-for": "127.0.0.1" } }, res);
+    await sandbox.module.exports({ method: "POST", url: "/api/v1?a=" + action, body, headers: { "x-forwarded-for": "127.0.0.1", ...headers } }, res);
     return response;
   }
   const sign = (value) => { const p = Buffer.from(JSON.stringify(value)).toString("base64url"); return p + "." + crypto.createHmac("sha256", "test-secret").update(p).digest("base64url"); };

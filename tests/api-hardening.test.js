@@ -166,3 +166,23 @@ test("a signature of multibyte characters is rejected, not thrown on", async () 
   assert.equal((await h.api("me", { token: p.token })).status, 200);
   assert.equal((await h.api("a_config_get", { atoken: owner.atoken })).status, 200);
 });
+
+// ── guests: a new one costs permanent keys, so new ones are limited per address ──
+test("60 new guests per address per ten minutes; a returning device is never limited", async () => {
+  const h = harness();
+  const guest = (n, ip = "10.0.0.1") => h.api("guest", { device: "device-" + String(n).padStart(4, "0") }, { "x-forwarded-for": ip });
+  const first = await guest(0);
+  assert.equal(first.status, 200);
+  for (let i = 1; i < 60; i++) assert.equal((await guest(i)).status, 200, "guest " + i);
+  const over = await guest(60);
+  assert.equal(over.status, 429);
+  assert.equal(h.db.has("guest:device-0060"), false, "the refused one wrote nothing");
+  // a device that already has a guest signs in again whatever the count
+  for (const n of [0, 1, 59]) assert.equal((await guest(n)).status, 200, "back " + n);
+  assert.equal((await h.api("me", { token: first.token })).status, 200);
+  // other addresses are not affected, and the same address is free again after ten minutes
+  assert.equal((await guest(61, "10.0.0.2")).status, 200);
+  assert.equal((await guest(60)).status, 429);
+  h.advance(601000);
+  assert.equal((await guest(60)).status, 200);
+});

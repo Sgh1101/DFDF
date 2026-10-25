@@ -721,6 +721,7 @@ async function guestName(want, dev) {
   }
   return "게스트" + crypto.randomBytes(3).toString("hex");
 }
+const GUEST_NEW_MAX = 60;
 A.guest = async (q, b, req) => {
   const c = await loadConfig(),
     ip = ipOf(req),
@@ -729,6 +730,8 @@ A.guest = async (q, b, req) => {
   if (dev.length < 8) throw fail(400, "기기 정보가 없습니다");
   if (c.game.maintenance) throw fail(503, c.game.maintenanceMsg);
   let u = await getJ(guestKey(dev));
+  // a new guest costs keys that never expire: 60 per address per ten minutes (a school or an internet cafe is one address); a device coming back is never counted
+  if (!u && (await limited("guestnew:" + ip, GUEST_NEW_MAX, 600))) throw fail(429, "잠시 후 다시 시도하세요");
   if (!u) u = { id: "게스트" + (parseInt(crypto.createHash("md5").update(dev).digest("hex").slice(0, 6), 16) % 9000 + 1000), guest: !0, dev, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
   u.id = await guestName(u.id, dev);
   ensureWallet(u, c);
