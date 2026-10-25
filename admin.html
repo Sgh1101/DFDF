@@ -463,6 +463,8 @@ const PF_TABS = [["info", "정보"], ["conn", "접속 기록"], ["shop", "뽑기
 const PF_SRC = { g: "서버 로그에서 가져옴", h: "계정에 남은 기록에서 가져옴" };
 const pfNum = (n) => (+n || 0).toLocaleString("ko-KR");
 const pfSgn = (n) => (n > 0 ? "+" : "") + pfNum(n);
+// a gold balance below nothing is a debt (a revoked order took back gold already spent)
+const goldTxt = (n) => ((+n || 0) < 0 ? `<span style="color:var(--red)">🪙 ${pfNum(n)} <b>빚</b></span>` : "🪙 " + pfNum(n));
 const pfChip = (g, s, r) => `<span class="tag" style="color:${TIER_C[r] || "var(--steel)"};border-color:${TIER_C[r] || "var(--line)"}">${esc(SKIN_KO[s] || s)} <span class="muted">${esc(GUN_KO[g] || g)}</span></span>`;
 const pfArrow = (a) => (Array.isArray(a) ? a.map(pfNum).join(" → ") : String(a));
 // the small facts of one line, as readable text
@@ -509,7 +511,7 @@ function pfInfo(p) {
   return `<div class="pf-grid">
     ${pfCard("계정", pfKv([["상태", tags], ["레벨", `Lv.${a.level} <span class="muted">${pfNum(a.xp)}xp (다음까지 ${pfNum(a.need - a.into)})</span>`], ["가입", when(a.created)], ["마지막 접속", when(a.lastSeen)], ["마지막 IP", esc(a.lastIp || "-")], ["기기", esc(a.dev || "-")], ["전적", `${pfNum(a.kills)}킬 · ${pfNum(a.wins)}승 / ${pfNum(a.matches)}판`], ["메모", esc(a.note || "-")]]))}
     ${pfCard("제한·권한", pfKv([["차단", a.ban ? `${ban ? "" : "(끝남) "}${a.ban.until ? "~" + when(a.ban.until) : "영구"} · ${esc(a.ban.reason || "사유 없음")} <span class="muted">${when(a.ban.at)}</span>` : "-"], ["관리자 모드", a.admin ? (a.adminUntil ? "~" + when(a.adminUntil) : a.owner ? "소유자" : "기한 없음") : "-"], ["치트 권한", a.perm && a.perm.on ? `${a.permActive ? "" : "(만료) "}${esc(permParts(a.perm).join(" · ") || "아무것도 안 엶")}${a.perm.until ? " ~" + when(a.perm.until) : ""}` : "-"], ["에임 보정", `PC ${a.aim.pc ? "허용" : "없음"}${a.aim.until ? " ~" + when(a.aim.until) : ""} · 모바일 ${a.aim.mobile ? "허용" : "막힘"}`]]))}
-    ${pfCard("골드·구매", pfKv([["골드", "🪙 " + pfNum(a.gold)], ["초월 코인", pfNum(a.championCoins)], ["뽑기", pfNum(a.pulls) + "회"], ["상점 구매", `${pfNum(a.bought)}건 · 꾸미기 ${pfNum(a.cosBought)}건`], ["쓴 골드", pfNum(a.spent)], ["환불된 골드", pfNum(a.refunded)], ["오늘 경기 골드", a.goldDay ? pfNum(a.goldDay.n) : "-"]]))}
+    ${pfCard("골드·구매", pfKv([["골드", goldTxt(a.gold)], ["초월 코인", pfNum(a.championCoins)], ["뽑기", pfNum(a.pulls) + "회"], ["상점 구매", `${pfNum(a.bought)}건 · 꾸미기 ${pfNum(a.cosBought)}건`], ["쓴 골드", pfNum(a.spent)], ["환불된 골드", pfNum(a.refunded)], ["오늘 경기 골드", a.goldDay ? pfNum(a.goldDay.n) : "-"]]))}
     ${pfCard("랭크", a.guest ? '<span class="muted">게스트는 랭크가 없습니다</span>' : pfKv([["지금 티어", rk.shown && rk.shown.hidden ? `배치 중 ${rk.placed}/${rk.of}` : rankTag(rk.now)], ["RR", pfNum(rk.rr)], ["숨은 MMR", `${pfNum(rk.mmr)} <span class="muted">운영자만 볼 수 있음</span>`], ["이번 시즌", a.season ? `시즌 ${a.season.n} · 랭크전 ${a.season.played}/${a.season.need}판 · ${a.season.wins}승` : "-"], ["지난 시즌", a.seasonLog.length ? a.seasonLog.slice(0, 3).map((s) => `시즌 ${s.n} ${esc(RANK_KO[s.t] || s.tier)} ${s.div || ""} (${s.played}판${s.gold ? " · +" + pfNum(s.gold) + "골드" : ""})`).join("<br>") : "-"]]))}
     ${pfCard(`스킨 ${pfNum(a.owned.total)} / ${pfNum(a.owned.items)}`, `<div>${SKIN_TIERS.list.map(({ id }) => `<span class="tag" style="color:${TIER_C[id]};border-color:${TIER_C[id]}">${TIER_KO[id]} ${a.owned.byTier[id] || 0}</span>`).join(" ")}</div><div class="muted" style="margin-top:8px">많이 가진 총: ${Object.entries(a.owned.byGun).sort((x, y) => y[1] - x[1]).slice(0, 6).map(([g, n]) => `${esc(GUN_KO[g] || g)} ${n}`).join(" · ") || "-"}</div>`)}
     ${pfCard("장착한 스킨", eq.length ? eq.map(([g, s]) => `<span class="tag">${esc(GUN_KO[g] || g)}: ${esc(SKIN_KO[s] || s)}</span>`).join(" ") : '<span class="muted">없음</span>')}
@@ -717,7 +719,7 @@ VIEWS.users = async () => {
     $("#ul").innerHTML = `<table><tr><th>아이디</th><th>레벨 / 티어</th><th>골드 / 스킨</th><th>상태</th><th>마지막 접속</th><th>전적</th><th>가입</th><th>IP / 기기</th><th></th></tr>${j.users.map((u) => `<tr data-id="${esc(u.id)}">
       <td><b>${uname(u.id)}</b>${u.note ? `<div class="muted">${esc(u.note)}</div>` : ""}</td>
       <td>Lv.${u.level} <span class="muted">${u.xp}xp</span><div>${rankTag(u.rank)}</div></td>
-      <td>🪙 ${(u.gold || 0).toLocaleString()}<div class="muted">초월 코인 ${u.championCoins || 0} · 스킨 ${u.owned || 0}/${u.items || 607} · 뽑기 ${u.pulls || 0}회</div></td>
+      <td>${goldTxt(u.gold)}<div class="muted">초월 코인 ${u.championCoins || 0} · 스킨 ${u.owned || 0}/${u.items || 607} · 뽑기 ${u.pulls || 0}회</div></td>
       <td>${(u.ban && (!u.ban.until || u.ban.until > Date.now())) ? `<span class="tag red">차단 ${u.ban.until ? "~" + when(u.ban.until) : "영구"}</span><div class="muted">${esc(u.ban.reason)}</div>` : '<span class="tag green">정상</span>'} ${adminTag(u)}${permTag(u)}${aimTag(u)}</td>
       <td>${when(u.lastSeen)}</td><td>${u.kills}킬 · ${u.wins}승 / ${u.matches}판</td><td>${when(u.created)}</td>
       <td class="muted">${esc(u.lastIp)}<br>${esc((u.dev || "").slice(0, 14))}</td>
