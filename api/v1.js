@@ -163,7 +163,7 @@ const isObj = (v) => v && "object" == typeof v && !Array.isArray(v);
 function merge(base, over) {
   if (!isObj(base) || !isObj(over)) return over === undefined ? base : over;
   const out = Object.assign({}, base);
-  for (const k in over) out[k] = k in base ? (isObj(base[k]) ? merge(base[k], over[k]) : typeof over[k] === typeof base[k] || Array.isArray(base[k]) ? over[k] : base[k]) : out[k];
+  for (const k in over) out[k] = Object.hasOwn(base, k) ? (isObj(base[k]) ? merge(base[k], over[k]) : typeof over[k] === typeof base[k] || Array.isArray(base[k]) ? over[k] : base[k]) : out[k];
   return out;
 }
 let cfgCache = null;
@@ -192,7 +192,9 @@ function verify(t) {
   if (parts.length !== 2) return null;
   const [p, s] = parts;
   const want = crypto.createHmac("sha256", SECRET).update(p).digest("base64url");
-  if (s.length !== want.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want))) return null;
+  // multibyte characters pass the string-length check but not the byte-length one timingSafeEqual needs
+  const got = Buffer.from(s), exp = Buffer.from(want);
+  if (got.length !== exp.length || !crypto.timingSafeEqual(got, exp)) return null;
   try {
     const o = JSON.parse(Buffer.from(p, "base64url").toString());
     return o.exp > now() ? o : null;
@@ -221,6 +223,8 @@ const cleanId = (s) => String(s || "").trim();
 const ID_OK = /^[A-Za-z0-9_가-힣]{2,16}$/;
 // names a new account may not take: they read as a guest or a nameless player in a room
 const RESERVED_ID = /^(게스트|guest)|^(플레이어|player)\d+$/i;
+// names that are also keys of every plain object: as a key in a map of accounts they would be lost or break it
+const PROTO_ID = /^(__proto__|constructor|prototype)$/i;
 // ── the per-account activity log ──
 // `ulog:<id>` holds what one account did (sign-ins with IP and device, pulls, buys, matches, what the
 // owner changed on it), newest first: the latest ULOG_MAX lines, gone ULOG_DAYS days after the last one.
@@ -679,6 +683,7 @@ A.auth = async (q, b, req) => {
   } else {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
+    if (PROTO_ID.test(id)) throw fail(400, "쓸 수 없는 아이디입니다");
     u = { id, pass: hashPw(pw), created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -894,7 +899,8 @@ function cleanIce(v) {
   return lines.length ? { reason: ICE_REASONS.includes(v.reason) ? v.reason : "failed", lines: lines.slice(-40) } : null;
 }
 function cleanFeedback(b) {
-  const type = FB_TYPES[b.type] ? b.type : "";
+  // only a string that is one of the types: not an inherited key ("constructor", "__proto__") and not an array that coerces to one
+  const type = typeof b.type === "string" && Object.hasOwn(FB_TYPES, b.type) ? b.type : "";
   if (!type) throw fail(400, "종류를 골라 주세요");
   const text = fbStr(b.text, 2000);
   if (text.length < 5) throw fail(400, "내용을 5자 이상 적어 주세요");
@@ -1188,7 +1194,8 @@ cosAdd("card", 4, "laurelc aurorac prism eclipsec royalc");
 cosAdd("banner", 2, "gold bolt sakura");
 cosAdd("banner", 3, "neonpink flame frost");
 cosAdd("banner", 4, "ink stars");
-const COS_BY = Object.fromEntries(COS.map((x) => [x.id, x]));
+// no prototype: a request's id of "constructor" or "__proto__" must find nothing
+const COS_BY = Object.assign(Object.create(null), Object.fromEntries(COS.map((x) => [x.id, x])));
 const cosPrice = (c, x) => Math.max(0, Math.round(+(c.cos && c.cos.price && c.cos.price[x.r]) || 0));
 const cosOf = (u) => {
   const o = isObj(u.cos) ? u.cos : {},
@@ -1351,7 +1358,7 @@ A.wish = async (q, b) => {
     if (await limited("wish:" + rlKey(u), 30, 10)) throw fail(429, "너무 빨리 눌렀습니다");
     const it = String(b.item),
       [g, s] = it.split("|");
-    if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템입니다");
+    if (!GUNS.includes(g) || !Object.hasOwn(SKIN_TIER, s) || !fits(s, g)) throw fail(400, "없는 아이템입니다");
     if (EXCLUSIVE[s]) throw fail(400, "시즌 보상 스킨은 찜할 수 없습니다");
     const had = list.includes(it);
     if (!1 === b.on) list = list.filter((x) => x !== it);
@@ -1601,9 +1608,9 @@ A.ranked_start = async (q, b) => {
   const recs = (await pipe(all.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null));
   const ok = new Map(recs.filter((x) => x && !x.guest && !(x.ban && (!x.ban.until || x.ban.until > now()))).map((x) => [x.id.toLowerCase(), x]));
   const side = (t) => t.filter((id) => ok.has(id)).map((id) => ok.get(id).id);
-  const a = side(ta), bb = side(tb), mmr = {};
+  const a = side(ta), bb = side(tb), mmr = Object.create(null);
   if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
-  const per = (await loadConfig()).xp.perLevel, lv = {};
+  const per = (await loadConfig()).xp.perLevel, lv = Object.create(null);
   for (const x of ok.values()) ((mmr[x.id] = mmrOf(x)), (lv[x.id] = lvInfo(x, per)));
   const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
   // a team with no human takes the other's average (bots are the same strength)
@@ -1624,7 +1631,7 @@ A.ranked_result = async (q, b) => {
   const ms = now() - rec.t0;
   if (ms < MATCH_MIN_MS) throw fail(409, "경기가 너무 짧습니다");
   if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
-  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = {};
+  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = Object.create(null);
   for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
   // the first result stands; a second one is ignored
   const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now() }), "NX", "EX", String(RESULT_TTL)])) !== null;
@@ -2101,7 +2108,7 @@ ADMIN.user_set = async (q, b) => {
       const list = Array.isArray(b.items) ? b.items.slice(0, ITEMS) : null,
         all = !list && "all" === b.item,
         pairs = list ? list.map((x) => String(x || "").split("|")) : all ? [] : [String(b.item || "").split("|")];
-      for (const [g, s] of pairs) if (!GUNS.includes(g) || !SKIN_TIER[s] || !fits(s, g)) throw fail(400, "없는 아이템 (총|스킨): " + String(g).slice(0, 20) + "|" + String(s).slice(0, 20));
+      for (const [g, s] of pairs) if (!GUNS.includes(g) || !Object.hasOwn(SKIN_TIER, s) || !fits(s, g)) throw fail(400, "없는 아이템 (총|스킨): " + String(g).slice(0, 20) + "|" + String(s).slice(0, 20));
       if (b.remove) {
         if (all) u.own = {};
         else for (const [g, s] of pairs) u.own[g] = (u.own[g] || []).filter((x) => x !== s);
@@ -2469,14 +2476,14 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
     if (a.startsWith("a_")) {
       const s = verify(b.atoken || req.headers["x-admin"]);
       if (!s || "admin" !== s.k || s.pv !== 2) throw fail(401, "관리자 로그인이 필요합니다");
-      const fn = ADMIN[a.slice(2)];
+      const fn = Object.hasOwn(ADMIN, a.slice(2)) ? ADMIN[a.slice(2)] : null;
       if (!fn) throw fail(404, "없는 기능");
       for (let attempt = 0; ; attempt++) {
         try { out = await fn(q, b, req); break; }
         catch (e) { if (!e.retryUser || attempt >= 4) throw e; }
       }
     } else {
-      const fn = A[a];
+      const fn = Object.hasOwn(A, a) ? A[a] : null;
       if (!fn) throw fail(404, "없는 기능");
       for (let attempt = 0; ; attempt++) {
         try { out = await fn(q, b, req); break; }
