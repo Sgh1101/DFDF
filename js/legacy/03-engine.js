@@ -17889,7 +17889,23 @@ function lobbyReset(e, t) {
     room.slots.atk.fill(null),
     room.slots.def.fill(null));
 }
+// every name that arrives from a peer goes through here before it is stored or
+// broadcast: text only, no markup or control characters, 1-16 characters
+function cleanPeerName(e) {
+  const t = Array.from(
+    String(null == e ? "" : e).replace(
+      /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff<>&"'`]/g,
+      "",
+    ),
+  )
+    .slice(0, 16)
+    .join("")
+    .trim();
+  return t || "플레이어";
+}
 function lobbyAdd(e, t) {
+  const m = room.members.get(e);
+  if (m) return { team: m.team, slot: m.slot };
   let o = lobbyHumans("atk") <= lobbyHumans("def") ? "atk" : "def",
     a = room.slots[o].indexOf(null);
   if ((a < 0 && (a = room.slots[o].indexOf("ai")), a < 0)) {
@@ -17944,7 +17960,10 @@ function lobbyAgentTaken(e, t, o) {
 }
 function lobbyPickAgent(e, t) {
   const o = room.members.get(e);
-  return !!o && !lobbyAgentTaken(o.team, t, e) && ((o.agentKey = t), !0);
+  const g = "string" == typeof t ? agentByKey(t) : null;
+  return (
+    !!o && !!g && !lobbyAgentTaken(o.team, g.key, e) && ((o.agentKey = g.key), !0)
+  );
 }
 function lobbyToggleAI(e, t) {
   if (!room.slots[e]) return !1;
@@ -18002,12 +18021,13 @@ function lobbyStart() {
     for (let o = 0; o < TEAM_SIZE; o++) {
       const a = room.slots[t][o],
         n = spawnPointFor(t, o);
-      if (a && "ai" !== a) {
-        const o = room.members.get(a),
+      const m = a && "ai" !== a ? room.members.get(a) : null;
+      if (m) {
+        const o = m,
           r = agentByKey(o.agentKey) || pickFreeAgent(t),
           s = createActor(e++, t, a === NET.id ? "me" : a, r, n);
         ((s.name = o.name), (o.actorId = s.id));
-      } else if ("ai" === a) {
+      } else if (a) {
         const o = createActor(e++, t, "ai", pickFreeAgent(t), n);
         ((o.name = BOT_NAMES[e % BOT_NAMES.length]), (o.ai = freshAIState()));
       }
@@ -18040,9 +18060,19 @@ function takeoverCandidates() {
       alive: e.alive,
     }));
 }
-function joinInProgress(e, t, o) {
-  let a = null != o ? actorById(o) : null;
-  if (!a || !isAI(a)) {
+// peer -> the actor it drove when it dropped; only a hello that proves it is
+// that peer (reconnect secret, checked in game-events.js) may take it back
+const goneActors = new Map();
+function joinInProgress(e, t, o, p) {
+  const w = world.actors.find((x) => x.ctrl === e);
+  if (w) return w;
+  let a = null;
+  if (null != o && null != p && goneActors.get(p) === o) {
+    const c = actorById(o);
+    c && isAI(c) && (a = c);
+  }
+  null != p && goneActors.delete(p);
+  if (!a) {
     const e = autoTeam();
     a = freeSlotIn(e);
   }
@@ -18069,7 +18099,12 @@ function joinInProgress(e, t, o) {
 }
 function leaveInProgress(e) {
   const t = room.members.get(e);
-  (t && null != t.actorId && releaseToAI(t.actorId), lobbyRemove(e));
+  (t &&
+    null != t.actorId &&
+    (goneActors.size > 32 && goneActors.delete(goneActors.keys().next().value),
+    goneActors.set(e, t.actorId),
+    releaseToAI(t.actorId)),
+    lobbyRemove(e));
 }
 let lobbyState = null;
 function renderLobby(e) {
@@ -18644,7 +18679,7 @@ function hostLeftNotice() {
     switch (t.t) {
       case "hello":
         if (room.started) {
-          const o = joinInProgress(e, t.name, t.actorId);
+          const o = joinInProgress(e, cleanPeerName(t.name), t.actorId, t.prev);
           sendEventTo(e, {
             t: "joined",
             actorId: o ? o.id : null,
@@ -18660,7 +18695,7 @@ function hostLeftNotice() {
             sendEventAll({ t: "ctrl", id: o.id, ctrl: e, name: o.name });
             sendEventTo(e, { t: "wallet", c: o.credits, w: o.weapons, am: o.ammo, ar: o.armor, s: o.slot });
           }
-        } else (lobbyAdd(e, t.name), sendEventAll(lobbySnapshot()));
+        } else (lobbyAdd(e, cleanPeerName(t.name)), sendEventAll(lobbySnapshot()));
         break;
       case "abil": {
         const o = world.actors.find((t) => t.ctrl === e),
