@@ -1564,36 +1564,66 @@ async function matchTrust(u, ticket) {
 //    rank.minHumans, a draw, a match shorter than a minute: played, but no RR;
 //  - a player's own `win`/`outcome` must equal the attested one, else the report is refused
 //    (409) and counts as a dissent; if a strict majority of the non-host players of a team
-//    dissent, the match is disputed and nobody settled afterwards gets RR;
+//    (those that took a ticket) dissent, the match is disputed and nobody settled afterwards gets RR;
+//  - nobody is credited before every ticketed non-host player has voted, or RANKED_GRACE_MS
+//    has passed since the host's result (progress answers 425 meanwhile, without using up its
+//    rate limit); a report with giveUp settles with the votes cast so far;
+//  - a team's strength (the Elo expectation) is the average MMR of its ticketed accounts only,
+//    a team with none takes the other's;
 //  - kills for the bonus are the host's count, lowered to the player's own if he reports fewer;
 //  - an account settles a match once (its ticket is one per match, and the match id is kept
 //    on the account); the daily RR cap still applies.
 // Known limit: a host with accounts of his own can still lie about a match nobody else disputes.
-const RESULT_TTL = 14400;
-async function rankedVerdict(u, trust, b) {
-  const [rec, res] = (await pipe([["GET", "rm:" + trust.m], ["GET", "rmres:" + trust.m]])).map((v) => (v ? JSON.parse(v) : null));
+const RESULT_TTL = 14400,
+  // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
+  RANKED_GRACE_MS = 60 * 1000;
+// Reads a ranked match for one of its players and records his vote (first one stands). The
+// ticketed humans are the accounts that took a ranked ticket: the roster alone proves nothing,
+// the host may list accounts that never sat in the room.
+async function rankedTally(u, m, b) {
+  const [rec, res] = (await pipe([["GET", "rm:" + m], ["GET", "rmres:" + m]])).map((v) => (v ? JSON.parse(v) : null));
   const team = rec && (rec.a.includes(u.id) ? "a" : rec.b.includes(u.id) ? "b" : "");
+  if (!rec || !team) return { rec: null };
+  if (!res) return { rec, team, res: null };
+  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
+  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
+  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
+  const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
+  const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
+  // everybody who took a ticket and is not the host must have voted, or the grace has passed
+  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null);
+  return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
+}
+async function rankedVerdict(u, trust, b) {
+  const t = await rankedTally(u, trust.m, b), { rec, res, team } = t;
   if (!rec || !team) return { attested: !1, counted: !1, why: "no_match" };
   if (!res) {
     if (!b.giveUp) throw fail(425, "경기 결과를 기다리는 중입니다");
     return { attested: !1, counted: !1, why: "no_result" };
   }
-  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
-  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
-  await redis(["SET", "rmv:" + trust.m + ":" + u.id, said === outcome ? "1" : "0", "EX", String(RESULT_TTL)]);
+  const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
-  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
-  const got = await pipe(ids.map((id) => ["GET", "rmt:" + trust.m + ":" + id]).concat(others.map((id) => ["GET", "rmv:" + trust.m + ":" + id])));
-  const votes = got.slice(ids.length), dissent = (list) => list.filter((id) => id !== rec.host && votes[others.indexOf(id)] === "0").length * 2 > list.filter((id) => id !== rec.host).length;
+  // dissent: more than half of a team's ticketed non-host players said "0"
+  const dissent = (list) => {
+    const voters = list.filter((id) => id !== rec.host && ticketed.has(id));
+    return voters.filter((id) => votes.get(id) === "0").length * 2 > voters.length;
+  };
+  // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
+  const mean = (list) => {
+    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
+    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
+  };
+  const avgA = mean(rec.a) ?? mean(rec.b) ?? rec.avgA, avgB = mean(rec.b) ?? mean(rec.a) ?? rec.avgB;
+  const disputed = dissent(rec.a) || dissent(rec.b);
   return {
     attested: !0,
     outcome,
-    counted: outcome !== "draw" && !dissent(rec.a) && !dissent(rec.b),
-    why: outcome === "draw" ? "draw" : dissent(rec.a) || dissent(rec.b) ? "disputed" : "",
+    counted: outcome !== "draw" && !disputed,
+    why: outcome === "draw" ? "draw" : disputed ? "disputed" : "",
     kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
-    humans: got.slice(0, ids.length).filter(Boolean).length,
-    mine: team === "a" ? rec.avgA : rec.avgB,
-    enemy: team === "a" ? rec.avgB : rec.avgA,
+    humans: ticketed.size,
+    mine: team === "a" ? avgA : avgB,
+    enemy: team === "a" ? avgB : avgA,
     m: trust.m,
   };
 }
@@ -1701,7 +1731,16 @@ A.progress = async (q, b) => {
     }
   }
   // a ranked match whose result the host has not sent yet: wait (425), without using up the rate limit
-  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && !b.giveUp && !(await redis(["GET", "rmres:" + ticket.m]))) throw fail(425, "경기 결과를 기다리는 중입니다");
+  // Then, once it is in, wait for the others' votes (the host's too must not settle before anyone could dispute):
+  // record this player's vote first so the others can see it, then 425 until every ticketed player has voted or
+  // the grace since the result has passed. A player whose own report disagrees is not made to wait (409 below).
+  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && ticket.v === u.sessionVersion && !b.giveUp) {
+    const t = await rankedTally(u, ticket.m, b);
+    if (t.rec && t.team) {
+      if (!t.res) throw fail(425, "경기 결과를 기다리는 중입니다");
+      if (t.said === t.outcome && "draw" !== t.outcome && !t.ready) throw fail(425, "다른 플레이어의 결과 확인을 기다리는 중입니다");
+    }
+  }
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
   // Every award requires a valid ticket; replay returns the committed receipt.
   const trust = await matchTrust(u, b.mt);
