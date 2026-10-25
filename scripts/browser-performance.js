@@ -14,6 +14,7 @@ const {fixture} = require('./browser-fixture');
     } : undefined});
    await p.waitForFunction(() => VALORANT_PACK.status === 'ready');
    await p.locator('#go-play').click();
+   if (await p.locator('#sel-pick').isVisible()) await p.locator('#sel-pick').click();
    await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
    await p.waitForFunction(() => ASCENT_TRIAL.status === 'ready');
    await p.locator('#sel-go').click({timeout:120000});

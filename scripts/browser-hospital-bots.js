@@ -10,7 +10,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const page = await f.page("hospbots", { width: 1280, height: 720 });
     await page.evaluate(() => { titleCam = () => {}; });
     await page.evaluate(() => { room.mode = "std"; room.map = "hospital"; startGame(AGENTS[0], false); closeShop(); });
-    await page.waitForFunction(() => { world.phase = "live"; return !HOSPITAL.barriers.list && world.actors.length >= 10; }, null, { timeout: 20000 });
+    await page.waitForFunction(() => { world.phase = "live"; return !HOSPITAL.barriers.list && world.actors.length >= 10; }, null, { timeout: 60000 });
 
     // ── the graph ──
     const g = await page.evaluate(() => {

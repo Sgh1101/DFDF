@@ -163,7 +163,7 @@
     crouch.classList.toggle("on", !!keys.control);
     const p = player;
     ammo && ammo.classList.toggle("can-swap", !!(p && p.weapons && p.weapons.primary));
-    const useful = !!(document.querySelector("#gim-hint:not([hidden]),#pick-hint:not([hidden])") || (world.spike && "planted" === world.spike.state && p && "def" === p.team));
+    const useful = !!(document.querySelector("#gim-hint:not([hidden]),#pick-hint:not([hidden])") || (world.spike && "planted" === world.spike.state && p && "def" === p.team) || (world.spike && "carried" === world.spike.state && p && p.alive && p.hasSpike && "function" == typeof siteAt && siteAt(p.pos.x, p.pos.z)));
     $("tb-use") && $("tb-use").classList.toggle("dim", !useful);
   }, 150);
 

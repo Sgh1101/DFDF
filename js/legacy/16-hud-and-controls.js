@@ -497,7 +497,7 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
   }
   function rowHTML(a, me, showUlt) {
     const s = st(a.id);
-    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
+    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
   }
   const HEAD = '<div class="bd-row hd"><span></span><span>플레이어</span><span class="n">킬</span><span class="n">데스</span><span class="n">도움</span><span class="n">피해</span><span></span></div>';
   function sbHTML(me, ffa) {
@@ -530,7 +530,7 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
     const list = [...per.entries()]
       .map(([id, p]) => {
         const a = actorById(id);
-        return `<div class="cl-row"><img src="${pic(a)}" alt=""><div>${nameOf(a)}<br><small>${a && a.agent ? a.agent.name : ""}</small></div><div class="out">준 피해 ${p.out}<br><small>${p.outN}회 적중${p.outH ? ` · 머리 ${p.outH}` : ""}</small></div><div class="in">받은 피해 ${p.in}<br><small>${p.inN}회 피격${p.inH ? ` · 머리 ${p.inH}` : ""}</small></div><div class="k">${p.killed ? "처치" : p.killedBy ? "사망" : ""}</div></div>`;
+        return `<div class="cl-row"><img src="${pic(a)}" alt=""><div>${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}<br><small>${a && a.agent ? a.agent.name : ""}</small></div><div class="out">준 피해 ${p.out}<br><small>${p.outN}회 적중${p.outH ? ` · 머리 ${p.outH}` : ""}</small></div><div class="in">받은 피해 ${p.in}<br><small>${p.inN}회 피격${p.inH ? ` · 머리 ${p.inH}` : ""}</small></div><div class="k">${p.killed ? "처치" : p.killedBy ? "사망" : ""}</div></div>`;
       })
       .join("");
     return `<div class="cl-sum"><div><b>${out}</b><small>${r} 라운드 준 피해</small></div><div><b>${inn}</b><small>받은 피해</small></div><div><b>${hits ? Math.round((heads / hits) * 100) : 0}%</b><small>헤드샷 비율 (${heads}/${hits})</small></div><div><b>${Math.round(allOut)}</b><small>경기 전체 준 피해</small></div></div><div class="cl-sec"><h4>${r} 라운드 교전 상대</h4>${list || '<div class="cl-empty">아직 이번 라운드 교전 기록이 없습니다</div>'}</div>`;

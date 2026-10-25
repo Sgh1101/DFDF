@@ -13,7 +13,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const foe = otherFighters().find((o) => o.team !== player.team && o.alive);
       // a clear line: turn until 9 m ahead is open
       // (bots throw smoke even when frozen, and smoke blocks sight: clear it first)
+      // ADMIN.freezeAI stops the bots walking, not casting: a bot spider's silk pulls the player in, a bot's dash moves
+      // itself, and either changes the angle between them without any aim assist. Silence every other fighter.
       const put = (off) => {
+        for (const o of world.actors) if (o !== player) o.silenced = 1e9;
         world.smokes && (world.smokes.length = 0);
         world.phase = "live"; player.alive = true; foe.alive = true;
         for (const dist of [9, 7, 5, 3.5])

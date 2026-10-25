@@ -6,7 +6,8 @@
 // reload and knife animations) moves exactly as before.
 // Left alone: the guns (weapons, not characters), the fists (the knife rig finds them by their sphere), and pieces that
 // are already cubes (the neon agent's skin). Hit detection works on positions, not on shapes, so it does not change.
-// Each agent's cubes are kept, so a character is only worked out once. Set window.BLOCKY_OFF = true before a character
+// Each agent's cubes are worked out once and kept; every fighter gets its own copy (marked userData.blocky), which
+// the engine frees with the fighter. Set window.BLOCKY_OFF = true before a character
 // is built to get the round body back; window.BLOCKY_CELL sets the cube size in metres (default 0.07).
 (() => {
   if ("function" != typeof buildFighter || "undefined" == typeof CH_GEO || "undefined" == typeof T) return;
@@ -236,10 +237,14 @@
       if (!o.isMesh || !o.geometry || skip.has(o)) return;
       const gm = o.geometry;
       i++;
-      if (gm.type === "BoxGeometry" || gm.userData.shared) return;
+      if (gm.type === "BoxGeometry" || gm.userData.shared || gm.userData.blocky) return;
       if (gm.type === "SphereGeometry" && gm.parameters && Math.abs(gm.parameters.radius - FIST_R) < 0.006) return;
       const hit = cubesFor(o, who + "|" + i);
-      o.geometry = hit.geo;
+      // each fighter owns a copy: the engine frees a fighter's baked pieces when it is cleared, so two fighters
+      // of the same agent must not share one (it was freed twice, and the cached one with it)
+      const geo = hit.geo.clone();
+      geo.userData = { blocky: !0 };
+      o.geometry = geo;
       if (hit.mat) o.material = hit.mat;
       if (!cached.has(gm) && !gm.userData.shared) gm.dispose();
     });

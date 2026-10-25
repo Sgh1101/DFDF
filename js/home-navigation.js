@@ -13,6 +13,18 @@
     [practice.querySelector("summary"), "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12 M12 10v4 M10 12h4"],
     [$("go-set"), "M9 3h6l1 4 4 2v6l-4 2-1 4H9l-1-4-4-2V9l4-2z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"],
   ]) element.insertAdjacentHTML("afterbegin", icon(path));
+  // the season's leaderboard (js/leaderboard.js, loaded just before this file) sits next to the armoury
+  if (window.LEADERBOARD) {
+    const lb = document.createElement("button");
+    lb.className = "tt-item tt-mini home-minor";
+    lb.id = "go-ranks";
+    lb.type = "button";
+    lb.innerHTML = `<b>${L("순위표", "Ranks")}</b>`;
+    lb.title = L("이번 시즌 순위표", "This season's leaderboard");
+    lb.insertAdjacentHTML("afterbegin", icon("M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0z M17 5h3v2a3 3 0 0 1-3 3 M7 5H4v2a3 3 0 0 0 3 3"));
+    lb.onclick = () => LEADERBOARD.open();
+    $("go-armory").after(lb);
+  }
   // the target range was mounted before the practice menu existed and landed in the bar: it belongs in the menu
   const into = practice.querySelector(":scope > div");
   if (into && $("go-targets") && !into.contains($("go-targets"))) into.append($("go-targets"));

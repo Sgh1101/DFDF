@@ -1,0 +1,60 @@
+/* The picked map, seen from above at an angle, behind the agent select screen */
+#s-select.has-mapshot {
+  background:
+    linear-gradient(180deg, rgba(10, 13, 18, 0.9) 0%, rgba(10, 13, 18, 0.62) 22%, rgba(10, 13, 18, 0.5) 55%, rgba(10, 13, 18, 0.18) 78%, rgba(10, 13, 18, 0.55) 100%),
+    var(--mapshot) center / cover no-repeat,
+    var(--void);
+}
+#s-select.has-mapshot .sel-foot {
+  background: linear-gradient(180deg, rgba(7, 9, 13, 0.3), rgba(7, 9, 13, 0.55));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* the chips stay readable over the picture; the map shows between them */
+#s-select.has-mapshot .sel-foot .lb-map:not(.on),
+#s-select.has-mapshot .sel-foot .map-cats button:not(.on) {
+  background: rgba(10, 13, 18, 0.82);
+}
+#sel-mapcap {
+  position: absolute;
+  left: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(8, 11, 16, 0.72);
+  border: 1px solid var(--line);
+  pointer-events: none;
+  white-space: nowrap;
+}
+#sel-mapcap:empty,
+#sel-mapcap[hidden] {
+  display: none;
+}
+#sel-mapcap b {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+#sel-mapcap span {
+  font-family: var(--f-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--steel);
+}
+/* the picture heads the map sheet on a small screen; the backdrop already shows it on a wide one */
+#sel-mapcard {
+  display: none;
+}
+.sel-foot.pick-open #sel-mapcard {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  max-height: 120px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel) center / cover no-repeat;
+}

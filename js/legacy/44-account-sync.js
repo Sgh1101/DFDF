@@ -122,14 +122,20 @@
     if (!c || !c.game) return;
     if (c.game.maintenance) wall(L("점검 중", "Maintenance"), esc(c.game.maintenanceMsg));
     let n = $("acct-notice");
-    if (c.game.announcement) {
+    // an X sets it aside for this visit (a changed announcement comes back)
+    let closed = "";
+    try { closed = sessionStorage.getItem("lgp_notice_x") || ""; } catch (e) {}
+    if (c.game.announcement && closed !== c.game.announcement) {
       if (!n) {
         n = document.createElement("div");
         n.id = "acct-notice";
-        n.style.cssText = "position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;max-width:min(680px,92vw);padding:7px 14px;border-radius:10px;background:rgba(20,16,4,.88);border:1px solid #5c4b1f;color:#ffc849;font-size:12.5px;pointer-events:none";
+        n.style.cssText = "position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;max-width:min(680px,92vw);display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;border-radius:10px;background:rgba(20,16,4,.88);border:1px solid #5c4b1f;color:#ffc849;font-size:12.5px;pointer-events:none";
+        n.innerHTML = '<span></span><button type="button" aria-label="' + L("닫기", "Close") + '" style="pointer-events:auto;flex:none;min-width:28px;min-height:28px;border-radius:8px;border:1px solid #5c4b1f;background:transparent;color:inherit;font:inherit;cursor:pointer">✕</button>';
+        n.querySelector("button").onclick = () => { try { sessionStorage.setItem("lgp_notice_x", n.firstChild.dataset.t || ""); } catch (e) {} n.remove(); };
         document.body.appendChild(n);
       }
-      n.textContent = "📢 " + c.game.announcement;
+      n.firstChild.dataset.t = c.game.announcement;
+      n.firstChild.textContent = "📢 " + c.game.announcement;
     } else n && n.remove();
   }
   async function loadCfg() {
@@ -551,10 +557,10 @@
   // ── experience after each match ──
   let lastPhase = "";
   const reportSession = GAME_MATCH_REPORT({ token, request: async (ownerToken) => {
-    const extra = window.RANKED && RANKED.ticketBody ? RANKED.ticketBody() : {};
-    // a ranked ticket the server refuses still leaves a plain one (XP and gold, no RR)
-    if (extra.ranked) try { return await api("match_start", { token: ownerToken, ...extra }); } catch (e) {}
-    return api("match_start", { token: ownerToken });
+    // a ranked ticket (the host's roster is in first, see 109-ranked-flow) the server
+    // will not give still leaves a plain one (XP and gold, no RR)
+    const ranked = window.RANKED && RANKED.flow ? await RANKED.flow.ticket(ownerToken, api) : null;
+    return ranked || api("match_start", { token: ownerToken });
   }, onError: (e) => banner(e.message, "#ff8a9a") });
   const pendingKey = () => "lgp_reports:" + (S && S.user && S.user.id || "local");
   let pending = [];
@@ -562,31 +568,42 @@
   const keepReports = () => { try { localStorage.setItem(pendingKey(), JSON.stringify(pending.slice(-20))); } catch (e) { banner(L("보상 기록을 기기에 저장하지 못했습니다", "Could not save the reward retry record"), "#ff8a9a"); } };
   function beginReport(fresh = false) { if (online && !window.GAME_PRACTICE) return reportSession.begin(fresh); }
   let reporting = false;
+  // A ranked report waits for the host's result (425); after this long it takes the plain reward (giveUp)
+  const GIVE_UP_MS = 120000;
   async function flushReports() {
     if (reporting || !token() || !pending.length) return;
     reporting = true;
     const ownerToken = token();
     try {
-      const job = pending[0], j = await api("progress", { token: ownerToken, ...job });
+      // `rk` and `at` are ours (a ranked ticket, when the report began); the server hears the rest
+      const { rk, at, ...job } = pending[0];
+      rk && at && Date.now() - at > GIVE_UP_MS && (job.giveUp = true);
+      const j = await api("progress", { token: ownerToken, ...job });
       if (!sessionMatches(ownerToken)) return;
       pending.shift(); keepReports();
       S.user = j.user; S.hist = j.hist || S.hist;
       localStorage.setItem("lgp_session", JSON.stringify(S));
       const reward = j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP · 🪙 +${j.gold}`;
       banner(reward + (j.coinGain ? L(" · 초월 코인 +1", " · Transcendent coin +1") : ""), "#ffc849");
-      dispatchEvent(new CustomEvent("account-reward"));
+      dispatchEvent(new CustomEvent("account-reward", { detail: j }));
     } catch (e) {
       if (!sessionMatches(ownerToken)) return;
+      // the host's result is not in yet: keep the report and ask again shortly
+      if (425 === e.status) return void setTimeout(flushReports, 5000);
       if ([400, 409].includes(e.status) && !e.retryable) { pending.shift(); keepReports(); }
       banner(L("경기 보상: ", "Match reward: ") + e.message, "#ff8a9a");
     } finally { reporting = false; }
   }
   addEventListener("match-finished", async (e) => {
-    const match = e.detail, ownerToken = token(), humans = window.RANKED && RANKED.humans ? RANKED.humans() : 0;
+    const match = e.detail, ownerToken = token();
     if (!match || !ownerToken) return;
     const mt = await reportSession.finish();
     if (!mt || ownerToken !== token()) return;
-    pending.push({ kills: match.k, win: match.win, outcome: match.outcome, mt, match, humans: humans });
+    // the host's own report goes after the result it just attested
+    window.RANKED && RANKED.flow && await RANKED.flow.settled();
+    if (ownerToken !== token()) return;
+    const rk = window.RANKED && RANKED.flow && RANKED.flow.isRanked(mt);
+    pending.push({ kills: match.k, win: match.win, outcome: match.outcome, mt, match, ...(rk ? { rk: 1, at: Date.now() } : {}) });
     keepReports(); flushReports();
   });
   const _reportStart = lobbyStart;

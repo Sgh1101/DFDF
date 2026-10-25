@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 // 전설 마무리: the round's last kill with a legendary skin in a standard match turns the world's sky and plays the skin's
-// own figure; a plain skin keeps only the ordinary ring; every legendary's figure runs clean and the sky comes back.
+// own figure; the stock skin has none, a rare skin only the ordinary ring; every legendary's figure runs clean and the sky comes back.
 (async () => {
   const f = await fixture();
   try {
@@ -33,12 +33,16 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       res.skyPlain = sky() === base;
       // a rare skin: the ordinary ring only
       res.rareActive = (lastKill("koi"), FINISHERS.active.size);
+      // an Epic skin: the ordinary ring in its large form (flash, shockwaves, pillar, sparks, halo), longer
+      lastKill("gold");
+      const grand = [...FINISHERS.active][0];
+      res.epic = { active: FINISHERS.active.size, parts: grand ? grand.children.length : 0, kinds: grand ? [...new Set(grand.children.map((c) => c.userData.kind).filter(Boolean))].sort() : [], life: (fx.find((o) => o.mesh === grand) || {}).life };
       // every legendary's figure, one after another, and the sky back
       res.themes = {};
       for (const id of Object.keys(FINISHER_LEGEND.themes)) {
         world.round++; startRound(); world.phase = "live";
         const ok = FINISHER_LEGEND.play({ x: me.pos.x + 5, y: 1, z: me.pos.z }, { id });
-        for (let i = 0; i < (id === "champion" ? 162 : 70); i++) step(0.05);
+        for (let i = 0; i < 90; i++) step(0.05);
         res.themes[id] = ok && sky() === base;
       }
       // a new round ends one in the middle
@@ -49,15 +53,18 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     });
     console.log(JSON.stringify(out));
     assert.ok(out.legendAdded >= 2, "figure and sky: " + out.legendAdded);
-    assert.equal(out.activeLegend, 2);
+    assert.equal(out.activeLegend, 3, "the ordinary ring, the figure and the burst around it");
     assert.equal(out.skyDuring, true); assert.equal(out.skyAfter, true);
     assert.equal(out.activePlain, 0, "no finisher with the stock skin");
     assert.equal(out.skyPlain, true);
     assert.equal(out.rareActive, 1);
-    assert.ok(Object.keys(out.themes).length >= 12);
+    assert.equal(out.epic.active, 1, "an Epic skin: one finisher " + JSON.stringify(out.epic));
+    assert.deepEqual(out.epic.kinds, ["flash", "halo", "pillar", "spark", "wave"], "with its flash, halo, pillar, sparks and shockwaves");
+    assert.ok(out.epic.parts >= 25 && out.epic.life >= 2.8, "larger and longer than a Rare one " + JSON.stringify(out.epic));
+    assert.ok(Object.keys(out.themes).length >= 18);
     for (const [k, v] of Object.entries(out.themes)) assert.equal(v, true, k);
     assert.equal(out.roundEnds, true);
     assert.deepEqual(f.errors, []);
-    console.log("finisher: legendary last kill turns the sky and draws its figure, the stock skin does not, the sky comes back");
+    console.log("finisher: a legendary last kill turns the sky and draws its figure with the burst, an Epic one plays the large ring, a Rare one the ordinary ring, the stock skin none; the sky comes back");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });

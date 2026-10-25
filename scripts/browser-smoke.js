@@ -5,8 +5,10 @@ const {harness}=require('../tests/api-harness');
  const h=harness(),session=await h.api('auth',{id:'tester',pw:'password',device:'device-123'}),admin=await h.api('auth',{id:'owner',pw:'owner-password',device:'device-456'});
  console.log('grant',await h.api('a_user_set',{atoken:admin.atoken,id:'tester',op:'grant',item:'rifle|dragon'}));
  const browser=await chromium.launch({...(process.env.CHROME_BIN ? {executablePath:process.env.CHROME_BIN}:{}),headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- const page=await browser.newPage({viewport:{width:852,height:393}}),errors=[];
+ const page=await browser.newPage({viewport:{width:852,height:393},serviceWorkers:'block'}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ // the homepage's notice card (promo film) would cover the sign-out button after sign-in: leave the film out
+ await page.route('**/js/promo.js',async route=>{const res=await route.fetch();await route.fulfill({response:res,body:(await res.text()).replace(/video: "https?:[^"]*"/,'video: "PROMO_VIDEO_URL"'),contentType:'text/javascript'});});
  await page.route('**/api/v1?*',async r=>{const a=new URL(r.request().url()).searchParams.get('a'),j=await h.api(a,r.request().postDataJSON()||{});await r.fulfill({status:j.status,contentType:'application/json',body:JSON.stringify(j)});});
  if(process.env.DFDF_THREE_PATH) await page.route('https://cdnjs.cloudflare.com/ajax/libs/three.js/**',r=>r.fulfill({path:process.env.DFDF_THREE_PATH,contentType:'text/javascript'}));
  await page.route('https://fonts.googleapis.com/**',r=>r.abort());await page.route('https://fonts.gstatic.com/**',r=>r.abort());

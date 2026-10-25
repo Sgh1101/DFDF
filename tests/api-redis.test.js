@@ -35,3 +35,24 @@ test("actual Redis Lua commits preserve parallel pulls and replayable rewards", 
   await h.api('me',{token:p.token});await h.api('progress',report);
   assert.deepEqual(user().own,migrated.own);assert.equal(user().championCoins,0);assert.equal(user().matches,1);assert.equal(user().gold,270);
 });
+test("actual Redis: the per-order lock lets one of two parallel grants through and is released", { skip: !process.env.DFDF_REDIS_TEST_PORT && (!process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET) }, async (t) => {
+  const prefix = 'dfdf-test-' + require('node:crypto').randomUUID() + ':';
+  const raw = cmd => process.env.DFDF_REDIS_TEST_PORT ? JSON.parse(execFileSync(process.execPath, [require.resolve('../scripts/redis-test-client'), JSON.stringify(cmd)], {encoding:'utf8'})) : JSON.parse(execFileSync(process.env.DFDF_REDIS_CLI, ["--json", "-s", process.env.DFDF_REDIS_SOCKET, ...cmd.map(String)], { encoding: "utf8" }));
+  const command = cmd => {const c=cmd.slice();if(c[0]==='EVAL'){for(let i=3;i<3+Number(c[2]);i++)if(c[i])c[i]=prefix+c[i];}else if(c[0]==='MGET'){for(let i=1;i<c.length;i++)c[i]=prefix+c[i];}else if(c[1])c[1]=prefix+c[1];return raw(c);};
+  t.after(()=>{const keys=raw(['KEYS',prefix+'*']);if(keys.length)raw(['DEL',...keys]);});
+  const h = harness({ redisCommand: command });
+  const id = "o" + Math.random().toString(36).slice(2, 9);
+  const p = await h.api("auth", { id, pw: "password", device: "redis-order-device" }), owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "redis-owner-device" });
+  const c = JSON.parse(JSON.stringify(h.config)); c.order.on = true; c.order.bank = "bank 000"; c.order.holder = "holder";
+  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).status, 200);
+  const order = (await h.api("order_create", { token: p.token, items: ["gold20k"], days: 7 })).order;
+  const gold0 = JSON.parse(command(["GET", "user:" + id])).gold;
+  const set = (op) => h.api("a_order_set", { atoken: owner.atoken, id: order.id, op });
+  const rs = await Promise.all([set("grant"), set("grant")]);
+  assert.deepEqual(rs.map((x) => x.status).sort(), [200, 409]);
+  assert.equal(JSON.parse(command(["GET", "user:" + id])).gold, gold0 + 20000);
+  assert.equal(command(["GET", "ordlock:" + order.id]), null, "the Lua release deleted our lock");
+  command(["SET", "ordlock:" + order.id, "someone-else", "NX", "EX", "30"]);
+  assert.equal((await set("refund")).status, 409);
+  assert.equal(command(["GET", "ordlock:" + order.id]), "someone-else", "a stranger's lock is left alone");
+});

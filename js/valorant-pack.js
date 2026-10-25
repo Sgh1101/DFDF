@@ -3,7 +3,8 @@
   const D=VALORANT_DATA,GS=GUN_SKINS,base='./assets/valorant-packs/v1/';
   const S=window.VALORANT_PACK={status:'loading',items:new Map(),files:new Map(),audioPlayed:[]};
   const status=document.createElement('div');status.id='valorant-status';status.setAttribute('role','status');status.textContent='원본 무기 리소스 불러오는 중…';
-  status.style.cssText='position:fixed;bottom:6px;right:12px;z-index:10030;color:#b9e7ef;background:#101823e8;padding:5px 12px;border-radius:8px;font:12px sans-serif';document.body.append(status);
+  status.style.cssText='position:fixed;bottom:6px;right:12px;z-index:10030;color:#b9e7ef;background:#101823e8;padding:5px 12px;border-radius:8px;font:12px sans-serif;pointer-events:none';document.body.append(status);
+  // a notice while loading, so taps go through it to the shop's buttons under it; it takes them only to retry
   const blobs=new Map(),buffers=new Map(),handBindings=new WeakMap();let manifest,clock=0,inspect=-1,attack=0,draw=0,current=null,reloadStart=0,firingActor=null,clipRun=0;
   const canonical=D.canonical;
   const poseEuler=new T.Euler(0,0,0,'ZYX'),poseQuaternion=new T.Quaternion();
@@ -238,7 +239,7 @@
       }));
       for(const spec of manifest.items){const key=spec.key==='knife'?spec.id:spec.key;if(spec.key==='knife')KNIVES.build['vp_'+spec.id]=()=>build(S.items.get(key));else{GUN_BUILD[spec.key]=()=>build(S.items.get(key));WEAPONS[spec.key].reload=S.items.get(key).animations.reload_tactical?.animation_length||2;}}
       S.status='ready';status.remove();window.refreshSkinAssets();
-    }catch(e){S.status='error';S.error=e.message;status.textContent='원본 무기 로딩 실패 · 클릭하여 재시도';status.onclick=()=>location.reload();console.error(e);}
+    }catch(e){S.status='error';S.error=e.message;status.textContent='원본 무기 로딩 실패 · 클릭하여 재시도';status.style.pointerEvents='auto';status.style.cursor='pointer';status.onclick=()=>location.reload();console.error(e);}
   }
   load();
 })();

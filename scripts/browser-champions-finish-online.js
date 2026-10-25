@@ -26,6 +26,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
       for (const a of world.actors) { a.fireCd = 999; a.invuln = 999; }
     });
     await guest.waitForFunction(() => world.phase === "live");
+    const killedAt = Date.now();
     const round = await host.evaluate(() => {
       const me = myActor(), foes = world.actors.filter(a => a.team !== me.team), victim = foes[0];
       for (const a of foes) a.alive = a === victim;
@@ -34,10 +35,14 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
       DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "scout", "gun", world.round, "champions_def"), () => dealDamage(victim, 999, false, me));
       checkRoundEnd(); return world.round;
     });
-    await guest.waitForFunction(() => world.phase === "end" && world.championsFinishUntil > performance.now());
-    const remaining = await guest.evaluate(() => world.championsFinishUntil - performance.now());
-    assert.ok(remaining > 5000 && remaining <= 8000, "host sends remaining hold time to guest");
-    await guest.waitForFunction(() => [...FINISHERS.active].some(g => g.getObjectByName("champions-original-finisher")?.visible), null, { timeout: 10000 });
+    // read the hold in the same task that first sees it, and compare it with how long the host's eight seconds have
+    // really been running (wall clock): a loaded machine can show the guest the end of the round several seconds late,
+    // and a fixed "more than two seconds left" then fails although the host sent exactly what was left
+    await guest.waitForFunction(() => world.phase === "end" && world.championsFinishUntil > performance.now() && ((window.__holdSeen = world.championsFinishUntil - performance.now()), true), null, { timeout: 90000 });
+    const remaining = await guest.evaluate(() => window.__holdSeen), elapsed = Date.now() - killedAt;
+    // what is left of the host's eight seconds (about eight minus the time passed), not a fresh eight and not nothing
+    assert.ok(remaining > 0 && remaining <= 8000 && remaining >= 8000 - elapsed - 3000, "host sends remaining hold time to guest: " + remaining + " after " + elapsed + " ms");
+    await guest.waitForFunction(() => [...FINISHERS.active].some(g => g.getObjectByName("champions-original-finisher")?.visible), null, { timeout: 45000 });
     const shape = await guest.evaluate(() => {
       const figure = [...FINISHERS.active].map(g => g.getObjectByName("champions-original-finisher")).find(Boolean);
       const motion = [...FINISHERS.active].map(g => g.getObjectByName("champions-source-motion")).find(Boolean);
@@ -45,8 +50,8 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     });
     assert.equal(shape.snake, "red"); assert.ok(shape.height >= shape.min); assert.equal(shape.round, round); assert.equal(shape.phase, "end");
     assert.ok(shape.vertices > 0); assert.equal(shape.seed, await host.evaluate(() => [...FINISHERS.active].map(g => g.getObjectByName("champions-source-motion")).find(Boolean).userData.seed), "host and guest share the source random seed");
-    await host.waitForFunction(r => world.round === r + 1 && world.phase === "buy", round, { timeout: 12000 });
-    await guest.waitForFunction(r => world.round === r + 1 && world.phase === "buy" && FINISHERS.active.size === 0, round, { timeout: 10000 });
+    await host.waitForFunction(r => world.round === r + 1 && world.phase === "buy", round, { timeout: 45000 });
+    await guest.waitForFunction(r => world.round === r + 1 && world.phase === "buy" && FINISHERS.active.size === 0, round, { timeout: 45000 });
     assert.deepEqual(f.errors, []);
     await host.evaluate(() => netShutdown());
     console.log("Real local WebRTC host/guest: shared eight-second countdown, original red serpent, >=5x height, next round and effect cleanup passed");

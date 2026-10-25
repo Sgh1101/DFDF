@@ -16,6 +16,7 @@
 | `js/legacy/05-game-modes.js` | 모드 규칙과 부활 |
 | `js/legacy/44-account-sync.js` | 계정·설정·경기 보고 |
 | `js/legacy/47-owner-controls.js` | 방에 한정된 소유자 확인과 명령 |
+| `js/legacy/109-ranked-flow-*.js`, `js/leaderboard.js` | 랭크 경기 흐름(방장 명단·결과, 좌석별 확인표, 입장 범위 확인)과 시즌 순위표 화면 |
 | `js/legacy/50-map-sizes.js` | 팀 규모와 맵에 따른 목표 조정 |
 | `js/legacy/52-projectiles.js` | 수류탄·RPG 발사와 폭발, 발사 원인 전파 |
 | `js/legacy/58-gun-skins.js` | 스킨 소유·장착·모델·무기고 |

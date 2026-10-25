@@ -57,7 +57,6 @@
     b.classList.toggle('owned',item.owned);b.classList.toggle('unaffordable',!unlimited(a)&&a.credits<item.cost);b.setAttribute('aria-disabled',String(!usable(item,a)));b.setAttribute('aria-label',item.name+' · '+(item.owned?'보유 중':price(item.cost,a)));
     if(item.kind==='weapon'){const img=document.createElement('img');img.className='buy-gun-image';img.alt='';img.decoding='async';b.append(img);const skin=GUN_SKINS.of(item.key);queueThumb(img,item.key,skin);if(skin.id!=='default'){const dot=document.createElement('i');dot.className='buy-skin-dot';b.append(dot);}}
     else{const icon=document.createElement('span');icon.className='buy-icon';icon.innerHTML=shield;icon.firstElementChild.classList.add('buy-shield');b.append(icon);}
-    if(item.owned){const owned=document.createElement('i');owned.className='buy-owned';owned.textContent='보유 중';b.append(owned);}
     const cost=document.createElement('span');cost.textContent=item.owned?'보유 중':price(item.cost,a);const name=document.createElement('b');name.textContent=item.name;b.append(cost,name);
     b.onpointerenter=e=>{if(e.pointerType!=='touch')select(id);};b.onfocus=()=>select(id);b.onclick=()=>purchase(id);return b;
   }

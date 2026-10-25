@@ -167,6 +167,8 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
 </style>
 <script src="./js/client-request.js"></script>
 <script src="./js/feedback.js"></script>
+<script src="./js/promo.js"></script>
+<script src="./js/notice-popup.js"></script>
 <script src="./js/order.js"></script>
 <script src="./js/cosmetics.js"></script>
 </head>
@@ -216,7 +218,7 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
       <div class="tier" id="meTier" hidden><div class="tb" id="meTierB"></div><div class="ti"><b id="meTierN"></b><div class="tbar"><i id="meTierX"></i></div><small id="meTierT"></small><small class="ssn" id="meSeason"></small></div></div>
       <div class="ssn-end" id="ssnEnd" hidden><span id="ssnEndT"></span><button type="button" id="ssnEndOk"></button></div>
       <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
-      <div class="wallet"><span class="g" id="meGold">🪙 0</span><a id="meChampionCoins" href="./play.html#champion-shop"></a><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span><a id="meChampionCoins" href="./play.html#champion-shop"></a><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a><a id="meBoard" href="./play.html#ranks"></a></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
@@ -248,7 +250,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
-    order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
+    order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
     modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
@@ -262,7 +264,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
-    order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
+    order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
     modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
@@ -289,6 +291,7 @@ function paintLang() {
   document.querySelectorAll("[data-t]").forEach((e) => (e.textContent = t(e.dataset.t)));
   $("#uid").placeholder = t("idPh"); $("#upw").placeholder = t("pwPh");
   $("#lang").textContent = L === "ko" ? "English" : "한국어";
+  window.PROMO && PROMO.paint();
   $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x}</li>`).join("");
   drawEnter();
   CFG && (drawMe(), drawNotices());
@@ -319,7 +322,6 @@ function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
   if (CFG && CFG.game.maintenance) n.push(`<div class="notice red">${esc(CFG.game.maintenanceMsg)}</div>`);
-  if (CFG && CFG.game.announcement) n.push(`<div class="notice">📢 ${esc(CFG.game.announcement)}</div>`);
   $("#notices").innerHTML = n.join("");
 }
 const rankOf = (lv) => T[L].ranks[lv >= 50 ? 5 : lv >= 30 ? 4 : lv >= 20 ? 3 : lv >= 10 ? 2 : lv >= 5 ? 1 : 0];
@@ -342,7 +344,7 @@ function drawMe() {
   $("#meChampionCoins").hidden = !wallet;
   $("#meChampionCoins").textContent = (L === "en" ? "Transcendent coins " : "초월 코인 ") + (u.championCoins || 0).toLocaleString();
   $("#meChampionCoins").href = gameUrl("") + "#champion-shop";
-  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 973);
+  $("#meSkins").textContent = t("skins", u.owned || 0, u.items || 607);
   // straight to the skin page in the game: pulls, or the skins I own
   $("#meSkinPull").hidden = $("#meSkinMine").hidden = !wallet;
   $("#meSkinPull").textContent = t("skinPull");
@@ -351,6 +353,7 @@ function drawMe() {
   $("#meSkinMine").href = gameUrl("") + "#skins-mine";
   // profile cosmetics: the title under the name, the name card behind the profile
   $("#meCos").hidden = !wallet; $("#meCos").textContent = t("style"); $("#meCos").href = gameUrl("") + "#cos";
+  $("#meBoard").hidden = !wallet; $("#meBoard").textContent = t("board"); $("#meBoard").href = gameUrl("") + "#ranks";
   const cs = window.COSMETICS ? COSMETICS.equipped(u) : { title: null, card: null };
   $("#meTitle").hidden = !cs.title;
   if (cs.title) { $("#meTitle").textContent = COSMETICS.name(cs.title); $("#meTitle").style.color = COSMETICS.tier(cs.title.r)[2]; }
@@ -361,10 +364,12 @@ function drawMe() {
   $("#meTier").hidden = !rk;
   if (rk) {
     $("#meTier").style.setProperty("--tc", TIER_C[rk.t] || "#8a8f98");
-    $("#meTierB").innerHTML = tierBadge(rk.t, rk.div);
-    $("#meTierN").textContent = T[L].tiers[rk.t] + (rk.div ? " " + rk.div : "");
-    $("#meTierX").style.width = (rk.t >= 8 ? 100 : Math.max(2, rk.into)) + "%";
-    $("#meTierT").textContent = rk.t >= 8 ? t("rrTop", rk.rr) : t("rrNext", rk.into);
+    // placing (the first five ranked matches): no tier yet, only the count
+    const pl = u.placement || { done: 0, of: 5 };
+    $("#meTierB").innerHTML = rk.hidden ? '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="#1b222e" stroke="#8a8f98" stroke-width="1.5" stroke-dasharray="3 2"/><text x="24" y="31" text-anchor="middle" font-size="22" font-weight="800" fill="#c9d3de" font-family="sans-serif">?</text></svg>' : tierBadge(rk.t, rk.div);
+    $("#meTierN").textContent = rk.hidden ? t("placingName") + " " + pl.done + "/" + pl.of : T[L].tiers[rk.t] + (rk.div ? " " + rk.div : "");
+    $("#meTierX").style.width = rk.hidden ? Math.max(2, (100 * pl.done) / pl.of) + "%" : (rk.t >= 8 ? 100 : Math.max(2, rk.into)) + "%";
+    $("#meTierT").textContent = rk.hidden ? t("placing", pl.done, pl.of) : rk.t >= 8 ? t("rrTop", rk.rr) : t("rrNext", rk.into);
   }
   // the season: how long is left, what ended last (told once)
   const ss = !u.guest && u.season;
@@ -440,10 +445,12 @@ async function auth(guest) {
 $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
 $("#uid").onkeydown = (e) => { if (e.key === "Enter") $("#upw").focus(); };
-function enter() { view("dash"); drawMe(); drawEnter(); }
+// the announcement and the promo film come up in the middle once, right after signing in (js/notice-popup.js)
+function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.auto(); }
 (async () => {
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
+  window.NOTICE && NOTICE.configure(CFG.game);
   drawNotices();
   const offlineGuest = (() => { try { return !!S && !S.token && sessionStorage.getItem("lgp_gate") === "offline"; } catch (e) { return !1; } })();
   if (S && S.token && !gatePassed()) {

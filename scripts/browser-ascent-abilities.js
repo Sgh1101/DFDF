@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
 (async()=>{const f=await fixture();try{
  const p=await f.page('ascentabilities',{width:1280,height:720});
  const warnings=[];p.on('console',m=>{if(m.type()==='warning'&&/^(abil |ability |cast )/.test(m.text()))warnings.push(m.text());});
- await p.locator('#go-play').click();await p.locator('#sel-grid .acard').filter({hasText:'단비'}).click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
+ await p.locator('#go-play').click();await p.locator('#sel-grid .acard').filter({hasText:'단비'}).click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
  await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready',null,{timeout:120000});await p.locator('#sel-go').click({timeout:120000});
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  const actual=await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.phaseT=999;const me=myActor();me.invuln=999;return{floor:me.y,ground:abilityGroundY(me.pos.x,me.pos.z),q:me.abilities[0].charges};});
