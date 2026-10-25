@@ -38,6 +38,7 @@
     "test:home-layout": "node scripts/browser-home-layout.js",
     "test:online": "node scripts/browser-online.js",
     "test:name-safety": "node scripts/browser-name-safety.js",
+    "test:peer-throttle": "node scripts/browser-peer-throttle.js",
     "test:ranked": "node scripts/browser-ranked.js",
     "test:ranked-flow": "node scripts/browser-ranked-flow.js",
     "test:bot-skill": "node scripts/browser-bot-skill.js",

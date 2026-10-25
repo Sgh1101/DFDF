@@ -102,11 +102,14 @@ const DEFAULT_CONFIG = {
   },
   // room rules every host applies when `force` is on (0 = the game's own default)
   room: { force: !1, roundT: 0, buyT: 0, matchT: 0, run: 0, jumpV: 0, gravity: 0, aiSpeed: 0, infAll: !1, freezeAI: !1 },
-  xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600 },
+  // (maxPerDay: the day's ceiling on match XP, counted from midnight in Korea; 0 = none)
+  xp: { perKill: 10, perWin: 50, perMatch: 20, perLevel: 100, maxPerReport: 600, maxPerDay: 6000 },
   // gold after each match, spent on skin pulls
   // (maxPerDay: a match's result is what the game reports, so a day's match gold
   // has a ceiling and a modified game cannot report its way to every skin; 0 = none)
-  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000 },
+  // (coinsPerDay: the Champion coins one account earns from matches in a day, same day as
+  // maxPerDay; a match past it still counts but gives no coin; 0 = none)
+  gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000, coinsPerDay: 30 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
@@ -1048,22 +1051,60 @@ async function ledgerSeed() {
   }
   for (const l of lines) await redis(["LPUSH", "ledger", l]);
 }
-// what an order gave is taken back, this order's part only: its cheats switched off, its gold taken from the wallet (never below nothing)
-function takeBackOrder(u, o) {
+// What an order gave is taken back, and only this order's part of it.
+//  - gold: the whole sum the order gave comes off, even if it is already spent; the balance may go below nothing
+//    (a debt the account earns back; every spend checks gold >= price, so nothing can be bought until it is paid off).
+//  - cheats: a cheat goes off only if no OTHER granted, unexpired order of the account also grants it.
+//  - perm.until: if another remaining order is permanent (days 0) the account stays permanent. Otherwise this order's
+//    own extension is removed: a timed order undoes its days (exactly, back to `prevUntil` recorded when it was
+//    opened, if it is still the last extension; else it subtracts its days; at or below now only the other orders' expiry keeps cheats on); an order that made the
+//    account permanent leaves the latest expiry of the remaining orders, or switches the cheats off if none remain.
+//    An order that has already run out leaves `until` alone (its days are used up). While the owner's admin mode
+//    lends its own full set (permAdmin), the account's own cheats underneath (permBefore) are the ones changed.
+// Orders are read from the account's order index (ordu:, the latest 200); older ones are not counted.
+const ordExp = (o) => (0 === o.days ? 0 : Number.isFinite(o.exp) ? o.exp : o.until > 0 ? o.until : (o.grantedAt || o.t || 0) + o.days * 864e5);
+async function takeBackOrder(u, o) {
   const cheats = o.items.filter((k) => !goldOf(k));
-  if (cheats.length && u.perm) {
-    const p = Object.assign({}, u.perm);
-    for (const k of cheats) {
-      if (PERM_SW.includes(k)) p[k] = !1;
-      else if ("speed" === k) p.speed = 1;
-      else if ("fastFire" === k) p.fastFire = 1;
-      else if ("buff" === k) p.buff = 0;
-    }
-    p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
-    u.perm = p;
+  if (cheats.length) {
+    const t = now(), ids = await redis(["LRANGE", "ordu:" + orderMe(u), "0", "199"]);
+    const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
+    const others = rows.filter((x) => x.id !== o.id && "granted" === x.status && x.items.some((k) => !goldOf(k)) && (0 === x.days || ordExp(x) > t));
+    const keep = new Set(others.flatMap((x) => x.items));
+    const permanent = others.some((x) => 0 === x.days);
+    const latest = others.reduce((n, x) => Math.max(n, ordExp(x)), 0);
+    const expired = o.days > 0 && ordExp(o) <= t;
+    const fix = (perm) => {
+      if (!isObj(perm)) return perm;
+      const p = Object.assign({}, perm);
+      for (const k of cheats) {
+        if (keep.has(k)) continue;
+        if (PERM_SW.includes(k)) p[k] = !1;
+        else if ("speed" === k) p.speed = 1;
+        else if ("fastFire" === k) p.fastFire = 1;
+        else if ("buff" === k) p.buff = 0;
+      }
+      p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
+      if (permanent) p.until = 0;
+      else if (!expired && p.on) {
+        if (0 === o.days) {
+          // this order made the account permanent: whatever the others still run to
+          if (latest > t) p.until = latest;
+          else p.on = !1;
+        } else if (p.until > 0) {
+          const to = Number.isFinite(o.prevUntil) && o.prevUntil > 0 && p.until === o.until ? o.prevUntil : p.until - o.days * 864e5;
+          // nothing of this order's time is left: only what the other orders still run to keeps the cheats on
+          if (to > t) p.until = to;
+          else if (latest > t) p.until = latest;
+          else p.on = !1;
+        }
+      }
+      return p;
+    };
+    if (u.permAdmin) u.permBefore && (u.permBefore = fix(u.permBefore));
+    else u.perm = fix(u.perm);
   }
   const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-  g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+  g && (u.gold = (+u.gold || 0) - g);
 }
 A.order_info = async () => {
   const c = await loadConfig();
@@ -1095,7 +1136,7 @@ A.order_create = async (q, b) => {
     ["LPUSH", "ord", id],
     ["LTRIM", "ord", "0", "1999"],
     ["LPUSH", "ordu:" + me, id],
-    ["LTRIM", "ordu:" + me, "0", "19"],
+    ["LTRIM", "ordu:" + me, "0", "199"],
   ]);
   await ledgerAdd("order", rec);
   await log("order", `주문 ${id} · ${u.id} · ${items.join(",")} · ${days || "영구"}일 · ${total}원`, { id, user: u.id });
@@ -1128,6 +1169,11 @@ A.order_cancel = async (q, b) => {
     return { ok: !0 };
   });
 };
+// the account's cheat end before an order is opened (0 = permanent or none) and the order's own end (0 = never)
+function orderEnds(u, o) {
+  const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+  return { until: cur ? cur.until || 0 : 0, exp: 0 === o.days ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5 };
+}
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
   const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
@@ -1564,36 +1610,66 @@ async function matchTrust(u, ticket) {
 //    rank.minHumans, a draw, a match shorter than a minute: played, but no RR;
 //  - a player's own `win`/`outcome` must equal the attested one, else the report is refused
 //    (409) and counts as a dissent; if a strict majority of the non-host players of a team
-//    dissent, the match is disputed and nobody settled afterwards gets RR;
+//    (those that took a ticket) dissent, the match is disputed and nobody settled afterwards gets RR;
+//  - nobody is credited before every ticketed non-host player has voted, or RANKED_GRACE_MS
+//    has passed since the host's result (progress answers 425 meanwhile, without using up its
+//    rate limit); a report with giveUp settles with the votes cast so far;
+//  - a team's strength (the Elo expectation) is the average MMR of its ticketed accounts only,
+//    a team with none takes the other's;
 //  - kills for the bonus are the host's count, lowered to the player's own if he reports fewer;
 //  - an account settles a match once (its ticket is one per match, and the match id is kept
 //    on the account); the daily RR cap still applies.
 // Known limit: a host with accounts of his own can still lie about a match nobody else disputes.
-const RESULT_TTL = 14400;
-async function rankedVerdict(u, trust, b) {
-  const [rec, res] = (await pipe([["GET", "rm:" + trust.m], ["GET", "rmres:" + trust.m]])).map((v) => (v ? JSON.parse(v) : null));
+const RESULT_TTL = 14400,
+  // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
+  RANKED_GRACE_MS = 60 * 1000;
+// Reads a ranked match for one of its players and records his vote (first one stands). The
+// ticketed humans are the accounts that took a ranked ticket: the roster alone proves nothing,
+// the host may list accounts that never sat in the room.
+async function rankedTally(u, m, b) {
+  const [rec, res] = (await pipe([["GET", "rm:" + m], ["GET", "rmres:" + m]])).map((v) => (v ? JSON.parse(v) : null));
   const team = rec && (rec.a.includes(u.id) ? "a" : rec.b.includes(u.id) ? "b" : "");
+  if (!rec || !team) return { rec: null };
+  if (!res) return { rec, team, res: null };
+  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
+  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
+  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
+  const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
+  const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
+  // everybody who took a ticket and is not the host must have voted, or the grace has passed
+  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null);
+  return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
+}
+async function rankedVerdict(u, trust, b) {
+  const t = await rankedTally(u, trust.m, b), { rec, res, team } = t;
   if (!rec || !team) return { attested: !1, counted: !1, why: "no_match" };
   if (!res) {
     if (!b.giveUp) throw fail(425, "경기 결과를 기다리는 중입니다");
     return { attested: !1, counted: !1, why: "no_result" };
   }
-  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
-  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
-  await redis(["SET", "rmv:" + trust.m + ":" + u.id, said === outcome ? "1" : "0", "EX", String(RESULT_TTL)]);
+  const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
-  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
-  const got = await pipe(ids.map((id) => ["GET", "rmt:" + trust.m + ":" + id]).concat(others.map((id) => ["GET", "rmv:" + trust.m + ":" + id])));
-  const votes = got.slice(ids.length), dissent = (list) => list.filter((id) => id !== rec.host && votes[others.indexOf(id)] === "0").length * 2 > list.filter((id) => id !== rec.host).length;
+  // dissent: more than half of a team's ticketed non-host players said "0"
+  const dissent = (list) => {
+    const voters = list.filter((id) => id !== rec.host && ticketed.has(id));
+    return voters.filter((id) => votes.get(id) === "0").length * 2 > voters.length;
+  };
+  // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
+  const mean = (list) => {
+    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
+    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
+  };
+  const avgA = mean(rec.a) ?? mean(rec.b) ?? rec.avgA, avgB = mean(rec.b) ?? mean(rec.a) ?? rec.avgB;
+  const disputed = dissent(rec.a) || dissent(rec.b);
   return {
     attested: !0,
     outcome,
-    counted: outcome !== "draw" && !dissent(rec.a) && !dissent(rec.b),
-    why: outcome === "draw" ? "draw" : dissent(rec.a) || dissent(rec.b) ? "disputed" : "",
+    counted: outcome !== "draw" && !disputed,
+    why: outcome === "draw" ? "draw" : disputed ? "disputed" : "",
     kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
-    humans: got.slice(0, ids.length).filter(Boolean).length,
-    mine: team === "a" ? rec.avgA : rec.avgB,
-    enemy: team === "a" ? rec.avgB : rec.avgA,
+    humans: ticketed.size,
+    mine: team === "a" ? avgA : avgB,
+    enemy: team === "a" ? avgB : avgA,
     m: trust.m,
   };
 }
@@ -1701,7 +1777,16 @@ A.progress = async (q, b) => {
     }
   }
   // a ranked match whose result the host has not sent yet: wait (425), without using up the rate limit
-  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && !b.giveUp && !(await redis(["GET", "rmres:" + ticket.m]))) throw fail(425, "경기 결과를 기다리는 중입니다");
+  // Then, once it is in, wait for the others' votes (the host's too must not settle before anyone could dispute):
+  // record this player's vote first so the others can see it, then 425 until every ticketed player has voted or
+  // the grace since the result has passed. A player whose own report disagrees is not made to wait (409 below).
+  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && ticket.v === u.sessionVersion && !b.giveUp) {
+    const t = await rankedTally(u, ticket.m, b);
+    if (t.rec && t.team) {
+      if (!t.res) throw fail(425, "경기 결과를 기다리는 중입니다");
+      if (t.said === t.outcome && "draw" !== t.outcome && !t.ready) throw fail(425, "다른 플레이어의 결과 확인을 기다리는 중입니다");
+    }
+  }
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
   // Every award requires a valid ticket; replay returns the committed receipt.
   const trust = await matchTrust(u, b.mt);
@@ -1713,16 +1798,24 @@ A.progress = async (q, b) => {
   const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
     win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
-  const gain = Math.min(c.xp.maxPerReport, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch);
   ensureWallet(u, c);
-  // the day's ceiling, counted from midnight in Korea
+  // the day's ceilings, counted from midnight in Korea: gold, XP and Champion coins each have their own
+  // counter ({d: day, n: used}); a match past a ceiling still counts (stats, missions) but gives none of it
   const day = new Date(now() + 9 * 36e5).toISOString().slice(0, 10),
-    cap = Math.max(0, +c.gold.maxPerDay || 0);
+    cap = Math.max(0, +c.gold.maxPerDay || 0),
+    xcap = Math.max(0, +c.xp.maxPerDay || 0),
+    ccap = Math.max(0, +c.gold.coinsPerDay || 0);
   (isObj(u.goldDay) && u.goldDay.d === day) || (u.goldDay = { d: day, n: 0 });
+  (isObj(u.xpDay) && u.xpDay.d === day) || (u.xpDay = { d: day, n: 0 });
+  (isObj(u.coinDay) && u.coinDay.d === day) || (u.coinDay = { d: day, n: 0 });
+  const xleft = xcap > 0 ? Math.max(0, xcap - (u.xpDay.n || 0)) : Infinity;
+  const gain = Math.max(0, Math.min(c.xp.maxPerReport, xleft, kills * c.xp.perKill + (win ? c.xp.perWin : 0) + c.xp.perMatch));
+  const coinGain = ccap > 0 && (u.coinDay.n || 0) >= ccap ? 0 : 1;
   const left = cap > 0 ? Math.max(0, cap - (u.goldDay.n || 0)) : Infinity;
   const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
-  u.championCoins += 1;
+  u.championCoins += coinGain;
+  u.coinDay.n = (u.coinDay.n || 0) + coinGain;
   u.goldDay.n = (u.goldDay.n || 0) + gold;
   // the rank: up with a win (more with kills), down a little with a loss
   const R = c.rank,
@@ -1760,16 +1853,17 @@ A.progress = async (q, b) => {
     isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
   }
   u.xp = (u.xp || 0) + gain;
+  u.xpDay.n = (u.xpDay.n || 0) + gain;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
-  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain: 1, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
   const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain: 1, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   // the season board: a placed account that counted a ranked match this season
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
@@ -2233,7 +2327,7 @@ ADMIN.user_profile = async (q, b) => {
     owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
     equipped: (u.skins && isObj(u.skins.m) && u.skins.m) || {},
     wish: cleanWish(u), missions: misState(u, c), cos: cosOf(u),
-    goldDay: isObj(u.goldDay) ? u.goldDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
+    goldDay: isObj(u.goldDay) ? u.goldDay : null, xpDay: isObj(u.xpDay) ? u.xpDay : null, coinDay: isObj(u.coinDay) ? u.coinDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
     hist: histOf(u),
   };
   return { profile: Object.assign(out, { acct }) };
@@ -2356,11 +2450,14 @@ ADMIN.order_set = async (q, b) => {
       if ("grant" === op) {
         if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
         ensureWallet(u, await loadConfig());
-        const perm = applyOrder(u, o);
+        const prev = orderEnds(u, o),
+          perm = applyOrder(u, o);
         await saveUser(u);
         o.status = "granted";
         o.grantedAt = now();
         o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
+        // kept for the take-back (see takeBackOrder): the account's end before this order, and this order's own end
+        if (o.items.some((k) => !goldOf(k))) { o.prevUntil = prev.until; o.exp = prev.exp; }
         after = async () => {
           await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
           await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
@@ -2368,7 +2465,7 @@ ADMIN.order_set = async (q, b) => {
       } else if ("revoke" === op) {
         // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
         if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
-        takeBackOrder(u, o);
+        await takeBackOrder(u, o);
         await saveUser(u);
         o.status = "revoked";
         o.revokedAt = now();
@@ -2380,10 +2477,8 @@ ADMIN.order_set = async (q, b) => {
       } else {
         if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
         if (b.revoke && "granted" === o.status) {
-          // what the order gave is taken back: the cheats, the gold (never below nothing)
-          if (o.items.some((k) => !goldOf(k)) && u.perm) u.perm = Object.assign({}, u.perm, { on: !1 });
-          const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-          g && (u.gold = Math.max(0, (+u.gold || 0) - g));
+          // what the order gave is taken back by the same rule as a revoke (see takeBackOrder)
+          await takeBackOrder(u, o);
           await saveUser(u);
         }
         const paid = "pending" !== o.status;

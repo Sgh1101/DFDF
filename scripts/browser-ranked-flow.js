@@ -109,6 +109,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       assert.deepEqual([u.placed, u.rr, u.rmDone.length], [1, 0, 1], who + " is placing: counted, RR untouched");
     }
     assert.equal(JSON.parse(f.h.db.get("rm:" + info.id)).ownerPlayed, true);
+    // every player's vote was recorded (they settled together, each waiting for the others' votes first)
+    for (const who of ["rkflowhost", "rkflowguest", "owner"]) assert.equal(f.h.db.get("rmv:" + info.id + ":" + who), "1", who + " voted");
     // the result screen says "Placement 1/5" instead of an RR change
     await guest.waitForFunction(() => /배치 1\/5/.test((document.getElementById("ov-rank") || {}).textContent || ""), null, { timeout: 45000 });
     await guest.screenshot({ path: dir + "/ranked-flow-over.png" });
@@ -133,7 +135,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       f.h.advance(61000);
       assert.equal((await f.h.api("ranked_result", { token: tok.lbp1, rm: s.rm, w: winner, k: { lbp1: 3 } })).status, 200);
       const out = {};
-      for (const id of names) out[id] = await f.h.api("progress", { token: tok[id], mt: mt[id], kills: id === "lbp1" ? 3 : 0, win: (id !== "lbp3") === (winner === "a"), match: { mode: "std", s: [7, 3] } });
+      // nobody settles before every ticketed player has voted (425, as the client's retry would see it): the
+      // first pass records the votes, the last voter settles in it, a second pass settles the rest
+      for (let pass = 0; pass < 2; pass++) for (const id of names) if (!out[id] || 425 === out[id].status) out[id] = await f.h.api("progress", { token: tok[id], mt: mt[id], kills: id === "lbp1" ? 3 : 0, win: (id !== "lbp3") === (winner === "a"), match: { mode: "std", s: [7, 3] } });
       return out;
     }
     for (let n = 1; n <= 4; n++) { last = await match(n); assert.equal(last.lbp1.rankedCounted, true); }

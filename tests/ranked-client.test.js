@@ -115,7 +115,7 @@ test("the host opens the match with its roster; a guest waits for it, then takes
   sb.room.members = new Map([["hp", { name: "Host1", team: "atk" }], ["g1", { name: "guest1", team: "def" }], ["g2", { name: "Guest1", team: "def" }], ["g3", { name: "third", team: "atk" }]]);
   sb.ACCOUNT.api = async (action, body) => { calls.push(action); if (action === "ranked_start") return { id: "m1", rm: "RMTICKET", a: ["Host1", "third"], b: ["guest1"] }; throw new Error("unexpected " + action); };
   sb.hostStartMatch();
-  assert.deepEqual(plain(RK.flow.roster()), { a: ["Host1", "third"], b: ["guest1"] }, "one seat per account, by team");
+  assert.deepEqual(plain(RK.flow.roster()), { a: ["Host1", "third"], b: [] }, "by team; a name two players share belongs to neither (see ranked-integrity.test.js)");
   assert.equal((await RK.flow.current().start).rm, "RMTICKET");
   assert.deepEqual(plain(sent), [{ t: "rk-go", id: "m1" }]);
   // the host's own ticket waits for the roster, then asks as ranked for this room
