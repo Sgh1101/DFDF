@@ -28,14 +28,15 @@ const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 // A clip is a plan: which map and agent, and what the player does on each second.
 // mv: [strafe, forward] like gatherInput; yaw/pitch in radians; q/fire: press on that frame.
 // aim: [from, to, mix] blends the free look (-1) and the head of foe n, so a flick lands on a head.
-const OPEN_SHOTS = [24, 28, 40, 44]; // frames at 30 fps: two taps on each head (the Phantom is 660 rpm: 2.7 frames apart). Early on purpose: the Champions finisher's dragon rises 2.66 s after the last kill and the film shrinks the picture into a window at 2.5 s, so the later the kills, the less of the dragon is seen
+const OPEN_SHOTS = [24, 28, 40, 44]; // frames at 30 fps: two taps on each head (the rifle is 585 rpm: 3.1 frames apart). Early on purpose: the film shrinks the picture into a window at 2.5 s, so the earlier the last kill, the longer its finisher is seen full screen
 const CLIPS = [
   // the opening: walk out of spawn, two taps to one head, flick, two taps to the next (hip fire:
   // aiming down sights puts the rifle's front sight over the target's head in this game; at 6-7 m the
   // hip spread, 0.018 rad, still keeps a first shot inside the 0.17 m head sphere).
   // The other three enemies are taken out by teammates before the clip starts, so the second kill
-  // ends the round and the Champions skin plays its finisher over where that enemy fell.
-  { name: "open", map: "glacier", agent: "hwaryeong", fps: 30, seconds: 5, mode: "round", gun: "scout", skin: { scout: "champions_atk" },
+  // ends the round and the rifle's Phoenix skin (legendary) plays its own finisher, a firebird's wings,
+  // over where that enemy fell. Not the Champions Phantom: the owner asked for the film to show another gun.
+  { name: "open", map: "glacier", agent: "hwaryeong", fps: 30, seconds: 5, mode: "round", gun: "rifle", skin: { rifle: "phoenix" },
     // spawn points are picked at random each round: start from one of glacier's (probed, open ahead).
     // The player stops walking at 0.25 s and is standing still by the first shot (the spread grows with
     // speed: 0.34 × m/s); the foes are about 6 m away, where the hip spread (±0.018 rad) stays inside the head.
@@ -90,6 +91,10 @@ function removeClock() {
   const h = harness({ now: Date.now() }), errors = [], log = { capturedAt: new Date().toISOString(), clips: [] };
   const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || "/opt/pw-browsers/chromium", headless: true, args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const ctx = await browser.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", serviceWorkers: "block", viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1.2 });
+  // three.js and PeerJS come from CDNs that are not reachable from every machine this runs on: the same
+  // versions from node_modules (as scripts/browser-fixture.js does for the tests)
+  await ctx.route("https://cdnjs.cloudflare.com/ajax/libs/three.js/**", (route) => route.fulfill({ path: path.join(path.dirname(require.resolve("three")), "three.min.js"), contentType: "text/javascript" }));
+  await ctx.route("**/peerjs.min.js", (route) => route.fulfill({ path: path.join(path.dirname(require.resolve("peerjs")), "peerjs.min.js"), contentType: "text/javascript" }));
   await ctx.route("**/api/v1?*", async (route) => {
     const result = await h.api(new URL(route.request().url()).searchParams.get("a"), route.request().postDataJSON() || {});
     await route.fulfill({ status: result.status, contentType: "application/json", body: JSON.stringify(result) });

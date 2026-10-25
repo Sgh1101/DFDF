@@ -39,12 +39,12 @@
       skinKintsugi: "screens/14-skin-kintsugi.png",
       skinSynth: "screens/14-skin-synth.png",
       skinPrism: "screens/14-skin-prism.png",
-      skinChampion: "screens/14-skin-champion.png",
+      skinOpal: "screens/14-skin-opal.png",
     },
     screenPx: [2000, 1125],
     // Frame sequences: dir/NNN.jpg, played from the shot's start at the clip's own rate.
     clips: {
-      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령, 팬텀에 챔피언스 팬텀·공격(초월): 걸어 나와 멈추고, 한 명의 머리에 두 발, 옆으로 돌려 다음 머리에 두 발 — 헤드샷 두 번, 라운드를 끝낸 처치에 챔피언스 마무리(용·뱀)" },
+      open: { dir: "screens/clips/open", fps: 30, frames: 150, what: "빙하 관측소, 화령, 소총(밴달)에 봉황(전설): 걸어 나와 멈추고, 한 명의 머리에 두 발, 옆으로 돌려 다음 머리에 두 발 — 헤드샷 두 번, 라운드를 끝낸 처치에 봉황 마무리(불새 날개·주황 하늘·빛기둥)" },
       cast: { dir: "screens/clips/cast", fps: 30, frames: 75, what: "네온 정점, 화령, 소총에 심연(전설): Q 불꽃 장막, E 화염탄, 사격" },
       "map-pogu": { dir: "screens/clips/map-pogu", fps: 24, frames: 48, what: "포구, 홈 화면의 공중 카메라" },
       "map-neon": { dir: "screens/clips/map-neon", fps: 24, frames: 48, what: "네온 정점" },
@@ -70,7 +70,7 @@
       { t: 25.0, src: "skinKintsugi" },
       { t: 25.5, src: "skinSynth" },
       { t: 26.0, src: "skinPrism" },
-      { t: 26.5, src: "skinChampion" },
+      { t: 26.5, src: "skinOpal" },
     ],
 
     // The camera inside the window: reach focus (image px) and scale by t0 + d (d 0 = cut).
@@ -156,7 +156,7 @@
     ],
     cues: [
       { t: 0, type: "bed", until: 40 },
-      // the opening clip (frames 24, 28, 40, 44 at 30 fps; re-recorded 2026-10-24, earlier so the Champions finisher's dragon, which rises 2.66 s after the last kill, is on screen before the cut to "13"): two taps to a head, two taps to the next.
+      // the opening clip (frames 24, 28, 40, 44 at 30 fps; re-recorded 2026-10-25 with the rifle in Phoenix instead of the Champions Phantom, same frames, so the finisher has a second full screen before the cut to the window at 2.5 s): two taps to a head, two taps to the next.
       // Each kill plays the game's own ta-DAN, one step up the ladder per kill in the streak
       { t: 0.8, type: "shots", n: 1, why: "tap 1" },
       { t: 0.8, type: "head" },
@@ -168,7 +168,7 @@
       { t: 1.467, type: "shots", n: 1, why: "tap 4" },
       { t: 1.467, type: "head" },
       { t: 1.467, type: "motif", step: 2, why: "headshot kill 2, the round's last" },
-      { t: 1.467, type: "legend", why: "the Champions Phantom finisher (the round's last kill)" },
+      { t: 1.467, type: "legend", why: "the Phoenix skin's legendary finisher (the round's last kill)" },
       { t: 2.5, type: "whoosh", why: "the play shrinks into the browser window" },
       { t: 5.0, type: "thud", why: "13" },
       { t: 7.2, type: "keys", n: 6, every: 0.08 },

@@ -1,133 +1,6 @@
 {
-  "capturedAt": "2026-10-24T07:03:01.729Z",
+  "capturedAt": "2026-10-25T16:07:31.595Z",
   "clips": [
-    {
-      "name": "open",
-      "map": "glacier",
-      "agent": "hwaryeong",
-      "skin": {
-        "scout": "champions_atk"
-      },
-      "fps": 30,
-      "frames": 150,
-      "seconds": 5,
-      "events": [
-        {
-          "frame": 24,
-          "fire": true,
-          "speed": 0.13
-        },
-        {
-          "frame": 24,
-          "hit": "head"
-        },
-        {
-          "frame": 28,
-          "fire": true,
-          "speed": 0.04
-        },
-        {
-          "frame": 28,
-          "kill": "태양",
-          "head": true,
-          "d": 6.34
-        },
-        {
-          "frame": 28,
-          "hit": "head"
-        },
-        {
-          "frame": 40,
-          "fire": true,
-          "speed": 0
-        },
-        {
-          "frame": 40,
-          "hit": "head"
-        },
-        {
-          "frame": 44,
-          "fire": true,
-          "speed": 0
-        },
-        {
-          "frame": 44,
-          "finisher": "champions_atk",
-          "champions": true
-        },
-        {
-          "frame": 44,
-          "finisher": "champions_atk"
-        },
-        {
-          "frame": 44,
-          "kill": "세인",
-          "head": true,
-          "d": 6.52
-        },
-        {
-          "frame": 44,
-          "hit": "head"
-        }
-      ],
-      "staged": {
-        "smokesCleared": 0,
-        "smokesLeft": 0,
-        "at": {
-          "x": -132.545,
-          "z": -6.183,
-          "yaw": -1.5707963267948966
-        },
-        "foes": [
-          {
-            "name": "태양",
-            "hp": 100,
-            "armor": 50,
-            "d": 10.089598604503548,
-            "check": {
-              "free": true,
-              "seen": true,
-              "y": 0
-            }
-          },
-          {
-            "name": "세인",
-            "hp": 100,
-            "armor": 50,
-            "d": 10.408650248711403,
-            "check": {
-              "free": true,
-              "seen": true,
-              "y": 0
-            }
-          }
-        ],
-        "others": [
-          {
-            "name": "은별",
-            "alive": false
-          },
-          {
-            "name": "한결",
-            "alive": false
-          },
-          {
-            "name": "이준",
-            "alive": false
-          }
-        ],
-        "phase": "live",
-        "clock": 91.49906666666679
-      },
-      "skinSet": [
-        [
-          "scout",
-          "champions_atk",
-          true
-        ]
-      ],
-      "took": 712.727
-    },
     {
       "name": "cast",
       "map": "neon",
@@ -228,6 +101,128 @@
       "frames": 48,
       "seconds": 2,
       "took": 108.445
+    },
+    {
+      "name": "open",
+      "map": "glacier",
+      "agent": "hwaryeong",
+      "skin": {
+        "rifle": "phoenix"
+      },
+      "fps": 30,
+      "frames": 150,
+      "seconds": 5,
+      "events": [
+        {
+          "frame": 24,
+          "fire": true,
+          "speed": 0.13
+        },
+        {
+          "frame": 24,
+          "hit": "head"
+        },
+        {
+          "frame": 28,
+          "fire": true,
+          "speed": 0.04
+        },
+        {
+          "frame": 28,
+          "kill": "태양",
+          "head": true,
+          "d": 6.34
+        },
+        {
+          "frame": 28,
+          "hit": "head"
+        },
+        {
+          "frame": 40,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 40,
+          "hit": "head"
+        },
+        {
+          "frame": 44,
+          "fire": true,
+          "speed": 0
+        },
+        {
+          "frame": 44,
+          "finisher": "phoenix"
+        },
+        {
+          "frame": 44,
+          "kill": "세인",
+          "head": true,
+          "d": 6.52
+        },
+        {
+          "frame": 44,
+          "hit": "head"
+        }
+      ],
+      "staged": {
+        "smokesCleared": 0,
+        "smokesLeft": 0,
+        "at": {
+          "x": -132.545,
+          "z": -6.183,
+          "yaw": -1.5707963267948966
+        },
+        "foes": [
+          {
+            "name": "태양",
+            "hp": 100,
+            "armor": 50,
+            "d": 10.089598604503548,
+            "check": {
+              "free": true,
+              "seen": true,
+              "y": 0
+            }
+          },
+          {
+            "name": "세인",
+            "hp": 100,
+            "armor": 50,
+            "d": 10.408650248711403,
+            "check": {
+              "free": true,
+              "seen": true,
+              "y": 0
+            }
+          }
+        ],
+        "others": [
+          {
+            "name": "은별",
+            "alive": false
+          },
+          {
+            "name": "한결",
+            "alive": false
+          },
+          {
+            "name": "이준",
+            "alive": false
+          }
+        ],
+        "phase": "live",
+        "clock": 91.51216666666677
+      },
+      "skinSet": [
+        [
+          "rifle",
+          "phoenix",
+          true
+        ]
+      ],
+      "took": 524.528
     }
   ],
   "championsGrant": [
