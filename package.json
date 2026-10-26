@@ -40,6 +40,7 @@
     "test:name-safety": "node scripts/browser-name-safety.js",
     "test:peer-throttle": "node scripts/browser-peer-throttle.js",
     "test:guest-messages": "node scripts/browser-guest-messages.js",
+    "test:cheat-hunt": "node scripts/browser-cheat-hunt.js",
     "test:ranked": "node scripts/browser-ranked.js",
     "test:ranked-flow": "node scripts/browser-ranked-flow.js",
     "test:bot-skill": "node scripts/browser-bot-skill.js",
