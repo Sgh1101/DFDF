@@ -94,6 +94,7 @@
     "test:buildings": "node scripts/browser-buildings.js",
     "test:chest": "node scripts/browser-chest.js",
     "test:operator": "node scripts/browser-operator.js",
+    "test:owner-state": "node scripts/browser-owner-state.js",
     "test:crouch": "node scripts/browser-crouch.js",
     "test:agentswitch": "node scripts/browser-agent-switch.js",
     "test:raycast": "node scripts/browser-raycast.js",

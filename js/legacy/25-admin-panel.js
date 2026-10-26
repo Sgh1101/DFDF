@@ -22,6 +22,8 @@
   try {
     Object.assign(G, JSON.parse(localStorage.getItem("lgp_gadm") || "{}"));
   } catch (e) {}
+  // the room-wide settings are kept between visits, but unlimited abilities start off like every other switch
+  G.infAll = !1;
   const saveG = () => {
     try {
       localStorage.setItem("lgp_gadm", JSON.stringify(G));

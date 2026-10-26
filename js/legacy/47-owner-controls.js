@@ -317,6 +317,21 @@
     );
   }
   const cheatShown = new Set(); // a guest owner's view of who it gave cheats to
+  // what the owner did to a player belongs to that match: the next one builds new actors with the same numbers,
+  // and none of them may come out unkillable or pinned
+  const forgetPlayers = () => (OWN.god.clear(), OWN.bind.clear(), cheatShown.clear());
+  const _ls = lobbyStart;
+  lobbyStart = function () {
+    forgetPlayers();
+    return _ls.apply(this, arguments);
+  };
+  if ("function" == typeof clientBeginMatch) {
+    const _cb = clientBeginMatch;
+    clientBeginMatch = function () {
+      forgetPlayers();
+      return _cb.apply(this, arguments);
+    };
+  }
   function renderPlayers(full) {
     const grid = $("ad-grid"),
       tg = $("ad-toggles"),
