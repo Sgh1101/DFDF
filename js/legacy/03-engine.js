@@ -17381,7 +17381,7 @@ function aiUseSkill(e, t) {
   const i = CAST_REFUND;
   return (
     (CAST_REFUND = !1),
-    r.def.ult ? (e.ultCharge = 0) : i || r.charges--,
+    r.def.ult ? i || (e.ultCharge = 0) : i || r.charges--,
     (r.cd = i ? 3 : r.def.cd || rnd(10, 20)),
     (o.skill.cd = rnd(8, 18)),
     !0
