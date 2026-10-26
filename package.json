@@ -109,7 +109,8 @@
     "check:assets": "node scripts/check-assets.js",
     "test:pwa": "node scripts/browser-pwa.js",
     "test:ability-floors": "node scripts/browser-ability-floors.js",
-    "test:zone-owner": "node scripts/browser-zone-owner.js"
+    "test:zone-owner": "node scripts/browser-zone-owner.js",
+    "test:spike-fuse": "node scripts/browser-spike-fuse.js"
   },
   "devDependencies": {
     "peer": "1.0.2",

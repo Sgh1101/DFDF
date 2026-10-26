@@ -15347,6 +15347,8 @@ function handleSpike(e) {
   if ("planted" === t.state) {
     if (o && !world.over) {
       t.timer -= e;
+      // the fuse runs out whatever a defender is doing
+      if (t.timer <= 0) return void detonate();
       const o =
         t.timer > 25 ? 1 : t.timer > 12 ? 0.55 : t.timer > 5 ? 0.3 : 0.16;
       ((t.beepT -= e),
