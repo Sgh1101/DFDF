@@ -251,6 +251,22 @@ test("a report cannot invent humans or a win; a replay, a ticket of another matc
   assert.equal(pr.rankedCounted, false); assert.equal(h.user("dave1").rr, 300);
 });
 
+test("only a new match ticket uses up the match-start limit", async () => {
+  const h = harness(), tok = await squad(h, ["player", "bobby", "carol"]);
+  // asking for a ranked ticket before the host has opened the match (the client asks a few times) uses none of it
+  assert.equal((await h.api("room_up", { token: tok.player, code: "RNK001", ranked: true, players: ["player", "bobby", "carol"] })).status, 200);
+  for (let i = 0; i < 15; i++) assert.equal((await h.api("match_start", { token: tok.bobby, ranked: true, room: "RNK001" })).status, 409, "ask " + i);
+  // nor does the same ranked ticket asked again
+  const m = await rankedOpen(h, tok, ["player"], ["bobby", "carol"]);
+  for (let i = 0; i < 15; i++) {
+    const r = await h.api("match_start", { token: tok.bobby, ranked: true, room: "RNK001" });
+    assert.equal(r.status, 200, "ask again " + i); assert.equal(r.ticket, m.mt.bobby);
+  }
+  // every new ticket counts: eleven more plain ones, then the limit
+  for (let i = 0; i < 11; i++) assert.equal((await h.api("match_start", { token: tok.bobby })).status, 200, "plain " + i);
+  assert.equal((await h.api("match_start", { token: tok.bobby })).status, 429);
+});
+
 test("a disputed result (the winners say otherwise, or the losers with nobody but the host behind the result), a draw, and a host who never reports", async () => {
   const h = harness(), ids = ["player", "bobby", "carol", "dave1", "erin1", "frank"], tok = await squad(h, ids);
   await setRR(h, ids, 300);

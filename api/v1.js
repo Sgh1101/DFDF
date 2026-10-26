@@ -1583,7 +1583,6 @@ const MATCH_MIN_MS = 60 * 1000, // shortest match that earns kill/win rewards
 A.match_start = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  if (await limited("mstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
   // a ranked match: only from an account in the roster the host attested (ranked_start) for
   // this room. One ticket per account per match: asking again hands back the same one.
   let ranked = 0, m = "", n = crypto.randomBytes(12).toString("hex"), t0 = now(), fresh = !0;
@@ -1597,8 +1596,13 @@ A.match_start = async (q, b) => {
     if (!rec.a.includes(u.id) && !rec.b.includes(u.id)) throw fail(403, "이 랭크전의 참가자가 아닙니다");
     ranked = 1;
     t0 = rec.t0;
-    if ((await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", "14400"])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
+    const had = await redis(["GET", "rmt:" + m + ":" + u.id]);
+    had && ((n = had), (fresh = !1));
   }
+  // only a new ticket counts towards the limit: a refused ask (the client asks a few times before the
+  // host has opened a ranked match) or the same ranked ticket asked again does not use it up
+  if (fresh && (await limited("mstart:" + u.id, 12, 600))) throw fail(429, "너무 자주 보냈습니다");
+  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", "14400"])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
   fresh && (await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]));
   return { ticket: sign(Object.assign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }, m ? { m } : {})), ranked: !!ranked };
 };
