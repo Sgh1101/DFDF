@@ -103,3 +103,14 @@ test("actorId is honoured only for the peer's own previous body", () => {
   const other = c.joinInProgress("third", "t", mine.id, "old");
   assert.ok(other);
 });
+
+test("an object name or a bad lobby move throws nothing and changes nothing", () => {
+  const c = setup();
+  assert.equal(c.cleanPeerName({ toString: 1 }), "플레이어");
+  assert.equal(c.cleanPeerName(["a", { toString: 1 }]), "플레이어");
+  c.lobbyAdd("p1", "a");
+  const seat = JSON.stringify(c.room.slots);
+  for (const [team, slot] of [[null, null], ["x", 0], ["__proto__", 0], ["constructor", "name"], [["atk"], 1], ["atk", "1"], ["atk", 1.5], ["atk", -1], ["def", 99]]) assert.equal(c.lobbyMove("p1", team, slot), false, JSON.stringify([team, slot]));
+  assert.equal(JSON.stringify(c.room.slots), seat);
+  assert.equal(c.lobbyMove("p1", "def", 2), true);
+});

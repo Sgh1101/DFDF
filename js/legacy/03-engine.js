@@ -16398,7 +16398,7 @@ function gatherInput() {
       ((player.defusing || 0) > 0 && "planted" === e.state)) &&
       (o |= BTN.CROUCH);
   }
-  keys.use && (o |= BTN.USE);
+  (keys.use || keys.f || keys["4"]) && (o |= BTN.USE);
   const a = ("function" == typeof myActor && myActor()) || player;
   return { mv: [e, t], yaw: a.yaw, pitch: a.pitch, btn: o };
 }
@@ -17088,6 +17088,30 @@ function actorSpike(e, t) {
         } else ((e.planting = 0), (e.plantAnchor = null), (e._plantWarned = 0));
       }
     }
+}
+// A guest plants and defuses the way the host's own player does (handleSpike): it holds F or 4 (sent as BTN.USE),
+// still, inside a site / next to the planted spike, and the host counts the time.
+const isGuestBody = (e) => e.alive && "me" !== e.ctrl && "ai" !== e.ctrl && "dead" !== e.ctrl;
+function guestSpike(e, t) {
+  const o = world.spike,
+    hold = !!(e.input && e.input.btn & BTN.USE);
+  if ("live" !== world.phase || world.over) return void ((e.planting = 0), (e.defusing = 0), (e.plantAnchor = null));
+  if ("atk" === e.team) {
+    if ("dropped" === o.state && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2) return void pickupSpike(e);
+    const s = e.hasSpike && "carried" === o.state && hold ? siteAt(e.pos.x, e.pos.z) : null;
+    if (!s) return void ((e.planting = 0), (e.plantAnchor = null));
+    if (!e.plantAnchor) e.plantAnchor = { x: e.pos.x, z: e.pos.z };
+    else if (dist2(e.pos.x, e.pos.z, e.plantAnchor.x, e.plantAnchor.z) > SPIKE.MOVE_CANCEL * SPIKE.MOVE_CANCEL)
+      return void (e.plantAnchor = { x: e.pos.x, z: e.pos.z });
+    e.planting = (e.planting || 0) + t;
+    e.planting >= SPIKE.PLANT && plantSpike(e.pos.x, e.pos.z, s, !1);
+  } else if ("planted" === o.state && hold && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2) {
+    e.defusing > 0 || (e.defusing = o.halfDefused ? SPIKE.HALF : 0);
+    const a = e.defusing;
+    e.defusing += t;
+    a < SPIKE.HALF && e.defusing >= SPIKE.HALF && (o.halfDefused = !0);
+    e.defusing >= SPIKE.DEFUSE && defuseDone("guest");
+  } else e.defusing = 0;
 }
 function actorBusy(e) {
   if (!e.ai) return !1;
@@ -17907,8 +17931,12 @@ function lobbyReset(e, t) {
 // every name that arrives from a peer goes through here before it is stored or
 // broadcast: text only, no markup or control characters, 1-16 characters
 function cleanPeerName(e) {
+  let s = "";
+  try {
+    s = String(null == e ? "" : e);
+  } catch (e) {}
   const t = Array.from(
-    String(null == e ? "" : e).replace(
+    s.replace(
       /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff<>&"'`]/g,
       "",
     ),
@@ -17949,6 +17977,8 @@ function lobbyMove(e, t, o) {
   const a = room.members.get(e);
   return (
     !!a &&
+    ("atk" === t || "def" === t) &&
+    Number.isInteger(o) &&
     !(o < 0 || o >= TEAM_SIZE) &&
     null === room.slots[t][o] &&
     (t !== a.team &&
@@ -18301,6 +18331,7 @@ function netStep(e) {
     } catch (e) {}
     PATH_BUDGET.n = 3;
     for (const t of world.actors) isAI(t) && t.alive && aiThink(t, e);
+    for (const t of world.actors) isGuestBody(t) && guestSpike(t, e);
     if (t && t.alive) {
       const e = gatherInput();
       ((t.input.mv = e.mv), (t.input.btn = e.btn));
@@ -18465,6 +18496,8 @@ function hostHandleBuy(e, t) {
   if (t && "weapon" === t.kind && !Object.keys(WEAPONS).includes(window.VALORANT_DATA ? VALORANT_DATA.canonical(t.key) : t.key)) return;
   o &&
     "buy" === world.phase &&
+    "string" == typeof t.kind &&
+    (null == t.key || "string" == typeof t.key || "number" == typeof t.key) &&
     (applyPurchase(o, t.kind, t.key),
     sendEventTo(e, {
       t: "wallet",
@@ -18756,11 +18789,12 @@ function hostLeftNotice() {
           });
         break;
       }
+      // the lobby is closed once the match runs: a late "move" / "agent" would put the lobby up over every guest
       case "move":
-        lobbyMove(e, t.team, t.slot) && sendEventAll(lobbySnapshot());
+        room.started || (lobbyMove(e, t.team, t.slot) && sendEventAll(lobbySnapshot()));
         break;
       case "agent":
-        lobbyPickAgent(e, t.key) && sendEventAll(lobbySnapshot());
+        room.started || (lobbyPickAgent(e, t.key) && sendEventAll(lobbySnapshot()));
         break;
       case "buy":
         hostHandleBuy(e, t);
