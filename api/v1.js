@@ -384,11 +384,14 @@ const publicUser = (u, per) => {
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
 
+// the request's JSON as an object: a body that is not one ("null", a number, text) reads as empty, so the
+// action answers with its own 400/401 instead of a TypeError (500) on the first field it reads
 async function body(req) {
   if (req.body && "object" == typeof req.body) return req.body;
   if ("string" == typeof req.body) {
     try {
-      return JSON.parse(req.body);
+      const v = JSON.parse(req.body);
+      return v && "object" == typeof v ? v : {};
     } catch (e) {
       return {};
     }
@@ -396,7 +399,8 @@ async function body(req) {
   const chunks = [];
   for await (const c of req) chunks.push(c);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString() || "{}");
+    const v = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+    return v && "object" == typeof v ? v : {};
   } catch (e) {
     return {};
   }
