@@ -251,16 +251,23 @@ test("a report cannot invent humans or a win; a replay, a ticket of another matc
   assert.equal(pr.rankedCounted, false); assert.equal(h.user("dave1").rr, 300);
 });
 
-test("a disputed result (a team's majority says otherwise), a draw, and a host who never reports", async () => {
+test("a disputed result (the winners say otherwise, or the losers with nobody but the host behind the result), a draw, and a host who never reports", async () => {
   const h = harness(), ids = ["player", "bobby", "carol", "dave1", "erin1", "frank"], tok = await squad(h, ids);
   await setRR(h, ids, 300);
-  // the host says team a won; team b (three of them) say they did
+  // the host says team a won; his own teammate says they lost
   const m = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1", "erin1"]);
   await rankedEnd(m, "a");
-  for (const id of ["carol", "dave1"]) assert.equal((await rankedSettle(m, id, { win: true })).status, 409);
-  const ok = await rankedSettle(m, "bobby");
+  assert.equal((await rankedSettle(m, "bobby", { win: false })).status, 409);
+  const ok = await rankedSettle(m, "carol");
   assert.equal(ok.status, 200); assert.equal(ok.rankedCounted, false); assert.equal(ok.rankedWhy, "disputed");
-  assert.equal(h.user("bobby").rr, 300);
+  assert.equal(h.user("carol").rr, 300);
+  // the host, alone on his team, says it won; team b (two of its three) say they did
+  const s = await rankedOpen(h, tok, ["frank"], ["carol", "dave1", "erin1"], { room: "RNK006" });
+  await rankedEnd(s, "a");
+  for (const id of ["carol", "dave1"]) assert.equal((await rankedSettle(s, id, { win: true })).status, 409);
+  const so = await rankedSettle(s, "erin1");
+  assert.equal(so.status, 200); assert.equal(so.rankedCounted, false); assert.equal(so.rankedWhy, "disputed");
+  assert.equal(h.user("erin1").rr, 300);
   // a draw moves nothing
   const d = await rankedOpen(h, tok, ["player", "bobby"], ["carol", "dave1"], { room: "RNK003" });
   await rankedEnd(d, "draw");

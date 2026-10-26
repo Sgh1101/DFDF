@@ -1623,8 +1623,11 @@ async function matchTrust(u, ticket) {
 //  - humans = roster accounts that fetched their ticket (bots never count); fewer than
 //    rank.minHumans, a draw, a match shorter than a minute: played, but no RR;
 //  - a player's own `win`/`outcome` must equal the attested one, else the report is refused
-//    (409) and counts as a dissent; if a strict majority of the non-host players of a team
-//    (those that took a ticket) dissent, the match is disputed and nobody settled afterwards gets RR;
+//    (409) and counts as a dissent. The match is disputed, and nobody settled afterwards gets RR,
+//    when a strict majority of the winning team's non-host players (those that took a ticket)
+//    dissent, or when a strict majority of the losing team's do and no non-host winner confirms
+//    the result: a loser saying he won is what a sore loser says too, so it only counts when
+//    nobody but the host stands by the result;
 //  - nobody is credited before every ticketed non-host player has voted, or RANKED_GRACE_MS
 //    has passed since the host's result (progress answers 425 meanwhile, without using up its
 //    rate limit); a report with giveUp settles with the votes cast so far;
@@ -1633,7 +1636,8 @@ async function matchTrust(u, ticket) {
 //  - kills for the bonus are the host's count, lowered to the player's own if he reports fewer;
 //  - an account settles a match once (its ticket is one per match, and the match id is kept
 //    on the account); the daily RR cap still applies.
-// Known limit: a host with accounts of his own can still lie about a match nobody else disputes.
+// Known limit: a host with accounts of his own can still lie about a match: one of them on his
+// team standing by the result outweighs the other team saying it won.
 const RESULT_TTL = 14400,
   // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
   RANKED_GRACE_MS = 60 * 1000;
@@ -1663,18 +1667,19 @@ async function rankedVerdict(u, trust, b) {
   }
   const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
-  // dissent: more than half of a team's ticketed non-host players said "0"
-  const dissent = (list) => {
-    const voters = list.filter((id) => id !== rec.host && ticketed.has(id));
-    return voters.filter((id) => votes.get(id) === "0").length * 2 > voters.length;
-  };
+  // dissent: more than half of a team's ticketed non-host players said "0"; confirmed: one of them said "1"
+  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id));
+  const dissent = (list) => voters(list).filter((id) => votes.get(id) === "0").length * 2 > voters(list).length;
+  const confirmed = (list) => voters(list).some((id) => votes.get(id) === "1");
   // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
   const mean = (list) => {
     const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
     return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
   };
   const avgA = mean(rec.a) ?? mean(rec.b) ?? rec.avgA, avgB = mean(rec.b) ?? mean(rec.a) ?? rec.avgB;
-  const disputed = dissent(rec.a) || dissent(rec.b);
+  const won = "b" === res.w ? rec.b : rec.a,
+    lost = "b" === res.w ? rec.a : rec.b;
+  const disputed = dissent(won) || (dissent(lost) && !confirmed(won));
   return {
     attested: !0,
     outcome,
