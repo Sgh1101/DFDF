@@ -1,11 +1,33 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// Menus around the settings: the English page has no Korean left in the graphics presets, the motion level, the controls hint and the equipment shop (agent, weapon and
+// Menus around the settings: every toggle and slider in the settings has a name and state a screen reader can read, and the English page has no
+// Korean left in the graphics presets, the motion level, the controls hint and the equipment shop (agent, weapon and
 // skin names stay as they are). All failures are listed together.
 const HANGUL = /[가-힣]/, bad = [];
 const check = (ok, message) => { if (!ok) bad.push(message); };
+const boot = (page) => page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading, null, { timeout: 120000 });
 (async () => {
   const f = await fixture();
   try {
+    // ── Korean page: the names of the settings controls ──
+    const ko = await f.page("menusko", { width: 1280, height: 720 }, {}, { bootTimeout: 120000 });
+    await ko.click("#go-set");
+    const names = await ko.evaluate(() => {
+      const name = (e) => {
+        const label = e.getAttribute("aria-label"), by = (e.getAttribute("aria-labelledby") || "").split(/\s+/).map((id) => (document.getElementById(id) || {}).textContent || "").join(" ").trim();
+        return (label || by || (e.innerText || "").trim()).trim();
+      };
+      return [...document.querySelectorAll("#pause .pz-sw, #pause input[type=range]")].map((e) => ({ id: e.id || e.className, switchRole: e.getAttribute("role"), name: name(e), checked: e.getAttribute("aria-checked"), on: e.classList.contains("on"), range: e.type === "range" }));
+    });
+    check(names.length >= 10, "setup: the settings have toggles and sliders (" + names.length + ")");
+    for (const n of names) {
+      check(n.name.length > 0, "settings control " + n.id + " has an accessible name");
+      if (!n.range) { check(n.switchRole === "switch", "settings toggle " + n.id + " has role=switch (" + n.switchRole + ")"); check(n.checked === String(n.on), "settings toggle " + n.id + " says whether it is on (aria-checked " + n.checked + ", on " + n.on + ")"); }
+    }
+    await ko.click('#pause .pz-tabs button[data-tab=gfx]');
+    await ko.click("#st-fps");
+    check(await ko.evaluate(() => document.getElementById("st-fps").getAttribute("aria-checked") === String(document.getElementById("st-fps").classList.contains("on"))), "a toggle's aria-checked follows a click");
+    await ko.context().close();
+
     // ── English page ──
     const en = await f.page("menusen", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, beforeLoad: (p) => p.addInitScript(() => { try { localStorage.setItem("lgp_lang", "en"); } catch (e) {} }) });
     const left = (selector) => en.evaluate(([s]) => [...document.querySelectorAll(s)].map((e) => e.textContent.trim()).filter((t) => /[가-힣]/.test(t)), [selector]);
