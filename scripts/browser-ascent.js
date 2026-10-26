@@ -84,6 +84,20 @@ const {fixture}=require('./browser-fixture');
    return{moved,total:world.actors.filter(isAI).length};
   });
   console.log('bots',bots);assert.ok(bots.moved>=4,'multiple bots follow imported terrain paths');
+  // A bot's spot on a site lies up to 6 m off the centre. One off the street network (a roof, a ledge, a shut
+  // yard) had no route at all and the bot stood still the whole round; it now heads for the nearest street cell.
+  const spots=await page.evaluate(()=>{
+   const N=ASCENT_TRIAL.nav,C=GRID.cols,from=MAP.defendSpawn,home=N.component[gz(from.z)*C+gx(from.x)],out=[],seen=new Set();
+   for(const s of MAP.sites)for(let dz=-6;dz<=6;dz+=.5)for(let dx=-6;dx<=6;dx+=.5){
+    const x=s.x+dx,z=s.z+dz,i=gz(z)*C+gx(x);
+    if(!GRID.walk[i]||N.component[i]===home||seen.has(i)||out.length>=16)continue;seen.add(i);
+    const p=findPath(from.x,from.z,x,z),e=p[p.length-1];out.push({x,z,n:p.length,gap:e?Math.hypot(e.x-x,e.z-z):null});
+   }
+   return out;
+  });
+  console.log('site spots off the street network',spots.length,JSON.stringify(spots.slice(0,3)));
+  assert.ok(spots.length>0,'some spots on the sites lie off the street network');
+  for(const s of spots)assert.ok(s.n>0&&s.gap<8,'a way to near a site spot off the street network: '+JSON.stringify(s));
   await page.evaluate(()=>{world.phase='buy';world.roundTime=999;ADMIN.freezeAI=true;const a=myActor();a.yaw=Math.PI;a.pitch=.03;followCamera(a,.1);renderer.render(scene,camera);});
   await page.screenshot({path:'test-results/ascent-play.png'});
   const cleanup=await page.evaluate(()=>{

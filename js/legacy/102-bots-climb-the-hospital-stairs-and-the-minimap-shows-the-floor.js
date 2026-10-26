@@ -1,8 +1,9 @@
 (() => {
   // The hospital has three floors but the engine's bots only knew the ground one: their path grid is
   // flat and they steer by what is taller than their feet, which reads a stair as a wall. Three things:
-  //  · a path over the floor plan itself (cells, wall edges, the four stairs as links), used whenever a
-  //    bot or its goal is above the ground; on the ground the engine's own paths are kept;
+  //  · a path over the floor plan itself (cells, wall edges, the four stairs as links), used on every floor:
+  //    the engine's grid tests the centre of each 2.5 m cell and the hospital's walls run along the cell
+  //    edges, so on the ground floor that grid saw no walls at all and walked the bots into them;
   //  · some bots take a post on the ring round the atrium or on the bridge, and hold it;
   //  · the two maps (the corner minimap and the round tactical one) draw the floor you stand on (they drew
   //    every wall and slab of every floor on top of each other), and the minimap names the floor and the room.
@@ -256,7 +257,6 @@
     const ai = e.ai;
     if (!on() || !ai) return _nav.apply(this, arguments);
     const gl = goalLv(ai, tx, tz);
-    if (!ai._hp && 0 === lvOf(e.y || 0) && 0 === gl) return _nav.apply(this, arguments);
     let h = ai._hp;
     h && (h.cd -= dt);
     if (!h || h.gl !== gl || Math.hypot(h.gx - tx, h.gz - tz) > 6 || h.cd <= 0) {
@@ -275,11 +275,8 @@
     }
     if (h.i >= w.length) {
       h.stair = false;
-      // home on the ground again: the engine's paths take over
-      if (0 === gl && 0 === lvOf(e.y || 0)) {
-        ai._hp = null;
-        return _nav.apply(this, arguments);
-      }
+      // no way over the plan at all, on the ground: the engine's grid may still know one
+      if (!w.length && 0 === gl && 0 === lvOf(e.y || 0)) return _nav.apply(this, arguments);
       return { x: tx, z: tz };
     }
     h.stair = !!w[h.i].st;

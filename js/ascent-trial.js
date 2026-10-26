@@ -227,11 +227,21 @@
       if(best)Object.assign(p,best);
     }
   }
+  // the cell of component id nearest grid cell (cx, cz), ring by ring out to 48 cells; -1 if none
+  function nearestOn(id,cx,cz) {
+    for(let r=1;r<=48;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx+=Math.abs(dz)===r?1:2*r) {
+      const x=cx+dx,z=cz+dz;if(x>=0&&z>=0&&x<GRID.cols&&z<GRID.rows&&S.nav.component[z*GRID.cols+x]===id)return z*GRID.cols+x;
+    }
+    return -1;
+  }
   const oldFind=findPath;
   findPath=function(x,z,X,Z) {
     if(!on())return oldFind.apply(this,arguments);
-    const [sx,sz]=nearestWalkable(gx(x),gz(z)),[ex,ez]=nearestWalkable(gx(X),gz(Z)),begin=sz*GRID.cols+sx,end=ez*GRID.cols+ex;
+    const [sx,sz]=nearestWalkable(gx(x),gz(z)),[ex,ez]=nearestWalkable(gx(X),gz(Z)),begin=sz*GRID.cols+sx;let end=ez*GRID.cols+ex;
     if(!GRID.walk[begin]||!GRID.walk[end])return [];
+    // A goal off the bot's own street network (a roof, a ledge, a shut yard: a bot's spot on a site is up to 6 m off
+    // its centre) has no way to it, and the bot stood still: the nearest cell of that network instead.
+    if(S.nav&&S.nav.component[end]!==S.nav.component[begin]&&(end=nearestOn(S.nav.component[begin],ex,ez))<0)return [];
     if(!flows.has(end)){
       const q=[end],next=new Int32Array(GRID.walk.length);next.fill(-1);next[end]=end;
       for(let head=0;head<q.length;head++) {

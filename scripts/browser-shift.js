@@ -39,8 +39,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const mode = NET.mode; NET.mode = "client"; NET.onEvent({ t: "shift", p: 1, n: 12 }); out.guest = { p: S.p, t: Math.round(S.t) }; NET.mode = mode;
       // the hud
       out.hud = !!document.getElementById("shift-hud");
+      // left in the middle of a live round (the pause menu's 나가기): the count goes, on the title and on the next map
+      const el = document.getElementById("shift-hud");
+      world.phase = "live"; netStep(0.016); out.count = { live: getComputedStyle(el).display };
+      document.getElementById("pz-quit").click(); out.count.title = getComputedStyle(el).display;
       // another map takes the barriers away
       room.map = "glacier"; startGame(AGENTS[0], false); closeShop();
+      world.phase = "live"; netStep(0.016); out.count.next = getComputedStyle(el).display;
       out.gone = { key: CUR_MAP_KEY, walls: S.walls.length, meshes: S.meshes.length };
       return out;
       function PHASE_S_FOR_TEST(S) { return S.PHASE_S; }
@@ -49,8 +54,9 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(r.key, "shift"); assert.equal(r.walls, 8); assert.equal(r.listed, true); assert.equal(r.size, 3); assert.equal(r.cat, "small");
     for (const p of r.phases) { assert.deepEqual(p.unreachable, [], "phase " + p.p + " reaches everything"); assert.ok(p.up >= 5 && p.up <= 6, "two of three sets stand in phase " + p.p); }
     assert.deepEqual(r.clock.phases, [0, 1, 2, 3]); assert.equal(r.clock.at3, 1); assert.equal(r.warn, true); assert.equal(r.afterRound, 0); assert.deepEqual(r.guest, { p: 1, t: 10 }); assert.equal(r.hud, true);
+    assert.deepEqual(r.count, { live: "block", title: "none", next: "none" }, "the count leaves with the round");
     assert.deepEqual(r.gone, { key: "glacier", walls: 0, meshes: 0 });
     assert.deepEqual(f.errors, []);
-    console.log("shift arena: plan, reachability in every phase, clock, warning, round reset, guest sync and clean-up passed");
+    console.log("shift arena: plan, reachability in every phase, clock, warning, round reset, guest sync, the count gone after leaving, and clean-up passed");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
