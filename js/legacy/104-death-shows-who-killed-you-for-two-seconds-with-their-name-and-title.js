@@ -43,6 +43,9 @@
     if (!a) return null;
     if (a.__ttl && titleItem(a.__ttl)) return titleItem(a.__ttl);
     if ("me" === a.ctrl) return titleItem(ownTitle());
+    // the host: what a guest said in its hello (the guests read it from the actor list, above)
+    const said = "string" == typeof a.ctrl ? TTL.get(a.ctrl) : "";
+    if (said && titleItem(said)) return titleItem(said);
     return "function" == typeof isAI && isAI(a) ? botTitle(a) : null;
   };
   // a guest says its title; the host puts it in the actor list; the others read it from there

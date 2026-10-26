@@ -70,6 +70,7 @@
     "test:shop": "node scripts/browser-shop.js",
     "test:modes2": "node scripts/browser-modes2.js",
     "test:wish": "node scripts/browser-wish.js",
+    "test:drop-skins": "node scripts/browser-drop-skins.js",
     "test:train": "node scripts/browser-train.js",
     "test:agents4": "node scripts/browser-agents4.js",
     "test:season": "node scripts/browser-season.js",

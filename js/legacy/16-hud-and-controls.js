@@ -270,10 +270,11 @@
     a.slot = "primary";
     a.reloading = 0;
     removeDrop(d);
-    syncDrops();
     try {
       syncActorModel(a);
     } catch (e) {}
+    // after the model: the gun just put down is given its owner's skin there, and the list carries it
+    syncDrops();
     if ("me" === a.ctrl) {
       banner(`${WEAPONS[d.key].name} 획득`, "#ffc849");
       try {

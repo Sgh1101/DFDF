@@ -1849,6 +1849,9 @@
   const PEND = [];
   const noteDrop = (a, key) => {
     if (!a || !key || !WEAPONS[key]) return;
+    // a gun put down where an earlier one lay (a swap made standing still) is not that one: forget its skin
+    DSK.delete(posKey(a.pos.x, a.pos.z));
+    DSA.delete(posKey(a.pos.x, a.pos.z));
     PEND.push({ x: a.pos.x, z: a.pos.z, i: skinOf(a, key).i, a: a.id, t: performance.now() });
     PEND.length > 24 && PEND.shift();
   };
