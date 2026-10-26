@@ -17119,7 +17119,8 @@ function navNext(e, t, o, a) {
     n.losOpen = !a && !segBlocked(e.pos.x, e.pos.z, t, o, 0.8);
   }
   if (n.losOpen) return ((n.path = null), (n.pathIdx = 0), { x: t, z: o });
-  n.repathCd = (n.repathCd2 || 0) - a;
+  // the route is planned again every 1.4-2.6 s (the count never went down, so a bot kept a route from far back)
+  n.repathCd = n.repathCd2 = (n.repathCd2 || 0) - a;
   const r = !n.pathGoal || Math.hypot(n.pathGoal.x - t, n.pathGoal.z - o) > 10;
   if (
     (!n.path || !n.path.length || r || n.repathCd <= 0) &&
@@ -17136,9 +17137,33 @@ function navNext(e, t, o, a) {
       (n.repathCd2 = rnd(1.4, 2.6)));
   if (!n.path.length) return { x: t, z: o };
   let s = n.path[n.pathIdx];
-  for (; s && dist2(e.pos.x, e.pos.z, s.x, s.z) < 30; )
+  // a point within 5.5 m is passed for the next one only when the way to that next one is clear (or the bot is on
+  // the point): past a corner the straight line runs through the wall the route went round, and bots stood against
+  // the wall's end
+  for (
+    ;
+    s &&
+    dist2(e.pos.x, e.pos.z, s.x, s.z) < 30 &&
+    (dist2(e.pos.x, e.pos.z, s.x, s.z) < 2.25 ||
+      wayClear(e, n.path[n.pathIdx + 1] || { x: t, z: o }));
+
+  )
     (n.pathIdx++, (s = n.path[n.pathIdx]));
   return s || ((n.path = null), (n.pathIdx = 0), { x: t, z: o });
+}
+function wayClear(e, t) {
+  const o = Math.max(2, Math.ceil(Math.hypot(t.x - e.pos.x, t.z - e.pos.z)));
+  for (let a = 1; a < o; a++)
+    if (
+      collideXZ(
+        e.pos.x + ((t.x - e.pos.x) * a) / o,
+        e.pos.z + ((t.z - e.pos.z) * a) / o,
+        e.y || 0,
+        0.8,
+      )
+    )
+      return !1;
+  return !0;
 }
 const AVOID_FAN = [
   0, 0.3, -0.3, 0.6, -0.6, 0.95, -0.95, 1.3, -1.3, 1.7, -1.7, 2.1, -2.1, 2.6,

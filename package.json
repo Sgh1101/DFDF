@@ -105,7 +105,8 @@
     "test:improvements": "node scripts/browser-improvements.js",
     "check:assets": "node scripts/check-assets.js",
     "test:pwa": "node scripts/browser-pwa.js",
-    "test:ability-floors": "node scripts/browser-ability-floors.js"
+    "test:ability-floors": "node scripts/browser-ability-floors.js",
+    "test:bot-corners": "node scripts/browser-bot-corners.js"
   },
   "devDependencies": {
     "peer": "1.0.2",
