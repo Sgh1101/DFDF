@@ -16617,7 +16617,9 @@ function actorFire(e) {
         s = n.pos.z - e.pos.z,
         i = Math.hypot(r, s);
       i > o.range ||
+        Math.abs((n.y || 0) - (e.y || 0)) > 2.4 ||
         (r / i) * t + (s / i) * a < 0.55 ||
+        rayBlocked(e.pos.x, actorEye(e), e.pos.z, n.pos.x, n.y + 1, n.pos.z) ||
         (dealDamage(
           n,
           o.dmg * ("function" == typeof isAI && isAI(e) ? 0.5 : 1),
