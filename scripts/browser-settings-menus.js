@@ -63,5 +63,5 @@ const boot = (page) => page.waitForFunction(() => window.GAME_BOOT && !document.
     await en.context().close();
   } finally { await f.browser.close(); }
   assert.equal(bad.length, 0, "\n" + bad.join("\n"));
-  console.log("map tour exit, settings control names and English menus passed");
+  console.log("settings control names and English menus passed");
 })().then(() => process.exit(0), (e) => { console.error(e.message || e); process.exit(1); });
