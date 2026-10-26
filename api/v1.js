@@ -216,8 +216,9 @@ const checkPw = (pw, stored) => {
     b = Buffer.from(h, "hex");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
+const XP_MAX = 1e12; // the most xp an account counts for (levelOf)
 const levelOf = (xp, per) => {
-  xp = Math.max(0, Math.min(1e12, Number.isFinite(+xp) ? +xp : 0));
+  xp = Math.max(0, Math.min(XP_MAX, Number.isFinite(+xp) ? +xp : 0));
   per = Math.max(1, Number.isFinite(+per) ? +per : 100);
   const lv = Math.floor((Math.sqrt(1 + 8 * xp / per) - 1) / 2) + 1;
   return { level: lv, into: xp - per * (lv - 1) * lv / 2, need: per * lv };
@@ -673,6 +674,7 @@ A.auth = async (q, b, req) => {
       await ulog(id, "loginfail", "운영자 계정 비밀번호 틀림", { ip, dev: String(b.device || "").slice(0, 64) });
       throw fail(401, "비밀번호가 틀렸습니다");
     }
+    await redis(["DEL", "rl:adm:" + ip]); // only wrong guesses count against the owner's sign-in
     if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
     ensureWallet(u, c);
     u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
@@ -2033,6 +2035,7 @@ A.admin_login = async (q, b, req) => {
     await log("admin", "관리자 로그인 실패", { ip });
     throw fail(401, "비밀번호가 틀렸습니다");
   }
+  await redis(["DEL", "rl:adm:" + ip]); // only wrong guesses count against the owner's sign-in
   await log("admin", "관리자 로그인", { ip });
   return { token: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }) };
 };
@@ -2184,12 +2187,12 @@ ADMIN.user_set = async (q, b) => {
       adminCheats(u);
       break;
     case "xp":
-      u.xp = Math.max(0, b.xp | 0);
+      u.xp = Math.max(0, Math.min(XP_MAX, Math.round(+b.xp || 0)));
       break;
     case "level": {
-      let xp = 0;
-      for (let l = 1; l < Math.max(1, b.level | 0); l++) xp += c.xp.perLevel * l;
-      u.xp = xp;
+      // the xp that starts level L is perLevel * (1 + 2 + ... + (L - 1)); a typo like 99999999 must not loop that long
+      const lv = Math.max(1, Math.min(1e6, Math.floor(+b.level || 1)));
+      u.xp = Math.min(XP_MAX, (c.xp.perLevel * lv * (lv - 1)) / 2);
       break;
     }
     case "password":
