@@ -55,3 +55,16 @@ test("a paid order opened during admin mode is the account's own cheat: it stays
   assert.equal((await h.api("a_order_set", { atoken: A2, id: ord.order.id, op: "revoke", reason: "t" })).status, 200);
   assert.equal(await seenByHost(h, p.token), null);
 });
+
+test("cheats the owner page sets during admin mode are the account's own: they stay when admin mode ends", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h, "bobby");
+  const A = owner.atoken;
+  await h.api("a_user_set", { atoken: A, id: "bobby", op: "admin", days: 1 });
+  await h.api("a_user_set", { atoken: A, id: "bobby", op: "perm", perm: { on: true, wall: true }, days: 20 });
+  assert.equal((await seenByHost(h, p.token)).god, true, "still the full set while admin");
+  h.advance(2 * DAY);
+  const perm = await seenByHost(h, p.token);
+  assert.equal(perm.wall, true);
+  assert.equal(perm.god, false);
+  assert.ok(Math.abs(perm.until - (h.now() - 2 * DAY + 20 * DAY)) < 5000);
+});
