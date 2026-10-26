@@ -43,6 +43,7 @@
     "test:cheat-hunt": "node scripts/browser-cheat-hunt.js",
     "test:ranked": "node scripts/browser-ranked.js",
     "test:ranked-flow": "node scripts/browser-ranked-flow.js",
+    "test:reward-notice": "node scripts/browser-reward-notice.js",
     "test:bot-skill": "node scripts/browser-bot-skill.js",
     "test:verified-levels": "node scripts/browser-bot-skill.js",
     "test:shift": "node scripts/browser-shift.js",

@@ -37,9 +37,10 @@ const settleAll = async (m, ids) => {
 const WAIT = "다른 플레이어의 결과 확인을 기다리는 중입니다";
 
 test("the host reports first: 425 until the others have voted, then a dissenting majority leaves the host uncounted", async () => {
-  const ids = ["player", "bobby", "carol", "dave1", "erin1"], h = harness(), tok = await squad(h, ids);
+  const ids = ["player", "carol", "dave1", "erin1"], h = harness(), tok = await squad(h, ids);
   await setRR(h, ids, 300);
-  const m = await open(h, tok, ["player", "bobby"], ["carol", "dave1", "erin1"]);
+  // nobody but the host on his team: his word against team b's
+  const m = await open(h, tok, ["player"], ["carol", "dave1", "erin1"]);
   await finish(m, "a");
   // the host (a) says a won and asks to settle at once: nothing is credited, and he is told to wait
   const first = await settle(m, "player");
@@ -49,14 +50,12 @@ test("the host reports first: 425 until the others have voted, then a dissenting
   // team b (two of its three) report the truth about their match: it is not what the host said
   for (const id of ["carol", "dave1"]) assert.equal((await settle(m, id, { win: true })).status, 409);
   // one voter left; whoever asks now gets the same answer, the host included
-  assert.equal((await settle(m, "bobby")).status, 425);
+  assert.equal((await settle(m, "player")).status, 425);
   const e = await settle(m, "erin1");
   assert.equal(e.status, 200); assert.equal(e.rankedCounted, false); assert.equal(e.rankedWhy, "disputed");
-  for (const id of ["player", "bobby"]) {
-    const r = await settle(m, id);
-    assert.equal(r.status, 200, id); assert.equal(r.rankedCounted, false, id); assert.equal(r.rankedWhy, "disputed", id);
-    assert.equal(h.user(id).rr, 300, id + " keeps his RR");
-  }
+  const r = await settle(m, "player");
+  assert.equal(r.status, 200); assert.equal(r.rankedCounted, false); assert.equal(r.rankedWhy, "disputed");
+  assert.equal(h.user("player").rr, 300, "the host keeps his RR");
 });
 
 test("everybody agrees: all are counted, with the same decision, whoever asks first", async () => {
@@ -143,17 +142,29 @@ test("a team average counts the accounts that took a ticket, not the ones the ho
   for (const id of ["player", "bobby", "erin1"]) { assert.equal(o2[id].status, 200, id); assert.equal(o2[id].rankedCounted, true, id); assert.equal(o2[id].rr, 20, id); }
 });
 
-test("ghosts listed on a team cannot dilute its dissent", async () => {
+test("one loser saying he won does not void a match the other winners stand by", async () => {
   const ids = ["player", "bobby", "carol", "dave1", "erin1", "frank"], h = harness(), tok = await squad(h, ids);
   await setRR(h, ids, 300);
-  // carol is the only real player of team b; the host lists two accounts that never sat in the room next to her
+  // carol is the only real player of team b (the host lists two accounts that never sat in the room next to her)
   const m = await open(h, tok, ["player", "bobby", "erin1"], ["carol", "dave1", "frank"], { skip: ["dave1", "frank"] });
   await finish(m, "a");
   assert.equal((await settle(m, "carol", { win: true })).status, 409);
   const r = await settle(m, "player");
   assert.equal(r.status, 425);
   const rest = await settleAll(m, ["bobby", "erin1", "player"]);
-  for (const id of ["player", "bobby", "erin1"]) { assert.equal(rest[id].status, 200, id); assert.equal(rest[id].rankedCounted, false, id); assert.equal(rest[id].rankedWhy, "disputed", id); }
+  for (const id of ["player", "bobby", "erin1"]) { assert.equal(rest[id].status, 200, id); assert.equal(rest[id].rankedCounted, true, id); assert.ok(h.user(id).rr > 300, id + " gains RR"); }
+});
+
+test("ghosts listed on a team cannot dilute its dissent, nor stand by the host's result", async () => {
+  const ids = ["player", "bobby", "carol", "dave1", "erin1", "frank"], h = harness(), tok = await squad(h, ids);
+  await setRR(h, ids, 300);
+  // the host and carol are the only real players; the host lists two accounts that never sat in the room on each team
+  const m = await open(h, tok, ["player", "bobby", "erin1"], ["carol", "dave1", "frank"], { skip: ["bobby", "erin1", "dave1", "frank"] });
+  await finish(m, "a");
+  assert.equal((await settle(m, "carol", { win: true })).status, 409);
+  const r = await settle(m, "player");
+  assert.equal(r.status, 200); assert.equal(r.rankedCounted, false); assert.equal(r.rankedWhy, "disputed");
+  assert.equal(h.user("player").rr, 300);
 });
 
 // ── client: the host's roster leaves out a name two people in the room share ──
