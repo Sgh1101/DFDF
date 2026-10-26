@@ -5162,6 +5162,8 @@ function makeZone(e, t, o, a, n, r, s) {
     mesh: i,
     owner: "player",
     team: (player && player.team) || "atk",
+    // who laid it: its ticks run long after the cast, when "player" is the human again
+    by: player,
     _ring: d,
     _motes: u,
     _rune: p,
@@ -20505,18 +20507,19 @@ function updateZones(e) {
       continue;
     }
     const a = o.team || "atk",
+      by = o.by || player,
       n = (e) => abilityOnFloor(e, o.y || 0, Math.max(1.5, o.h || 0)) &&
         dist2(e.pos ? e.pos.x : e.x, e.pos ? e.pos.z : e.z, o.x, o.z) <
         o.r * o.r,
       r = abilityOnFloor(player, o.y || 0, Math.max(1.5, o.h || 0)) && dist2(player.pos.x, player.pos.z, o.x, o.z) < o.r * o.r,
       s = player.team !== a;
     (o.dps &&
-      (r && s && damagePlayer(o.dps * e),
+      (r && s && (world.actors && world.actors.indexOf(player) >= 0 ? hurtFighter(player, o.dps * e, !1, by) : damagePlayer(o.dps * e)),
       otherFighters().forEach((t) => {
         t.alive &&
           t.team !== a &&
           n(t) &&
-          hurtFighter(t, o.dps * e, !1, player);
+          hurtFighter(t, o.dps * e, !1, by);
       })),
       o.heal &&
         (r && !s && (player.hp = Math.min(100, player.hp + o.heal * e)),
