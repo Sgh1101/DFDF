@@ -58,6 +58,71 @@
     [/^(.+) · ([A-C]) 사이트$/, "$1 · Site $2"],
     [/^(타격대|감시자|척후대|전략가) · (.+)$/, (m, r, x) => ({ 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" })[r] + " · " + x],
   ];
+  // Labels added after the first pass: the graphics presets and motion levels in the settings, the controls hint of the
+  // HUD, and the equipment shop (js/weapon-shop.js). Weapon, agent and skin names stay as they are.
+  Object.assign(DICT, {
+    "휴대폰": "Phone", "성능": "Performance", "비주얼": "Visual", "최고": "Ultra",
+    "선명한 화면 유지 · 가벼운 맵·재질, 그림자·후처리 끄기": "Sharp picture · light maps and materials, shadows and post-processing off",
+    "프레임 우선 · 해상도 절약, 그림자·후처리 끄기, 가벼운 이펙트": "Frame rate first · saves resolution, shadows and post-processing off, light effects",
+    "선명한 화면 · 상세 총기, 고해상도 그림자, 조명·잔광 켜기": "Sharp picture · detailed guns, high-resolution shadows, lights and glow on",
+    "최대 품질 · 높은 화면 해상도, 정밀 그림자, 풍부한 조명·이펙트": "Best quality · high render resolution, precise shadows, rich lights and effects",
+    "흔들림·번쩍임 없음, 능력 효과만 표시": "No shake or flashes, only ability effects",
+    "멀미가 있거나 화면이 어지러울 때": "If you get motion sick or the screen feels busy",
+    "차분하게": "Calm", "입자와 번쩍임이 크게": "Bigger particles and flashes", "과하게 화려 — 시야를 가릴 수 있음": "Very flashy — can block your view",
+    "앉기 ·": "Crouch ·", "무기 (휠) ·": "Weapons (wheel) ·", "또는": "or",
+    "길게 — 설치 (사이트 안, 멈춘 채로) ·": "Hold — plant (inside a site, standing still) ·", "길게 — 해제": "Hold — defuse",
+    "준비를 마치고": "Get ready for", "다음 라운드로": "the next round", "경기 크레딧": "Match credits",
+    "스킬 & 장비": "Skills & gear", "나이프는 기본 보유": "Knife included", "기본 지급": "Included", "보유 중": "Owned",
+    "보조 무기": "Sidearms", "저격소총": "Sniper rifles", "중화기": "Heavy weapons", "스킬": "Skill", "수류탄": "Grenade",
+    "기본 스킨": "Default skin", "사격 방식": "Fire mode", "로켓": "Rocket", "점사": "Burst", "자동": "Auto", "단발": "Single shot",
+    "연사 속도": "Fire rate", "탄창": "Magazine", "사거리": "Range", "보유": "Owned", "최대": "Max",
+    "타격 부위": "Hit zone", "머리": "Head", "몸통": "Body", "기본 피해": "Base damage", "산탄 1발 기준": "Per pellet",
+    "최대 폭발 피해": "Max blast damage", "발사당 산탄": "Pellets per shot", "기본 피해 · 거리 보정 전": "Base damage · before range falloff",
+    "구매 단계 · 전투를 준비하세요": "Buy phase · get ready to fight", "총 위에 마우스 · 클릭하여 구매": "Hover a gun · click to buy",
+    "구매하면 바로 장착합니다": "Equipped as soon as you buy it", "구매 즉시 보유 장비에 추가됩니다": "Added to your gear as soon as you buy it",
+    "이미 보유한 무기입니다": "You already own this weapon", "최대로 보유하고 있습니다": "You already hold the maximum",
+    "다음 라운드에 구매할 수 있습니다": "You can buy next round", "호스트의 구매 확인을 기다리는 중입니다": "Waiting for the host to confirm the purchase",
+    "구매 결과가 확인되지 않았습니다. 보유 장비와 연결 상태를 확인하세요.": "The purchase could not be confirmed. Check your gear and your connection.",
+    "원본 모델 불러오는 중…": "Loading the original model…", "모델을 불러오지 못했습니다": "Could not load the model",
+    "선택한 장비 정보": "Selected gear details", "선택한 총의 실제 장착 모델": "In-hand model of the selected gun",
+    "받는 피해를 흡수해 생존을 돕습니다. 이미 더 높은 방어구를 보유했다면 추가 구매할 수 없습니다.": "Absorbs incoming damage. You cannot buy it if you already wear better armor.",
+    "G로 핀을 뽑고 발사 버튼으로 던집니다. 최대 2개까지 보유합니다.": "Press G to pull the pin and fire to throw. Hold up to 2.",
+    "라운드에서 사용할 스킬 충전을 추가합니다.": "Adds a charge of this skill for the round.",
+    "전투 상황에 맞춰 사용하는 무기입니다.": "A weapon for the fight at hand.",
+    "가벼운 기본 보조 무기. 빠르게 꺼내 근거리와 중거리에 대응합니다.": "A light starter sidearm. Quick to draw for close and medium range.",
+    "소음기를 장착한 정밀 보조 무기. 조용한 사격과 정확한 조준에 적합합니다.": "A suppressed precision sidearm for quiet, accurate shots.",
+    "한 발의 위력이 높은 보조 무기. 정확히 조준해 강력한 피해를 줍니다.": "A hard-hitting sidearm. Aim carefully for heavy damage.",
+    "짧은 거리에서 여러 산탄을 발사하는 보조 무기. 모퉁이와 좁은 통로에서 유용합니다.": "A sidearm that fires several pellets up close. Good around corners and in tight passages.",
+    "자동 사격이 가능한 보조 무기. 가까운 거리에서 빠르게 연사합니다.": "A full-auto sidearm that sprays fast at close range.",
+    "빠른 연사로 근거리 교전에 대응하는 기관단총입니다.": "A submachine gun for close fights, with a fast fire rate.",
+    "소음기를 갖춘 기관단총. 근거리에서 빠른 연사로 대응합니다.": "A suppressed submachine gun for fast fire up close.",
+    "연속 사격이 가능한 산탄총. 가까운 거리에서 여러 탄환이 한 번에 퍼집니다.": "A full-auto shotgun. Several pellets spread at once at close range.",
+    "여러 산탄을 한 번에 발사하는 단발 산탄총. 가까운 거리의 교전에 적합합니다.": "A single-shot shotgun that fires several pellets at once. Made for close fights.",
+    "정확한 조준과 강한 한 발을 갖춘 자동 소총. 중거리 교전에 적합합니다.": "An automatic rifle with accurate aim and strong shots. Good at medium range.",
+    "빠른 연사와 소음기를 갖춘 자동 소총. 이동 후 짧게 끊어 쏘며 사용합니다.": "A suppressed automatic rifle with a fast fire rate. Fire in short bursts after moving.",
+    "세 발씩 점사하는 소총. 연속 발사 사이에 조준을 가다듬어 사용합니다.": "A rifle that fires three-round bursts. Settle your aim between bursts.",
+    "소음기와 30발 탄창을 갖춘 자동 소총. 사격을 누르고 있으면 계속 연사합니다.": "A suppressed automatic rifle with a 30-round magazine. Hold fire to keep shooting.",
+    "스코프를 갖춘 단발 정찰 소총. 중장거리에서 한 발씩 정밀 사격합니다.": "A scoped single-shot scout rifle. Precise shots at medium to long range.",
+    "짧은 총몸 뒤에 탄창을 배치한 코멧 자동 소총. 30발 탄창과 빠른 연사로 근거리·중거리 교전에 대응합니다.": "The Comet automatic rifle with its magazine behind a short body. A 30-round magazine and fast fire for close and medium fights.",
+    "넉넉한 탄창으로 긴 시간 사격하는 기관총. 진입로와 좁은 구역을 견제합니다.": "A machine gun with a big magazine for long fire. Holds down entrances and tight areas.",
+    "두 발을 빠르게 이어 쏘는 저격소총. 짧은 틈에 집중 사격할 수 있습니다.": "A sniper rifle that fires two quick shots. Focus fire in a short window.",
+    "한 발의 위력이 높은 장거리 저격소총. 조준경을 사용해 멀리 있는 적을 노립니다.": "A hard-hitting long-range sniper rifle. Use the scope to pick off distant enemies.",
+    "폭발 피해를 주는 로켓 발사기. 한 발을 발사한 뒤 재장전해야 합니다.": "A rocket launcher with explosive damage. Reload after every shot.",
+  });
+  PAT.push(
+    [/^(최소|아주 약하게|약하게|보통|강하게|최대) \((\d+)%\)$/, (m, name, n) => ({ 최소: "Minimum", "아주 약하게": "Very low", 약하게: "Low", 보통: "Normal", 강하게: "High", 최대: "Maximum" })[name] + " (" + n + "%)"],
+    [/^총기 (\d+)종 · 칼 별도$/, "$1 guns · knife separate"],
+    [/^([\d,]+) 크레딧$/, "$1 credits"],
+    [/^([\d,]+) 크레딧이 부족합니다$/, "$1 credits short"],
+    [/^구매 · (.+)$/, (m, price) => "Buy · " + (tr(price) || price)],
+    [/^(\d+)\/(\d+) · (.+)$/, (m, a, b, price) => a + "/" + b + " · " + (tr(price) || price)],
+    [/^방어구 (\d+) 제공$/, "Gives $1 armor"],
+    [/^보유 (\d+) \/ (\d+)$/, "Owned $1 / $2"],
+    [/^([\d.]+)발\/초$/, "$1 rounds/s"],
+    [/^(\d+)발$/, "$1 rounds"],
+    [/^(.+) 구매 완료$/, "$1 bought"],
+    [/^(.+) 구매 요청 중…$/, "Buying $1…"]
+  );
   const HANGUL = /[가-힣]/;
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
@@ -79,19 +144,25 @@
       const v = tr(n.nodeValue);
       v && v !== n.nodeValue && (n.nodeValue = v);
     }
-    root.querySelectorAll && root.querySelectorAll("[placeholder],[title]").forEach((e) => ["placeholder", "title"].forEach((a) => { const v = e.getAttribute(a); const t = v && tr(v); t && e.setAttribute(a, t); }));
+    // the added element's own attributes too (a button made with a title), and what a screen reader reads
+    const ATTR = "[placeholder],[title],[aria-label]";
+    root.querySelectorAll && [...(root.matches && root.matches(ATTR) ? [root] : []), ...root.querySelectorAll(ATTR)].forEach((e) => ["placeholder", "title", "aria-label"].forEach((a) => { const v = e.getAttribute(a); const t = v && tr(v); t && e.setAttribute(a, t); }));
   }
   if ("en" === LANG) {
     document.documentElement.lang = "en";
     walk(document.body);
     new MutationObserver((ms) => {
       for (const m of ms) {
-        if ("characterData" === m.type) {
+        if ("attributes" === m.type) {
+          // a title or label set after the element was added (the translated value has no Korean left, so this settles)
+          const v = tr(m.target.getAttribute(m.attributeName) || "");
+          v && m.target.setAttribute(m.attributeName, v);
+        } else if ("characterData" === m.type) {
           const v = tr(m.target.nodeValue);
           v && v !== m.target.nodeValue && (m.target.nodeValue = v);
         } else m.addedNodes.forEach((n) => (3 === n.nodeType ? (() => { const v = tr(n.nodeValue); v && (n.nodeValue = v); })() : 1 === n.nodeType && walk(n)));
       }
-    }).observe(document.body, { childList: !0, subtree: !0, characterData: !0 });
+    }).observe(document.body, { childList: !0, subtree: !0, characterData: !0, attributes: !0, attributeFilter: ["placeholder", "title", "aria-label"] });
   }
   const L = (ko, en) => ("en" === LANG ? en : ko);
 

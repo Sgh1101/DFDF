@@ -114,7 +114,8 @@
     "test:spike-fuse": "node scripts/browser-spike-fuse.js",
     "test:bot-ult-refund": "node scripts/browser-bot-ult-refund.js",
     "test:buy-guard": "node scripts/browser-buy-guard.js",
-    "test:knife-walls": "node scripts/browser-knife-walls.js"
+    "test:knife-walls": "node scripts/browser-knife-walls.js",
+    "test:settings-menus": "node scripts/browser-settings-menus.js"
   },
   "devDependencies": {
     "peer": "1.0.2",
