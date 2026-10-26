@@ -28,6 +28,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         NET.mode = "host"; guest.ctrl = "peer-x"; room.started = false;
         NET.onAction("peer-x", { t: "hello", name: "손님", ttl: "marksman" });
         out.manifestTitle = actorManifest()[world.actors.indexOf(guest)].ttl;
+        out.hostTitle = KILLCAM.titleOf(guest) && KILLCAM.titleOf(guest).id;
         NET.onAction("peer-x", { t: "hello", name: "손님", ttl: "<img src=x onerror=1>" });
         out.manifestBad = actorManifest()[world.actors.indexOf(guest)].ttl || "";
       } finally { NET.mode = mode; guest.ctrl = ctrl; room.started = was; }
@@ -68,6 +69,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(r.badId, "marksman", "a guest's real title is shown");
     assert.equal(r.noBad, null, "an unknown title is not");
     assert.equal(r.manifestTitle, "marksman", "a guest's title is in the actor list");
+    assert.equal(r.hostTitle, "marksman", "and the host sees it on the kill view of that guest too");
     assert.equal(r.manifestBad, "", "a title that is not in the catalogue is dropped");
     assert.equal(r.worldActive, false, "a death with nobody to blame shows no kill view");
     assert.ok(r.spectateT >= 2, "the death view lasts at least as long as the kill view (" + r.spectateT + ")");

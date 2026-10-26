@@ -64,6 +64,26 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(Object.keys(out.themes).length >= 18);
     for (const [k, v] of Object.entries(out.themes)) assert.equal(v, true, k);
     assert.equal(out.roundEnds, true);
+    // leaving for another map while a legendary finisher still runs: the new map keeps its own sky and fog
+    const swap = await page.evaluate(() => {
+      const sky = () => scene.background.getHex(), fog = () => scene.fog.color.getHex(), res = {};
+      const start = (map) => { room.map = map; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; for (let i = 0; i < 3; i++) step(0.05); };
+      start("glacier"); res.want = [sky(), fog()];
+      start("field");
+      const me = myActor(), victim = world.actors.find((a) => a.team !== me.team), base = sky();
+      for (const o of world.actors) if (o.team !== me.team) o.alive = o === victim;
+      victim.hp = 1; victim.armor = victim.shielded = victim.invuln = me.invuln = 0; victim.pos.set(me.pos.x + 6, 0, me.pos.z);
+      me.weapons.primary = "rifle"; me.slot = "primary";
+      DAMAGE_CAUSE.run(DAMAGE_CAUSE.capture(me, "rifle", "gun", world.round, "champion"), () => dealDamage(victim, 999, false, me));
+      for (let i = 0; i < 20; i++) step(0.05);
+      res.tinted = sky() !== base;
+      start("glacier");
+      for (let i = 0; i < 100; i++) step(0.05);
+      res.got = [sky(), fog()];
+      return res;
+    });
+    assert.equal(swap.tinted, true, "the finisher had turned the sky");
+    assert.deepEqual(swap.got, swap.want, "the next map's sky and fog are its own, not the last map's");
     assert.deepEqual(f.errors, []);
     console.log("finisher: a legendary last kill turns the sky and draws its figure with the burst, an Epic one plays the large ring, a Rare one the ordinary ring, the stock skin none; the sky comes back");
   } finally { await f.browser.close(); }

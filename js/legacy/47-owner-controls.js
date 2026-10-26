@@ -142,8 +142,11 @@
   };
   const _shutdownOwner = netShutdown;
   netShutdown = function () {
-    X.OWNP.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0;
-    return _shutdownOwner.apply(this, arguments);
+    X.OWNP.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0; GRANTN.clear();
+    const r = _shutdownOwner.apply(this, arguments);
+    // cheats the owner gave me in that room end with it
+    if (X.HUNT.granted) (X.HUNT.granted = !1), X.relock();
+    return r;
   };
   setInterval(() => {
     for (const [peer, exp] of ownerExpiry) if (Date.now() >= exp) { X.OWNP.delete(peer); ownerExpiry.delete(peer); }
@@ -317,6 +320,21 @@
     );
   }
   const cheatShown = new Set(); // a guest owner's view of who it gave cheats to
+  // what the owner did to a player belongs to that match: the next one builds new actors with the same numbers,
+  // and none of them may come out unkillable or pinned
+  const forgetPlayers = () => (OWN.god.clear(), OWN.bind.clear(), cheatShown.clear());
+  const _ls = lobbyStart;
+  lobbyStart = function () {
+    forgetPlayers();
+    return _ls.apply(this, arguments);
+  };
+  if ("function" == typeof clientBeginMatch) {
+    const _cb = clientBeginMatch;
+    clientBeginMatch = function () {
+      forgetPlayers();
+      return _cb.apply(this, arguments);
+    };
+  }
   function renderPlayers(full) {
     const grid = $("ad-grid"),
       tg = $("ad-toggles"),

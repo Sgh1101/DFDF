@@ -12,7 +12,9 @@
   hostAccept = function (e) {
     const label = e.label, owner = NET.peer;
     const current = () => NET.mode === "host" && NET.peer === owner;
-    if (label !== "state" && label !== "event") return e.close();
+    // "me", "ai" and "dead" are what a body's ctrl says when no guest drives it: a guest that picked one of them as its
+    // peer id would be taken for the host's own player (or a bot) and could cast, buy and aim as it
+    if ((label !== "state" && label !== "event") || ["me", "ai", "dead"].includes(e.peer)) return e.close();
     e.on("open", () => {
       if (!current()) return e.close();
       let o = conns().get(e.peer);

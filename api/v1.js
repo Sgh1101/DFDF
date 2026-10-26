@@ -216,8 +216,9 @@ const checkPw = (pw, stored) => {
     b = Buffer.from(h, "hex");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
+const XP_MAX = 1e12; // the most xp an account counts for (levelOf)
 const levelOf = (xp, per) => {
-  xp = Math.max(0, Math.min(1e12, Number.isFinite(+xp) ? +xp : 0));
+  xp = Math.max(0, Math.min(XP_MAX, Number.isFinite(+xp) ? +xp : 0));
   per = Math.max(1, Number.isFinite(+per) ? +per : 100);
   const lv = Math.floor((Math.sqrt(1 + 8 * xp / per) - 1) / 2) + 1;
   return { level: lv, into: xp - per * (lv - 1) * lv / 2, need: per * lv };
@@ -317,8 +318,15 @@ const aimOf = (u) => {
   const a = u && isObj(u.aim) ? u.aim : {};
   return { pc: !!a.pc && !(a.until && a.until < now()), mobile: !1 !== a.mobile, until: a.pc && a.until ? a.until : 0 };
 };
-// the account's cheats if they are switched on and not past their date
-const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
+// the account's cheats if they are switched on and not past their date. Admin mode lends the account a full set
+// (permAdmin, see adminCheats) only while it lasts: once it has run out, the account's own cheats are back.
+const activePerm = (u) => {
+  u && u.permAdmin && !(u.adminUntil && u.adminUntil > now()) && adminCheats(u);
+  return u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+};
+// where the account's own cheats live: under the full set admin mode lends (permBefore), or in perm itself
+const ownPerm = (u) => (u.permAdmin ? u.permBefore || null : u.perm || null);
+const setOwnPerm = (u, p) => (u.permAdmin ? (u.permBefore = p) : (u.perm = p));
 // the tiers, low to high: 3 divisions of 100 RR each, then Radiant from 2400 RR
 const RANKS = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"];
 const rankOf = (rr) => {
@@ -384,11 +392,14 @@ const publicUser = (u, per) => {
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
 
+// the request's JSON as an object: a body that is not one ("null", a number, text) reads as empty, so the
+// action answers with its own 400/401 instead of a TypeError (500) on the first field it reads
 async function body(req) {
   if (req.body && "object" == typeof req.body) return req.body;
   if ("string" == typeof req.body) {
     try {
-      return JSON.parse(req.body);
+      const v = JSON.parse(req.body);
+      return v && "object" == typeof v ? v : {};
     } catch (e) {
       return {};
     }
@@ -396,7 +407,8 @@ async function body(req) {
   const chunks = [];
   for await (const c of req) chunks.push(c);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString() || "{}");
+    const v = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+    return v && "object" == typeof v ? v : {};
   } catch (e) {
     return {};
   }
@@ -662,6 +674,7 @@ A.auth = async (q, b, req) => {
       await ulog(id, "loginfail", "운영자 계정 비밀번호 틀림", { ip, dev: String(b.device || "").slice(0, 64) });
       throw fail(401, "비밀번호가 틀렸습니다");
     }
+    await redis(["DEL", "rl:adm:" + ip]); // only wrong guesses count against the owner's sign-in
     if (!u) (u = { id, created: now(), xp: 0, kills: 0, wins: 0, matches: 0 }), (created = !0), await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
     ensureWallet(u, c);
     u.sessionVersion ||= crypto.randomBytes(16).toString("hex");
@@ -1171,16 +1184,17 @@ A.order_cancel = async (q, b) => {
 };
 // the account's cheat end before an order is opened (0 = permanent or none) and the order's own end (0 = never)
 function orderEnds(u, o) {
-  const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+  const own = ownPerm(u), cur = own && own.on && !(own.until && own.until < now()) ? own : null;
   return { until: cur ? cur.until || 0 : 0, exp: 0 === o.days ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5 };
 }
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
   const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
     cheats = o.items.filter((k) => !goldOf(k));
-  let out = u.perm || null;
+  const own = ownPerm(u);
+  let out = own;
   if (cheats.length) {
-    const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null,
+    const cur = own && own.on && !(own.until && own.until < now()) ? own : null,
       p = Object.assign({}, cur || {});
     for (const k of cheats) {
       const it = ORDER_ITEMS.find((x) => x.k === k);
@@ -1194,7 +1208,7 @@ function applyOrder(u, o) {
     out = cleanPerm(p, 0);
     // permanent stays permanent; else from now, or from the end of what is running
     out.until = o.days === 0 || (cur && !cur.until) ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5;
-    u.perm = out;
+    setOwnPerm(u, out);
   }
   if (gold) u.gold = Math.min(9e6, (+u.gold || 0) + gold);
   return out;
@@ -2021,6 +2035,7 @@ A.admin_login = async (q, b, req) => {
     await log("admin", "관리자 로그인 실패", { ip });
     throw fail(401, "비밀번호가 틀렸습니다");
   }
+  await redis(["DEL", "rl:adm:" + ip]); // only wrong guesses count against the owner's sign-in
   await log("admin", "관리자 로그인", { ip });
   return { token: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }) };
 };
@@ -2172,12 +2187,12 @@ ADMIN.user_set = async (q, b) => {
       adminCheats(u);
       break;
     case "xp":
-      u.xp = Math.max(0, b.xp | 0);
+      u.xp = Math.max(0, Math.min(XP_MAX, Math.round(+b.xp || 0)));
       break;
     case "level": {
-      let xp = 0;
-      for (let l = 1; l < Math.max(1, b.level | 0); l++) xp += c.xp.perLevel * l;
-      u.xp = xp;
+      // the xp that starts level L is perLevel * (1 + 2 + ... + (L - 1)); a typo like 99999999 must not loop that long
+      const lv = Math.max(1, Math.min(1e6, Math.floor(+b.level || 1)));
+      u.xp = Math.min(XP_MAX, (c.xp.perLevel * lv * (lv - 1)) / 2);
       break;
     }
     case "password":
@@ -2189,7 +2204,8 @@ ADMIN.user_set = async (q, b) => {
       u.note = String(b.note || "").slice(0, 300);
       break;
     case "perm":
-      u.perm = cleanPerm(b.perm, +b.days || 0);
+      // what the owner page edits are the account's own cheats, also while admin mode lends it the full set
+      setOwnPerm(u, cleanPerm(b.perm, +b.days || 0));
       break;
     case "aim":
       u.aim = { pc: !!b.pc, mobile: !1 !== b.mobile, until: b.pc && b.days > 0 ? d : 0 };
@@ -2230,7 +2246,7 @@ ADMIN.user_set = async (q, b) => {
       throw fail(400, "알 수 없는 작업");
   }
   await saveUser(u);
-  await ulog(u.id, "admin", "운영자: " + (OP_KO[b.op] || b.op) + opNote(b, u, was), { op: b.op, days: b.days > 0 ? +b.days : undefined, why: "ban" === b.op ? String(b.reason || "").slice(0, 80) : undefined, gold: "gold" === b.op ? [was.gold, u.gold] : undefined, rr: "rr" === b.op ? [was.rr || 0, u.rr] : undefined, xp: "xp" === b.op || "level" === b.op ? [was.xp || 0, u.xp] : undefined, n: "grant" === b.op ? (Array.isArray(b.items) ? b.items.length : "all" === b.item ? "all" : 1) : undefined, rm: "grant" === b.op && b.remove ? 1 : undefined, perm: "perm" === b.op && u.perm ? { on: u.perm.on ? 1 : 0, sw: PERM_SW.filter((k) => u.perm[k]).join(","), sp: u.perm.speed, ff: u.perm.fastFire, bf: u.perm.buff, until: u.perm.until } : undefined, until: "admin" === b.op ? u.adminUntil || 0 : undefined });
+  await ulog(u.id, "admin", "운영자: " + (OP_KO[b.op] || b.op) + opNote(b, u, was), { op: b.op, days: b.days > 0 ? +b.days : undefined, why: "ban" === b.op ? String(b.reason || "").slice(0, 80) : undefined, gold: "gold" === b.op ? [was.gold, u.gold] : undefined, rr: "rr" === b.op ? [was.rr || 0, u.rr] : undefined, xp: "xp" === b.op || "level" === b.op ? [was.xp || 0, u.xp] : undefined, n: "grant" === b.op ? (Array.isArray(b.items) ? b.items.length : "all" === b.item ? "all" : 1) : undefined, rm: "grant" === b.op && b.remove ? 1 : undefined, perm: "perm" === b.op ? { on: ownPerm(u).on ? 1 : 0, sw: PERM_SW.filter((k) => ownPerm(u)[k]).join(","), sp: ownPerm(u).speed, ff: ownPerm(u).fastFire, bf: ownPerm(u).buff, until: ownPerm(u).until } : undefined, until: "admin" === b.op ? u.adminUntil || 0 : undefined });
   await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}${"aim" === b.op ? ` PC ${b.pc ? "켬" : "끔"} · 모바일 ${!1 !== b.mobile ? "켬" : "끔"}` : ""}`);
   return { ok: !0 };
 };
@@ -2319,7 +2335,7 @@ ADMIN.user_profile = async (q, b) => {
     pulls: u.pulls || 0, bought: u.bought || 0, cosBought: u.cosBought || 0, spent: u.spent || 0, refunded: u.refunded || 0,
     kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0,
     owner: !!u.owner, admin: !!(u.owner || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
-    perm: u.perm || null, permActive: !!activePerm(u), aim: aimOf(u), ban, note: u.note || "",
+    permActive: !!activePerm(u), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
     season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,

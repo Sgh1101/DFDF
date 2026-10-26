@@ -8,6 +8,26 @@
       document.querySelectorAll(".pz-pane").forEach((p) => p.classList.toggle("on", p.dataset.pane === b.dataset.tab));
     };
   });
+  // the toggles are bare buttons (a knob inside) and the sliders sit beside a <div> label: each is named after its row,
+  // and a toggle says whether it is on, so a screen reader can read the settings
+  let labelN = 0;
+  const nameControls = () => {
+    pause.querySelectorAll(".pz-sw, input[type=range]").forEach((c) => {
+      if (!c.hasAttribute("aria-labelledby") && !c.getAttribute("aria-label")) {
+        const lab = c.closest(".pz-row")?.querySelector(".pz-lab, .xh-line > span");
+        if (lab) {
+          lab.id ||= "pz-lab" + ++labelN;
+          c.setAttribute("aria-labelledby", lab.id);
+        }
+      }
+      if (c.classList.contains("pz-sw")) {
+        c.setAttribute("role", "switch");
+        c.setAttribute("aria-checked", c.classList.contains("on") ? "true" : "false");
+      }
+    });
+  };
+  new MutationObserver(nameControls).observe(pause, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+  nameControls();
   const openMenuSettings = () => {
     pause.classList.add("from-menu");
     try {

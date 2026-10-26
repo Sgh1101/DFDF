@@ -5164,6 +5164,8 @@ function makeZone(e, t, o, a, n, r, s) {
     mesh: i,
     owner: "player",
     team: (player && player.team) || "atk",
+    // who laid it: its ticks run long after the cast, when "player" is the human again
+    by: player,
     _ring: d,
     _motes: u,
     _rune: p,
@@ -15349,6 +15351,8 @@ function handleSpike(e) {
   if ("planted" === t.state) {
     if (o && !world.over) {
       t.timer -= e;
+      // the fuse runs out whatever a defender is doing
+      if (t.timer <= 0) return void detonate();
       const o =
         t.timer > 25 ? 1 : t.timer > 12 ? 0.55 : t.timer > 5 ? 0.3 : 0.16;
       ((t.beepT -= e),
@@ -16398,7 +16402,7 @@ function gatherInput() {
       ((player.defusing || 0) > 0 && "planted" === e.state)) &&
       (o |= BTN.CROUCH);
   }
-  keys.use && (o |= BTN.USE);
+  (keys.use || keys.f || keys["4"]) && (o |= BTN.USE);
   const a = ("function" == typeof myActor && myActor()) || player;
   return { mv: [e, t], yaw: a.yaw, pitch: a.pitch, btn: o };
 }
@@ -16617,7 +16621,9 @@ function actorFire(e) {
         s = n.pos.z - e.pos.z,
         i = Math.hypot(r, s);
       i > o.range ||
+        Math.abs((n.y || 0) - (e.y || 0)) > 2.4 ||
         (r / i) * t + (s / i) * a < 0.55 ||
+        rayBlocked(e.pos.x, actorEye(e), e.pos.z, n.pos.x, n.y + 1, n.pos.z) ||
         (dealDamage(
           n,
           o.dmg * ("function" == typeof isAI && isAI(e) ? 0.5 : 1),
@@ -17087,6 +17093,30 @@ function actorSpike(e, t) {
       }
     }
 }
+// A guest plants and defuses the way the host's own player does (handleSpike): it holds F or 4 (sent as BTN.USE),
+// still, inside a site / next to the planted spike, and the host counts the time.
+const isGuestBody = (e) => e.alive && "me" !== e.ctrl && "ai" !== e.ctrl && "dead" !== e.ctrl;
+function guestSpike(e, t) {
+  const o = world.spike,
+    hold = !!(e.input && e.input.btn & BTN.USE);
+  if ("live" !== world.phase || world.over) return void ((e.planting = 0), (e.defusing = 0), (e.plantAnchor = null));
+  if ("atk" === e.team) {
+    if ("dropped" === o.state && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2) return void pickupSpike(e);
+    const s = e.hasSpike && "carried" === o.state && hold ? siteAt(e.pos.x, e.pos.z) : null;
+    if (!s) return void ((e.planting = 0), (e.plantAnchor = null));
+    if (!e.plantAnchor) e.plantAnchor = { x: e.pos.x, z: e.pos.z };
+    else if (dist2(e.pos.x, e.pos.z, e.plantAnchor.x, e.plantAnchor.z) > SPIKE.MOVE_CANCEL * SPIKE.MOVE_CANCEL)
+      return void (e.plantAnchor = { x: e.pos.x, z: e.pos.z });
+    e.planting = (e.planting || 0) + t;
+    e.planting >= SPIKE.PLANT && plantSpike(e.pos.x, e.pos.z, s, !1);
+  } else if ("planted" === o.state && hold && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2) {
+    e.defusing > 0 || (e.defusing = o.halfDefused ? SPIKE.HALF : 0);
+    const a = e.defusing;
+    e.defusing += t;
+    a < SPIKE.HALF && e.defusing >= SPIKE.HALF && (o.halfDefused = !0);
+    e.defusing >= SPIKE.DEFUSE && defuseDone("guest");
+  } else e.defusing = 0;
+}
 function actorBusy(e) {
   if (!e.ai) return !1;
   const t = world.spike;
@@ -17406,7 +17436,7 @@ function aiUseSkill(e, t) {
   const i = CAST_REFUND;
   return (
     (CAST_REFUND = !1),
-    r.def.ult ? (e.ultCharge = 0) : i || r.charges--,
+    r.def.ult ? i || (e.ultCharge = 0) : i || r.charges--,
     (r.cd = i ? 3 : r.def.cd || rnd(10, 20)),
     (o.skill.cd = rnd(8, 18)),
     !0
@@ -17930,8 +17960,12 @@ function lobbyReset(e, t) {
 // every name that arrives from a peer goes through here before it is stored or
 // broadcast: text only, no markup or control characters, 1-16 characters
 function cleanPeerName(e) {
+  let s = "";
+  try {
+    s = String(null == e ? "" : e);
+  } catch (e) {}
   const t = Array.from(
-    String(null == e ? "" : e).replace(
+    s.replace(
       /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff<>&"'`]/g,
       "",
     ),
@@ -17972,6 +18006,8 @@ function lobbyMove(e, t, o) {
   const a = room.members.get(e);
   return (
     !!a &&
+    ("atk" === t || "def" === t) &&
+    Number.isInteger(o) &&
     !(o < 0 || o >= TEAM_SIZE) &&
     null === room.slots[t][o] &&
     (t !== a.team &&
@@ -18324,6 +18360,7 @@ function netStep(e) {
     } catch (e) {}
     PATH_BUDGET.n = 3;
     for (const t of world.actors) isAI(t) && t.alive && aiThink(t, e);
+    for (const t of world.actors) isGuestBody(t) && guestSpike(t, e);
     if (t && t.alive) {
       const e = gatherInput();
       ((t.input.mv = e.mv), (t.input.btn = e.btn));
@@ -18484,6 +18521,10 @@ function syncActorModel(e) {
 }
 function hostHandleBuy(e, t) {
   const o = world.actors.find((t) => t.ctrl === e);
+  // plain data first: a kind, and a key that is a string or a number (an object key threw in the shop lookup below)
+  if (!t || "string" != typeof t.kind || !(null == t.key || "string" == typeof t.key || "number" == typeof t.key)) return;
+  // only what the shop lists: the weapon table also holds the golden chest pistol (free, one bullet for 200)
+  if ("weapon" === t.kind && !Object.keys(WEAPONS).includes(window.VALORANT_DATA ? VALORANT_DATA.canonical(t.key) : t.key)) return;
   o &&
     "buy" === world.phase &&
     (applyPurchase(o, t.kind, t.key),
@@ -18777,11 +18818,12 @@ function hostLeftNotice() {
           });
         break;
       }
+      // the lobby is closed once the match runs: a late "move" / "agent" would put the lobby up over every guest
       case "move":
-        lobbyMove(e, t.team, t.slot) && sendEventAll(lobbySnapshot());
+        room.started || (lobbyMove(e, t.team, t.slot) && sendEventAll(lobbySnapshot()));
         break;
       case "agent":
-        lobbyPickAgent(e, t.key) && sendEventAll(lobbySnapshot());
+        room.started || (lobbyPickAgent(e, t.key) && sendEventAll(lobbySnapshot()));
         break;
       case "buy":
         hostHandleBuy(e, t);
@@ -20534,18 +20576,19 @@ function updateZones(e) {
       continue;
     }
     const a = o.team || "atk",
+      by = o.by || player,
       n = (e) => abilityOnFloor(e, o.y || 0, Math.max(1.5, o.h || 0)) &&
         dist2(e.pos ? e.pos.x : e.x, e.pos ? e.pos.z : e.z, o.x, o.z) <
         o.r * o.r,
       r = abilityOnFloor(player, o.y || 0, Math.max(1.5, o.h || 0)) && dist2(player.pos.x, player.pos.z, o.x, o.z) < o.r * o.r,
       s = player.team !== a;
     (o.dps &&
-      (r && s && damagePlayer(o.dps * e),
+      (r && s && (world.actors && world.actors.indexOf(player) >= 0 ? hurtFighter(player, o.dps * e, !1, by) : damagePlayer(o.dps * e)),
       otherFighters().forEach((t) => {
         t.alive &&
           t.team !== a &&
           n(t) &&
-          hurtFighter(t, o.dps * e, !1, player);
+          hurtFighter(t, o.dps * e, !1, by);
       })),
       o.heal &&
         (r && !s && (player.hp = Math.min(100, player.hp + o.heal * e)),

@@ -425,5 +425,14 @@
       return _sr.apply(this, arguments);
     };
   }
+  // a map loaded under a running finisher (the match is left and another begins) has a sky and fog of its own: the
+  // colours kept here are the last map's, and put back later they would colour the new map for good
+  if ("function" == typeof loadMap) {
+    const _lm = loadMap;
+    loadMap = function () {
+      restore();
+      return _lm.apply(this, arguments);
+    };
+  }
   window.FINISHER_LEGEND = { play, restore, themes: THEMES };
 })();

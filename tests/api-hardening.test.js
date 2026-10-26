@@ -241,3 +241,16 @@ test("the room list shows the 200 rooms that beat most recently", async () => {
   assert.ok(!listed.includes(codes[0]) && !listed.includes(codes[9]), "the ten oldest are the ones left out");
   assert.deepEqual([...listed].sort(), codes.slice(10).sort());
 });
+
+test("a body that is JSON but not an object is an empty request, not a server error", async () => {
+  const h = harness(), p = await login(h);
+  for (const raw of ["null", "5", "true", '"text"', "[]", "{not json"]) {
+    for (const [action, status] of [["auth", 400], ["guest", 400], ["me", 401], ["progress", 401], ["match_start", 401], ["mission_claim", 401], ["feedback_submit", 401], ["room_up", 401]]) {
+      const r = await h.api(action, raw);
+      assert.equal(r.status, status, action + " <- " + raw);
+    }
+    assert.equal((await h.api("leaderboard", raw)).status, 200, "leaderboard <- " + raw);
+    assert.equal((await h.api("levels", raw)).status, 200, "levels <- " + raw);
+  }
+  assert.equal((await h.api("me", { token: p.token })).status, 200, "a real request still works");
+});

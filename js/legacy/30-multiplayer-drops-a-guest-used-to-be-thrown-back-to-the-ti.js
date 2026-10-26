@@ -100,6 +100,22 @@
     }
   });
 
+  // The host leaving on purpose says so (the guests would redial for several seconds and then be offered "report the
+  // connection problem"); the transport is closed a moment later so the message is not cut off. A guest leaving closes
+  // its channels too, so the host hands its body to a bot at once (destroying the peer alone is not always noticed).
+  const shutdownBye = netShutdown;
+  netShutdown = function () {
+    const peer = NET.peer;
+    if ("host" === NET.mode && peer && NET.conns.size) {
+      try { sendEventAll({ t: "bye" }); } catch (e) {}
+      const destroy = peer.destroy;
+      peer.destroy = function () { setTimeout(() => { try { destroy.call(peer); } catch (e) {} }, 300); };
+    }
+    const up = "client" === NET.mode && NET.up ? Object.values(NET.up) : [];
+    const r = shutdownBye.apply(this, arguments);
+    for (const c of up) try { c && c.close && c.close(); } catch (e) {}
+    return r;
+  };
   const stopBackground = () => { if (worker) worker.terminate(); worker = null; wLast = 0; };
   const shutdownBackground = netShutdown;
   netShutdown = function () { stopBackground(); return shutdownBackground.apply(this, arguments); };
