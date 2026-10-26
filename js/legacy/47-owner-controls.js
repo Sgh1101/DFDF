@@ -142,8 +142,11 @@
   };
   const _shutdownOwner = netShutdown;
   netShutdown = function () {
-    X.OWNP.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0;
-    return _shutdownOwner.apply(this, arguments);
+    X.OWNP.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0; GRANTN.clear();
+    const r = _shutdownOwner.apply(this, arguments);
+    // cheats the owner gave me in that room end with it
+    if (X.HUNT.granted) (X.HUNT.granted = !1), X.relock();
+    return r;
   };
   setInterval(() => {
     for (const [peer, exp] of ownerExpiry) if (Date.now() >= exp) { X.OWNP.delete(peer); ownerExpiry.delete(peer); }
