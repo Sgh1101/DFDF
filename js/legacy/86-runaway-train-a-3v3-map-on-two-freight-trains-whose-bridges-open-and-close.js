@@ -428,7 +428,8 @@
   const _ns = netStep;
   netStep = function (dt) {
     const r = _ns.apply(this, arguments);
-    if (!on() || !S.gates.length) return r;
+    // another map: the count goes (a round left in the middle never stepped through its end to hide it)
+    if (!on() || !S.gates.length) return el && "none" !== el.style.display && (el.style.display = "none"), r;
     dt = dt || 0.016;
     if (clock()) {
       S.t += dt;
@@ -520,6 +521,13 @@
     el.firstChild.textContent = warn ? L(`⚠ 다리 변경 ${Math.ceil(left)}`, `⚠ Bridges move in ${Math.ceil(left)}`) : L(`다리 변경까지 ${Math.ceil(left)}초`, `Bridges move in ${Math.ceil(left)}s`);
     el.querySelector("b").style.width = (100 * (1 - left / PHASE_S)).toFixed(1) + "%";
   }
+  // a screen over the game (the title, after 나가기 in the middle of a round) takes the count away too: the steps
+  // that would hide it stop with the round
+  const _show = show;
+  show = function (id) {
+    id && el && (el.style.display = "none");
+    return _show.apply(this, arguments);
+  };
   const _dm = drawMini;
   drawMini = function () {
     const r = _dm.apply(this, arguments);

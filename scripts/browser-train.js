@@ -66,9 +66,20 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.evaluate(() => { player.pos.set(-6, 0, 2); player.yaw = -1.3; });
     await page.waitForTimeout(800);
     await page.screenshot({ path: process.env.SHOT_DIR ? process.env.SHOT_DIR + "/train2.png" : "/tmp/train2.png" });
+    // left in the middle of a live round (the pause menu's 나가기): the count goes, on the title and on the next map
+    const count = await page.evaluate(() => {
+      const el = document.getElementById("train-hud");
+      world.phase = "live"; netStep(0.016);
+      const out = { live: getComputedStyle(el).display };
+      document.getElementById("pz-quit").click(); out.title = getComputedStyle(el).display;
+      room.mode = "std"; room.map = "pogu"; startGame(AGENTS[0], false); closeShop();
+      world.phase = "live"; netStep(0.016); out.next = getComputedStyle(el).display;
+      return out;
+    });
+    assert.deepEqual(count, { live: "block", title: "none", next: "none" }, "the count leaves with the round");
     const gone = await page.evaluate(() => { loadMap("shift"); return { meshes: TRAIN_MAP.meshes.length, gates: TRAIN_MAP.gates.length }; });
     assert.deepEqual(gone, { meshes: 0, gates: 0 });
     assert.deepEqual(f.errors, []);
-    console.log("runaway train: listed 3v3, bridges on a clock, all reachable, the world moves, guest sync, cleanup");
+    console.log("runaway train: listed 3v3, bridges on a clock, all reachable, the world moves, guest sync, the count gone after leaving, cleanup");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
