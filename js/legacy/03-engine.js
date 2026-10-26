@@ -2271,9 +2271,11 @@ function allyFighters(e) {
   return otherFighters().filter((e) => e.team === t);
 }
 function hurtFighter(e, t, o, a) {
+  // "player" (a string) is how the old one-player code names the shooter; among actors it is whoever casts
+  // now (a bot while it casts): the kill feed reads the killer's position, and a string has none
   e &&
     (world.actors && world.actors.length && world.actors.indexOf(e) >= 0
-      ? dealDamage(e, t, o, a || player)
+      ? dealDamage(e, t, o, a && "player" !== a ? a : player)
       : damageEntity(e, t, o, a));
 }
 function stunFighter(e, t) {
@@ -8235,6 +8237,8 @@ function makeTrap(e, t, o, a, n, r, reference) {
     armed: !0,
     life: 45,
     team: (player && player.team) || "atk",
+    // who laid it: the trigger runs as that caster (a bot's mine blasts the bot's foes, not the player's)
+    by: player,
   });
 }
 function makeFlash(e, t) {
@@ -20684,7 +20688,7 @@ function updateProps(e) {
             abilityOnFloor(n, o.y || 0) &&
             dist2(n.pos.x, n.pos.z, o.x, o.z) < o.r * o.r
           ) {
-            (o.onTrigger(n),
+            (withCaster(o.by, () => o.onTrigger(n)),
               o.persistent
                 ? ((o.armed = !1), setTimeout(() => (o.armed = !0), 2500))
                 : (scene.remove(o.mesh),

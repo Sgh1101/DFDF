@@ -1,7 +1,9 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 // 폐병원, bots and the minimap on three floors: the path graph covers every floor and the four stairs, every
 // post the bots can be given is reachable, a bot given a post on the second or third floor walks up the
-// stairs, stands there and looks across the atrium, a plain round puts some bots above the ground, the
+// stairs, stands there and looks across the atrium, a bot sent from either spawn to either site on the ground
+// floor gets there (the walls there run along the engine grid's cell edges, where that grid sees none), a
+// plain round puts some bots above the ground, the
 // minimap shows the floor you stand on (and not every wall of every floor), and the tag names floor and room.
 (async () => {
   const f = await fixture();
@@ -77,6 +79,11 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       out.defRing = run("def", cell(N.RINGS[1], -3), 1700);
       out.atkBridge = run("atk", cell(N.BRIDGE[0], 3), 2400);
       out.defBridge = run("def", cell(N.BRIDGE[0], -4), 2400);
+      // the ground floor: the cells of site A and site B
+      out.atkA = run("atk", [0, 7, 3], 1700);
+      out.atkB = run("atk", [0, 40, 3], 1700);
+      out.defA = run("def", [0, 7, 3], 1700);
+      out.defB = run("def", [0, 40, 3], 1700);
       return out;
     });
     console.log(JSON.stringify(walk));
@@ -167,6 +174,6 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const gone = await page.evaluate(() => { loadMap("glacier"); drawMini(); drawTac(); return { key: CUR_MAP_KEY, iter: Object.prototype.hasOwnProperty.call(COLLIDERS, Symbol.iterator), fill: Object.prototype.hasOwnProperty.call(mctx, "fillRect") }; });
     assert.deepEqual(gone, { key: "glacier", iter: false, fill: false }, "the next map is drawn the engine's way");
     assert.deepEqual(f.errors, []);
-    console.log("hospital bots: graph on 3 floors, 4 posts reached and held, plain round puts " + round.upstairs + " bot(s) upstairs, minimap and tactical map per floor, room named");
+    console.log("hospital bots: graph on 3 floors, 4 posts reached and held, both sites reached on the ground from both spawns, plain round puts " + round.upstairs + " bot(s) upstairs, minimap and tactical map per floor, room named");
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });
