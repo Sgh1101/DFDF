@@ -111,7 +111,8 @@
     "test:ability-floors": "node scripts/browser-ability-floors.js",
     "test:zone-owner": "node scripts/browser-zone-owner.js",
     "test:spike-fuse": "node scripts/browser-spike-fuse.js",
-    "test:bot-ult-refund": "node scripts/browser-bot-ult-refund.js"
+    "test:bot-ult-refund": "node scripts/browser-bot-ult-refund.js",
+    "test:buy-guard": "node scripts/browser-buy-guard.js"
   },
   "devDependencies": {
     "peer": "1.0.2",

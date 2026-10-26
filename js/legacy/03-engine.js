@@ -18459,6 +18459,8 @@ function syncActorModel(e) {
 }
 function hostHandleBuy(e, t) {
   const o = world.actors.find((t) => t.ctrl === e);
+  // only what the shop lists: the weapon table also holds the golden chest pistol (free, one bullet for 200)
+  if (t && "weapon" === t.kind && !Object.keys(WEAPONS).includes(window.VALORANT_DATA ? VALORANT_DATA.canonical(t.key) : t.key)) return;
   o &&
     "buy" === world.phase &&
     (applyPurchase(o, t.kind, t.key),
