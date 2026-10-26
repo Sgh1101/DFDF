@@ -317,8 +317,15 @@ const aimOf = (u) => {
   const a = u && isObj(u.aim) ? u.aim : {};
   return { pc: !!a.pc && !(a.until && a.until < now()), mobile: !1 !== a.mobile, until: a.pc && a.until ? a.until : 0 };
 };
-// the account's cheats if they are switched on and not past their date
-const activePerm = (u) => (u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null);
+// the account's cheats if they are switched on and not past their date. Admin mode lends the account a full set
+// (permAdmin, see adminCheats) only while it lasts: once it has run out, the account's own cheats are back.
+const activePerm = (u) => {
+  u && u.permAdmin && !(u.adminUntil && u.adminUntil > now()) && adminCheats(u);
+  return u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+};
+// where the account's own cheats live: under the full set admin mode lends (permBefore), or in perm itself
+const ownPerm = (u) => (u.permAdmin ? u.permBefore || null : u.perm || null);
+const setOwnPerm = (u, p) => (u.permAdmin ? (u.permBefore = p) : (u.perm = p));
 // the tiers, low to high: 3 divisions of 100 RR each, then Radiant from 2400 RR
 const RANKS = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"];
 const rankOf = (rr) => {
@@ -1175,16 +1182,17 @@ A.order_cancel = async (q, b) => {
 };
 // the account's cheat end before an order is opened (0 = permanent or none) and the order's own end (0 = never)
 function orderEnds(u, o) {
-  const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+  const own = ownPerm(u), cur = own && own.on && !(own.until && own.until < now()) ? own : null;
   return { until: cur ? cur.until || 0 : 0, exp: 0 === o.days ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5 };
 }
 // opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
 function applyOrder(u, o) {
   const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
     cheats = o.items.filter((k) => !goldOf(k));
-  let out = u.perm || null;
+  const own = ownPerm(u);
+  let out = own;
   if (cheats.length) {
-    const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null,
+    const cur = own && own.on && !(own.until && own.until < now()) ? own : null,
       p = Object.assign({}, cur || {});
     for (const k of cheats) {
       const it = ORDER_ITEMS.find((x) => x.k === k);
@@ -1198,7 +1206,7 @@ function applyOrder(u, o) {
     out = cleanPerm(p, 0);
     // permanent stays permanent; else from now, or from the end of what is running
     out.until = o.days === 0 || (cur && !cur.until) ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5;
-    u.perm = out;
+    setOwnPerm(u, out);
   }
   if (gold) u.gold = Math.min(9e6, (+u.gold || 0) + gold);
   return out;
@@ -2323,7 +2331,7 @@ ADMIN.user_profile = async (q, b) => {
     pulls: u.pulls || 0, bought: u.bought || 0, cosBought: u.cosBought || 0, spent: u.spent || 0, refunded: u.refunded || 0,
     kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0,
     owner: !!u.owner, admin: !!(u.owner || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
-    perm: u.perm || null, permActive: !!activePerm(u), aim: aimOf(u), ban, note: u.note || "",
+    permActive: !!activePerm(u), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
     season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,
