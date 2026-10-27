@@ -15828,7 +15828,7 @@ function endRound(e, t) {
       const e = winRounds();
       if (world.scoreAtk >= e || world.scoreDef >= e) gameOver();
       else {
-        if ((world.round++, world.round === halfTime())) {
+        if ((world.round++, world.round === halfTime() + 1)) {
           const e = (e) => ("atk" === e ? "def" : "atk"),
             t = (e, t) => {
               if (!e) return;
