@@ -194,7 +194,15 @@
   function burst(kind, x, y, z, cid, cause) {
     const k = "nade" === kind ? NADE : ROCKET,
       c = casterOf(cid);
-    const go = () => explode(x, z, k.r, k.hi, k.lo, k.col);
+    const go = () => {
+      // a weapon's blast keeps its own radius (the ability area multiplier, module 22, is not for weapons)
+      window.WEAPON_BLAST = 1;
+      try {
+        explode(x, z, k.r, k.hi, k.lo, k.col);
+      } finally {
+        window.WEAPON_BLAST = 0;
+      }
+    };
     try {
       if (c && (!cause || cause.round === world.round)) DAMAGE_CAUSE.run(cause, () => withCaster(c, go));
     } catch (e) {

@@ -99,6 +99,7 @@
     "test:champion": "node scripts/browser-champion.js",
     "test:buildings": "node scripts/browser-buildings.js",
     "test:chest": "node scripts/browser-chest.js",
+    "test:blast-and-halves": "node scripts/browser-blast-and-halves.js",
     "test:operator": "node scripts/browser-operator.js",
     "test:owner-state": "node scripts/browser-owner-state.js",
     "test:owner-grant": "node scripts/browser-owner-grant.js",
