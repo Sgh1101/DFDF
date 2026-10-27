@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 function harness(options = {}) {
   const db = new Map(), expires = new Map();
-  let clock = options.now || Date.UTC(2026, 9, 13), commitFailure = false, pipelineFailure = false;
+  let clock = options.now || Date.UTC(2026, 9, 13), commitFailure = false, pipelineFailure = false, droppedExpires = 0;
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [clock])); } static now() { return clock; } }
   const get = (key) => {
     if (expires.has(key) && expires.get(key) <= clock) { db.delete(key); expires.delete(key); }
@@ -50,7 +50,15 @@ function harness(options = {}) {
         return "OK";
       }
       case "INCR": case "INCRBY": { const n = +(get(key) || 0) + (op === "INCR" ? 1 : +args[0]); db.set(key, String(n)); return n; }
-      case "EXPIRE": expires.set(key, clock + +args[0] * 1000); return 1;
+      case "EXPIRE": {
+        // EXPIRE key seconds [NX|XX|GT|LT] like Redis 7 / Upstash; a lost EXPIRE (dropExpires) answers 1 but does nothing
+        if (droppedExpires > 0) { droppedExpires--; return 1; }
+        const opt = String(args[1] || "").toUpperCase(), cur = expires.get(key), at = clock + +args[0] * 1000;
+        if (opt && !["NX", "XX", "GT", "LT"].includes(opt)) throw new Error("unsupported EXPIRE option: " + opt);
+        if ((opt === "NX" && cur != null) || (opt === "XX" && cur == null) || (opt === "GT" && !(cur != null && at > cur)) || (opt === "LT" && cur != null && !(at < cur))) return 0;
+        expires.set(key, at);
+        return 1;
+      }
       case "DEL": { const had = db.delete(key); expires.delete(key); return +had; }
       case "EVAL": {
         // the per-order lock release: delete the key only while it still holds our nonce
@@ -93,6 +101,6 @@ function harness(options = {}) {
     return response;
   }
   const sign = (value) => { const p = Buffer.from(JSON.stringify(value)).toString("base64url"); return p + "." + crypto.createHmac("sha256", "test-secret").update(p).digest("base64url"); };
-  return { api, db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
+  return { api, db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, dropExpires: (n = 1) => droppedExpires = n, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
 }
 module.exports = { harness };

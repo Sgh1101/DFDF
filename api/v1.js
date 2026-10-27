@@ -269,8 +269,9 @@ async function limited(key, max, sec) {
   const memo = requestState.getStore();
   const mk = key + "|" + max + "|" + sec;
   if (memo && memo.has(mk)) return memo.get(mk);
-  const n = await redis(["INCR", "rl:" + key]);
-  1 === n && (await redis(["EXPIRE", "rl:" + key, String(sec)]));
+  // EXPIRE NX only starts a window on a key that has none, so a live window is never extended and a key
+  // whose first EXPIRE was lost gets its window on the next call instead of counting up forever
+  const [n] = await pipe([["INCR", "rl:" + key], ["EXPIRE", "rl:" + key, String(sec), "NX"]]);
   const out = n > max;
   memo && memo.set(mk, out);
   return out;
@@ -772,7 +773,8 @@ A.me = async (q, b, req) => {
   return { user: publicUser(u, c.xp.perLevel), hist: histOf(u) };
 };
 // Only a scoped attestation travels to an untrusted room host.
-const ownerScope = (room, peer) => typeof room === "string" && /^[A-Z0-9]{6}$/.test(room) && typeof peer === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(peer);
+const peerOk = (peer) => typeof peer === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(peer);
+const ownerScope = (room, peer) => typeof room === "string" && /^[A-Z0-9]{6}$/.test(room) && peerOk(peer);
 A.owner_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -791,23 +793,27 @@ A.owner_check = async (q, b) => {
   return { owner, id: owner ? u.id : null, exp: owner ? s.exp : 0 };
 };
 // A guest with cheats opened for its account shows them to the room host
-// without handing over its sign-in: it asks for a ticket that only says who
-// it is and which room it is for (good for 6 hours), and the host asks what
-// that account may do. A ticket is no use in any other room, so a host can't
-// carry a guest's ticket elsewhere. The answer is read fresh each time, so a
-// change on the owner page counts at once.
+// without handing over its sign-in: it asks for a ticket that says who it is,
+// which room it is for and which peer asked (good for 6 hours), and the host
+// asks what that account may do. A ticket is no use in any other room or from
+// any other peer, so neither a host nor another guest can carry it elsewhere.
+// A ticket without a peer (an old client) gets nothing. The answer is read
+// fresh each time, so a change on the owner page counts at once, and a banned
+// account has no cheats.
 const roomOf = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
 A.perm_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   const rmp = await getJ("room:" + roomOf(b.room));
   if (rmp && rmp.ranked) return { ticket: null, ranked: !0 };
-  return activePerm(u) ? { ticket: sign({ k: "perm", id: u.id, room: roomOf(b.room), exp: now() + 6 * 36e5 }) } : { ticket: null };
+  return peerOk(b.p) && activePerm(u) ? { ticket: sign({ k: "perm", id: u.id, room: roomOf(b.room), p: b.p, exp: now() + 6 * 36e5 }) } : { ticket: null };
 };
 A.perm_check = async (q, b) => {
   const s = verify(b.ticket);
-  if (!s || "perm" !== s.k || !s.id || !s.room || s.room !== roomOf(b.room)) return { perm: null, id: null };
+  if (!s || "perm" !== s.k || !s.id || !s.room || s.room !== roomOf(b.room) || !peerOk(s.p) || s.p !== b.p) return { perm: null, id: null };
   const u = await getJ(userKey(s.id));
+  // the host is the one asking, so the ban is looked up with the account's own last address, not the host's
+  if (u && !(u.owner && isOwnerId(u.id)) && (await banOf(u, u.dev, u.lastIp))) return { perm: null, id: null };
   return { perm: activePerm(u), id: u ? u.id : null };
 };
 // the gun skins a player picked follow the account: read them, or set the
