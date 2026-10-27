@@ -50,6 +50,7 @@ function harness(options = {}) {
         return "OK";
       }
       case "INCR": case "INCRBY": { const n = +(get(key) || 0) + (op === "INCR" ? 1 : +args[0]); db.set(key, String(n)); return n; }
+      case "TTL": { if (get(key) == null) return -2; const at = expires.get(key); return at == null ? -1 : Math.max(0, Math.ceil((at - clock) / 1000)); }
       case "EXPIRE": {
         // EXPIRE key seconds [NX|XX|GT|LT] like Redis 7 / Upstash; a lost EXPIRE (dropExpires) answers 1 but does nothing
         if (droppedExpires > 0) { droppedExpires--; return 1; }

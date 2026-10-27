@@ -269,9 +269,10 @@ async function limited(key, max, sec) {
   const memo = requestState.getStore();
   const mk = key + "|" + max + "|" + sec;
   if (memo && memo.has(mk)) return memo.get(mk);
-  // EXPIRE NX only starts a window on a key that has none, so a live window is never extended and a key
-  // whose first EXPIRE was lost gets its window on the next call instead of counting up forever
-  const [n] = await pipe([["INCR", "rl:" + key], ["EXPIRE", "rl:" + key, String(sec), "NX"]]);
+  // a window starts on a key with no expiry: the first INCR, or a key whose EXPIRE was lost (it would otherwise count
+  // up forever); a live window is never extended. Plain INCR / TTL / EXPIRE only, which every Redis answers.
+  const [n, ttl] = await pipe([["INCR", "rl:" + key], ["TTL", "rl:" + key]]);
+  ttl < 0 && (await redis(["EXPIRE", "rl:" + key, String(sec)]));
   const out = n > max;
   memo && memo.set(mk, out);
   return out;
