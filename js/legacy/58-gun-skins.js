@@ -1762,9 +1762,38 @@
   // ── 7. in everyone's hands: the real gun, in its owner's skin ──
   // (the third-person body used to hold one generic rifle shape)
   const TPL = new Map();
+  // A fighter's gun is a clone of its template and draws the template's geometry, and bots wear new random skins every
+  // round: the templates somebody wears stay, the others are kept least recently used first (Map order) up to TPL_IDLE,
+  // and the older ones give back their own geometry and material. A Champions Phantom template is never given back.
+  const TPL_IDLE = 16;
+  function tplFree(w) {
+    const geo = new Set(), mat = new Set(), kit = KITS._m ? Object.values(KITS._m) : [];
+    let imported = !1;
+    w.traverse((o) => {
+      o.userData.valorantRig && (imported = !0);
+      if (!o.isMesh) return;
+      o.geometry && !o.geometry.userData.shared && geo.add(o.geometry);
+      for (const m of [].concat(o.material)) m && !m.userData.keep && !m.userData.shared && !kit.includes(m) && mat.add(m);
+    });
+    geo.forEach((g) => g.dispose());
+    // (an imported gun's material belongs to its source: every build of it shares one)
+    imported || mat.forEach((m) => m.dispose());
+  }
+  function tplTrim() {
+    const worn = new Set();
+    for (const a of world.actors || []) a.model && a.model.gun && worn.add(a.model.gun.userData.tp);
+    const idle = [];
+    for (const [id, w] of TPL) w && !worn.has(id) && !/\|champions_/.test(id) && idle.push(id);
+    for (const id of idle.slice(0, Math.max(0, idle.length - TPL_IDLE))) (tplFree(TPL.get(id)), TPL.delete(id));
+  }
   function template(key, skin) {
     const id = key + "|" + skin.id;
-    if (TPL.has(id)) return TPL.get(id);
+    if (TPL.has(id)) {
+      const w = TPL.get(id);
+      TPL.delete(id);
+      TPL.set(id, w);
+      return w;
+    }
     let g = null;
     try {
       g = buildFor(key, skin);
@@ -1795,6 +1824,7 @@
     w.userData.muzzle = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z - 0.01];
     if (sourceMuzzle) w.userData.muzzle = sourceMuzzle.map(n => n * .88);
     TPL.set(id, w);
+    tplTrim();
     return w;
   }
   const PEER = new Map(); // host: what each guest wears, by peer id
@@ -4475,5 +4505,5 @@
     }
   } catch (e) {}
 
-  window.GUN_SKINS = { preview: previewItem, receive: takeInv, shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
+  window.GUN_SKINS = { preview: previewItem, receive: takeInv, shop: () => SH, loadShop, buyShop, wish: () => [...WL.set], toggleWish, wishNotice, ticket: myTicket, vouch: vouched, _ver: () => VER, _tick: () => TICK, tab: setTab, curTab: () => AR.tab, selectItem, mineItems: () => mineItems().map((x) => x.g + "|" + x.s.id), thumb: thumbNow, feat: () => AR.feat, _reveal: (res) => (startReveal(res.length || 1), setTimeout(() => revealResults(res), 250)), _skip: () => revealAll(), list: SKINS, fits, skinsFor, buildFor, rar: RAR, guns: () => Object.keys(WEAPONS), mine: () => SK.mine, of: mySkin, set: setSkin, setAll, random: setRandom, apply: applySkin, template, templates: () => [...TPL.keys()], open: openArmory, close: closeArmory, isOpen: () => AR.open, peer: PEER, skinOf, pending: PEND, drops: DSK, owns, inv: () => INV, gold: () => INV.gold, gated, pull, sync: () => sync(!0), paint: armoryPaint, reveal: () => RV, _pv: () => AR.pv, _show: pvShow, dress: dressGun };
 })();
