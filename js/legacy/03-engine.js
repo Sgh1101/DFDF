@@ -180,12 +180,20 @@ MAP.walls.forEach((e) => {
 });
 let CUR_MAP_KEY = "glacier";
 const _mapMeshes = [];
+// What a map builds for itself (the sky, site markers, signs: canvas textures and the materials made for them) is
+// marked with userData.own, and removing the map frees it. Cached and shared materials and textures never carry it.
+const mapOwn = (e) => ((e.userData.own = !0), e);
+function disposeOwned(e) {
+  for (const t of [].concat(e.material || []))
+    (t.map && t.map.userData.own && t.map.dispose(),
+      t.userData.own && t.dispose());
+}
 function clearMapGeometry() {
   // Device groups contain owned child resources; clean them before removing
   // top-level map meshes so their resources are released exactly once.
   if (window.MAP_GIMMICKS) window.MAP_GIMMICKS.clear();
   for (const e of _mapMeshes)
-    (scene.remove(e), e.geometry && e.geometry.dispose());
+    (scene.remove(e), e.geometry && e.geometry.dispose(), e.traverse(disposeOwned));
   if (
     ((_mapMeshes.length = 0),
     (COLLIDERS.length = 0),
@@ -198,7 +206,7 @@ function clearMapGeometry() {
       (DECOR.remove(t),
         t.traverse &&
           t.traverse((e) => {
-            e.geometry && e.geometry.dispose();
+            (e.geometry && e.geometry.dispose(), disposeOwned(e));
           }),
         t.geometry && t.geometry.dispose());
     }
@@ -210,7 +218,7 @@ function clearMapGeometry() {
       t.isLight ||
       t === floor ||
       (t.userData && t.userData.actor) ||
-      (scene.remove(t), t.geometry && t.geometry.dispose());
+      (scene.remove(t), t.geometry && t.geometry.dispose(), t.traverse(disposeOwned));
   }
 }
 function buildMapGeometry(e) {
@@ -2635,7 +2643,8 @@ function chDispose(group) {
   if (!group) return;
   const geometries = new Set();
   group.traverse((node) => {
-    if (node.isMesh && node.userData.baked && node.geometry) geometries.add(node.geometry);
+    // a baked piece, or the voxel copy a fighter owns (js/blocky-characters.js): gun pieces are neither
+    if (node.isMesh && node.geometry && (node.userData.baked || node.geometry.userData.blocky)) geometries.add(node.geometry);
   });
   for (const geometry of geometries) geometry.dispose();
   for (const material of group.userData.ownedMaterials || []) material.dispose();
@@ -11941,10 +11950,12 @@ function siteMarker(e) {
     (o.textAlign = "center"),
     (o.textBaseline = "middle"),
     o.fillText(e.id, 128, 138));
-  const a = new T.CanvasTexture(t),
+  const a = mapOwn(new T.CanvasTexture(t)),
     n = new T.Mesh(
       new T.PlaneGeometry(6, 6),
-      new T.MeshBasicMaterial({ map: a, transparent: !0, opacity: 0.55 }),
+      mapOwn(
+        new T.MeshBasicMaterial({ map: a, transparent: !0, opacity: 0.55 }),
+      ),
     );
   return (
     (n.rotation.x = -Math.PI / 2),
@@ -11966,19 +11977,21 @@ function skyDome() {
     a.addColorStop(1, n),
     (o.fillStyle = a),
     o.fillRect(0, 0, 8, 256));
-  const r = new THREE.CanvasTexture(t);
+  const r = mapOwn(new THREE.CanvasTexture(t));
   r.colorSpace = THREE.SRGBColorSpace;
   const s = MAP.bounds || { minX: -100, maxX: 100, minZ: -100, maxZ: 100 },
     i = Math.max(s.maxX - s.minX, s.maxZ - s.minZ) / 2,
     l = Math.max(240, 1.9 * i),
     c = new THREE.Mesh(
       new THREE.SphereGeometry(l, 24, 16),
-      new THREE.MeshBasicMaterial({
-        map: r,
-        side: THREE.BackSide,
-        fog: !1,
-        depthWrite: !1,
-      }),
+      mapOwn(
+        new THREE.MeshBasicMaterial({
+          map: r,
+          side: THREE.BackSide,
+          fog: !1,
+          depthWrite: !1,
+        }),
+      ),
     );
   if (((c.position.y = -10), scene.add(c), e.glow)) {
     const t = document.createElement("canvas");
@@ -11991,17 +12004,19 @@ function skyDome() {
       a.addColorStop(1, "rgba(255,240,210,0)"),
       (o.fillStyle = a),
       o.fillRect(0, 0, 128, 128));
-    const n = new THREE.CanvasTexture(t);
+    const n = mapOwn(new THREE.CanvasTexture(t));
     n.colorSpace = THREE.SRGBColorSpace;
     const r = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: n,
-        color: 16777215,
-        fog: !1,
-        depthWrite: !1,
-        transparent: !0,
-        blending: THREE.AdditiveBlending,
-      }),
+      mapOwn(
+        new THREE.SpriteMaterial({
+          map: n,
+          color: 16777215,
+          fog: !1,
+          depthWrite: !1,
+          transparent: !0,
+          blending: THREE.AdditiveBlending,
+        }),
+      ),
     );
     r.material.color.multiplyScalar(2.2);
     const s = new THREE.Vector3(_SUN_OFF.x, 0.42 * _SUN_OFF.y, _SUN_OFF.z)
@@ -12330,10 +12345,10 @@ function neonSign(e, t, o, a) {
     (i.shadowBlur = 26));
   for (let e = 0; e < 3; e++)
     i.fillText(NEON_WORDS[Math.floor(8 * Math.random())], 64, 52 + 76 * e);
-  const l = new T.CanvasTexture(s),
+  const l = mapOwn(new T.CanvasTexture(s)),
     c = new T.Mesh(
       new T.PlaneGeometry(2.2, 4.4),
-      new T.MeshBasicMaterial({ map: l }),
+      mapOwn(new T.MeshBasicMaterial({ map: l })),
     );
   ((c.userData.noMerge = !0), n.add(c));
   const d = new T.Mesh(new T.BoxGeometry(0.14, 4.6, 0.14), TH().strut);
@@ -15131,14 +15146,19 @@ function tickVmSpike(e) {
   }
   return !0;
 }
+let _carrierMark = null;
 function setCarrierMark(e, t) {
   if (e)
     if (t) {
       if (!e.spikeMark) {
-        const t = new T.Mesh(
-          new T.ConeGeometry(0.24, 0.46, 4),
-          new T.MeshBasicMaterial({ color: 16726862 }),
-        );
+        // one cone and one material for every carrier: a fighter's group is freed with its own pieces only
+        const o =
+            _carrierMark ||
+            (_carrierMark = {
+              g: new T.ConeGeometry(0.24, 0.46, 4),
+              m: new T.MeshBasicMaterial({ color: 16726862 }),
+            }),
+          t = new T.Mesh(o.g, o.m);
         ((t.position.y = 2.42),
           (t.rotation.x = Math.PI),
           e.group.add(t),

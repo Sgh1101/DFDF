@@ -50,6 +50,7 @@
     "test:shift": "node scripts/browser-shift.js",
     "test:followup": "node scripts/browser-followup.js",
     "test:maps": "node scripts/browser-map-cleanup.js",
+    "test:map-memory": "node scripts/browser-map-memory.js",
     "test:ascent": "node scripts/browser-ascent.js",
     "test:ascent-abilities": "node scripts/browser-ascent-abilities.js",
     "test:performance": "node scripts/browser-performance.js",

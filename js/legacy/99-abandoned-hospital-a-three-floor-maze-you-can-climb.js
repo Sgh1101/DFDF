@@ -1367,10 +1367,10 @@
     g.textBaseline = "middle";
     g.fillStyle = "#e9efe8";
     g.fillText(text, w / 2, c.height / 2 + 2);
-    const t = new T.CanvasTexture(c);
+    const t = mapOwn(new T.CanvasTexture(c));
     t.colorSpace = T.SRGBColorSpace;
     const hh = 0.5,
-      m = new T.Mesh(new T.PlaneGeometry((hh * c.width) / c.height, hh), new T.MeshBasicMaterial({ map: t, fog: !0 }));
+      m = new T.Mesh(new T.PlaneGeometry((hh * c.width) / c.height, hh), mapOwn(new T.MeshBasicMaterial({ map: t, fog: !0 })));
     m.position.set(x, y, z);
     m.rotation.y = ry;
     m.userData.noMerge = !0;
