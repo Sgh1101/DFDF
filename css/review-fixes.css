@@ -180,7 +180,7 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
 #armory .it small,#armory .it i,#armory .wkr,#armory .mi-info h4 i,#armory .ss-rar,#armory .ss-tag,#armory .ar-tab i,#armory .ar-hd .lbl{font-size:var(--fs-xs)}
 #armory .it i{letter-spacing:.06em}
 /* the Champions preview keeps its own caption (changes there need the owner's approval) */
-#armory .ar-slot:not(#slot-champions) .ar-cap i,#armory .ar-hint{font-size:var(--fs-xs)}
+#armory .ar-slot:not(#slot-champions) :is(.ar-cap i,.ar-hint){font-size:var(--fs-xs)}
 #armory .ar-sk i,#armory .it.eq::after{font-size:var(--fs-xs)}
 #armory .ar-sk i{letter-spacing:.06em}
 
