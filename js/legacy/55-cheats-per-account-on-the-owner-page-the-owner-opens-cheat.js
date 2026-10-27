@@ -5,9 +5,9 @@
   // faster, the buff, an end date. Signed in with that account, the cheat
   // panel opens with just those items and those limits. In a room the host
   // asks the server what the guest's account may do (with a ticket that only
-  // says who it is, never the sign-in) and holds the guest's switches to the
-  // same limits; the answer is asked again every minute, so a change on the
-  // owner page counts mid-game.
+  // says who it is and which peer it is for, never the sign-in) and holds the
+  // guest's switches to the same limits; the answer is asked again every
+  // minute, so a change on the owner page counts mid-game.
   // The buff: every ability but the ultimate comes back every N seconds
   // (10 unless the owner set another number for the account).
   const A2 = window.ADMIN2,
@@ -180,7 +180,7 @@
   };
 
   // ── network ──
-  // (a guest's ticket names the room it was asked for: a host can't use it anywhere else)
+  // (a guest's ticket names the room and the peer it was asked for: it is no use in another room or to another guest)
   // my switches carry the buff (seconds, 0 = off)
   const _sa = sendAction;
   sendAction = function (m) {
@@ -229,7 +229,7 @@
     if (!ticket || !AC || !AC.api || isClient()) return;
     let perm = null;
     try {
-      const j = await AC.api("perm_check", { ticket, room: NET.room });
+      const j = await AC.api("perm_check", { ticket, room: NET.room, p: peer });
       perm = permOf(j && j.perm);
     } catch (e) {
       return; // the server did not answer: keep what we had
@@ -293,14 +293,14 @@
   // guest: show the host what my account may (again after every new line)
   let sentFor = "";
   setInterval(async () => {
-    if (!isClient() || "open" !== NET.status || !NET.room || !MY || iOwner()) return;
+    if (!isClient() || "open" !== NET.status || !NET.room || !NET.peer || !NET.peer.id || !MY || iOwner()) return;
     // again after a redialled link: the host forgets a guest whose line dropped
     const key = (NET.peer && NET.peer.id) + "|" + NET.room + "|" + (window.NET_REDIALS || 0);
     if (sentFor === key) return;
     sentFor = key;
     try {
       const s = sess(),
-        j = await AC.api("perm_ticket", { token: s.token, room: NET.room });
+        j = await AC.api("perm_ticket", { token: s.token, room: NET.room, p: NET.peer.id });
       j && j.ticket ? sendAction({ t: "perm-hi", ticket: j.ticket }) : (sentFor = "");
     } catch (e) {
       sentFor = "";

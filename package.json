@@ -102,6 +102,7 @@
     "test:operator": "node scripts/browser-operator.js",
     "test:owner-state": "node scripts/browser-owner-state.js",
     "test:owner-grant": "node scripts/browser-owner-grant.js",
+    "test:perm-ticket": "node scripts/browser-perm-ticket.js",
     "test:crouch": "node scripts/browser-crouch.js",
     "test:agentswitch": "node scripts/browser-agent-switch.js",
     "test:raycast": "node scripts/browser-raycast.js",
