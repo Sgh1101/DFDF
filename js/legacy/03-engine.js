@@ -1483,11 +1483,18 @@ const touch = {
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
+  // a stored value is taken only if the setting can hold it: the default's type and, for a number, finite and inside
+  // its slider's range (a NaN once saved comes back as null, which stopped mouse look and the settings screen for good)
+  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2] };
   try {
     const e = localStorage.getItem("lgp_set");
     if (e) {
       const t = JSON.parse(e);
-      for (const e in SET_DEF) void 0 !== t[e] && (SETTINGS[e] = t[e]);
+      for (const e in SET_DEF) {
+        const o = t[e], r = range[e];
+        void 0 === o || typeof o != typeof SET_DEF[e] || ("number" == typeof o && !Number.isFinite(o)) ||
+          (SETTINGS[e] = r ? Math.min(r[1], Math.max(r[0], o)) : o);
+      }
     }
   } catch (e) {}
   SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
