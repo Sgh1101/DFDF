@@ -120,6 +120,7 @@
     "test:knife-walls": "node scripts/browser-knife-walls.js",
     "test:settings-menus": "node scripts/browser-settings-menus.js",
     "test:bot-corners": "node scripts/browser-bot-corners.js",
+    "test:pogu-alley": "node scripts/browser-pogu-alley.js",
     "test:ability-killers": "node scripts/browser-ability-killers.js"
   },
   "devDependencies": {
