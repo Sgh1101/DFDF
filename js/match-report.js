@@ -1,21 +1,34 @@
 (function (root) {
-  function create({ request, token, onError = () => {} }) {
-    let current = null;
+  // A match's ticket, asked for when it starts. One the server would not give (its limit on matches started, or no
+  // answer) is asked for again while the match runs: a later ticket only counts the rest of the match, but that beats
+  // none. missed() says why the match finish() just closed has no ticket.
+  function create({ request, token, onError = () => {}, retryMs = 60000 }) {
+    let current = null, missed = null;
+    const again = (e) => !e || !e.status || 429 === e.status || e.status >= 500;
     return {
       begin(fresh = false) {
         if (!token()) return null;
         if (current && !fresh) return current;
-        const run = { token: token(), ticket: "" };
+        const run = { token: token(), ticket: "", error: null };
         current = run;
-        run.promise = request(run.token).then((result) => run.ticket = result.ticket || "").catch(onError);
+        const ask = (first) => request(run.token).then((result) => { run.ticket = result.ticket || ""; run.error = null; }, (e) => {
+          run.error = e || new Error("");
+          first && onError(e);
+          current === run && again(e) && (run.timer = setTimeout(() => { current === run && (run.promise = ask(false)); }, retryMs));
+        });
+        run.promise = ask(true);
         return run;
       },
       async finish() {
-        const run = current; current = null;
+        const run = current; current = null; missed = null;
         if (!run) return "";
+        clearTimeout(run.timer);
         await run.promise;
-        return run.token === token() ? run.ticket : "";
+        if (run.token !== token()) return "";
+        run.ticket || (missed = run.error);
+        return run.ticket;
       },
+      missed: () => missed,
     };
   }
   if (typeof module === "object" && module.exports) module.exports = create;

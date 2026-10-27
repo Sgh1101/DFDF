@@ -176,6 +176,7 @@
   }
   function dropGuests() {
     OK.clear();
+    SEEN.clear();
     for (const p of [...A2.PEERS.keys()]) free2(p) || A2.PEERS.delete(p);
     for (const a of world.actors || []) "me" !== a.ctrl && !free2(a.ctrl) && a._kit && a.agent && A2.setKit(a, a.agent);
   }
@@ -259,6 +260,46 @@
     return r;
   };
 
+  // ── host: a guest's code only counts from someone who went to see it ──
+  // The code goes out to every guest so their screens can paint it, so the host checks the rest: the guest's body has
+  // been where it could see every side that carries a digit (within SEE_R, in front of the side, nothing in between)
+  // since the code was put there, and a refused try holds off the next one for wrongWaitSec, as the guest's screen does.
+  const SEE_R = 60;
+  const SEEN = new Map(), // peer → { at: round:version, s: the sides its body has seen }
+    NEXT = new Map(); // peer → when its next try counts
+  let SIDES = { at: "", list: [] };
+  function paintedSides() {
+    const at = HUNT.key + ":" + HUNT.b + ":" + HUNT.code.length;
+    if (SIDES.at === at) return SIDES.list;
+    const w = MAP && MAP.walls && MAP.walls[HUNT.b],
+      y = w ? Math.max(1.2, Math.min(2.2, w.h - 0.95)) : 0;
+    // the sides placeSigns paints, each with three points along it a little out from the wall
+    SIDES = { at, list: (w ? faces(w).slice(0, HUNT.code.length) : []).map((s) => ({ fx: s.fx, fz: s.fz, nx: s.nx, nz: s.nz, pts: [-0.35, 0, 0.35].map((k) => ({ x: s.fx + s.nx * 0.3 - s.nz * k * s.len, z: s.fz + s.nz * 0.3 + s.nx * k * s.len, y })) })) };
+    return SIDES.list;
+  }
+  function watchGuests() {
+    if (!HUNT.code || CUR_MAP_KEY !== HUNT.key) return;
+    const at = HUNT.r + ":" + HUNT.v,
+      list = paintedSides();
+    for (const a of world.actors || []) {
+      if (!a.alive || !a.pos || ["me", "ai", "dead"].includes(a.ctrl)) continue;
+      let m = SEEN.get(a.ctrl);
+      (m && m.at === at) || SEEN.set(a.ctrl, (m = { at, s: new Set() }));
+      if (m.s.size >= list.length) continue;
+      const x = a.pos.x,
+        z = a.pos.z,
+        y = (a.y || 0) + 1.5;
+      list.forEach((s, k) => {
+        if (m.s.has(k) || (x - s.fx) * s.nx + (z - s.fz) * s.nz < 1 || Math.hypot(x - s.fx, z - s.fz) > SEE_R) return;
+        s.pts.some((p) => !rayBlocked(x, y, z, p.x, p.y, p.z)) && m.s.add(k);
+      });
+    }
+  }
+  const sawCode = (peer) => {
+    const m = SEEN.get(peer);
+    return !!m && m.at === HUNT.r + ":" + HUNT.v && m.s.size >= paintedSides().length;
+  };
+
   // ── network ──
   const _oe = NET.onEvent;
   NET.onEvent = (e) => {
@@ -275,7 +316,7 @@
         HUNT.unlocked = !0;
         refresh(!0);
         banner(E("치트가 열렸습니다 · 이번 라운드만", "Cheats unlocked · this round only"), "#ffc849");
-      } else wrongCode(e.late ? E("한발 늦었습니다. 비밀번호가 다른 곳으로 옮겨졌습니다", "Too late — the code has moved somewhere else") : E("틀렸습니다", "Wrong code"));
+      } else wrongCode(e.late ? E("한발 늦었습니다. 비밀번호가 다른 곳으로 옮겨졌습니다", "Too late — the code has moved somewhere else") : e.far ? E("건물에 그려진 숫자를 직접 모두 보고 입력하세요", "Go and see every digit on the building first") : E("틀렸습니다", "Wrong code"));
       return;
     }
     return _oe(e);
@@ -283,9 +324,13 @@
   const _oa = NET.onAction;
   NET.onAction = (peer, msg) => {
     if (msg && "hunt-try" === msg.t) {
-      const ok = C().enabled && msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
+      const t = performance.now(),
+        wait = (NEXT.get(peer) || 0) > t,
+        saw = sawCode(peer);
+      const ok = !wait && saw && C().enabled && msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
       const late = !ok && msg.r === HUNT.r && msg.v !== HUNT.v;
-      sendEventTo(peer, { t: "hunt-ans", ok, late, r: HUNT.r });
+      ok || NEXT.set(peer, t + 1000 * Math.max(0, +C().wrongWaitSec || 0));
+      sendEventTo(peer, { t: "hunt-ans", ok, late, far: !ok && !late && !wait && !saw, r: HUNT.r });
       if (ok) OK.add(peer), C().moveAfterUse && rotate();
       return;
     }
@@ -319,14 +364,22 @@
       ch && A2.afterChange();
     } catch (e) {}
   }, 1000);
-  let acc = 0;
+  let acc = 0,
+    seeT = 0;
   const _ns = netStep;
   netStep = function (dt) {
     const r = _ns.apply(this, arguments);
     try {
       (acc += dt || 0.016) > 3 && ((acc = 0), "menu" !== world.phase && sendHunt());
+      (seeT += dt || 0.016) > 0.25 && ((seeT = 0), isHostNet() && "menu" !== world.phase && watchGuests());
     } catch (e) {}
     return r;
+  };
+  const _pg = NET.onPeerGone;
+  NET.onPeerGone = function (peer) {
+    SEEN.delete(peer);
+    NEXT.delete(peer);
+    return _pg && _pg.apply(this, arguments);
   };
 
   // ── the panel: 치트 (code) and 관리자 (closed) ──
@@ -496,6 +549,6 @@
 .ht-err{font-size:12px;color:#ff6b6b}
 #ad-lockout[hidden],#ad-default[hidden]{display:none}`;
   document.head.appendChild(st);
-  window.HUNTX = { HUNT, OK, GRANT, OWNP, relock, refresh, isClient, E };
+  window.HUNTX = { HUNT, OK, GRANT, OWNP, SEEN, sides: paintedSides, relock, refresh, isClient, E };
   window.HUNT_STATE = () => ({ r: HUNT.r, v: HUNT.v, b: HUNT.b, key: HUNT.key, unlocked: HUNT.unlocked, signs: signs.length, guestsOk: OK.size });
 })();

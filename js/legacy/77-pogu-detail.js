@@ -74,6 +74,8 @@
     t.anisotropy = aniso || 2;
     return t;
   };
+  // a texture built for one load of the map (the others above are made once): removing the map frees it
+  const ownTex = (...a) => mapOwn(texOf(...a));
   const speckle = (g, w, h, n, lo, hi, a) => {
     for (let i = 0; i < n; i++) {
       const v = lo + Math.floor(Math.random() * (hi - lo));
@@ -423,13 +425,13 @@
         g.setIndex(I);
         g.computeVertexNormals();
         g.computeBoundingSphere();
-        add(new T.Mesh(g, new T.MeshBasicMaterial({ map: texOf(cv, !1, 4), polygonOffset: !0, polygonOffsetFactor: -2, fog: !0 })));
+        add(new T.Mesh(g, new T.MeshBasicMaterial({ map: ownTex(cv, !1, 4), polygonOffset: !0, polygonOffsetFactor: -2, fog: !0 })));
       }
     }
     // ---- windows (instanced, flat on the walls) ----
     const glows = [];
     {
-      const wt = texOf(
+      const wt = ownTex(
         canvas(64, 96, (g, w, h) => {
           g.fillStyle = "#cfd2d6";
           g.fillRect(0, 0, w, h);
@@ -612,7 +614,7 @@
       {
         const cv = canvas(256, 256, () => {});
         const ctx2 = cv.getContext("2d"),
-          ct = texOf(cv, !1, 4);
+          ct = ownTex(cv, !1, 4);
         const draw = () => {
           const d = new Date(),
             g = ctx2;
@@ -654,6 +656,7 @@
         };
         mk(-1, 49.45);
         mk(1, 58.55);
+        clearInterval(POGU.clock);
         POGU.clock = setInterval(() => {
           try {
             "pogu" === CUR_MAP_KEY ? draw() : clearInterval(POGU.clock);
@@ -662,7 +665,7 @@
       }
       // the lighthouse beam: a long soft quad that turns
       {
-        const bt = texOf(
+        const bt = ownTex(
           canvas(256, 32, (g, w, h) => {
             const gr = g.createLinearGradient(0, 0, w, 0);
             gr.addColorStop(0, "rgba(255,236,190,.95)");
@@ -718,7 +721,7 @@
     }
     // ---- glows: one Points object for the lamps and the lit windows ----
     if (glows.length) {
-      const gt = texOf(
+      const gt = ownTex(
         canvas(64, 64, (g) => {
           const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
           gr.addColorStop(0, "rgba(255,226,160,.95)");

@@ -665,11 +665,29 @@
       banner(L("경기 보상: ", "Match reward: ") + e.message, "#ff8a9a");
     } finally { reporting = false; }
   }
+  // the result screen says so, under the score, when a match brings nothing because its ticket never came (the server's
+  // limit on matches started, or no answer), rather than the reward just not being there
+  function noReward(e) {
+    let c = $("ov-noreward");
+    if (!e) return void (c && (c.hidden = true));
+    const score = document.querySelector("#s-over .ov-score");
+    if (!score) return;
+    if (!c) {
+      c = document.createElement("div");
+      c.id = "ov-noreward";
+      c.style.cssText = "margin-top:10px;padding:0 16px;font-size:13px;font-weight:700;color:#ff8a9a;text-align:center";
+      score.after(c);
+    }
+    c.hidden = false;
+    c.textContent = L("보상 없음 · ", "No reward · ") + (429 === e.status ? L("경기를 너무 자주 시작해 이번 경기는 기록되지 않았습니다", "too many matches started, so this one was not recorded") : L("이번 경기는 기록되지 않았습니다", "this match was not recorded") + (e.message ? " (" + e.message + ")" : ""));
+  }
   addEventListener("match-finished", async (e) => {
     const match = e.detail, ownerToken = token();
     if (!match || !ownerToken) return;
+    noReward(null);
     const mt = await reportSession.finish();
-    if (!mt || ownerToken !== token()) return;
+    if (ownerToken !== token()) return;
+    if (!mt) return void noReward(reportSession.missed());
     // the host's own report goes after the result it just attested
     window.RANKED && RANKED.flow && await RANKED.flow.settled();
     if (ownerToken !== token()) return;
