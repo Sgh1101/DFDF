@@ -10,7 +10,7 @@ function fixture() {
       observe(image) { this.observed.add(image); }
       unobserve(image) { this.observed.delete(image); }
     },
-    // a new drawing takes 10 ms; cost.ms = 0 stands for one already in the portrait cache
+    // a new drawing takes 10 ms; a small cost.ms (the test uses 1) stands for one already in the portrait cache
     agentPortrait: (agent, width, height) => { calls.push([agent, width, height]); clock += cost.ms; return "data:" + agent; },
   };
   context.window = context;

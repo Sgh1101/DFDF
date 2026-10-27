@@ -3840,6 +3840,15 @@
 
   // ── the tabs ──
   let previewFrame = 0;
+  // scroll a list just enough to show one of its items, clear of the 36 px edge fade a sideways row gets
+  // (css/review-fixes.css .sfade-l/.sfade-r); the page itself does not move
+  function showInRow(row, el) {
+    if (!row || !el) return;
+    const g = row.getBoundingClientRect(),
+      r = el.getBoundingClientRect();
+    r.left < g.left + 44 ? (row.scrollLeft += r.left - g.left - 44) : r.right > g.right - 44 && (row.scrollLeft += r.right - g.right + 44);
+    r.top < g.top ? (row.scrollTop += r.top - g.top - 16) : r.bottom > g.bottom && (row.scrollTop += r.bottom - g.bottom + 16);
+  }
   function setTab(t) {
     AR.pickRevision = (AR.pickRevision || 0) + 1;
     ["pull", "shop", "champions", "mine", "gun"].includes(t) || (t = "pull");
@@ -3849,6 +3858,7 @@
       localStorage.setItem("lgp_ar_tab", t);
     } catch (e) {}
     for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.classList.toggle("on", b.dataset.tab === t);
+    showInRow($("ar-tabs"), document.querySelector("#ar-tabs .ar-tab.on"));
     for (const pane of ar.querySelectorAll(":scope > .ar-pane")) pane.hidden = pane.id !== "ar-p-" + t;
     "shop" === t && loadShop();
     if ("mine" === t && MI.sel) {
@@ -4313,13 +4323,7 @@
     // view (on a phone the list is one sideways row and 밴달 sat off screen)
     gl.scrollLeft = kept[0];
     gl.scrollTop = kept[1];
-    const on = gl.querySelector(".ar-gun.on");
-    if (on) {
-      const g = gl.getBoundingClientRect(),
-        r = on.getBoundingClientRect();
-      r.left < g.left ? (gl.scrollLeft += r.left - g.left - 16) : r.right > g.right && (gl.scrollLeft += r.right - g.right + 16);
-      r.top < g.top ? (gl.scrollTop += r.top - g.top - 16) : r.bottom > g.bottom && (gl.scrollTop += r.bottom - g.bottom + 16);
-    }
+    showInRow(gl, gl.querySelector(".ar-gun.on"));
     const sl = $("ar-skins");
     sl.innerHTML = "";
     const cur = mySkin(AR.key);
