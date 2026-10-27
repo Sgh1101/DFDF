@@ -324,10 +324,11 @@
   const _oa = NET.onAction;
   NET.onAction = (peer, msg) => {
     if (msg && "hunt-try" === msg.t) {
+      // and only from a guest whose account the server confirmed (the cheat tabs are for accounts with admin rights)
       const t = performance.now(),
         wait = (NEXT.get(peer) || 0) > t,
         saw = sawCode(peer);
-      const ok = !wait && saw && C().enabled && msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
+      const ok = free2(peer) && !wait && saw && C().enabled && msg.r === HUNT.r && String(msg.c) === HUNT.code && !!HUNT.code;
       const late = !ok && msg.r === HUNT.r && msg.v !== HUNT.v;
       ok || NEXT.set(peer, t + 1000 * Math.max(0, +C().wrongWaitSec || 0));
       sendEventTo(peer, { t: "hunt-ans", ok, late, far: !ok && !late && !wait && !saw, r: HUNT.r });
@@ -396,6 +397,8 @@
   const E = (ko, en) => ("en" === window.GAME_LANG ? en : ko);
   const inMatch = () => "menu" !== world.phase && !!HUNT.code;
   openAdmin = function () {
+    // like the settings tab: only an account with admin rights (or the owner) opens it, F9 included
+    if (!(window.ADMIN_GRANTED || window.IS_OWNER)) return;
     $("admin").hidden = !1;
     try {
       document.exitPointerLock();
