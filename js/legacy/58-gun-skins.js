@@ -2539,6 +2539,10 @@
 .mi-info .btn{padding:9px 14px;font-size:11px;min-height:40px}
 .mi-empty{grid-column:1/-1;padding:34px 14px;text-align:center;color:var(--steel);font-size:13px;border:1px dashed var(--line);border-radius:14px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .mi-empty .btn{padding:10px 18px;font-size:12px;min-height:40px}
+.mi-more{grid-column:span 2;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;color:var(--steel);font-size:12px}
+.mi-more b{color:var(--ink);font-size:13px}
+.mi-more div{display:flex;gap:6px;margin-top:2px}
+.mi-more .btn{padding:7px 14px;font-size:12px;min-height:36px}
 #ar-reveal{position:absolute;inset:0;z-index:6;display:flex;justify-content:center;padding:clamp(10px,2vw,22px);overflow:hidden;background:#04060a;--rc:#8a97ab}
 #ar-reveal[hidden]{display:none}
 .rv-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--rc) 24%,transparent),transparent 58%),radial-gradient(ellipse at 50% 112%,#121a2b,#04060a 70%);transition:background .5s}
@@ -4006,6 +4010,14 @@
       c.onclick = () => selectItem(x.g, x.s.id);
       frag.appendChild(c);
     }
+    // a short collection left most of the tab empty: the last card says where more skins come from
+    if (list.length && list.length < 8 && !MI.tier && !MI.cls && !MI.eq) {
+      const more = document.createElement("div");
+      more.className = "mi-more";
+      more.innerHTML = `<b>${L("스킨 더 얻기", "Get more skins")}</b><span>${L("상점에서 바로 사거나 뽑기로 얻습니다", "Buy one in the shop or win one in a pull")}</span><div><button class="btn" data-go="shop">${L("상점", "Shop")}</button><button class="btn" data-go="pull">${L("뽑기", "Pull")}</button></div>`;
+      more.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => setTab(b.dataset.go)));
+      frag.appendChild(more);
+    }
     box.appendChild(frag);
     box.querySelectorAll("img.th:not(.r)").forEach(thLater);
     // the picked one: what it is, wear it or take it off, or on every gun
@@ -4274,7 +4286,8 @@
     "mine" === AR.tab && paintMine();
     "shop" === AR.tab && paintShop();
     if (AR.tab !== "gun") { paintGacha(); return; }
-    const gl = $("ar-guns");
+    const gl = $("ar-guns"),
+      kept = [gl.scrollLeft, gl.scrollTop];
     gl.innerHTML = "";
     for (const [cls, keys] of gunList()) {
       const h = document.createElement("div");
@@ -4295,6 +4308,17 @@
         };
         gl.appendChild(b);
       }
+    }
+    // rebuilding the list put it back at its start: keep where it was, and bring the picked gun into
+    // view (on a phone the list is one sideways row and 밴달 sat off screen)
+    gl.scrollLeft = kept[0];
+    gl.scrollTop = kept[1];
+    const on = gl.querySelector(".ar-gun.on");
+    if (on) {
+      const g = gl.getBoundingClientRect(),
+        r = on.getBoundingClientRect();
+      r.left < g.left ? (gl.scrollLeft += r.left - g.left - 16) : r.right > g.right && (gl.scrollLeft += r.right - g.right + 16);
+      r.top < g.top ? (gl.scrollTop += r.top - g.top - 16) : r.bottom > g.bottom && (gl.scrollTop += r.bottom - g.bottom + 16);
     }
     const sl = $("ar-skins");
     sl.innerHTML = "";

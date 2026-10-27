@@ -12,6 +12,7 @@
     "test:map-shrink": "node scripts/browser-map-shrink.js",
     "test:ability-visibility": "node scripts/browser-ability-visibility.js",
     "test:select-mapshot": "node scripts/browser-select-mapshot.js",
+    "test:design-polish": "node scripts/browser-design-polish.js",
     "test:killcam": "node scripts/browser-killcam.js",
     "test:spider-swing": "node scripts/browser-spider-swing.js",
     "test:ice-log": "node scripts/browser-ice-log.js",

@@ -64,7 +64,6 @@
 
 /* ── an agent card whose portrait is still being drawn: a role-tinted placeholder instead of an empty hole ── */
 .acard-img:not([src]),.acard-img[src=""]{opacity:0}
-.acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){background:radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
 
 /* ── phones held sideways: the play buttons sat right under the top bar with half the screen empty below; they now sit in the middle of the space under the bar ── */
 @media (orientation:landscape) and (max-height:600px){
@@ -123,3 +122,66 @@
   #s-title .tt-news .tn-lbl{font-size:11px!important}
   #s-title .tt-news li>span,#s-title .nm-top small,#s-title .tt-news .nm-more,#s-title .tt-hint{font-size:12px!important}
 }
+
+/* ── design tokens: text sizes. New rules take a size from this scale (11px is the smallest text that is read;
+   only key letters and counts may go under it). Corner radii already have a scale: --r-sm/--r-md/--r-lg/--r-xl/--r-pill. ── */
+:root{--fs-xs:11px;--fs-sm:12px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px}
+
+/* The ammo panel's swap arrows are a touch control: their size is only set for body.touching, so with a mouse
+   the bare svg drew at its default size and stretched the panel to 234px. The credit line belongs to the buy
+   phase; in a fight it only took room under the ammo count (touch layouts already hide it). */
+body:not(.touching) #hud #ammo .am-swap{display:none!important}
+body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
+
+/* Korean breaks between any two letters by default, which left 1-2 letters (니다, 다., 안내) alone on a line in
+   settings, the ranked card, ability notes and the practice menu. Break between words and even out the lines. */
+#pause .pz-pane,#mu-rank,#sel-detail .ab-desc,#s-title .home-practice .btn{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
+
+/* Agent portraits are drawn a few at a time; until one arrives its card shows a dim figure in the agent's colour,
+   so the grid does not read as a row of empty boxes. It stays still: an animated sheen repainted every card each
+   frame and took the main thread the portraits are drawn on. */
+.acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){
+  background:
+    radial-gradient(17% 13% at 50% 31%,color-mix(in srgb,var(--ac) 34%,#1d2533) 0 96%,transparent 100%),
+    radial-gradient(46% 30% at 50% 74%,color-mix(in srgb,var(--ac) 24%,#171e2a) 0 97%,transparent 100%),
+    radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
+
+/* The match result on a short screen: the title, score and tiles took 300px before the MVP card, so on a phone
+   the buttons sat on the MVP card and on a 1280x720 laptop on the table. Smaller heading and tiles; the button
+   bar is solid so nothing reads as lying under it. */
+#s-over :has(>#ov-again){background:linear-gradient(to top,rgba(7,9,13,.98) 70%,rgba(7,9,13,.9))!important;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 24px rgba(0,0,0,.35)}
+@media(max-height:860px){
+  #s-over .ov-head{font-size:clamp(34px,9vh,64px)!important;line-height:1.05}
+  #s-over .ov-score{margin-top:4px!important;font-size:20px!important}
+  #s-over .ov-stats{margin-top:12px!important;gap:10px!important}
+  #s-over .ov-st{padding:8px 14px!important;min-width:84px!important}
+  #s-over .ov-st b{font-size:22px!important}
+  #s-over #ov-board{margin-top:14px!important}
+}
+/* a wide short screen (a 1280x720 laptop) has room beside the table: the result goes left, the board right, and
+   the whole result fits without scrolling (only while there is a board; without one the column stays centred) */
+@media(min-width:1180px) and (max-height:860px){
+  #s-over:not([hidden]):has(>#ov-board:not([hidden])){display:grid!important;grid-template-columns:minmax(240px,300px) minmax(0,860px);grid-template-rows:auto auto auto auto 1fr auto;grid-template-areas:"head board" "score board" "who board" "stats board" ". board" "bar bar";column-gap:32px;justify-content:center!important;align-content:safe center;padding-top:18px!important}
+  #s-over:not([hidden]):has(>#ov-board:not([hidden]))>*{margin-top:0!important;margin-bottom:0!important}
+  #s-over:has(>#ov-board:not([hidden])) .ovb-mvp{padding:8px 14px;margin-bottom:8px}
+  #s-over:has(>#ov-board:not([hidden])) .ovb-mvp img{width:52px;height:64px}
+  #s-over:has(>#ov-board:not([hidden])) .ov-head{grid-area:head;justify-self:center;align-self:end}
+  #s-over:has(>#ov-board:not([hidden])) .ov-score{grid-area:score;justify-self:center;margin-top:10px!important}
+  #s-over:has(>#ov-board:not([hidden])) #ov-who{grid-area:who;justify-self:center}
+  #s-over:has(>#ov-board:not([hidden])) .ov-stats{grid-area:stats;display:grid!important;grid-template-columns:1fr 1fr;padding:0!important;margin-top:18px!important}
+  #s-over:has(>#ov-board:not([hidden])) .ov-st{min-width:0!important}
+  #s-over:has(>#ov-board:not([hidden])) #ov-board{grid-area:board;width:auto!important;align-self:start;margin-top:0!important}
+  #s-over:has(>#ov-board:not([hidden])) :has(>#ov-again){grid-area:bar;margin-top:14px!important}
+}
+
+/* Labels on the result screen and on the armory's skin cards were 9-10px; they take the smallest reading size. */
+#s-over .ov-st .lbl,#s-over .ovb-mvp .lbl,#s-over .ovb-mvp-s span,#s-over .ovb-row.hd,#s-over .ovb-row .nm small{font-size:var(--fs-xs)!important;letter-spacing:.06em}
+#s-over .ovb-row .nm i{font-size:var(--fs-xs)!important;letter-spacing:.04em}
+#armory .it small,#armory .it i,#armory .wkr,#armory .mi-info h4 i,#armory .ss-rar,#armory .ss-tag,#armory .ar-tab i,#armory .ar-hd .lbl{font-size:var(--fs-xs)}
+#armory .it i{letter-spacing:.06em}
+#armory .ar-cap i,#armory .ar-hint{font-size:var(--fs-xs)}
+
+/* sideways rows that still have more to scroll fade out on that side (js/scroll-fade.js sets the classes) */
+.sfade-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
+.sfade-l{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 36px),transparent)}
+.sfade-l.sfade-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent)}
