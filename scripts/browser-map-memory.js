@@ -2,9 +2,9 @@
 // fighters and guns are built) must stop growing renderer.info.memory after the first cycle. A map frees what it
 // built for itself (sky, site markers, signs, the pogu textures), a fighter frees its voxel pieces, the spike
 // carrier's mark is one shared cone; cached and shared resources must stay alive.
-// The third-person gun templates are cached per gun and skin for the life of the page (a bounded cache that is kept on
-// purpose, the Champions Phantom among them) and fill slowly as bots meet new guns and skins, so what a gun builder made
-// is counted apart: the check is on the geometries and textures that are not gun models.
+// The third-person gun templates are cached per gun and skin and fill as bots meet new guns and skins (the cache is
+// bounded, see test:gun-memory), so what a gun builder made is counted apart: the check is on the geometries and
+// textures that are not gun models.
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 const MAPS = ["pogu", "hospital", "market", "glacier", "neon"], CYCLES = 3, SLACK = { geometries: 40, textures: 24 };
 (async () => {
