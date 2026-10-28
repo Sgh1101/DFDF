@@ -17,7 +17,7 @@
   // the owner, or a player the owner gave cheats to: always open, nothing clamped
   const boss = () => !!window.IS_OWNER || !!HUNT.granted;
   const free2 = (peer) => GRANT.has(peer) || OWNP.has(peer);
-  // the owner's rules (admin page → /api/v1 config), with the built-in defaults
+  // the owner's refill rules (admin page → /api/v1 config), with the built-in defaults; the limits for a switch are fixed
   const CDEF = { refillSec: 5, ultInfinite: !1, allow: {}, maxSpeed: 3, maxFastFire: 10 };
   const C = () => Object.assign({}, CDEF, (window.SERVER_CFG && window.SERVER_CFG.cheat) || {});
   const allowed = (k) => !1 !== (C().allow || {})[k];

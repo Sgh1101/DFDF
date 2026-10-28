@@ -4,7 +4,7 @@ const { harness } = require("../tests/api-harness");
 // The owner page's 게임 설정 view after the cheat hunt (digits painted on a building) was taken out: the settings that
 // only the hunt used are not listed, and the ones that remain are described as what they do now. The server holds a
 // config saved in the days of the hunt, with all its keys: the page must show none of them and save without them.
-const OLD = { enabled: false, codeLength: 4, startAtMiddle: true, moveAfterUse: true, resetEachRound: true, wrongWaitSec: 2 };
+const OLD = { enabled: false, codeLength: 4, startAtMiddle: true, moveAfterUse: true, resetEachRound: true, wrongWaitSec: 2, allow: { god: false }, maxSpeed: 2, maxFastFire: 4 };
 (async () => {
   const h = harness({ now: Date.now() }), errors = [];
   const old = JSON.parse(JSON.stringify(h.config)); Object.assign(old.cheat, OLD, { refillSec: 8 });
@@ -40,10 +40,9 @@ const OLD = { enabled: false, codeLength: 4, startAtMiddle: true, moveAfterUse: 
     };
     let v = await settings();
     await page.locator("#main .sec", { hasText: "치트 모드를 켠 계정" }).first().screenshot({ path: (process.env.SHOT_DIR || "/tmp") + "/admin-config-cheat.png" });
-    assert.ok(v.keys.includes("cheat.refillSec") && v.keys.includes("cheat.ultInfinite"), "the 치트 section lists what the game still reads: " + v.keys);
-    assert.deepEqual(v.keys.filter((k) => k.split(".")[1] in OLD), [], "and none of the hunt's settings: " + v.keys);
+    assert.deepEqual(v.keys, ["cheat.refillSec", "cheat.ultInfinite"], "the 치트 section lists only what the game still reads: " + v.keys);
     assert.equal(await page.inputValue('[data-k="cheat.refillSec"]'), "8", "a saved value that is still used is shown");
-    for (const dead of ["비밀번호 자릿수", "라운드 시작 때 가운데 건물", "번호 바꾸고 옮기기", "매 라운드 초기화", "틀렸을 때 기다리는 초", "숨은 비밀번호", "치트 사용", "비밀번호가 그려지지"]) assert.ok(!v.text.includes(dead), "the page no longer says: " + dead);
+    for (const dead of ["비밀번호 자릿수", "라운드 시작 때 가운데 건물", "번호 바꾸고 옮기기", "매 라운드 초기화", "틀렸을 때 기다리는 초", "숨은 비밀번호", "치트 사용", "비밀번호가 그려지지", "허용할 치트", "최대 배율"]) assert.ok(!v.text.includes(dead), "the page no longer says: " + dead);
     assert.match(v.sec, /능력 충전/, "the section says what it does: " + v.sec);
     // saving writes the settings without the old keys; the rest of the page's settings are all still sent
     await page.click("#csave");
@@ -51,13 +50,13 @@ const OLD = { enabled: false, codeLength: 4, startAtMiddle: true, moveAfterUse: 
     const stored = JSON.parse(h.db.get("config"));
     for (const k of Object.keys(OLD)) assert.equal(k in stored.cheat, false, "stored without cheat." + k);
     assert.equal(stored.cheat.refillSec, 8);
-    for (const k of Object.keys(stored.cheat)) assert.ok(v.keys.some((x) => x === "cheat." + k || x.startsWith("cheat." + k + ".")), "what is stored is what the page lists: " + k);
+    assert.deepEqual(Object.keys(stored.cheat).sort(), ["refillSec", "ultInfinite"], "what is stored is what the page lists");
     // reset: the defaults, and the same list again
     await page.click("#crst");
     await page.waitForFunction(() => document.querySelector('[data-k="cheat.refillSec"]') && document.querySelector('[data-k="cheat.refillSec"]').value === "5");
     assert.equal(h.db.has("config"), false, "reset removed the saved config");
     v = await settings();
-    assert.deepEqual(v.keys.filter((k) => k.split(".")[1] in OLD), []);
+    assert.deepEqual(v.keys, ["cheat.refillSec", "cheat.ultInfinite"]);
     assert.deepEqual(errors, []);
     console.log("owner settings: no cheat-hunt settings listed, an old saved config loads, saves and resets");
   } finally { await browser.close(); }

@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { harness } = require("./api-harness");
 const login = (h, id) => h.api("auth", { id, pw: id === "owner" ? "owner-password" : "password", device: "device-" + id });
-// The settings of the cheat hunt (digits painted on a building), taken out of the game, plus the on/off switch that
-// only ever stood for it. Settings saved before that still carry them in Redis.
-const GONE = ["enabled", "codeLength", "startAtMiddle", "moveAfterUse", "resetEachRound", "wrongWaitSec"];
-const OLD = { enabled: false, codeLength: 4, startAtMiddle: false, moveAfterUse: false, resetEachRound: false, wrongWaitSec: 7 };
+// The settings of the cheat hunt (digits painted on a building), taken out of the game; the on/off switch that only
+// stood for it; and the room-wide limits (allow, maxSpeed, maxFastFire) that only ever clamped players who got their
+// cheats from the hunt. Settings saved before that still carry them in Redis.
+const GONE = ["enabled", "codeLength", "startAtMiddle", "moveAfterUse", "resetEachRound", "wrongWaitSec", "allow", "maxSpeed", "maxFastFire"];
+const OLD = { enabled: false, codeLength: 4, startAtMiddle: false, moveAfterUse: false, resetEachRound: false, wrongWaitSec: 7, allow: { god: false, speed: false }, maxSpeed: 1, maxFastFire: 2 };
 const oldConfig = (h) => { const c = JSON.parse(JSON.stringify(h.config)); Object.assign(c.cheat, OLD, { refillSec: 9 }); return c; };
 const none = (cheat, where) => { for (const k of GONE) assert.equal(k in cheat, false, where + ": no cheat." + k); };
 
@@ -14,7 +15,7 @@ test("the default settings no longer carry the cheat hunt's keys", async () => {
   none(h.config.cheat, "DEFAULT_CONFIG");
   const got = await h.api("a_config_get", { atoken: owner.atoken });
   none(got.defaults.cheat, "defaults sent to the owner page"); none(got.config.cheat, "settings sent to the owner page");
-  assert.deepEqual(Object.keys(got.config.cheat).sort(), ["allow", "maxFastFire", "maxSpeed", "refillSec", "ultInfinite"]);
+  assert.deepEqual(Object.keys(got.config.cheat).sort(), ["refillSec", "ultInfinite"]);
 });
 
 test("settings saved with the old cheat keys still load, save and reset, and the keys are gone from every answer", async () => {
@@ -36,7 +37,7 @@ test("settings saved with the old cheat keys still load, save and reset, and the
   none(set.config.cheat, "a_config_set"); assert.equal(set.config.cheat.refillSec, 3);
   none(JSON.parse(h.db.get("config")).cheat, "what is stored"); assert.equal(JSON.parse(h.db.get("config")).cheat.refillSec, 3);
   // a bad number in a key that is still used is still refused
-  const bad = oldConfig(h); bad.cheat.maxSpeed = 9;
+  const bad = oldConfig(h); bad.cheat.refillSec = -1;
   assert.equal((await h.api("a_config_set", { atoken: A, config: bad })).status, 400);
   // reset
   h.db.set("config", JSON.stringify(oldConfig(h)));
