@@ -16869,7 +16869,7 @@ function playKillFx(e, t) {
     a = $("kf-main"),
     n = $("kf-sub"),
     r = $("kf-streak");
-  ((a.textContent = t ? "헤드샷" : "처치"), (n.textContent = e || ""));
+  ((a.textContent = t ? "헤드샷" : "en" === window.GAME_LANG ? "Kill" : "처치"), (n.textContent = e || ""));
   const s = STREAK_NAMES[Math.min(killStreak, 5)];
   (s ? ((r.textContent = s), (r.hidden = !1)) : (r.hidden = !0),
     (o.hidden = !1));
