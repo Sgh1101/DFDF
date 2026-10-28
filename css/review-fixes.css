@@ -146,7 +146,7 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
 .acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){
   background:
     radial-gradient(17% 13% at 50% 31%,color-mix(in srgb,var(--ac) 26%,#1a2130) 0 96%,transparent 100%),
-    radial-gradient(46% 30% at 50% 74%,color-mix(in srgb,var(--ac) 12%,#141a24) 0 97%,transparent 100%),
+    radial-gradient(46% 30% at 50% 74%,color-mix(in srgb,var(--ac) 8%,#131924) 0 97%,transparent 100%),
     radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
 
 /* The match result on a short screen: the title, score and tiles took 300px before the MVP card, so on a phone
