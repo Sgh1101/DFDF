@@ -1,23 +1,25 @@
 const test = require("node:test"), assert = require("node:assert/strict"), vm = require("node:vm"), fs = require("node:fs");
 function fixture() {
-  let ready, observer;
-  const idle = [], calls = [];
+  let ready, observer, clock = 0;
+  const idle = [], calls = [], cost = { ms: 10 };
   const context = { window: null, GAME_BOOT: { ready: new Promise((resolve) => { ready = resolve; }) },
+    performance: { now: () => clock },
     requestIdleCallback: (callback) => idle.push(callback),
     IntersectionObserver: class {
       constructor(callback) { this.callback = callback; this.observed = new Set(); observer = this; }
       observe(image) { this.observed.add(image); }
       unobserve(image) { this.observed.delete(image); }
     },
-    agentPortrait: (agent, width, height) => { calls.push([agent, width, height]); return "data:" + agent; },
+    // a new drawing takes 10 ms; a small cost.ms (the test uses 1) stands for one already in the portrait cache
+    agentPortrait: (agent, width, height) => { calls.push([agent, width, height]); clock += cost.ms; return "data:" + agent; },
   };
   context.window = context;
   vm.runInNewContext(fs.readFileSync("js/portrait-loader.js", "utf8"), context);
   const image = () => ({ isConnected: true, hidden: false, closest() { return this.hidden; }, getClientRects: () => [{}] });
   const visible = (...images) => observer.callback(images.map((target) => ({ target, isIntersecting: true })));
-  return { api: context.GAME_PORTRAITS, ready, idle, calls, image, visible, observer: () => observer };
+  return { api: context.GAME_PORTRAITS, ready, idle, calls, cost, image, visible, observer: () => observer };
 }
-test("portraits wait for final boot state and render one visible image per task", async () => {
+test("portraits wait for final boot state and a new drawing fills a task alone", async () => {
   const f = fixture(), first = f.image(), second = f.image(), hidden = f.image();
   f.api.set(first, "old", 80, 100); f.api.set(second, "second", 300, 380); f.api.set(hidden, "hidden", 300, 380);
   f.visible(first, second); await Promise.resolve();
@@ -46,4 +48,14 @@ test("featured portraits take priority over a large visible roster", async () =>
   f.api.set(hero, "featured", 420, 520, true); f.visible(...cards, hero);
   f.ready(); await Promise.resolve(); f.idle.shift()();
   assert.deepEqual(f.calls, [["featured", 420, 520]]);
+});
+test("cached portraits share a task until it has run about 8 ms", async () => {
+  const f = fixture(), cards = Array.from({ length: 12 }, () => f.image());
+  cards.forEach((image, i) => f.api.set(image, "agent" + i, 300, 380));
+  f.visible(...cards); f.cost.ms = 1;
+  f.ready(); await Promise.resolve(); f.idle.shift()();
+  assert.equal(f.calls.length, 9, "nine 1 ms drawings pass the 8 ms budget");
+  await Promise.resolve(); f.idle.shift()();
+  assert.equal(f.calls.length, 12);
+  assert.ok(cards.every((image) => image.src));
 });

@@ -1,6 +1,8 @@
 (() => {
-  // Draw visible canvas portraits one per idle task, using the final appearance
-  // extensions. Hidden selection screens must not hold up the home controls.
+  // Draw visible canvas portraits in idle tasks of about 8 ms, using the final
+  // appearance extensions. A new drawing usually fills a task alone; cached ones
+  // (the select grid is rebuilt on every pick) come many to a task. Hidden
+  // selection screens must not hold up the home controls.
   const records = new WeakMap(), queue = new Set();
   let scheduled = false;
   const idle = (callback) => window.requestIdleCallback ? requestIdleCallback(callback, { timeout: 100 }) : setTimeout(callback, 16);
@@ -11,6 +13,7 @@
   }
   function draw() {
     scheduled = false;
+    const start = performance.now();
     for (const image of queue) {
       queue.delete(image);
       const record = records.get(image);
@@ -18,7 +21,7 @@
       image.src = agentPortrait(record.agent, record.width, record.height);
       record.drawn = true;
       observer.unobserve(image);
-      break;
+      if (performance.now() - start > 8) break;
     }
     schedule();
   }

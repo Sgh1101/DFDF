@@ -10,7 +10,8 @@
 |---|---|
 | `js/engine/agents.js`, `weapons.js`, `maps.js` | 최초 요원·무기·맵 데이터와 맵 등록 |
 | `js/engine/textures-portraits.js` | 텍스처·초상화 생성 함수 |
-| `js/portrait-loader.js` | 부팅 후 보이는 요원 사진을 한 작업에 하나씩 생성, 대표/선택 요원 우선 처리 |
+| `js/portrait-loader.js` | 부팅 후 보이는 요원 사진을 약 8ms짜리 유휴 작업으로 생성(새로 그리는 사진은 보통 한 작업에 하나, 캐시된 사진은 여러 장), 대표/선택 요원 우선 처리 |
+| `js/scroll-fade.js` | 옆으로 넘기는 무기고 줄(총 목록·탭·필터)이 더 넘길 쪽을 흐리게 표시 |
 | `js/legacy/03-engine.js` | 렌더링, 물리, 사격, 경기, P2P 기본 구현 |
 | `js/game-catalog.js` | 최종 데이터의 개수와 홈 안내 문구 |
 | `js/legacy/05-game-modes.js` | 모드 규칙과 부활 |
