@@ -237,6 +237,15 @@
     [/^(반향|매의 눈) — (\d+)명$/, (m, h, n) => (tr(h) || h) + " — " + n + " spotted"]
   );
   const HANGUL = /[가-힣]/;
+  // the maps' names (MAP_LIST), for the English page
+  Object.assign(DICT, {
+    "포구": "Pogu", "마른 들판": "Dry Field", "연화원": "Lotus Garden", "한옥 시장": "Hanok Market", "빙하 관측소": "Glacier Observatory",
+    "네온 정점": "Neon Summit", "모래무덤": "Sand Tomb", "밀림 유적": "Jungle Ruins", "시프트 아레나": "Shift Arena", "달리는 열차": "Moving Train",
+    "야간 항구": "Night Port", "옥상 도시": "Rooftop City", "폐병원": "Abandoned Hospital", "산사 뜰": "Temple Courtyard", "제련 공방": "Smelting Workshop",
+    "밀림 사당": "Jungle Shrine", "골목 장터": "Alley Market", "화물칸": "Freight Car", "서리 결투장": "Frost Duel Ground", "네온 링": "Neon Ring",
+    "달빛 마당": "Moonlit Yard", "마크X발로": "MarkX Valo", "마크X발로 불러오기": "Load MarkX Valo", "마크X발로 준비 완료": "MarkX Valo is ready",
+    "원본 지형과 마인크래프트 기본 텍스처를 사용합니다.": "It uses the original terrain and the Minecraft default textures.",
+  });
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
   function tr(s) {
