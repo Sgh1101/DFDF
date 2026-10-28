@@ -136,6 +136,8 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
 /* Korean breaks between any two letters by default, which left 1-2 letters (니다, 다., 안내) alone on a line in
    settings, the ranked card, ability notes and the practice menu. Break between words and even out the lines. */
 #pause .pz-pane,#mu-rank,#sel-detail .ab-desc,#s-title .home-practice .btn{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
+/* a short button label stays on one line (버튼 배치 편집 left 편집 alone at 667x375) */
+#pause #mbe-open{white-space:nowrap;flex-shrink:0}
 
 /* Agent portraits are drawn a few at a time; until one arrives its card shows a dim figure in the agent's colour,
    so the grid does not read as a row of empty boxes. It stays still: an animated sheen repainted every card each
@@ -157,6 +159,15 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
   #s-over .ov-st{padding:8px 14px!important;min-width:84px!important}
   #s-over .ov-st b{font-size:22px!important}
   #s-over #ov-board{margin-top:14px!important}
+}
+/* a small landscape phone (568x320): under 600 px wide the MVP card folded its numbers onto a second line and
+   was 151 px tall, so it still ran under the buttons; it keeps one line with a smaller picture */
+@media(orientation:landscape) and (max-height:420px) and (max-width:600px){
+  #s-over .ovb-mvp{flex-wrap:nowrap!important;gap:10px!important;padding:8px 12px!important;margin-bottom:8px}
+  #s-over .ovb-mvp img{width:44px;height:54px}
+  #s-over .ovb-mvp-t{min-width:0}
+  #s-over .ovb-mvp-t b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #s-over .ovb-mvp-s{margin-left:auto!important;width:auto!important;gap:14px!important}
 }
 /* a wide short screen (a 1280x720 laptop) has room beside the table: the result goes left, the board right, and
    the whole result fits without scrolling (only while there is a board; without one the column stays centred) */

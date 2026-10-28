@@ -4319,11 +4319,15 @@
         gl.appendChild(b);
       }
     }
-    // rebuilding the list put it back at its start: keep where it was, and bring the picked gun into
-    // view (on a phone the list is one sideways row and 밴달 sat off screen)
+    // keep the list where it was across the rebuild (an engine may reset it), and bring the picked gun into
+    // view when the armory opens or another gun is picked (on a phone the list is one sideways row and 밴달
+    // sat off screen); other rebuilds (an inventory sync, a pull, a wish) leave a swiped row where it is
     gl.scrollLeft = kept[0];
     gl.scrollTop = kept[1];
-    showInRow(gl, gl.querySelector(".ar-gun.on"));
+    if (gl.dataset.shown !== AR.key && gl.clientWidth) {
+      gl.dataset.shown = AR.key;
+      showInRow(gl, gl.querySelector(".ar-gun.on"));
+    }
     const sl = $("ar-skins");
     sl.innerHTML = "";
     const cur = mySkin(AR.key);
@@ -4371,6 +4375,7 @@
     key && WEAPONS[key] && (AR.key = key);
     AR.peek = null;
     ar.hidden = !1;
+    $("ar-guns").dataset.shown = "";
     try {
       document.exitPointerLock && document.exitPointerLock();
     } catch (e) {}

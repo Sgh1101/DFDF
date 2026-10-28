@@ -2,10 +2,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
 // Design review fixes:
 //  · desktop HUD: the touch-only swap arrows are not drawn with a mouse, and the credit line shows in the buy
 //    phase only (the ammo panel was 234 px tall)
-//  · the result screen: at 1280x720 the whole result fits without scrolling; on a 844x390 phone the MVP card
-//    is clear of the button bar
+//  · the result screen: at 1280x720 the whole result fits without scrolling; on 844x390 and 568x320 phones the
+//    MVP card is clear of the button bar
 //  · phone armory: the picked gun is in view (clear of the edge fade) in the sideways gun row, the row keeps its
-//    place when a gun is picked, and a row with more to scroll fades on that side
+//    place when a gun is picked and when it is only repainted, and a row with more to scroll fades on that side
 //  · settings and the ranked card never leave 1-2 letters alone on a line
 //  · an agent card waiting for its portrait shows a figure in the agent's colour
 //  · result-screen and armory skin-card labels are 11 px or larger
@@ -84,6 +84,13 @@ const small = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.offse
 
     const phone = await f.page("polish844", { width: 844, height: 390 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     await phone.evaluate(() => { titleCam = () => {}; });
+    // settings on a 667x375 phone: 버튼 배치 편집 used to leave 편집 alone
+    await phone.setViewportSize({ width: 667, height: 375 });
+    await phone.evaluate(() => document.getElementById("go-set").click());
+    await phone.waitForTimeout(700);
+    assert.deepEqual(await phone.evaluate(orphans, "#pause"), [], "phone settings lines end with whole words");
+    await phone.evaluate(() => { document.getElementById("pause").hidden = true; show("s-title"); });
+    await phone.setViewportSize({ width: 844, height: 390 });
     // the ranked card
     await phone.evaluate(() => document.getElementById("go-multi").click());
     await phone.waitForTimeout(700);
@@ -109,6 +116,9 @@ const small = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.offse
     });
     assert.ok(Math.abs(kept[1] - kept[0]) <= 1, "the gun row keeps its place: " + kept);
     assert.ok(await inView(), "the picked gun is in view after the row is rebuilt");
+    // a rebuild that is not a new pick (an inventory sync, a pull, a wish) leaves a swiped row where it is
+    const swiped = await phone.evaluate(() => { const g = document.getElementById("ar-guns"); g.scrollLeft = g.scrollWidth; const at = g.scrollLeft; GUN_SKINS.paint(); return [at, g.scrollLeft]; });
+    assert.ok(Math.abs(swiped[1] - swiped[0]) <= 1, "a repaint does not pull a swiped row back: " + swiped);
     await phone.evaluate(() => { document.getElementById("armory").hidden = true; try { GUN_SKINS.close(); } catch (e) {} show("s-title"); });
     // the tier guide: a chip in the top bar on phones 660px and wider (where the browser can anchor it), its table
     // on screen; at 568px it keeps its row and every tab fits
@@ -133,8 +143,12 @@ const small = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.offse
     await phone.waitForTimeout(600);
     await phone.evaluate(() => { world.round = 3; world.scoreAtk = 13; world.over = true; gameOver(); });
     await phone.waitForTimeout(700);
-    const mvp = await phone.evaluate(() => ({ mvp: document.querySelector("#ov-board .ovb-mvp").getBoundingClientRect().bottom, bar: document.getElementById("ov-again").parentElement.getBoundingClientRect().top }));
-    assert.ok(mvp.mvp <= mvp.bar, "the MVP card is above the buttons: " + JSON.stringify(mvp));
+    for (const [w, h] of [[844, 390], [568, 320]]) {
+      await phone.setViewportSize({ width: w, height: h });
+      await phone.waitForTimeout(300);
+      const mvp = await phone.evaluate(() => { document.getElementById("s-over").scrollTop = 0; return { mvp: document.querySelector("#ov-board .ovb-mvp").getBoundingClientRect().bottom, bar: document.getElementById("ov-again").parentElement.getBoundingClientRect().top }; });
+      assert.ok(mvp.mvp <= mvp.bar, w + ": the MVP card is above the buttons: " + JSON.stringify(mvp));
+    }
     await phone.context().close();
     console.log("design polish: ok");
   } finally { await f.browser.close(); }
