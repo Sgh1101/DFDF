@@ -140,18 +140,19 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
 #pause #mbe-open{white-space:nowrap;flex-shrink:0}
 
 /* Agent portraits are drawn a few at a time; until one arrives its card shows a dim figure in the agent's colour,
-   so the grid does not read as a row of empty boxes. It stays still: an animated sheen repainted every card each
+   so the grid does not read as a row of empty boxes (the shoulders under the card's text stay dark enough for it
+   to read). It stays still: an animated sheen repainted every card each
    frame and took the main thread the portraits are drawn on. */
 .acard:has(.acard-img:not([src])),.acard:has(.acard-img[src=""]){
   background:
-    radial-gradient(17% 13% at 50% 31%,color-mix(in srgb,var(--ac) 34%,#1d2533) 0 96%,transparent 100%),
-    radial-gradient(46% 30% at 50% 74%,color-mix(in srgb,var(--ac) 24%,#171e2a) 0 97%,transparent 100%),
+    radial-gradient(17% 13% at 50% 31%,color-mix(in srgb,var(--ac) 26%,#1a2130) 0 96%,transparent 100%),
+    radial-gradient(46% 30% at 50% 74%,color-mix(in srgb,var(--ac) 12%,#141a24) 0 97%,transparent 100%),
     radial-gradient(120% 90% at 50% 0%,#232d3d 0%,#10151d 70%)!important}
 
 /* The match result on a short screen: the title, score and tiles took 300px before the MVP card, so on a phone
    the buttons sat on the MVP card and on a 1280x720 laptop on the table. Smaller heading and tiles; the button
    bar is solid so nothing reads as lying under it. */
-#s-over :has(>#ov-again){background:linear-gradient(to top,rgba(7,9,13,.98) 70%,rgba(7,9,13,.9))!important;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 24px rgba(0,0,0,.35)}
+#s-over :has(>#ov-again){background:linear-gradient(to top,rgba(7,9,13,.98) 70%,rgba(7,9,13,.9))!important;box-shadow:0 -10px 24px rgba(0,0,0,.35)}
 @media(max-height:860px){
   #s-over .ov-head{font-size:clamp(34px,min(9vh,9vw),64px)!important;line-height:1.05}
   #s-over .ov-score{margin-top:4px!important;font-size:20px!important}
@@ -169,9 +170,9 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
   #s-over .ovb-mvp-t b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #s-over .ovb-mvp-s{margin-left:auto!important;width:auto!important;gap:14px!important}
 }
-/* a wide short screen (a 1280x720 laptop) has room beside the table: the result goes left, the board right, and
-   the whole result fits without scrolling (only while there is a board; without one the column stays centred) */
-@media(min-width:1180px) and (max-height:860px){
+/* a wide short screen (a 1280x720 laptop up to 1440x900) has room beside the table: the result goes left, the
+   board right, and the whole result fits without scrolling (only while there is a board; without one the column stays centred) */
+@media(min-width:1180px) and (max-height:940px){
   #s-over:not([hidden]):has(>#ov-board:not([hidden])){display:grid!important;grid-template-columns:minmax(240px,300px) minmax(0,860px);grid-template-rows:auto auto auto auto 1fr auto;grid-template-areas:"head board" "score board" "who board" "stats board" ". board" "bar bar";column-gap:32px;justify-content:center!important;align-content:safe center;padding-top:18px!important;padding-inline:24px!important}
   #s-over:not([hidden]):has(>#ov-board:not([hidden]))>*{margin-top:0!important;margin-bottom:0!important}
   #s-over:has(>#ov-board:not([hidden])) .ovb-mvp{padding:8px 14px;margin-bottom:8px}
