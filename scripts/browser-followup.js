@@ -31,7 +31,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const oldGroup = world.actors[0].group;
       const baked = new Set(), shared = new Set(); let released = 0;
       oldGroup.traverse((node) => {
-        if (node.geometry && node.userData.baked) baked.add(node.geometry);
+        // a fighter's own geometry: a baked piece, or the voxel copy it owns (js/blocky-characters.js); the rest is shared
+        if (node.geometry && (node.userData.baked || node.geometry.userData.blocky)) baked.add(node.geometry);
         else if (node.geometry) shared.add(node.geometry);
       });
       for (const item of baked) item.addEventListener("dispose", () => released++);
