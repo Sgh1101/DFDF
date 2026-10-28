@@ -17314,7 +17314,9 @@ function stuckCheck(e, t, o, a) {
     let r = !0;
     if (void 0 !== o) {
       const t = Math.hypot(o - e.pos.x, a - e.pos.z);
-      ((r = t < n.lastP.gd - 1), (n.lastP.gd = t));
+      // the first check after the route ended: the old distance was to a route point, nearer than the goal the bot
+      // now heads for, and read as no progress; the detour that followed led the bot away for good
+      ((r = t < n.lastP.gd - 1 || !!n.lastP.rp), (n.lastP.gd = t));
     }
     if (t < 1 || (!r && !n.path)) {
       n.stuck = (n.stuck || 0) + 1;
@@ -17328,7 +17330,7 @@ function stuckCheck(e, t, o, a) {
           t: 2.5,
         }));
     } else ((n.stuck = 0), (n.detour = null));
-    ((n.lastP.x = e.pos.x), (n.lastP.z = e.pos.z), (n.lastP.t = 0));
+    ((n.lastP.x = e.pos.x), (n.lastP.z = e.pos.z), (n.lastP.rp = !!n.path), (n.lastP.t = 0));
   }
   return (
     n.detour && ((n.detour.t -= t), n.detour.t <= 0 && (n.detour = null)),
