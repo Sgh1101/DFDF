@@ -18,9 +18,12 @@ window.AB_R=1.8;window.AB_D=1.7;window.AB_SM=1.4;window.AB_SP=1.4;
     return _mz.apply(this, a);
   };
   const _ex = explode;
+  // the RPG and grenades (js/legacy/52-projectiles.js) are weapons, not abilities: they set
+  // WEAPON_BLAST around their explode call and burst at the radius they define
+  window.WEAPON_BLAST = 0;
   explode = function (x, z, r) {
     const a = [...arguments];
-    a[2] = r * R;
+    a[2] = window.WEAPON_BLAST ? r : r * R;
     return _ex.apply(this, a);
   };
   const _ah = areaHit;

@@ -9,16 +9,48 @@
   const open = (c) => c && c.open;
 
   // ── host ──
+  // Anyone who knows the room code can open links to the host, and every link it keeps costs a snapshot 20 times a
+  // second. A peer that has not said "hello" yet is "quiet": it is sent nothing, at most QUIET_MAX of them are kept
+  // at once (the oldest goes first), and one that does not say hello within HELLO_MS is closed. A guest sends its hello the moment its
+  // event link opens; the second link of a guest that has said hello is not counted.
+  const HELLO_MS = 12000, QUIET_MAX = 16;
+  const quiet = new Map(); // peer -> { owner, chs: its links so far, timer }
+  const hush = (peer) => {
+    const q = quiet.get(peer);
+    if (!q) return;
+    clearTimeout(q.timer);
+    quiet.delete(peer);
+  };
+  const silenceEnd = (peer, q) => {
+    if (quiet.get(peer) !== q) return;
+    quiet.delete(peer);
+    const o = conns().get(peer);
+    // it never joined, so there is no seat to give back and nobody to tell
+    if (q.owner === NET.peer && o && o.quiet) conns().delete(peer);
+    for (const c of q.chs) try { c.close(); } catch (x) {}
+  };
   hostAccept = function (e) {
     const label = e.label, owner = NET.peer;
     const current = () => NET.mode === "host" && NET.peer === owner;
     // "me", "ai" and "dead" are what a body's ctrl says when no guest drives it: a guest that picked one of them as its
     // peer id would be taken for the host's own player (or a bot) and could cast, buy and aim as it
     if ((label !== "state" && label !== "event") || ["me", "ai", "dead"].includes(e.peer)) return e.close();
+    const known = conns().get(e.peer);
+    let q = quiet.get(e.peer);
+    if (!q && !(known && !known.quiet)) {
+      // full: the one that has waited longest goes (a guest says hello within a second or two, so it is not that one)
+      if (quiet.size >= QUIET_MAX) { const [oldest, oq] = quiet.entries().next().value; silenceEnd(oldest, oq); }
+      quiet.set(e.peer, (q = { owner, chs: new Set(), timer: setTimeout(() => silenceEnd(e.peer, q), HELLO_MS) }));
+    }
+    q && q.chs.add(e);
     e.on("open", () => {
       if (!current()) return e.close();
       let o = conns().get(e.peer);
-      o || ((o = {}), conns().set(e.peer, o));
+      if (!o) {
+        // its time ran out before this link opened
+        if (!q || quiet.get(e.peer) !== q) return e.close();
+        conns().set(e.peer, (o = { quiet: !0 }));
+      }
       const previous = o[label];
       o[label] = e;
       if (previous && previous !== e) previous.close();
@@ -26,9 +58,16 @@
     });
     e.on("data", (data) => {
       const o = conns().get(e.peer);
-      if (current() && o && o[label] === e && e.open) hostRecv(e.peer, data);
+      if (current() && o && o[label] === e && e.open) {
+        if (o.quiet && data && "hello" === data.t) {
+          o.quiet = !1;
+          hush(e.peer);
+        }
+        hostRecv(e.peer, data);
+      }
     });
     e.on("close", () => {
+      if (q && q.chs.delete(e) && !q.chs.size && quiet.get(e.peer) === q) hush(e.peer);
       const o = conns().get(e.peer);
       if (!current() || !o || o[label] !== e) return;
       o[label] = null;
@@ -44,6 +83,7 @@
   sendSnapshot = function (s) {
     if ("host" !== NET.mode) return;
     for (const [, o] of conns()) {
+      if (o.quiet) continue;
       const c = open(o.state) ? o.state : open(o.event) ? o.event : null;
       if (c)
         try {
@@ -69,6 +109,7 @@
   netShutdown = function () {
     for (const timer of away.values()) clearTimeout(timer);
     away.clear();
+    for (const peer of [...quiet.keys()]) hush(peer);
     return shutdownAway.apply(this, arguments);
   };
   const _oa = NET.onAction;

@@ -1,7 +1,8 @@
 // The cheat-code hunt, checked by the host. The code reaches every guest so their screens can paint it on the building,
 // so a changed client could send it straight from its spawn, or try every code in a second. The host now takes a guest's
-// code only once the guest's body has been where it could see every painted side, and holds off the next try for
-// wrongWaitSec after a refused one; the guest's screen says which.
+// code only from an account the server confirmed (the cheat tabs are for accounts with admin rights, and F9 no longer
+// opens them for anyone else), once the guest's body has been where it could see every painted side, and holds off the
+// next try for wrongWaitSec after a refused one; the guest's screen says which.
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
 const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
@@ -34,9 +35,15 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     };
     const right = () => guest.evaluate(() => HUNTX.HUNT.code);
 
-    // 1. typed in the panel from the spawn, far from the building: refused, and the panel says to go and see it
+    // 0. an account without admin rights: F9 opens nothing
+    await guest.evaluate(() => dispatchEvent(new KeyboardEvent("keydown", { key: "F9" })));
+    assert.equal(await guest.evaluate(() => document.getElementById("admin").hidden), true, "F9 opens no cheat panel for an account without admin rights");
+    console.log("F9 opens nothing for an account without admin rights");
+
+    // 1. a changed client opens its panel anyway; typed from the spawn, far from the building: refused, and the panel
+    // says to go and see it
     assert.ok((await state()).seen < sides, "setup: from its spawn the guest has not seen every side");
-    await guest.evaluate(() => { openAdmin(); document.getElementById("ht-pass").value = HUNTX.HUNT.code; document.getElementById("ht-go").click(); });
+    await guest.evaluate(() => { window.ADMIN_GRANTED = true; openAdmin(); document.getElementById("ht-pass").value = HUNTX.HUNT.code; document.getElementById("ht-go").click(); });
     await guest.waitForFunction(() => __ans.length > 0, null, { timeout: 20000 });
     await guest.waitForTimeout(200);
     const err = await guest.evaluate(() => { const e = document.getElementById("ht-err"); return e && !e.hidden ? e.textContent : ""; });
@@ -64,8 +71,15 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
       await host.waitForTimeout(500);
     }
     assert.equal((await state()).seen, sides, "the host saw the guest look at every painted side");
+    // ...but the server never confirmed this account: the right code is still refused
+    assert.equal((await send(await right())).ok, false, "the right code from an account the server did not confirm is refused");
+    assert.equal((await state()).ok, false, "and that guest gets no cheats");
+    console.log("a guest whose account is not confirmed gets nothing, even with the right code");
 
-    // 3. a wrong try holds off the next one: the right code straight after it is refused too
+    // 3. the host has confirmed the account (as the server's answer to its ticket does); after the wait, a wrong try
+    // holds off the next one: the right code straight after it is refused too
+    await host.evaluate((p) => HUNTX.GRANT.add(p), peer);
+    await guest.waitForTimeout(2300);
     const wrong = String((Number(await right()) + 1) % 10 ** (await right()).length).padStart((await right()).length, "0");
     assert.equal((await send(wrong)).ok, false, "a wrong code is refused");
     const rushed = await send(await right());
