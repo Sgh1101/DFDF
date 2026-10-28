@@ -2569,6 +2569,10 @@
 .mi-info .btn{padding:9px 14px;font-size:11px;min-height:40px}
 .mi-empty{grid-column:1/-1;padding:34px 14px;text-align:center;color:var(--steel);font-size:13px;border:1px dashed var(--line);border-radius:14px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .mi-empty .btn{padding:10px 18px;font-size:12px;min-height:40px}
+.mi-more{grid-column:span 2;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;color:var(--steel);font-size:12px}
+.mi-more b{color:var(--ink);font-size:13px}
+.mi-more div{display:flex;gap:6px;margin-top:2px}
+.mi-more .btn{padding:7px 14px;font-size:12px;min-height:36px}
 #ar-reveal{position:absolute;inset:0;z-index:6;display:flex;justify-content:center;padding:clamp(10px,2vw,22px);overflow:hidden;background:#04060a;--rc:#8a97ab}
 #ar-reveal[hidden]{display:none}
 .rv-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--rc) 24%,transparent),transparent 58%),radial-gradient(ellipse at 50% 112%,#121a2b,#04060a 70%);transition:background .5s}
@@ -3866,6 +3870,15 @@
 
   // ── the tabs ──
   let previewFrame = 0;
+  // scroll a list just enough to show one of its items, clear of the 36 px edge fade a sideways row gets
+  // (css/review-fixes.css .sfade-l/.sfade-r); the page itself does not move
+  function showInRow(row, el) {
+    if (!row || !el) return;
+    const g = row.getBoundingClientRect(),
+      r = el.getBoundingClientRect();
+    r.left < g.left + 44 ? (row.scrollLeft += r.left - g.left - 44) : r.right > g.right - 44 && (row.scrollLeft += r.right - g.right + 44);
+    r.top < g.top ? (row.scrollTop += r.top - g.top - 16) : r.bottom > g.bottom && (row.scrollTop += r.bottom - g.bottom + 16);
+  }
   function setTab(t) {
     AR.pickRevision = (AR.pickRevision || 0) + 1;
     ["pull", "shop", "champions", "mine", "gun"].includes(t) || (t = "pull");
@@ -3875,6 +3888,7 @@
       localStorage.setItem("lgp_ar_tab", t);
     } catch (e) {}
     for (const b of document.querySelectorAll("#ar-tabs .ar-tab")) b.classList.toggle("on", b.dataset.tab === t);
+    showInRow($("ar-tabs"), document.querySelector("#ar-tabs .ar-tab.on"));
     for (const pane of ar.querySelectorAll(":scope > .ar-pane")) pane.hidden = pane.id !== "ar-p-" + t;
     "shop" === t && loadShop();
     if ("mine" === t && MI.sel) {
@@ -4035,6 +4049,14 @@
       eq && (c.dataset.eq = L("장착 중", "Worn"));
       c.onclick = () => selectItem(x.g, x.s.id);
       frag.appendChild(c);
+    }
+    // a short collection left most of the tab empty: the last card says where more skins come from
+    if (list.length && list.length < 8 && !MI.tier && !MI.cls && !MI.eq) {
+      const more = document.createElement("div");
+      more.className = "mi-more";
+      more.innerHTML = `<b>${L("스킨 더 얻기", "Get more skins")}</b><span>${L("상점에서 바로 사거나 뽑기로 얻습니다", "Buy one in the shop or win one in a pull")}</span><div><button class="btn" data-go="shop">${L("상점", "Shop")}</button><button class="btn" data-go="pull">${L("뽑기", "Pull")}</button></div>`;
+      more.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => setTab(b.dataset.go)));
+      frag.appendChild(more);
     }
     box.appendChild(frag);
     box.querySelectorAll("img.th:not(.r)").forEach(thLater);
@@ -4304,7 +4326,8 @@
     "mine" === AR.tab && paintMine();
     "shop" === AR.tab && paintShop();
     if (AR.tab !== "gun") { paintGacha(); return; }
-    const gl = $("ar-guns");
+    const gl = $("ar-guns"),
+      kept = [gl.scrollLeft, gl.scrollTop];
     gl.innerHTML = "";
     for (const [cls, keys] of gunList()) {
       const h = document.createElement("div");
@@ -4325,6 +4348,15 @@
         };
         gl.appendChild(b);
       }
+    }
+    // keep the list where it was across the rebuild (an engine may reset it), and bring the picked gun into
+    // view when the armory opens or another gun is picked (on a phone the list is one sideways row and 밴달
+    // sat off screen); other rebuilds (an inventory sync, a pull, a wish) leave a swiped row where it is
+    gl.scrollLeft = kept[0];
+    gl.scrollTop = kept[1];
+    if (gl.dataset.shown !== AR.key && gl.clientWidth) {
+      gl.dataset.shown = AR.key;
+      showInRow(gl, gl.querySelector(".ar-gun.on"));
     }
     const sl = $("ar-skins");
     sl.innerHTML = "";
@@ -4373,6 +4405,7 @@
     key && WEAPONS[key] && (AR.key = key);
     AR.peek = null;
     ar.hidden = !1;
+    $("ar-guns").dataset.shown = "";
     try {
       document.exitPointerLock && document.exitPointerLock();
     } catch (e) {}

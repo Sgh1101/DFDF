@@ -53,3 +53,22 @@
   #armory #slot-champions .ar-cap em{display:none}
   #armory #champions-content{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding-right:4px}
 }
+
+/* On a landscape phone the skin tier guide took a full row (34 px of 390) in every armory tab. Where the browser
+   can anchor it and the bar has room for it beside the tabs (660 px and wider; at 568 px the tabs need the
+   space), it becomes a chip in the top bar beside the coins, and its table drops down under the bar's right
+   end; other browsers and narrower phones keep the row. */
+@supports (anchor-name:--a) and (position-anchor:--a) {
+  @media (orientation:landscape) and (max-height:540px) and (min-width:660px) {
+    #armory .ar-hd-r{padding-left:96px;anchor-name:--ar-hd-r}
+    #armory #skin-tier-guide{position:absolute;position-anchor:--ar-hd-r;top:anchor(top);left:anchor(left);width:88px;margin:0;z-index:12}
+    #armory #skin-tier-guide summary{display:flex;align-items:center;gap:4px;box-sizing:border-box;min-height:32px;height:32px;padding:0 8px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #armory #skin-tier-guide summary span{display:none}
+    #armory #skin-tier-guide[open] .skin-tier-scroll{position:fixed;position-anchor:--ar-hd-r;top:anchor(bottom);right:anchor(right);left:auto;margin-top:6px;width:min(560px,calc(100vw - 24px))}
+  }
+}
+
+/* the skin preview's rarity chip reads at 11 px on a phone too (it was 8 px); the Champions preview keeps its own */
+@media (orientation:landscape) and (max-height:540px) {
+  #armory .ar-slot:not(#slot-champions) .ar-cap i{font-size:var(--fs-xs,11px);padding:1px 6px}
+}
