@@ -124,8 +124,8 @@ function literalsOfCalls() {
     await left("spike planted");
     await en.evaluate(() => { defuseDone("player"); clearTimeout(roundEndTimer); });
     await bannerHas(/^Round (won|lost) · Spike defused$/, "spike defused");
-    // half time
-    await en.evaluate(() => { world.over = false; world.phase = "live"; world.scoreAtk = 0; world.scoreDef = 0; world.round = halfTime() - 1; endRound("atk", "수비팀 전멸"); });
+    // half time: sides swap once the last round of the first half (round halfTime()) is over
+    await en.evaluate(() => { world.over = false; world.phase = "live"; world.scoreAtk = 0; world.scoreDef = 0; world.round = halfTime(); endRound("atk", "수비팀 전멸"); });
     await en.waitForFunction(() => window.__calls.some((t) => /Switching sides/.test(t)), null, { timeout: 15000 }).catch(() => {});
     await bannerHas(/^Switching sides$/, "half time");
     await en.waitForTimeout(800);
