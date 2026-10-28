@@ -36,3 +36,20 @@ test("signing in as the owner only counts wrong passwords against the lock, not 
   h.advance(15 * 60000 + 1000);
   assert.equal((await h.api("admin_login", { pw: "owner-password" })).status, 200);
 });
+
+test("a rate-limit key whose EXPIRE was lost still ends: the next call gives it a window, and a live window is never extended", async () => {
+  const h = harness();
+  // the first wrong guess's EXPIRE is lost, so the key has no end date after it
+  h.dropExpires(1);
+  for (let i = 0; i < 9; i++) assert.equal((await h.api("admin_login", { pw: "nope" })).status, i < 8 ? 401 : 429);
+  h.advance(15 * 60000 + 1000);
+  assert.equal((await h.api("admin_login", { pw: "owner-password" })).status, 200, "the lock lifts after the window");
+  // the window runs from the first guess: later guesses do not push it out
+  const h2 = harness();
+  for (let i = 0; i < 4; i++) await h2.api("admin_login", { pw: "nope" });
+  h2.advance(10 * 60000);
+  for (let i = 0; i < 4; i++) await h2.api("admin_login", { pw: "nope" });
+  assert.equal((await h2.api("admin_login", { pw: "nope" })).status, 429);
+  h2.advance(5 * 60000 + 1000);
+  assert.equal((await h2.api("admin_login", { pw: "owner-password" })).status, 200, "15 minutes after the first guess");
+});

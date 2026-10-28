@@ -1483,11 +1483,18 @@ const touch = {
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
+  // a stored value is taken only if the setting can hold it: the default's type and, for a number, finite and inside
+  // its slider's range (a NaN once saved comes back as null, which stopped mouse look and the settings screen for good)
+  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2] };
   try {
     const e = localStorage.getItem("lgp_set");
     if (e) {
       const t = JSON.parse(e);
-      for (const e in SET_DEF) void 0 !== t[e] && (SETTINGS[e] = t[e]);
+      for (const e in SET_DEF) {
+        const o = t[e], r = range[e];
+        void 0 === o || typeof o != typeof SET_DEF[e] || ("number" == typeof o && !Number.isFinite(o)) ||
+          (SETTINGS[e] = r ? Math.min(r[1], Math.max(r[0], o)) : o);
+      }
     }
   } catch (e) {}
   SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
@@ -15828,7 +15835,7 @@ function endRound(e, t) {
       const e = winRounds();
       if (world.scoreAtk >= e || world.scoreDef >= e) gameOver();
       else {
-        if ((world.round++, world.round === halfTime())) {
+        if ((world.round++, world.round === halfTime() + 1)) {
           const e = (e) => ("atk" === e ? "def" : "atk"),
             t = (e, t) => {
               if (!e) return;
@@ -16862,7 +16869,7 @@ function playKillFx(e, t) {
     a = $("kf-main"),
     n = $("kf-sub"),
     r = $("kf-streak");
-  ((a.textContent = t ? "헤드샷" : "처치"), (n.textContent = e || ""));
+  ((a.textContent = t ? "헤드샷" : "en" === window.GAME_LANG ? "Kill" : "처치"), (n.textContent = e || ""));
   const s = STREAK_NAMES[Math.min(killStreak, 5)];
   (s ? ((r.textContent = s), (r.hidden = !1)) : (r.hidden = !0),
     (o.hidden = !1));
@@ -17314,7 +17321,9 @@ function stuckCheck(e, t, o, a) {
     let r = !0;
     if (void 0 !== o) {
       const t = Math.hypot(o - e.pos.x, a - e.pos.z);
-      ((r = t < n.lastP.gd - 1), (n.lastP.gd = t));
+      // the first check after the route ended: the old distance was to a route point, nearer than the goal the bot
+      // now heads for, and read as no progress; the detour that followed led the bot away for good
+      ((r = t < n.lastP.gd - 1 || !!n.lastP.rp), (n.lastP.gd = t));
     }
     if (t < 1 || (!r && !n.path)) {
       n.stuck = (n.stuck || 0) + 1;
@@ -17328,7 +17337,7 @@ function stuckCheck(e, t, o, a) {
           t: 2.5,
         }));
     } else ((n.stuck = 0), (n.detour = null));
-    ((n.lastP.x = e.pos.x), (n.lastP.z = e.pos.z), (n.lastP.t = 0));
+    ((n.lastP.x = e.pos.x), (n.lastP.z = e.pos.z), (n.lastP.rp = !!n.path), (n.lastP.t = 0));
   }
   return (
     n.detour && ((n.detour.t -= t), n.detour.t <= 0 && (n.detour = null)),
@@ -17823,7 +17832,7 @@ function sendSnapshot(e) {
 function sendEventAll(e) {
   if ("host" === NET.mode)
     for (const [, t] of NET.conns)
-      if (t.event && t.event.open)
+      if (!t.quiet && t.event && t.event.open)
         try {
           t.event.send(e);
         } catch (e) {}

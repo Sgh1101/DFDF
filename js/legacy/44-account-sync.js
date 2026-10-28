@@ -20,7 +20,7 @@
   }
   async function api(a, b) {
     const { response: r, data: j } = await GAME_REQUEST(API + "?a=" + a, { method: b ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : void 0 });
-    if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban, retryable: j.retryable });
+    if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban, retryable: j.retryable, ko: j.errorKo });
     return j;
   }
   const params = new URLSearchParams(location.search);
@@ -43,8 +43,8 @@
     [/^맵 (\d+)종 · 요원 (\d+)명$/, "$1 maps · $2 agents"],
     [/^새 맵 (\d+)개와 새 요원 (\d+)명이 추가되었습니다$/, "$1 new maps and $2 new agents"],
     [/^(\d+) 라운드$/, "Round $1"],
-    [/^라운드 승리 · (.+)$/, "Round won · $1"],
-    [/^라운드 패배 · (.+)$/, "Round lost · $1"],
+    [/^라운드 승리 · (.+)$/, (m, r) => "Round won · " + (tr(r) || r)],
+    [/^라운드 패배 · (.+)$/, (m, r) => "Round lost · " + (tr(r) || r)],
     [/^(\d+)초$/, "$1s"],
     [/^피해 (\S+) · 연사 (\d+) · 탄창 (\d+)( · 보유중)?$/, (m, d, r, g, o) => `Dmg ${d} · RPM ${r} · Mag ${g}${o ? " · Owned" : ""}`],
     [/^방어구 (\d+)$/, "Armor $1"],
@@ -123,6 +123,119 @@
     [/^(.+) 구매 완료$/, "$1 bought"],
     [/^(.+) 구매 요청 중…$/, "Buying $1…"]
   );
+  // Banners and messages during a match (rounds and phases, the spike, deaths and takeovers, ability results, cheat and
+  // admin messages, room and connection messages). "A — B" and "A · B" texts are also translated piece by piece (see tr).
+  // Agent, weapon, skin and ability names stay Korean. The server's error texts are translated in js/client-request.js.
+  Object.assign(DICT, {
+    "적": "Enemy", "아군": "Ally", "적군": "Enemy", "킬": "Kills", "데스": "Deaths", "도움": "Assists", "피해": "Damage", "전체": "All",
+    "시점 고정": "View locked", "시점 해제": "View released", "시작 지점": "Start point",
+    "사망 · 아군 시점으로 전환": "Dead · switching to a teammate's view", "사망 · 아군 인계 대기": "Dead · waiting to take over a teammate",
+    "클릭하면 조종": "click to control", "아군 전원 사망": "All allies are dead", "라운드 종료 대기": "waiting for the round to end",
+    "능력 봉인됨": "Abilities sealed", "궁극기 충전 부족": "Ultimate not charged", "사용 가능 횟수 없음": "No uses left", "대상 없음": "No target",
+    "관통 명중": "Wall-bang hit", "관통 사격": "Wall-bang shot", "적 감지됨": "Enemy detected", "연막 전개": "Smoke deployed",
+    "뇌진탕": "Concussed", "취약": "Vulnerable", "무기 봉인": "Weapons sealed", "근시": "Nearsighted", "부패": "Decay", "흡혈": "Lifesteal", "불사": "Undying", "강제 앉기": "Forced crouch",
+    "체력 일시 감소": "health temporarily reduced", "불사 발동": "Undying triggered", "되살아난다": "you rise again",
+    "소탕 모드": "Clean-up mode", "적이 설치를 시작했다": "The enemy started planting", "스파이크 설치됨": "Spike planted",
+    "스파이크 낙하": "Spike dropped", "스파이크 회수": "Spike picked up", "스파이크 해제": "Spike defused", "스파이크 소지": "Carrying the spike",
+    "스파이크 작동 중": "Spike active", "접근해 F": "go close and press F", "회수 필요": "pick it up",
+    "스파이크 소지 · 사이트 안에서 4 또는 F를 눌러 설치": "Carrying the spike · press 4 or F inside a site to plant",
+    "절반 해제": "Half defused", "여기서 재개됩니다": "resumes from here", "해제 중": "Defusing", "해제 중단": "Defuse stopped", "절반 지점 유지": "half progress kept",
+    "스파이크: 떨어져 있음": "Spike: on the ground",
+    "수비팀 전멸": "Defenders eliminated", "공격팀 전멸": "Attackers eliminated", "시간 초과": "Time ran out",
+    "진영 교대": "Switching sides", "경기 종료": "Match over", "서든데스 · 이번 라운드로 결판": "Sudden death · this round decides it",
+    "헤드샷": "Headshot", "더블 킬": "Double kill", "트리플 킬": "Triple kill", "쿼드라 킬": "Quadra kill", "에이스": "Ace",
+    "승리": "Victory", "무승부": "Draw",
+    "사망 · 3초 후 부활": "Dead · respawning in 3s", "부활": "Respawned", "데스매치에서는 능력을 쓸 수 없습니다": "Abilities are disabled in deathmatch",
+    "이번 라운드는 무기가 정해져 있습니다": "This round's weapon is fixed", "아군이 이미 쓰는 요원입니다": "An ally is already using this agent",
+    "황금 권총 획득 · 딱 한 발": "Golden pistol picked up · one shot only", "황금 권총 소멸": "Golden pistol gone", "닿을 곳이 없습니다": "Nothing in reach",
+    "궁극기 충전": "Ultimate charge", "무기 보급": "Weapon supply", "체력 회복": "Health", "신속": "Haste", "황금 총 · 피해 2배": "Golden gun · double damage",
+    "관리자 설정: 봇 정지 켜짐": "Admin setting: bots frozen",
+    "기본값으로 되돌렸습니다": "Reset to defaults", "관리자 모드를 잠갔습니다": "Admin mode locked", "설정을 기본값으로 되돌렸습니다": "Settings reset to defaults",
+    "치트를 잠갔습니다": "Cheats locked", "복사하지 못했습니다": "Could not copy", "초대 코드를 복사했습니다": "Invite code copied", "초대 링크를 복사했습니다": "Invite link copied",
+    "교전에 합류했습니다": "You joined the fight", "교전 개시": "Fight started", "다시 연결했습니다": "Reconnected",
+    "연결이 끊겼습니다": "Disconnected", "방장이 나갔습니다. 대기실로 돌아갑니다.": "The host left. Returning to the lobby.",
+    "방 코드는 6자리입니다.": "Room codes have 6 characters.", "코드는 6자리입니다": "Codes have 6 characters",
+    "접속하지 못했습니다. 코드를 확인해 주세요.": "Could not connect. Check the code.", "방을 만드는 중…": "Creating the room…", "방에 접속하는 중…": "Joining the room…",
+    "연결 요청이 취소되었습니다": "The connection request was cancelled", "네트워크 모듈을 불러오지 못했습니다": "The network module did not load",
+    "방 생성 시간이 초과되었습니다": "Creating the room timed out", "방 연결이 닫혔습니다": "The room connection closed", "방과의 연결이 닫혔습니다": "The connection to the room closed", "방을 찾지 못했습니다": "Room not found",
+    "수비 몰림": "defenders stacked", "진입 실패": "entry failed", "러시": "Rush", "스플릿": "Split", "기본 운영 후 합류": "Default, then join",
+    "아무도 없음": "nobody there", "라운드 종료": "Round over", "월드": "World", "배": "x", "초": "s", "분": "min", "· 우클릭 일제 투척": "· right-click to throw them all",
+    "거울상 깨짐": "Mirror image broken", "은빛 파동": "Silver pulse", "자장 역전": "Field reversal", "만화경": "Kaleidoscope", "표식": "Mark", "역병": "Plague", "여명": "Dawn", "반향": "Echo",
+    "매의 눈": "Hawk eye", "썰물": "Ebb tide", "낙관": "Seal stamp", "격노": "Rage", "잠듦": "Asleep", "역행": "Reverse", "우클릭 일제 투척": "right-click to throw them all", "없음": "none", "나에게": "you", "아군 회복": "allies healed", "적 노출": "enemies revealed", "적 발견": "enemy spotted",
+    "인계철선 작동": "tripwire triggered", "종소리 센서 작동": "Bell sensor triggered", "벌집 함정 작동": "Hive trap triggered", "비명 지뢰 작동": "Scream mine triggered",
+    "받는 피해 1.5배": "takes 1.5x damage", "칼날 재충전": "blades recharged", "능력 봉인": "abilities sealed",
+    "눈부심": "Dazzled", "거미줄에 걸림": "Caught in a web", "자리가 바뀌었다": "Places swapped", "추적 다트 명중": "Tracking dart hit",
+    "체력 30 아래면 즉시 처치": "instant kill below 30 health", "처형 표식이 붙었다": "You are marked for execution", "해킹당함": "Hacked", "맞으면 깬다": "wakes when hit",
+    "피해 +30%": "+30% damage", "귀환": "return", "되감기": "Rewind", "3초 전 자리로": "back to where you were 3s ago", "8초간 준 피해가 한 번 더": "damage dealt in the last 8s hits again",
+    "한 번 더 누르면 두 번째 문": "press again for the second portal", "한 번 지나가면 닫힙니다": "closes after one pass", "차원문 하나": "One portal", "차원문 열림": "Portal open",
+    "처치하면 팀 전원 궁극기": "a kill gives the whole team an ultimate", "팀 전원 궁극기 +1": "whole team +1 ultimate", "현상금 획득": "Bounty claimed",
+    "결투! 둘 중 하나만 나간다": "Duel! Only one walks out", "좌표 이동 취소": "Teleport cancelled", "궁극기를 돌려받았습니다": "ultimate refunded", "궁극기 반환": "ultimate refunded", "대상이 없습니다": "No target",
+    "벽으로 걸어가면 올라갑니다 (10초)": "walk into a wall to climb (10s)", "거미 타기": "Spider climb",
+    "4초간 이 안에서는 아무도 다치지 않습니다": "no one gets hurt in here for 4s", "퇴장!": "sent off!", "가면과 체력이 바뀌었습니다": "mask and health swapped", "체력을 맞바꿨습니다": "health swapped", "탈바꿈": "Transformation",
+    "자기 닻 설치": "Magnetic anchor placed", "E를 다시 눌러 귀환": "press E again to return",
+    "공격 시작": "Attackers start", "수비 시작": "Defenders start", "화면을 누르면 닫힘": "Tap the screen to close",
+    "점수판": "Scoreboard", "전투 기록": "Combat log", "아직 이번 라운드 교전 기록이 없습니다": "No fights recorded this round yet", "받은 피해": "Damage taken", "경기 전체 준 피해": "Damage dealt this match",
+    "요원 변경": "Change agent", "아군 사용 중": "Used by an ally", "사용 중": "In use", "AI와 교체": "Swap with the AI", "AI 봇": "AI bot", "미선택": "Not picked", "빈 자리": "Empty slot", "눌러서 이 자리로 이동": "Tap to move to this slot",
+    "관전 준비 중": "Getting ready to spectate", "양 팀에 최소 1명": "At least 1 per team", "봇": "Bot",
+    "다시 연결하는 중": "Reconnecting", "치트": "Cheats", "관리자": "Admin", "다음 세트": "Next set", "이전 세트": "Previous set", "원래 능력": "Original abilities", "세트": "set", "· 내 능력": "· my abilities",
+    "개인 설정": "Personal", "전체 설정": "Global", "나만": "Only me", "방 전체": "Whole room", "방장만 바꿀 수 있습니다.": "Only the host can change these.",
+    "이 기기에서 비밀번호를 입력한 나에게만 적용됩니다. 다른 사람 화면에는 아무 표시도 없고, 새로고침하면 모두 꺼집니다.": "Applies only to you, on this device, after entering the password. Nobody else sees any sign of it, and everything turns off on refresh.",
+    "방 전체(모든 플레이어와 봇)에 적용됩니다. 멀티에서는 방장만 바꿀 수 있습니다.": "Applies to the whole room (every player and bot). In multiplayer only the host can change it.",
+    "지금 값은 방장이 정한 설정입니다.": "The current values are the host's settings.",
+    "작은 지도에 적 표시": "Enemies on minimap", "보이든 안 보이든 모든 적의 위치가 미니맵에 빨간 점으로 뜹니다": "Every enemy shows as a red dot on the minimap, seen or not",
+    "벽 뒤에 있는 적도 빨간 발광으로 보입니다": "Enemies behind walls show up with a red glow",
+    "능력이 5초마다 다시 찹니다 (궁극기는 그대로). ← → 로 다른 요원의 능력 4개 세트로 바꾸고 ↓ 로 원래대로 (겉모습은 그대로)": "Abilities recharge every 5 seconds (ultimates unchanged). Use ← → to swap to another agent's four abilities and ↓ to go back (your look stays the same)",
+    "어떤 피해도 받지 않습니다": "You take no damage", "내가 맞히면 무조건 쓰러집니다": "Anything you hit goes down", "재장전 없이 탄창이 항상 가득": "Magazine always full, no reloading",
+    "쏴도 조준이 흔들리지 않습니다": "Your aim does not move when you fire", "나만 빨라집니다. 다른 사람과 봇은 그대로": "Only you get faster. Others and bots stay the same", "내 총만 더 빨리 쏩니다": "Only your gun fires faster",
+    "이동 속도 (모두)": "Move speed (everyone)", "모든 플레이어와 봇의 달리기 속도. 걷기·앉아 걷기도 같은 비율로 바뀝니다": "Run speed of every player and bot. Walking and crouch-walking change by the same ratio",
+    "라운드 시간": "Round time", "교전 단계 시간. 다음 라운드부터 적용": "Length of the fight phase. Applies from the next round", "구매 시간": "Buy time", "0이면 모드 기본값. 다음 라운드부터 적용": "0 uses the mode default. Applies from the next round",
+    "데스매치 경기 시간": "Deathmatch length", "팀 데스매치·데스매치 한 판의 길이. 0이면 모드 기본값. 다음 판부터 적용": "Length of one Team Deathmatch or Deathmatch. 0 uses the mode default. Applies from the next match",
+    "점프 높이": "Jump height", "모두의 점프 힘": "Everyone's jump force", "중력": "Gravity", "낮출수록 오래 뜹니다": "The lower, the longer you float", "봇 속도 배율": "Bot speed multiplier", "봇 이동 속도": "Bot move speed",
+    "모든 능력 무제한": "Unlimited abilities", "모든 플레이어와 봇이 충전·쿨다운 없이 능력을 씁니다": "Every player and bot uses abilities with no charge or cooldown", "봇 정지": "Freeze bots", "봇이 움직이지 않습니다 (사격은 합니다). 새로고침하면 꺼집니다": "Bots stand still (they still shoot). Turns off on refresh",
+    "능력 무제한": "Unlimited abilities", "충전·쿨다운 없이 Q E C X 계속 사용": "Use Q E C X with no charge or cooldown", "재장전 없이 탄창이 항상 가득": "Magazine always full, no reloading",
+    "달리기 속도": "Run speed", "걷기 속도": "Walk speed", "앉기 속도": "Crouch speed", "조준 속도 배율": "Aim speed multiplier", "점프 힘": "Jump force", "연사 배율": "Fire rate multiplier",
+        "두 번 누르면 기본값": "Double-click for the default", "전능": "Almighty", "연습장": "Practice range", "달나라": "Moon", "슈퍼 점프": "Super jump", "번개": "Lightning", "무중력": "Zero gravity",
+    "내가 맞히면 무조건 즉사": "Anything you hit dies instantly", "어떤 피해도 받지 않는다": "You take no damage", "쏴도 조준선이 흔들리지 않는다": "Your crosshair does not move when you fire", "봇이 움직이지 않는다 (사격은 한다)": "Bots stand still (they still shoot)",
+    "충전·쿨다운 없이 Q E C X 계속 사용": "Use Q E C X with no charge or cooldown",
+  });
+  PAT.push(
+    [/^(.+) 인계 — 조작 가능$/, "Took over $1 — you are in control"],
+    [/^(.+) 시점$/, (m, n) => (tr(n) || n) + "'s view"],
+    [/^(.+)\(으\)로 변경$/, "Changed to $1"],
+    [/^다음 라운드부터 (.+)$/, "$1 from next round"],
+    [/^(.+) 획득$/, "Picked up $1"],
+    [/^(탭|F) · (.+?)(\(으\)로 교체| 줍기)$/, (m, k, w, a) => ("탭" === k ? "Tap" : k) + " · " + (" 줍기" === a ? "Pick up " : "Swap to ") + w],
+    [/^이번 라운드 무기 · (.+)$/, "This round's weapon · $1"],
+    [/^(.+) · (개인전 )?(\d+)킬 먼저$/, (m, n, f, k) => (tr(n) || n) + " · " + (f ? "free-for-all " : "") + "first to " + k + " kills"],
+    [/^(\d+)킬$/, "$1 kills"],
+    [/^(.+) · (\d+)킬$/, (m, n, k) => (tr(n) || n) + " · " + k + " kills"],
+    [/^(\d+)킬 · 1위 (\d+)킬$/, "$1 kills · 1st has $2"],
+    [/^(\d+)위$/, "Place $1"],
+    [/^(\d+) 라운드 · (공격|수비)$/, (m, n, s) => "Round " + n + " · " + ("공격" === s ? "Attack" : "Defense")],
+    [/^(\d+)명 (탐지|취약|감염)$/, (m, n, w) => n + " " + ({ 탐지: "detected", 취약: "vulnerable", 감염: "infected" })[w]],
+    [/^(\d+)마리 추적$/, "tracking $1"],
+    [/^(.+) 사이트 설치 완료$/, "Spike planted at site $1"],
+    [/^(.+) 사이트 · 4 또는 F를 누르고 있으면 설치$/, "Site $1 · hold 4 or F to plant"],
+    [/^(.+) 사이트 · 멈추면 설치 진행$/, "Site $1 · stand still to keep planting"],
+    [/^(.+) 사이트 설치 중$/, "Planting at site $1"],
+    [/^([A-Z?]) 사이트$/, "Site $1"],
+    [/^([\d.]+)초( 남음)?$/, (m, n, l) => n + "s" + (l ? " left" : "")],
+    [/^스파이크: ([A-Z?]) 사이트에 설치됨$/, "Spike: planted at site $1"],
+    [/^스파이크: (.+) 소지$/, (m, n) => "Spike: carried by " + (tr(n) || n)],
+    [/^닻이 너무 멀다 \((\d+)m\)$/, "The anchor is too far ($1m)"],
+    [/^반경 (\d+)m 무기 봉인$/, "weapons sealed within $1m"],
+    [/^황금 상자 여는 중 (.+)$/, "Opening the golden chest $1"],
+    [/^(길게 눌러|F 길게 눌러) 황금 상자 열기$/, (m, k) => ("F 길게 눌러" === k ? "Hold F" : "Hold") + " to open the golden chest"],
+    [/^작전 변경: (.+)로 이동 \((.+)\)$/, (m, s, w) => "Plan changed: moving to " + s + " (" + (tr(w) || w) + ")"],
+    [/^작전: (\S+) (.+)$/, (m, s, n) => "Plan: " + s + " " + (tr(n) || n)],
+    [/^다시 연결하는 중 \((.+)\)$/, "Reconnecting ($1)"],
+    [/^방장 응답을 기다리는 중… (\d+)초$/, "Waiting for the host… $1s"],
+    [/^방을 만들지 못했습니다\. ?(.*)$/, (m, r) => "Could not create the room." + (r ? " " + (tr(r) || r) : "")],
+    [/^(\d+)개 항목이 기본값과 다릅니다$/, "$1 items differ from the defaults"],
+    [/^개인 (\d+)개 · 전체 (\d+)개 변경됨$/, "$1 personal · $2 global changed"],
+    [/^남은 (\d+)발$/, "$1 rounds left"],
+    [/^(반향|매의 눈) — (\d+)명$/, (m, h, n) => (tr(h) || h) + " — " + n + " spotted"]
+  );
   const HANGUL = /[가-힣]/;
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
@@ -133,8 +246,16 @@
     const nt = t.replace(/\s+/g, " ");
     if (NORM[nt]) return s.replace(t, NORM[nt]);
     for (const [re, to] of PAT) if (re.test(t)) return s.replace(t, String(re).includes("$/") ? t.replace(re, to) : typeof to === "string" ? to : t.replace(re, to));
+    // "A — B" and "A · B": each piece on its own (a piece that is a name, or has no entry, stays as it is)
+    if (/ [—·] /.test(nt)) {
+      let hit = false;
+      const out = nt.split(/( [—·] )/).map((p, i) => { const v = i % 2 ? null : tr(p); v && (hit = true); return v || p; }).join("");
+      if (hit) return s.replace(t, out);
+    }
     return null;
   }
+  // a text in English if it has an entry (the Korean page gets it as it is)
+  window.GAME_EN = (m) => ("en" === LANG && "string" === typeof m && tr(m)) || m;
   function walk(root) {
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let n;
