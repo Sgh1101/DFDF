@@ -208,13 +208,15 @@ body.mb-editing .mbe-part.mbe-sel{outline:3px solid #ffc849;box-shadow:0 0 0 6px
 body.mb-editing #mb-util,body.mb-editing #mini{pointer-events:auto!important}
 body.mb-editing #mb-util .mb{pointer-events:none!important}
 #mbe-back{position:fixed;inset:0;z-index:63;background:radial-gradient(ellipse at 50% 50%,rgba(14,20,30,.55),rgba(6,8,12,.86));background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:40px 40px}
-#mbe-bar{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:66;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(760px,96vw);padding:8px 12px;border-radius:14px;background:rgba(14,19,27,.94);border:1px solid var(--line,#2a3444);color:var(--ink,#e8edf4);font-size:12px}
+#mbe-bar{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:66;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:min(760px,calc(100vw - 260px));padding:8px 12px;border-radius:14px;background:rgba(14,19,27,.94);border:1px solid var(--line,#2a3444);color:var(--ink,#e8edf4);font-size:12px}
 #mbe-bar h4{font-family:var(--f-display);font-size:12px;letter-spacing:.14em;margin:0 4px 0 0}
 #mbe-bar .mbe-name{min-width:72px;color:var(--gold,#ffc849);font-weight:700}
 #mbe-bar input[type=range]{width:120px}
 #mbe-bar .btn{padding:9px 12px;font-size:11px;min-height:44px}
 #mbe-bar .mbe-hint{width:100%;text-align:center;font-size:10.5px;color:var(--steel-dim,#5b6879)}
 @media(max-width:600px){#mbe-bar{gap:6px;padding:6px 8px}#mbe-bar input[type=range]{width:90px}#mbe-bar .btn{padding:8px 9px}}
+@media(max-height:430px){#mbe-bar{top:4px;padding:5px 8px;gap:4px 8px}#mbe-bar h4,#mbe-bar .mbe-hint{display:none}#mbe-bar .btn{min-height:40px;padding:6px 9px}}
+@media(max-height:430px) and (max-width:600px){#mbe-bar{gap:4px 6px}#mbe-bar input[type=range]{width:70px}#mbe-bar .btn{padding:6px 6px;font-size:10px}}
 `;
   document.head.appendChild(css);
   const ED = { on: !1, sel: null, before: null, was: null, drag: null };

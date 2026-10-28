@@ -126,6 +126,7 @@
     "test:knife-walls": "node scripts/browser-knife-walls.js",
     "test:settings-menus": "node scripts/browser-settings-menus.js",
     "test:settings-corrupt": "node scripts/browser-settings-corrupt.js",
+    "test:touch-editor-bar": "node scripts/browser-touch-editor-bar.js",
     "test:english-messages": "node scripts/browser-english-messages.js",
     "test:english-map-names": "node scripts/browser-english-map-names.js",
     "test:bot-corners": "node scripts/browser-bot-corners.js",
