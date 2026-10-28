@@ -17830,7 +17830,7 @@ function sendSnapshot(e) {
 function sendEventAll(e) {
   if ("host" === NET.mode)
     for (const [, t] of NET.conns)
-      if (t.event && t.event.open)
+      if (!t.quiet && t.event && t.event.open)
         try {
           t.event.send(e);
         } catch (e) {}
