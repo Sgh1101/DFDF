@@ -611,7 +611,7 @@ const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
 const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
 // on/off switches shown as chips at the top (warn: on is the alarming side)
-const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
+const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
 // numbers the owner tunes most: [path, name, min, max, step, note]
 const QUICK_NUM = [["aim.strength", "에임 보정 세기", 0, 100, 1, "%"], ["aim.range", "에임 보정 거리", 5, 150, 1, "m"], ["aim.cone", "에임 보정 각도", 1, 30, 0.5, "도"], ["game.maxRoomPlayers", "방 최대 인원", 2, 12, 1, "명"], ["gold.perWin", "승리 골드", 0, 2000, 10, ""], ["gold.perLoss", "패배 골드", 0, 2000, 10, ""], ["gold.perKill", "처치당 골드", 0, 200, 1, ""], ["gacha.cost1", "뽑기 1회", 0, 10000, 10, "골드"], ["gacha.cost10", "뽑기 10회", 0, 100000, 50, "골드"], ["shop.price.common", "상점 일반", 0, 100000, 100, "골드"], ["shop.price.rare", "상점 희귀", 0, 100000, 100, "골드"], ["shop.price.epic", "상점 영웅", 0, 200000, 100, "골드"], ["shop.price.legendary", "상점 전설", 0, 500000, 500, "골드"], ["rank.win", "승리 RR", 0, 100, 1, ""], ["rank.loss", "패배 RR", 0, 100, 1, ""], ["shop.weekly.off", "주간 특가 할인", 0, 90, 5, "%"], ["cos.price.1", "꾸미기 일반", 0, 100000, 100, "골드"], ["cos.price.2", "꾸미기 희귀", 0, 100000, 100, "골드"], ["cos.price.3", "꾸미기 영웅", 0, 200000, 100, "골드"], ["cos.price.4", "꾸미기 전설", 0, 500000, 500, "골드"], ["season.weeks", "시즌 길이", 1, 26, 1, "주"], ["season.keep", "시즌 뒤 남는 RR", 0, 100, 5, "%"], ["season.minPlay", "시즌 보상 최소 랭크전", 0, 50, 1, "판"]];
 const getPath = (o, p) => p.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
@@ -945,20 +945,9 @@ const LABELS = {
   "order.price.radar": ["레이더"], "order.price.wall": ["벽 투시"], "order.price.cheat": ["치트 모드"], "order.price.god": ["무적"], "order.price.oneShot": ["한 방 처치"], "order.price.infAmmo": ["탄약 무한"], "order.price.noRecoil": ["반동 없음"], "order.price.speed": ["이동 속도 ×1.5"], "order.price.fastFire": ["연사 ×2"], "order.price.buff": ["능력 재충전 10초"],
   "order.dur": ["기간 배수", "7일 가격에 곱합니다"],
   "order.dur.d1": ["1일"], "order.dur.d7": ["7일"], "order.dur.d30": ["30일"], "order.dur.d0": ["영구"],
-  cheat: ["치트", "숨은 비밀번호로 여는 치트의 모든 규칙"],
-  "cheat.enabled": ["치트 사용", "끄면 비밀번호가 그려지지 않고 아무도 못 엽니다"],
-  "cheat.codeLength": ["비밀번호 자릿수", "3~6"],
-  "cheat.startAtMiddle": ["라운드 시작 때 가운데 건물에", "끄면 처음부터 아무 건물에나"],
-  "cheat.moveAfterUse": ["한 번 쓰면 번호 바꾸고 옮기기", "끄면 같은 번호를 여러 명이 씀"],
-  "cheat.resetEachRound": ["매 라운드 초기화"],
-  "cheat.wrongWaitSec": ["틀렸을 때 기다리는 초"],
+  cheat: ["치트", "치트 모드를 켠 계정의 능력 충전 규칙입니다. 운영자는 이 값과 상관없이 바로 찹니다"],
   "cheat.refillSec": ["치트 모드 능력 충전 간격(초)", "0이면 쓰자마자 바로 참"],
   "cheat.ultInfinite": ["치트 모드 궁극기 무한"],
-  "cheat.allow": ["허용할 치트", "끈 항목은 치트 창에 안 보이고 켜져 있어도 꺼집니다"],
-  "cheat.allow.radar": ["작은 지도에 적 표시"], "cheat.allow.wall": ["벽 너머 적 보기"], "cheat.allow.cheat": ["치트 모드 (능력·세트 변경)"],
-  "cheat.allow.god": ["무적"], "cheat.allow.oneShot": ["한 방 처치"], "cheat.allow.infAmmo": ["탄약 무제한"], "cheat.allow.noRecoil": ["반동 없음"],
-  "cheat.allow.speed": ["내 이동 속도"], "cheat.allow.fastFire": ["내 연사 속도"],
-  "cheat.maxSpeed": ["이동 속도 최대 배율"], "cheat.maxFastFire": ["연사 속도 최대 배율"],
   room: ["방 기본 규칙 강제", "켜면 모든 방장 게임에 이 값이 적용됩니다 (0 = 게임 기본값)"],
   "room.force": ["모든 방에 강제 적용"], "room.roundT": ["라운드 시간(초)"], "room.buyT": ["구매 시간(초)"], "room.matchT": ["데스매치 경기 시간(분)"],
   "room.run": ["이동 속도(m/s)", "기본 10.6"], "room.jumpV": ["점프 힘", "기본 6.1"], "room.gravity": ["중력", "기본 13.5"], "room.aiSpeed": ["봇 속도 배율"],

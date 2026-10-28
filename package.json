@@ -75,6 +75,7 @@
     "test:aim": "node scripts/browser-aim.js",
     "test:admin": "node scripts/browser-admin-dash.js",
     "test:admin-defaults": "node scripts/browser-admin-defaults.js",
+    "test:admin-config": "node scripts/browser-admin-config.js",
     "test:user-profile": "node scripts/browser-user-profile.js",
     "test:shop": "node scripts/browser-shop.js",
     "test:modes2": "node scripts/browser-modes2.js",

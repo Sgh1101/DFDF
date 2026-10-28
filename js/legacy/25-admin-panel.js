@@ -41,7 +41,7 @@
     ADMIN.infAmmo = P.infAmmo;
     ADMIN.noRecoil = P.noRecoil;
     ADMIN.fastFire = P.fastFire;
-    ADMIN.infAbil = G.infAll; // cheat mode refills on its own clock (hunt module)
+    ADMIN.infAbil = G.infAll; // cheat mode refills on its own clock (43-cheat-hunt.js)
   }
 
   // ── who has what (host side) ──
@@ -481,7 +481,7 @@
     tg.innerHTML = "";
     panel.classList.toggle("ad-locked", !1);
     if ("me" === TAB) {
-      note.innerHTML = "이 기기에서 비밀번호를 입력한 나에게만 적용됩니다. 다른 사람 화면에는 아무 표시도 없고, 새로고침하면 모두 꺼집니다.";
+      note.innerHTML = "나에게만 적용됩니다. 다른 사람 화면에는 아무 표시도 없고, 새로고침하면 모두 꺼집니다.";
       for (const [k, name, desc] of PERSONAL_T) toggle(tg, { name, desc, get: () => P[k], set: (v) => setPersonal(k, v) });
       for (const [k, name, min, max, step, unit, desc] of PERSONAL_S) item(grid, { name, desc, min, max, step, unit, def: P_DEF[k], get: () => P[k], set: (v) => setPersonal(k, v) });
     } else {

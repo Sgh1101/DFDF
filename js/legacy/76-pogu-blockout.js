@@ -243,7 +243,7 @@
   loadMap = function (key) {
     // the game builds MAP.walls itself: keep it empty while loading (the
     // blockout is built here), then list the buildings for what reads them
-    // later (the cheat-code hunt's building, the bots' cover)
+    // later (the bots' cover)
     "pogu" === key && (DATA.walls.length = 0);
     const r = _lm.apply(this, arguments);
     if (r !== !1 && "pogu" === key)
