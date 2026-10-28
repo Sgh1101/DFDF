@@ -4178,7 +4178,7 @@
       note(L(`구매했습니다 · ${WEAPONS[g].name} ${nameOf(BY[sid])}`, `Bought · ${WEAPONS[g].name} ${nameOf(BY[sid])}`));
     } catch (e) {
       note((e && e.message) || L("구매하지 못했습니다", "The purchase failed"));
-      /바뀌었/.test((e && e.message) || "") && (SH.at = 0);
+      /바뀌었/.test((e && (e.ko || e.message)) || "") && (SH.at = 0);
       j = null;
     }
     SH.busy = !1;
