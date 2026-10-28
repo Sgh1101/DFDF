@@ -44,15 +44,27 @@ const assert = require("node:assert/strict"), fs = require("fs"), path = require
       step(2);
       const rig = V.fx.get(enemy);
       out.cleared = !rig || !rig.g.visible;
-      // someone else's cast: the name rises over them, then goes
-      const def = enemy.agent.abilities.find((d) => !d.ult) || enemy.agent.abilities[0];
-      withCaster(enemy, () => castAbility(def.type, def));
-      const c = V.callouts.find((x) => x.a === enemy);
+      // someone else's cast: the name rises over them, then goes. A cast that gives its charge back (nobody where it
+      // aims, the first press of a two-press ability) shows no name, and the bot's agent is random: so the first of the
+      // enemy's own abilities, then the other agents', that goes off from here
+      const kits = [enemy.agent, ...AGENTS.filter((a) => a !== enemy.agent)];
+      const fire = (list) => {
+        for (const d of list) {
+          CAST_REFUND = false;
+          withCaster(enemy, () => castAbility(d.type, d));
+          const back = CAST_REFUND;
+          CAST_REFUND = false;
+          if (!back) return d;
+        }
+        return null;
+      };
+      const def = fire(kits.flatMap((a) => a.abilities.filter((d) => !d.ult)));
+      const c = V.callouts.filter((x) => x.a === enemy).pop();
       out.callName = c ? c.s.userData.text : null;
-      out.defName = def.name;
+      out.defName = def && def.name;
       out.callAbove = c ? c.s.position.y > (enemy.y || 0) + 2 : false;
-      const ult = enemy.agent.abilities.find((d) => d.ult);
-      if (ult) { withCaster(enemy, () => castAbility(ult.type, ult)); const u = V.callouts.filter((x) => x.a === enemy).pop(); out.ultBigger = u.s.scale.y > c.s.scale.y; }
+      const ult = c && fire(kits.flatMap((a) => a.abilities.filter((d) => d.ult)));
+      if (ult) { const u = V.callouts.filter((x) => x.a === enemy).pop(); out.ultBigger = u !== c && u.s.scale.y > c.s.scale.y; }
       // my own cast: no name over my head
       const before = V.callouts.length, mdef = me.agent.abilities.find((d) => !d.ult);
       CAST_REFUND = false; castAbility(mdef.type, mdef); CAST_REFUND = false;
@@ -72,7 +84,7 @@ const assert = require("node:assert/strict"), fs = require("fs"), path = require
     assert.ok(r2.cleared, "the marks go when the statuses end");
     assert.equal(r2.callName, r2.defName, "someone else's cast names the ability over them");
     assert.ok(r2.callAbove, "the name is over the head");
-    if (r2.ultBigger !== undefined) assert.ok(r2.ultBigger, "an ultimate's name is bigger");
+    assert.equal(r2.ultBigger, true, "an ultimate's name is bigger");
     assert.equal(r2.ownCast, 0, "my own cast puts no name over me");
     assert.equal(r2.callLeft, 0, "the names fade and are taken away");
     assert.deepEqual(errors, [], "no page errors");
