@@ -7,6 +7,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   const f = await fixture();
   try {
     const dir = process.env.SHOT_DIR || "/tmp";
+    // the season the account plays is "season 1": the owner's config puts the first season's start at today (Korea),
+    // so the test does not depend on the calendar (the season changes every four weeks from 2026-10-01)
+    const owner0 = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "season-owner0" });
+    const c0 = JSON.parse(JSON.stringify((await f.h.api("a_config_get", { atoken: owner0.atoken })).config)), kst = new Date(Date.now() + 9 * 36e5);
+    c0.season.startDay = kst.getUTCFullYear() * 1e4 + (kst.getUTCMonth() + 1) * 100 + kst.getUTCDate(); c0.season.skip = 0;
+    assert.equal((await f.h.api("a_config_set", { atoken: owner0.atoken, config: c0 })).status, 200);
     const page = await f.page("seasoned", { width: 1280, height: 800 });
     // the season this account played: four counted ranked matches, Platinum 2 (1300 RR)
     const u = f.h.user("seasoned");
