@@ -42,7 +42,7 @@ test("settings saved with the old cheat keys still load, save and reset, and the
   // reset
   h.db.set("config", JSON.stringify(oldConfig(h)));
   const reset = await h.api("a_config_reset", { atoken: A });
-  assert.equal(reset.status, 200); none(reset.config.cheat, "a_config_reset"); assert.equal(h.db.has("config"), false);
+  assert.equal(reset.status, 200); none(reset.config.cheat, "a_config_reset"); none(JSON.parse(h.db.get("config")).cheat, "what the reset stored");
   none((await h.api("a_config_get", { atoken: A })).config.cheat, "after the reset");
 });
 

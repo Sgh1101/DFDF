@@ -54,7 +54,7 @@ const OLD = { enabled: false, codeLength: 4, startAtMiddle: true, moveAfterUse: 
     // reset: the defaults, and the same list again
     await page.click("#crst");
     await page.waitForFunction(() => document.querySelector('[data-k="cheat.refillSec"]') && document.querySelector('[data-k="cheat.refillSec"]').value === "5");
-    assert.equal(h.db.has("config"), false, "reset removed the saved config");
+    assert.deepEqual(Object.keys(JSON.parse(h.db.get("config")).cheat).sort(), ["refillSec", "ultInfinite"], "the reset stored the game's own settings, without the old keys");
     v = await settings();
     assert.deepEqual(v.keys, ["cheat.refillSec", "cheat.ultInfinite"]);
     assert.deepEqual(errors, []);
