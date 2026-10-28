@@ -207,7 +207,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const board = await p1.evaluate(() => ({ rows: document.querySelectorAll("#lbd-body .lbd-row:not(.hd)").length, me: document.querySelector("#lbd-body .lbd-row.me .nm").textContent, season: document.getElementById("lbd-season").textContent, mine: document.getElementById("lbd-me").textContent, rr: [...document.querySelectorAll("#lbd-body .lbd-row:not(.hd)")].map((r) => +r.querySelector(".n").textContent) }));
     assert.equal(board.rows, 3);
     assert.match(board.me, /^lbp1/);
-    assert.match(board.season, /시즌 1 · \d+일 남음/);
+    assert.match(board.season, /시즌 \d+ · \d+일 남음/); // the number follows the calendar (every four weeks from 2026-10-01)
     assert.match(board.mine, /1위|2위|3위/);
     assert.deepEqual(board.rr, [...board.rr].sort((x, y) => y - x), "sorted by RR");
     await p1.screenshot({ path: dir + "/ranked-flow-board.png" });
