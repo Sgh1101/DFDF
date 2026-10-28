@@ -354,7 +354,7 @@
         if (b[7] || "lamp" === b[6]) continue;
         cols.push({ minX: r2(w[0]), maxX: r2(w[1]), minZ: r2(w[4]), maxZ: r2(w[5]), y0: w[2] > 0.05 ? r2(w[2]) : 0, h: r2(w[3]), kind: k });
       }
-      // the whole house as one wall for what looks for a building (the cheat code's hunt, cover)
+      // the whole house as one wall for what looks for a building (cover)
       pseudo.push({ x: cx, z: cz, w: rot ? S : L, d: rot ? L : S, h: "tower" === kind ? 3.4 : RF + FL, two: 1, floors: "tower" === kind ? 1 : 2, style: name });
     };
     plan.b.forEach(([x, z, L, S, rot, flip], i) => place("house", x, z, L, S, rot, flip, i));

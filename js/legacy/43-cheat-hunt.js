@@ -18,7 +18,7 @@
   const boss = () => !!window.IS_OWNER || !!HUNT.granted;
   const free2 = (peer) => GRANT.has(peer) || OWNP.has(peer);
   // the owner's rules (admin page → /api/v1 config), with the built-in defaults
-  const CDEF = { enabled: !0, refillSec: 5, ultInfinite: !1, allow: {}, maxSpeed: 3, maxFastFire: 10 };
+  const CDEF = { refillSec: 5, ultInfinite: !1, allow: {}, maxSpeed: 3, maxFastFire: 10 };
   const C = () => Object.assign({}, CDEF, (window.SERVER_CFG && window.SERVER_CFG.cheat) || {});
   const allowed = (k) => !1 !== (C().allow || {})[k];
   // ── host / solo: every round guests lose their place and personal switches go back ──
@@ -106,7 +106,6 @@
         want = tame(Object.assign({}, P));
       let ch = !1;
       for (const k in DEF) P[k] !== want[k] && (A2.setPersonal(k, want[k]), (ch = !0));
-      !C().enabled && HUNT.unlocked && relock();
       ch && A2.afterChange();
     } catch (e) {}
   }, 1000);
@@ -182,9 +181,7 @@
     grid && (grid.innerHTML = "");
     tg && (tg.innerHTML = "");
     if (!note) return;
-    note.innerHTML = C().enabled
-      ? E("<b>치트 권한이 없습니다.</b> 운영자가 열어 준 계정만 쓸 수 있습니다.", "<b>No cheat rights.</b> Only accounts the operator opened cheats for can use them.")
-      : E("<b>운영자가 치트를 꺼 두었습니다.</b>", "<b>The operator has switched cheats off.</b>");
+    note.innerHTML = E("<b>치트 권한이 없습니다.</b> 운영자가 열어 준 계정만 쓸 수 있습니다.", "<b>No cheat rights.</b> Only accounts the operator opened cheats for can use them.");
   }
   function refresh() {
     try {

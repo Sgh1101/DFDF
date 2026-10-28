@@ -1,10 +1,10 @@
 (() => {
   // Ranked play. A ranked room is opened from "Play together" with one button
   // ("Find a ranked match": join an open ranked room, or open one). In it
-  // everything a player could bend is off: the admin switches, the cheat code
-  // and the cheats it gives, an account's own cheat rights, and the host's room
-  // rules (the mode, the map and the rounds are set when the room opens and
-  // stay). The one exception is the operator (owner account): the server hands
+  // everything a player could bend is off: the admin switches, the cheats,
+  // an account's own cheat rights, and the host's room rules (the mode,
+  // the map and the rounds are set when the room opens and stay). The one
+  // exception is the operator (owner account): the server hands
   // him an owner ticket in a ranked room, and once that is confirmed he keeps
   // his personal cheats (the room-wide switches stay shut for him too) and the
   // match counts for his RR like anybody's. The rank (RR) itself is set on the
@@ -62,7 +62,7 @@
     document.body.classList.toggle("ranked", !!m);
     m && clean();
   }
-  // the switches that live outside ADMIN: personal and room cheats, the cheat code.
+  // the switches that live outside ADMIN: personal and room cheats.
   // The operator's own are left alone, and a host keeps the operator guest the server confirmed.
   function clean() {
     try {
@@ -84,7 +84,6 @@
         const H = X.HUNT;
         H.unlocked = !1;
         H.granted = !1;
-        H.code = "";
         X.OK && X.OK.clear();
         X.GRANT && X.GRANT.clear();
       }
@@ -125,7 +124,7 @@
     if (!room.ranked || "solo" === NET.mode || !msg) return !0;
     const own = !!(window.HUNTX && HUNTX.OWNP && HUNTX.OWNP.has(peer));
     if ("padm" === msg.t || "kit" === msg.t) return own;
-    if ("perm-hi" === msg.t || "hunt-try" === msg.t) return !1;
+    if ("perm-hi" === msg.t) return !1;
     if ("own" === msg.t) {
       const a = own && null != msg.id ? world.actors.find((x) => String(x.id) === String(msg.id)) : null;
       return !!(a && a.ctrl === peer && SELF_OPS.includes(msg.op));
