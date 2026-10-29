@@ -72,6 +72,9 @@ const { AUDIT_SRC } = require("./ui-audit-lib");
     await desk.waitForTimeout(500);
     const news = await desk.evaluate(() => { const n = document.querySelector(".tt-news").getBoundingClientRect(), hd = document.querySelector(".home-header").getBoundingClientRect(); return { top: n.top, header: hd.bottom, bottom: n.bottom, vh: innerHeight }; });
     assert.ok(news.top >= news.header - 1 && news.bottom <= news.vh, "the guide fits between the bar and the edge " + JSON.stringify(news));
+    // done with this game page: left open, it keeps drawing its 3D scene on the software GPU and the tablet page
+    // next waited 30 s for a tap (its context stays for the diagnostic page below)
+    await desk.close();
     const tablet=await f.page('fixtablet',{width:1024,height:768},{hasTouch:true,isMobile:true});
     await tablet.locator('#go-play').tap();
     // the tablet folds the map chips into one button too; its sheet holds the filters
