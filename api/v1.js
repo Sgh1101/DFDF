@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const SKIN_TIERS = require("../js/skin-tiers");
 // every agent of the game (id, name, role): the owner page lists it, the settings keep only these ids
 const ROSTER = require("../js/agent-roster.json");
+const GAME_RULES = require("../js/game-rules.js");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -101,6 +102,11 @@ const DEFAULT_CONFIG = {
   // (coinsPerDay: the Champion coins one account earns from matches in a day, same day as
   // maxPerDay; a match past it still counts but gives no coin; 0 = none)
   gold: { signup: 300, perWin: 100, perLoss: 30, perKill: 5, maxPerReport: 500, maxPerDay: 10000, coinsPerDay: 30 },
+  // mastery of each agent, levels 1-10: a match with a valid ticket gives the agent played perMatch, perWin more on a
+  // win and perKill a kill, up to maxPerMatch. Level L starts at step * L * (L-1) / 2 XP (step 100: 100, 300, 600 ...
+  // 4500). Each level gained pays `gold`, out of the same day's ceiling as the match gold (gold.maxPerDay), and
+  // maxGold at most for one match. on: switches the whole thing (nothing counted, nothing shown)
+  mastery: { on: !0, perMatch: 30, perWin: 30, perKill: 5, maxPerMatch: 120, step: 100, gold: 50, maxGold: 200 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
@@ -165,6 +171,8 @@ const loadConfig = async () => {
   if (cfgCache && cfgCache.until > Date.now()) return cfgCache.c;
   const c = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
   c.xp.perLevel = Math.max(1, Number.isFinite(+c.xp.perLevel) ? +c.xp.perLevel : 100);
+  MC.on = !!c.mastery.on;
+  MC.step = Math.max(1, Number.isFinite(+c.mastery.step) ? +c.mastery.step : 100);
   // the mobile-only server: there when switched on (also in older saved settings), gone when off
   c.channels = (c.channels || []).filter((x) => c.game.mobileServer || !x.mobile);
   c.game.mobileServer && !c.channels.some((x) => x.mobile) && c.channels.push({ id: "mobile", name: "모바일 전용", en: "Mobile only", mobile: !0 });
@@ -378,9 +386,35 @@ function rankInit(u) {
 }
 // what the account shows: the tier while placing is hidden
 const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankOf(0), { hidden: !0 }) : rankOf(u.rr));
+// ── mastery of each agent (u.mast[agentId] = {xp, m: matches, w: wins, k: kills}) ──
+const MAST_MAX = 10;
+// the owner's numbers, as the last loadConfig() read them (publicUser has no config to hand)
+const MC = { on: !0, step: 100 };
+// the game sends the agent's name (Korean, as shown); the roster id is taken too, in any case. Anything else is not an agent.
+const AGENT_BY = new Map();
+for (const a of ROSTER) { AGENT_BY.set(a.id, a.id); AGENT_BY.set(a.name.toLowerCase(), a.id); }
+const agentIdOf = (name) => AGENT_BY.get(String(name == null ? "" : name).trim().toLowerCase()) || null;
+const mastNeed = (lv) => (Math.max(1, +MC.step || 100) * lv * (lv - 1)) / 2; // the XP level lv starts at
+function mastLevel(xp) {
+  let lv = 1;
+  while (lv < MAST_MAX && xp >= mastNeed(lv + 1)) lv++;
+  return lv;
+}
+// the agents an account has played: level, progress to the next, matches, wins, kills
+function mastView(u) {
+  const out = {};
+  if (!MC.on || !isObj(u.mast)) return out;
+  for (const id of Object.keys(u.mast)) {
+    const r = u.mast[id];
+    if (!AGENT_BY.has(id) || !isObj(r)) continue;
+    const xp = Math.max(0, r.xp | 0), lv = mastLevel(xp);
+    out[id] = { lv, xp, into: xp - mastNeed(lv), need: lv >= MAST_MAX ? 0 : mastNeed(lv + 1) - mastNeed(lv), m: r.m | 0, w: r.w | 0, k: r.k | 0 };
+  }
+  return out;
+}
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), mast: mastView(u), placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -647,7 +681,7 @@ function trimPicks(u) {
 const A = {};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -1752,7 +1786,11 @@ A.ranked_can_join = async (q, b) => {
 const lvInfo = (x, per) => {
   if (!x || x.guest) return { level: null, t: null, tier: null, div: null, placed: false };
   const placed = placedOf(x) >= PLACE_N, r = rankOf(x.rr);
-  return { level: levelOf(x.xp || 0, per).level, t: placed ? r.t : null, tier: placed ? r.tier : null, div: placed ? r.div : null, placed };
+  const out = { level: levelOf(x.xp || 0, per).level, t: placed ? r.t : null, tier: placed ? r.tier : null, div: placed ? r.div : null, placed };
+  // mastery level of each agent played (an agent missing is level 1); left out when there is none
+  const mv = mastView(x), ids = Object.keys(mv);
+  if (ids.length) { out.mast = {}; for (const id of ids) out.mast[id] = mv[id].lv; }
+  return out;
 };
 const LV_MAX = 12;
 A.levels = async (q, b) => {
@@ -1783,6 +1821,23 @@ A.leaderboard = async (q, b) => {
   lbCache = { out, n: cur.n, size: n, until: now() + 10000 };
   return out;
 };
+// the mastery of the agent a ticketed match was played with (null: off, or not an agent we know). left: gold still
+// allowed today. Counts the match in u.mast and answers what the result screen shows.
+function masteryAward(u, c, name, win, kills, left) {
+  const M = c.mastery, id = M && M.on ? agentIdOf(name) : null;
+  if (!id) return null;
+  if (!isObj(u.mast)) u.mast = {};
+  const r = isObj(u.mast[id]) ? u.mast[id] : (u.mast[id] = { xp: 0, m: 0, w: 0, k: 0 });
+  const before = mastLevel(r.xp | 0);
+  const gain = Math.max(0, Math.min(+M.maxPerMatch || 0, (+M.perMatch || 0) + (win ? +M.perWin || 0 : 0) + kills * (+M.perKill || 0)));
+  r.xp = (r.xp | 0) + Math.floor(gain);
+  r.m = (r.m | 0) + 1;
+  r.w = (r.w | 0) + (win ? 1 : 0);
+  r.k = (r.k | 0) + kills;
+  const lv = mastLevel(r.xp), up = lv - before;
+  const gold = up > 0 ? Math.max(0, Math.min(up * Math.max(0, +M.gold || 0), Math.max(0, +M.maxGold || 0), left)) : 0;
+  return { id, gain: Math.floor(gain), lv, before, up, gold };
+}
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -1815,7 +1870,9 @@ A.progress = async (q, b) => {
   // ranked: the win/draw is the host's attested result for the team the server put him in
   // (a report that differs is refused); RR/MMR never read `humans` or `win` from the player
   const rkv = trust.ranked ? await rankedVerdict(u, trust, b) : null;
-  const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && b.match.mode !== "dm" && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
+  // a free-for-all (the server's own list, GAME_RULES.ffaMode) has no sides: its s is [my kills, the top kills], so equal kills
+  // is not a draw there; the placing decides, as the game reports it
+  const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && !GAME_RULES.ffaMode(b.match.mode) && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
   const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
     win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
@@ -1835,9 +1892,12 @@ A.progress = async (q, b) => {
   const left = cap > 0 ? Math.max(0, cap - (u.goldDay.n || 0)) : Infinity;
   const gold = Math.max(0, Math.min(c.gold.maxPerReport, left, (win ? c.gold.perWin : c.gold.perLoss) + kills * c.gold.perKill));
   u.gold += gold;
+  // mastery of the agent played: XP for the match, and gold for each level gained out of what is left of the day's ceiling
+  const mastery = masteryAward(u, c, b.match && b.match.agent, win, kills, Math.max(0, left - gold));
+  mastery && (u.gold += mastery.gold);
   u.championCoins += coinGain;
   u.coinDay.n = (u.coinDay.n || 0) + coinGain;
-  u.goldDay.n = (u.goldDay.n || 0) + gold;
+  u.goldDay.n = (u.goldDay.n || 0) + gold + (mastery ? mastery.gold : 0);
   // the rank: up with a win (more with kills), down a little with a loss
   const R = c.rank,
     kb = Math.max(0, Math.min(+R.maxKill || 0, kills * (+R.perKill || 0))),
@@ -1884,7 +1944,7 @@ A.progress = async (q, b) => {
   const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   // the season board: a placed account that counted a ranked match this season
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
@@ -2585,7 +2645,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -2600,6 +2660,7 @@ function validateConfig(c) {
   };
   walk(DEFAULT_CONFIG, c);
   c.game.promoNotice = !!c.game.promoNotice;
+  c.mastery.on = !!c.mastery.on;
   if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
   if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
   // agents switched off: only known ids, in roster order; enough must stay on, every role with at least one

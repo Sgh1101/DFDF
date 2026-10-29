@@ -18,7 +18,7 @@
   };
   const chMob = (id) => !!(chans().find((c) => c.id === id) || {}).mobile;
   const chName = (c) => (EN ? c.en || c.name : c.name);
-  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" };
+  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" };
   const modeName = (k) => (EN ? MODE_EN[k] : window.GAME_MODES && GAME_MODES[k] && GAME_MODES[k].name) || k || "";
   const mapName = (k) => {
     const m = "undefined" != typeof MAP_LIST && MAP_LIST.find((x) => x.key === k);

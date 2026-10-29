@@ -105,6 +105,17 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .hr .res b{font-size:15px}.hr.win .res b{color:var(--green)}.hr.loss .res b{color:var(--red)}
 .hr .mid b{font-family:var(--fb,inherit);font-size:13px;font-weight:700}
 .hr .mvp{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;border:1px solid #5c4b1f;color:var(--gold);font-size:9px;letter-spacing:.1em;font-family:var(--fd)}
+.mast{max-width:720px;margin:6px auto 28px}
+.mast h3{font-family:var(--fd);font-size:12px;letter-spacing:.18em;color:var(--steel-dim);margin:0 0 10px 4px;text-transform:uppercase}
+.mr{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1.3fr) auto;gap:6px 12px;align-items:center;padding:8px 12px;margin-bottom:5px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.mr .mn b{display:block;font-size:13.5px}.mr .mn small{font-size:10.5px;color:var(--steel)}
+.mr .mb2 i{display:block;height:5px;border-radius:99px;background:#0d121a;border:1px solid var(--line);overflow:hidden}.mr .mb2 i u{display:block;height:100%;background:var(--mc,#8a97ab);text-decoration:none}
+.mr .mb2 small{display:block;margin-top:3px;font-size:10.5px;color:var(--steel)}
+.mr .mw{font-size:11px;color:var(--steel);text-align:right;white-space:nowrap}
+.mast .more{display:block;width:100%;margin-top:4px;padding:8px;border-radius:12px;border:1px dashed var(--line);background:none;color:var(--steel);font-size:12px;cursor:pointer}
+.mast .more:hover{border-color:var(--steel);color:var(--ink)}
+.mast .empty{padding:14px;text-align:center;color:var(--steel-dim);font-size:12px;border:1px dashed var(--line);border-radius:12px}
+@media(max-width:600px){.mr{grid-template-columns:34px minmax(0,1fr) auto;gap:4px 10px}.mr .mb2{grid-column:2 / 4;grid-row:2}}
 .hist .empty{padding:14px;text-align:center;color:var(--steel-dim);font-size:12px;border:1px dashed var(--line);border-radius:12px}
 @media(max-width:600px){.hr{grid-template-columns:76px minmax(0,1.4fr) minmax(0,1fr);gap:8px;padding:9px 10px}.hr .cs{display:none}.hr b{font-size:12.5px}}
 .inv{margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid #1f5c36;background:rgba(74,222,128,.07);color:var(--green);font-size:13px;text-align:center}
@@ -171,6 +182,7 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
 <script src="./js/notice-popup.js"></script>
 <script src="./js/order.js"></script>
 <script src="./js/cosmetics.js"></script>
+<script src="./js/agent-mastery.js"></script>
 </head>
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
@@ -229,6 +241,8 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
     </div>
   </div>
 
+  <div class="hist mast" id="mast" hidden><h3 data-t="mastTitle"></h3><div id="mastList"></div></div>
+
   <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
 
   <div id="v-ban" hidden class="banned box"><b data-t="banned"></b><p id="banWhy" style="color:var(--steel);margin-top:10px"></p></div>
@@ -251,8 +265,9 @@ const T = {
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
     order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
+    mastTitle: "요원 숙련도", mastEmpty: "아직 숙련도가 없습니다. 요원으로 한 판 하면 그 요원의 숙련도가 쌓입니다", mastMore: (n) => `전체 보기 (${n}명)`, mastLess: "접기", mastRec: (m, w) => `${m}경기 · ${w}승`, mastMax: "최고 단계", roles: {},
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
-    modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치" },
+    modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치", knife: "칼 대난투", gun: "총기 순환", range: "표적 사격", hill: "점령전", ctf: "깃발 탈취", zone: "축소전", inf: "감염" },
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
     banned: "이용이 제한되었습니다", until: "까지", forever: "영구", reason: "사유",
     offline: "지금은 계정 서버에 연결할 수 없습니다. 게스트로 들어가면 혼자 하기와 코드 참가는 그대로 됩니다.",
@@ -265,8 +280,9 @@ const T = {
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
     order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
+    mastTitle: "Agent mastery", mastEmpty: "No mastery yet. Play a match with an agent and it builds up for that agent", mastMore: (n) => `Show all (${n} agents)`, mastLess: "Show less", mastRec: (m, w) => `${m} matches · ${w} wins`, mastMax: "Max level", roles: { 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" },
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
-    modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch" },
+    modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" },
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
     banned: "Your access is restricted", until: "until", forever: "permanently", reason: "Reason",
     offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
@@ -317,7 +333,7 @@ async function api(a, b) {
 function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
-function view(v) { $("#hist").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
+function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -384,6 +400,7 @@ function drawMe() {
     $("#ssnEndOk").textContent = t("seasonOk");
     $("#ssnEndOk").onclick = () => { try { localStorage.setItem("lgp_ssn_seen", String(last.n)); } catch (e) {} $("#ssnEnd").hidden = true; };
   }
+  drawMast();
   drawHist();
 }
 // a tier badge: a gem in the tier's colour, more points the higher, a pip a division
@@ -396,6 +413,27 @@ function tierBadge(t, div) {
   for (let i = 0; i < (div || 0); i++) { const x = 24 + (i - (div - 1) / 2) * 7; pips += `<path d="M${x} 33l2.6 2.6-2.6 2.6-2.6-2.6z" fill="#fff" opacity=".9"/>`; }
   return `<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="#0c1018"/></linearGradient></defs><path d="M24 2l19 10.5v23L24 46 5 35.5v-23z" fill="url(#${id})" stroke="${c}" stroke-width="1.5"/><path d="M24 7l15 8.3v17.4L24 41 9 32.7V15.3z" fill="#0c1018" opacity=".45"/><path d="${star}Z" fill="${c}" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>${pips}</svg>`;
 }
+// the agents the account has played, best first: a hexagon with the level, the way to the next one, matches and wins
+// (the server counts it; the agent names are the game's roster file)
+let ROSTER = null, MAST_ALL = !1;
+fetch("./js/agent-roster.json").then((r) => r.json()).then((j) => { ROSTER = j; S && drawMast(); }).catch(() => { ROSTER = []; });
+function drawMast() {
+  const box = $("#mast"), u = S && S.user, off = CFG && CFG.mastery && CFG.mastery.on === !1;
+  box.hidden = !u || typeof u.gold !== "number" || off || $("#v-dash").hidden;
+  if (box.hidden) return;
+  const mast = (u.mast && typeof u.mast === "object" && u.mast) || {}, by = Object.fromEntries((ROSTER || []).map((a) => [a.id, a]));
+  const rows = Object.keys(mast).filter((id) => mast[id] && typeof mast[id] === "object").sort((a, b) => (mast[b].xp | 0) - (mast[a].xp | 0) || (a < b ? -1 : 1));
+  const row = (id) => {
+    const m = mast[id], a = by[id] || { name: id, role: "" }, lv = m.lv | 0 || 1, c = MASTERY.color(lv), pct = m.need ? Math.round(100 * Math.min(1, (m.into | 0) / m.need)) : 100;
+    return `<div class="mr" data-agent="${esc(id)}" style="--mc:${c}"><span>${MASTERY.badge(lv, 15)}</span><div class="mn"><b>${esc(a.name)}</b><small>${esc((T[L].roles || {})[a.role] || a.role || "")}</small></div><div class="mb2"><i><u style="width:${pct}%"></u></i><small>${m.need ? `${m.into | 0} / ${m.need} XP` : esc(t("mastMax"))}</small></div><div class="mw">${esc(t("mastRec", m.m | 0, m.w | 0))}</div></div>`;
+  };
+  const shown = MAST_ALL ? rows : rows.slice(0, 5);
+  $("#mastList").innerHTML = rows.length ? shown.map(row).join("") + (rows.length > 5 ? `<button type="button" class="more" id="mastMore">${esc(MAST_ALL ? t("mastLess") : t("mastMore", rows.length))}</button>` : "") : `<div class="empty">${esc(t("mastEmpty"))}</div>`;
+  const more = $("#mastMore");
+  more && (more.onclick = () => { MAST_ALL = !MAST_ALL; drawMast(); });
+}
+// the modes without sides (the same list the server reads, js/game-rules.js): they show the placing and the kills
+const FFA = ["dm", "knife", "gun", "zone", "range"];
 // the last matches, newest first (the game sends a summary with each report)
 function drawHist() {
   const h = $("#hist"), list = (S && S.hist) || [];
@@ -403,7 +441,7 @@ function drawHist() {
   if (h.hidden) return;
   const when = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
   $("#histList").innerHTML = list.length ? list.map((m) => {
-    const ffa = m.mode === "dm", draw = !ffa && m.s && m.s[0] === m.s[1];
+    const ffa = FFA.includes(m.mode), draw = !ffa && m.s && m.s[0] === m.s[1];
     const res = ffa ? t("place", m.rank || 1) : draw ? t("draw") : m.win ? t("win") : t("loss");
     const sc = ffa ? t("kills1", m.k || 0) : `${m.s ? m.s[0] : 0} - ${m.s ? m.s[1] : 0}`;
     const rr = typeof m.rr === "number" && m.rr ? `<small class="rr ${m.rr > 0 ? "up" : "dn"}">${m.rr > 0 ? "+" : ""}${m.rr} RR</small>` : "";
