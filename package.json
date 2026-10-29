@@ -95,6 +95,7 @@
     "test:landing": "node scripts/browser-landing-layout.js",
     "test:gunshots": "node scripts/browser-gunshots.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
+    "test:hud-render": "node scripts/browser-hud-render.js",
     "test:ctf": "node scripts/browser-ctf.js",
     "test:zone": "node scripts/browser-zone.js",
     "test:feedback": "node scripts/browser-feedback.js",

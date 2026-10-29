@@ -15358,11 +15358,11 @@ function detonate() {
 function spikeUI(e, t, o, a, n) {
   $("spike").classList.add("on");
   const r = $("sp-txt");
-  ((r.textContent = e), (r.style.color = t));
+  (_hT(r, e), _hS(r, "color", t));
   const s = $("sp-bar").firstElementChild;
-  ((s.style.width = 100 * clamp(o, 0, 1) + "%"), (s.style.background = a));
+  (_hW(s, 100 * clamp(o, 0, 1) + "%"), _hS(s, "background", a));
   const i = $("sp-mark");
-  i && (i.style.display = n ? "block" : "none");
+  i && _hS(i, "display", n ? "block" : "none");
 }
 function handleSpike(e) {
   const t = world.spike,
@@ -19959,15 +19959,15 @@ function updateRoster() {
     const n = o.querySelector(".rs-hp");
     if (n) {
       const o = t && a ? clamp(e.hp, 0, 100) : a ? 100 : 0;
-      ((n.firstElementChild.style.width = o + "%"),
+      (_hW(n.firstElementChild, o + "%"),
         n.classList.toggle("low", t && o <= 35),
-        (n.style.opacity = t ? 1 : 0));
+        _hS(n, "opacity", t ? "1" : "0"));
     }
   };
   (n.forEach((e) => c(e, !0)),
     r.forEach((e) => c(e, !1)),
-    ($("rs-n-mine").textContent = i),
-    ($("rs-n-foe").textContent = l));
+    _hT($("rs-n-mine"), i),
+    _hT($("rs-n-foe"), l));
 }
 const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
 let teamBuilt = 0;
@@ -20047,7 +20047,11 @@ function updateCross() {
       (player.ads ? -1.5 : 0),
     a = e.children,
     n = (e, t, o, a, n) => {
-      ((e.style.width = a + "px"),
+      // written only when it changed (js/legacy/16 replaces this with the transform version)
+      const k = a + "," + n + "," + t + "," + o;
+      e._k !== k &&
+        ((e._k = k),
+        (e.style.width = a + "px"),
         (e.style.height = n + "px"),
         (e.style.left = 13 + t + "px"),
         (e.style.top = 13 + o + "px"));
@@ -20292,10 +20296,9 @@ function tick(e) {
   if ((1 !== TIMEFX.scale && (t *= TIMEFX.scale), FLY.on))
     ($("admin").hidden && flyStep(t), render());
   else if ("menu" !== world.phase && "over" !== world.phase) {
-    if (
-      !("solo" === NET.mode) ||
-      ($("pause").hidden && !shopOpen && $("admin").hidden)
-    ) {
+    const p =
+      "solo" === NET.mode && (!$("pause").hidden || shopOpen || !$("admin").hidden);
+    if (!p) {
       const s = 1 !== TIMEFX.scale ? u * TIMEFX.scale : u;
       for (
         let i = 0;
@@ -20303,9 +20306,45 @@ function tick(e) {
         i++
       )
         step(s);
+      hudFrame();
     }
-    render();
-  } else "over" === world.phase && render();
+    frameDue(p ? "pause" : "") && render();
+  } else
+    "over" === world.phase &&
+      frameDue($("s-over").hidden ? "" : "over") &&
+      render();
+}
+// Frames nobody can see. While the simulation is stopped (solo pause, shop, admin) or the results screen covers the
+// canvas, the scene is drawn once after the screen opens and again only when something visible changed: the canvas
+// size or aspect, the field of view, the graphics preset, or a click or edit inside the screen (a setting).
+let _fdKey = "",
+  _fdLeft = 0;
+function frameDue(e) {
+  if (!e) return ((_fdKey = ""), !0);
+  const t = renderer.domElement,
+    o = e + t.width + "x" + t.height + "/" + camera.fov + "/" + camera.aspect + "/" + SETTINGS.quality;
+  return (
+    o !== _fdKey && ((_fdKey = o), (_fdLeft = 2)),
+    _fdLeft > 0 && (_fdLeft--, !0)
+  );
+}
+for (const e of ["click", "input", "change", "keyup"])
+  document.addEventListener(
+    e,
+    (e) => {
+      e.target &&
+        e.target.closest &&
+        e.target.closest("#pause,#shop,#admin,#s-over") &&
+        (_fdLeft = 3);
+    },
+    !0,
+  );
+addEventListener("resize", () => {
+  _fdLeft = 3;
+});
+// Agent select and the lobby are opaque full-screen screens: the title scene under them is not drawn.
+function menuCovered() {
+  return !$("s-select").hidden || !$("lobby").hidden;
 }
 function step(e) {
   "buy" === world.phase
@@ -20429,14 +20468,21 @@ function step(e) {
     tickEdge(e),
     tickUltCut(e),
     tickTimeFx(e),
-    updateLockHint(),
-    updateHUD(),
-    updateCross(),
-    (_mapF = (_mapF + 1) % 6),
-    1 & _mapF || drawTac(),
-    _mapF % 3 == 0 && drawMini());
+    updateLockHint());
 }
-let _mapF = 0;
+// The HUD is drawn once per rendered frame, after the substeps (step() is also run by a hidden host tab's timer, and
+// once per substep after a hitch), never while the tab is hidden; the two maps are redrawn at about 15 Hz of wall time.
+const MAP_DRAW_MS = 62;
+let _tacT = 0,
+  _miniT = 0;
+function hudFrame() {
+  if (document.hidden) return;
+  const e = performance.now();
+  (updateHUD(),
+    updateCross(),
+    e - _tacT >= MAP_DRAW_MS && ((_tacT = e), drawTac()),
+    e - _miniT >= MAP_DRAW_MS && ((_miniT = e), drawMini()));
+}
 const DMGN = { pool: [], live: [], v: new T.Vector3() };
 function dmgNumber(e, t, o) {
   if (!1 === SETTINGS.dmgNums || !(t > 0)) return;
@@ -21454,7 +21500,8 @@ let tlast = performance.now();
 function boot(e) {
   requestAnimationFrame(boot);
   const t = Math.min(0.05, (e - tlast) / 1e3);
-  ((tlast = e), "menu" === world.phase && (titleCam(t), render()));
+  ((tlast = e),
+    "menu" === world.phase && (titleCam(t), menuCovered() || render()));
 }
 (requestAnimationFrame(boot),
   requestAnimationFrame(tick),
