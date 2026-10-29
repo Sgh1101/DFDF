@@ -241,7 +241,7 @@
     return !0;
   }
   addEventListener("keydown", (e) => {
-    if ("KeyY" !== e.code || e.repeat) return;
+    if (!KEYMAP.is(e, "inspect") || e.repeat) return;
     const t = e.target;
     if (t?.closest?.('input,textarea,[contenteditable="true"]')) return;
     for (const id of ["shop", "pause", "armory"]) {

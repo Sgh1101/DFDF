@@ -56,7 +56,7 @@
     o.frequency.exponentialRampToValueAtTime(heavy ? 90 : 1500, t + 0.06);
     g.gain.setValueAtTime(heavy ? 0.03 : 0.018, t);
     g.gain.exponentialRampToValueAtTime(1e-4, t + (heavy ? 0.09 : 0.07));
-    o.connect(g).connect(AC.destination);
+    o.connect(g).connect(GAME_AUDIO.output); // through the volume sliders, not past them
     o.start(t);
     o.stop(t + 0.1);
   }

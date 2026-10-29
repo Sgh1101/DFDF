@@ -122,7 +122,7 @@
   addEventListener(
     "keydown",
     (e) => {
-      if ("m" !== (e.key || "").toLowerCase() || e.repeat) return;
+      if (!KEYMAP.is(e, "map") || e.repeat) return;
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       // M used to switch touch controls; that lives in settings now

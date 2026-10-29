@@ -17,7 +17,7 @@
         e.preventDefault();
         e.stopImmediatePropagation();
         // the keys this combination might have started are not held
-        keys[(e.key || "").toLowerCase()] = !1;
+        KEYMAP.release(keys, e);
       }
     },
     !0,

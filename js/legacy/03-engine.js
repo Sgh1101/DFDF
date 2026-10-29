@@ -1316,10 +1316,14 @@ function curWeapon() {
 const keys = {};
 let locked = !1;
 (addEventListener("keydown", (e) => {
-  const t = e.key.toLowerCase();
+  // keys are read by their place on the keyboard (js/keymap.js), so the Korean input method cannot hide them; what is typed
+  // into a text field is not the game's (Escape still is: it closes the admin panel from its password field)
+  const t = (e.key || "").toLowerCase();
+  if ("escape" !== t && KEYMAP.editing(e.target)) return;
+  const c = KEYMAP.codeOf(e),
+    a = KEYMAP.apply(keys, e, !0);
   if (
-    ((keys[t] = !0),
-    "Space" === e.code && ((keys.space = !0), FLY.on && e.preventDefault()),
+    (a.includes("jump") && FLY.on && e.preventDefault(),
     "menu" !== world.phase)
   )
     return "escape" === t
@@ -1329,10 +1333,10 @@ let locked = !1;
           : void togglePause()
         : void closeAdmin()
       : FLY.on
-        ? "c" === t
+        ? "KeyC" === c
           ? ((FLY.locked = !FLY.locked),
             void banner(FLY.locked ? "시점 고정" : "시점 해제", "#ffc849"))
-          : "r" === t
+          : "KeyR" === c
             ? (flyReset(), void banner("시작 지점", "#4ade80"))
             : "ArrowRight" === e.code || "ArrowDown" === e.code
               ? (e.preventDefault(), void flyStepMap(1))
@@ -1341,19 +1345,20 @@ let locked = !1;
                 : void 0
         : void (
             locked &&
-            ("b" === t && toggleShop(),
-            "r" === t && startReload(),
-            "1" === t && player.weapons.primary && switchSlot("primary"),
-            "2" === t && switchSlot("secondary"),
-            "q" === t && useAbility(0),
-            "e" === t && useAbility(1),
-            "c" === t && useAbility(2),
-            "x" === t && useAbility(3),
-            "Space" === e.code && jump())
+            (a.includes("shop") && toggleShop(),
+            a.includes("reload") && startReload(),
+            a.includes("slot1") && player.weapons.primary && switchSlot("primary"),
+            a.includes("slot2") && switchSlot("secondary"),
+            a.includes("ability1") && useAbility(0),
+            a.includes("ability2") && useAbility(1),
+            a.includes("ability3") && useAbility(2),
+            a.includes("ability4") && useAbility(3),
+            a.includes("jump") && jump())
           );
 }),
   addEventListener("keyup", (e) => {
-    ((keys[e.key.toLowerCase()] = !1), "Space" === e.code && (keys.space = !1));
+    // a key that is let go always lets go of its action, even when the focus has moved into a text field meanwhile
+    KEYMAP.release(keys, e);
   }),
   addEventListener(
     "wheel",
@@ -1480,12 +1485,17 @@ const touch = {
     motion: 1,
     ultCut: !0,
     slowMo: !1,
+    volMaster: 1,
+    volFx: 1,
+    volSteps: 1,
+    haptic: !0,
+    binds: {},
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
   // a stored value is taken only if the setting can hold it: the default's type and, for a number, finite and inside
   // its slider's range (a NaN once saved comes back as null, which stopped mouse look and the settings screen for good)
-  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2] };
+  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2], volMaster: [0, 1], volFx: [0, 1], volSteps: [0, 1] };
   try {
     const e = localStorage.getItem("lgp_set");
     if (e) {
@@ -14028,7 +14038,8 @@ function dressJungle() {
 }
 const SFX = (() => {
     let e = null,
-      t = null;
+      t = null,
+      g = null;
     function o() {
       if ("object" == typeof SETTINGS && SETTINGS && !SETTINGS.sfx) return null;
       if (e) return ("suspended" === e.state && e.resume(), e);
@@ -14044,7 +14055,17 @@ const SFX = (() => {
       }
       return e;
     }
-    function a(e, a, n, r, s) {
+    // where a footstep goes: the footsteps volume, panned if it has a side (-1 left .. 1 right). Own steps have none.
+    function u(p) {
+      if (!e) return t;
+      g || ((g = e.createGain()), (g.gain.value = 0.22), g.connect(GAME_AUDIO.steps));
+      if ("number" != typeof p || !e.createStereoPanner) return g;
+      const s = e.createStereoPanner();
+      ((s.pan.value = clamp(p, -1, 1)), s.connect(g));
+      setTimeout(() => s.disconnect(), 600);
+      return s;
+    }
+    function a(e, a, n, r, s, x) {
       const i = o();
       if (!i) return;
       const l = i.createOscillator(),
@@ -14060,11 +14081,11 @@ const SFX = (() => {
         c.gain.exponentialRampToValueAtTime(r || 0.3, i.currentTime + 0.008),
         c.gain.exponentialRampToValueAtTime(1e-4, i.currentTime + a),
         l.connect(c),
-        c.connect(t),
+        c.connect(x || t),
         l.start(),
         l.stop(i.currentTime + a + 0.02));
     }
-    function n(e, a, n, r) {
+    function n(e, a, n, r, x) {
       const s = o();
       if (!s) return;
       const i = Math.max(1, Math.floor(s.sampleRate * e)),
@@ -14080,7 +14101,7 @@ const SFX = (() => {
       ((p.gain.value = a || 0.4),
         d.connect(h),
         h.connect(p),
-        p.connect(t),
+        p.connect(x || t),
         d.start());
     }
     function r(e, a, n) {
@@ -14256,14 +14277,16 @@ const SFX = (() => {
           (a(300, 0.09, "square", 0.2, 140),
             setTimeout(() => a(190, 0.12, "square", 0.18, 90), 80));
         },
-        step(e, t, r) {
+        // p: where the step is heard, -1 (left) .. 1 (right), from GAME_AUDIO.panFor
+        step(e, t, r, p) {
           if (!o()) return;
           const s = clamp(r || 0, 0, 1),
             i = (1 - s) * (1 - s);
           if (i < 0.04) return;
           const l = STEP_SFX[t] || STEP_SFX.stone,
-            c = "run" === e ? 1 : "crouch" === e ? 0.34 : 0.6;
-          (n(l.d, l.v * c * i, l.cut * (1 - 0.55 * s), l.filt || "lowpass"),
+            c = "run" === e ? 1 : "crouch" === e ? 0.34 : 0.6,
+            x = u(p);
+          (n(l.d, l.v * c * i, l.cut * (1 - 0.55 * s), l.filt || "lowpass", x),
             l.f &&
               a(
                 l.f * (0.92 + 0.16 * Math.random()),
@@ -14271,6 +14294,7 @@ const SFX = (() => {
                 "triangle",
                 0.09 * c * i,
                 0.7 * l.f,
+                x,
               ));
         },
       }
@@ -16486,11 +16510,16 @@ function simMove(e, t) {
         e._stepAcc >= n &&
           ((e._stepAcc = 0), !("crouch" === a && Math.random() < 0.55)))
       ) {
-        let t = 0;
+        let t = 0,
+          pan;
         "me" !== e.ctrl &&
           player &&
           player.pos &&
-          ((t = clamp(
+          ((pan = GAME_AUDIO.panFor(
+            { x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y },
+            e.pos,
+          )),
+          (t = clamp(
             Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z) / 34,
             0,
             1,
@@ -16506,7 +16535,7 @@ function simMove(e, t) {
             ) &&
             (t = Math.min(1, t + 0.3)));
         try {
-          SFX.step(a, surfaceAt(e), t);
+          SFX.step(a, surfaceAt(e), t, pan);
         } catch (e) {}
       }
     } else e._stepAcc = 0;

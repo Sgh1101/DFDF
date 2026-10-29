@@ -720,7 +720,7 @@
     { capture: !0, passive: !1 }
   );
   addEventListener("keydown", (e) => {
-    if ("KeyG" !== e.code || e.repeat) return;
+    if (!KEYMAP.is(e, "grenade") || e.repeat) return;
     const t = e.target;
     if (t && ("INPUT" === t.tagName || "TEXTAREA" === t.tagName)) return;
     for (const id of ["shop", "pause"]) {
