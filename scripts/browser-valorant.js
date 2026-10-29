@@ -27,7 +27,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  assert.equal(await page.evaluate(()=>GUN_SKINS.guns().length),19);
  const shop=await page.locator('#shop-grid').innerText();for(const name of ['밴달','팬텀','클래식','오퍼레이터','아웃로','오딘'])assert.ok(shop.includes(name));
  assert.ok(!shop.includes('속사 SMG')&&!shop.includes('핸드캐논')&&!shop.includes('전투소총'));
- await page.locator('#shop-grid .sitem').filter({has:page.locator('b',{hasText:/^밴달$/})}).click();
+ // in CI this click was sometimes refused ("#shop intercepts pointer events"): then say where things were, as the
+ // run's log and screenshots cannot be read from outside
+ await page.locator('#shop-grid .sitem').filter({has:page.locator('b',{hasText:/^밴달$/})}).click().catch(async e=>{console.error('shop at the refused click',JSON.stringify(await page.evaluate(()=>{const $=id=>document.getElementById(id),box=n=>n?['left','top','right','bottom'].map(k=>Math.round(n.getBoundingClientRect()[k])):null,b=[...document.querySelectorAll('#shop-grid .sitem')].find(x=>x.querySelector('b')?.textContent.trim()==='밴달'),r=b&&b.getBoundingClientRect();return{vw:innerWidth,vh:innerHeight,vandal:box(b),grid:box($('shop-grid')),shop:box($('shop')),gridScroll:[$('shop-grid').scrollTop,$('shop-grid').scrollHeight,$('shop-grid').clientHeight],at:r?document.elementsFromPoint(r.left+r.width/2,r.top+r.height/2).slice(0,5).map(n=>n.id||String(n.className)||n.tagName):[],phase:world.phase,hidden:$('shop').hidden,champ:CHAMPIONS_PHANTOM.loaded()};})));throw e;});
  assert.equal(await page.evaluate(()=>myActor().weapons.primary),'rifle');
  await page.evaluate(()=>{closeShop();GUN_SKINS.open('knife');});
  const knifeStats=await page.evaluate(()=>JSON.stringify(WEAPONS.knife));
