@@ -8,13 +8,15 @@
   // 3) Solid-looking props at leg height with no collider get one at map load.
 
   // first t in (t0, t1] where the ray o + d*t enters the box, or Infinity
-  // (no arrays, no destructuring: this runs for every collider of the map on every shot and every sight line)
-  function boxT(c, ox, oy, oz, dx, dy, dz, t1) {
+  // (no arrays, no destructuring: this runs for every collider the ray's cells hold on every shot and every sight line)
+  // ye: how far under a box's bottom the ray still counts (0.01 unless given; the Ascent map's boxes use 0)
+  function boxT(c, ox, oy, oz, dx, dy, dz, t1, ye) {
     let lo = 0,
       hi = t1,
       a,
       b,
       t;
+    const yb = (c.y0 || 0) - (ye === undefined ? 0.01 : ye);
     // x
     if (dx > -1e-9 && dx < 1e-9) {
       if (ox <= c.minX || ox >= c.maxX) return Infinity;
@@ -28,9 +30,9 @@
     }
     // y (a floor has a bottom)
     if (dy > -1e-9 && dy < 1e-9) {
-      if (oy <= (c.y0 || 0) - 0.01 || oy >= c.h) return Infinity;
+      if (oy <= yb || oy >= c.h) return Infinity;
     } else {
-      a = ((c.y0 || 0) - 0.01 - oy) / dy;
+      a = (yb - oy) / dy;
       b = (c.h - oy) / dy;
       if (a > b) (t = a), (a = b), (b = t);
       a > lo && (lo = a);
@@ -50,20 +52,71 @@
     }
     return lo;
   }
+  const ascentOn = () => window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial';
+  // The nearest hit t in (0, maxT] of the ray o + d*t against the colliders, maxT if none; with `any` the first hit ends it.
+  // It walks the hash cells the ray passes through (a stamp on each collider keeps one that spans several cells from being
+  // tested twice) and runs the exact box test on the colliders in them; those reaching past the grid (CHASH.out) are always
+  // tested. asc: the Ascent map's boxes (no skipping of low ones, no slack under the bottom).
+  function rayHit(ox, oy, oz, dx, dy, dz, maxT, skip, any, asc) {
+    (!CHASH.dirty && CHASH.buckets) || chashBuild();
+    const gen = ++CHASH.gen,
+      ye = asc ? 0 : 0.01,
+      out = CHASH.out,
+      cell = CHASH.cell,
+      cols = CHASH.cols,
+      rows = CHASH.rows,
+      bk = CHASH.buckets,
+      sx = dx > 0 ? 1 : dx < 0 ? -1 : 0,
+      sz = dz > 0 ? 1 : dz < 0 ? -1 : 0,
+      tx = sx ? cell / Math.abs(dx) : Infinity,
+      tz = sz ? cell / Math.abs(dz) : Infinity;
+    let best = maxT,
+      c,
+      t,
+      i;
+    for (i = 0; i < out.length; i++) {
+      c = out[i];
+      if (c === skip || (!asc && !(c.h > 0.02))) continue;
+      c.qs = gen;
+      t = boxT(c, ox, oy, oz, dx, dy, dz, best, ye);
+      if (t < best && ((best = t), any)) return best;
+    }
+    let ix = Math.floor((ox - CHASH.minX) / cell),
+      iz = Math.floor((oz - CHASH.minZ) / cell),
+      nx = sx ? (CHASH.minX + (sx > 0 ? ix + 1 : ix) * cell - ox) / dx : Infinity,
+      nz = sz ? (CHASH.minZ + (sz > 0 ? iz + 1 : iz) * cell - oz) / dz : Infinity,
+      tie = false;
+    for (let n = 0; n < 4096; n++) {
+      // the cell the ray is in; after a step that crosses a corner exactly, the two cells beside it as well
+      for (let q = 0; q < (tie ? 3 : 1); q++) {
+        const cx = q === 1 ? ix - sx : ix,
+          cz = q === 2 ? iz - sz : iz;
+        if (cx < 0 || cz < 0 || cx >= cols || cz >= rows) continue;
+        const b = bk[cz * cols + cx];
+        if (b)
+          for (i = 0; i < b.length; i++) {
+            c = b[i];
+            if (c.qs === gen || c === skip) continue;
+            c.qs = gen;
+            if (!asc && !(c.h > 0.02)) continue;
+            t = boxT(c, ox, oy, oz, dx, dy, dz, best, ye);
+            if (t < best && ((best = t), any)) return best;
+          }
+      }
+      const nt = nx < nz ? nx : nz;
+      if (!(nt <= best) || nt === Infinity) break;
+      tie = Math.abs(nx - nz) < 1e-9;
+      if (tie) ((nx += tx), (nz += tz), (ix += sx), (iz += sz));
+      else if (nx < nz) ((nx += tx), (ix += sx));
+      else ((nz += tz), (iz += sz));
+      // out of the grid and heading away: nothing left to visit
+      if ((ix < 0 && sx <= 0) || (ix >= cols && sx >= 0) || (iz < 0 && sz <= 0) || (iz >= rows && sz >= 0)) break;
+    }
+    return best;
+  }
   // nearest wall hit along a ray (direction need not be unit; t is in its units)
   function wallT(ox, oy, oz, dx, dy, dz, maxT, skip) {
-    if (window.ASCENT_TRIAL && ASCENT_TRIAL.active && CUR_MAP_KEY === 'ascent_trial')
-      return ASCENT_TRIAL.rayT(ox, oy, oz, dx, dy, dz, maxT, skip);
-    let best = maxT;
-    for (const c of COLLIDERS) {
-      if (c === skip || !(c.h > 0.02)) continue;
-      // the part of the ray that can still matter (up to the nearest hit so far) against the box, on the ground plane
-      const ex = ox + dx * best,
-        ez = oz + dz * best;
-      if ((ox < c.minX && ex < c.minX) || (ox > c.maxX && ex > c.maxX) || (oz < c.minZ && ez < c.minZ) || (oz > c.maxZ && ez > c.maxZ)) continue;
-      const t = boxT(c, ox, oy, oz, dx, dy, dz, best);
-      t < best && (best = t);
-    }
+    let best = rayHit(ox, oy, oz, dx, dy, dz, maxT, skip, false, ascentOn());
     // the floor
     if (dy < 0) {
       const t = -oy / dy;
@@ -78,14 +131,12 @@
       dy = n - t,
       dz = r - o;
     if (Math.hypot(dx, dy, dz) < 0.001) return !1;
-    const fx = e + dx,
-      fz = o + dz;
-    for (const c of COLLIDERS) {
-      if (c === s || !(c.h > 0.02)) continue;
-      if ((e < c.minX && fx < c.minX) || (e > c.maxX && fx > c.maxX) || (o < c.minZ && fz < c.minZ) || (o > c.maxZ && fz > c.maxZ)) continue;
-      if (boxT(c, e, t, o, dx, dy, dz, 1) < 1) return !0;
-    }
-    // smoke volumes are big spheres; sampling is fine for them
+    if (rayHit(e, t, o, dx, dy, dz, 1, s, true, false) < 1) return !0;
+    // smoke volumes are big spheres; sampling is fine for them (and nothing to sample while none blocks sight)
+    const smokes = world.smokes;
+    let any = !1;
+    for (let k = 0; k < smokes.length; k++) if (smokes[k].blocksVision) any = !0;
+    if (!any) return !1;
     const d = Math.hypot(dx, dy, dz),
       h = Math.max(2, Math.ceil(d / 0.8));
     for (let k = 1; k < h; k++) {
@@ -93,7 +144,7 @@
         x = e + dx * f,
         y = t + dy * f,
         z = o + dz * f;
-      for (const m of world.smokes) if (m.blocksVision && y < m.y + m.r && dist2(x, z, m.x, m.z) < m.r * m.r) return !0;
+      for (const m of smokes) if (m.blocksVision && y < m.y + m.r && dist2(x, z, m.x, m.z) < m.r * m.r) return !0;
     }
     return !1;
   };

@@ -118,6 +118,8 @@ const COLLIDERS = [],
     minZ: 0,
     buckets: null,
     dirty: !0,
+    out: [],
+    gen: 0,
   },
   matWall = () => TH().wall,
   matCover = () => TH().crate,
@@ -1062,12 +1064,21 @@ function chashBuild() {
     (CHASH.rows = Math.max(1, Math.ceil((e.maxZ - e.minZ + 8) / CHASH.cell))));
   const t = CHASH.cols * CHASH.rows;
   CHASH.buckets = new Array(t);
+  CHASH.out = [];
   for (let e = 0; e < t; e++) CHASH.buckets[e] = null;
   for (const e of COLLIDERS) chashAdd(e);
   CHASH.dirty = !1;
 }
 function chashAdd(e) {
   if (!CHASH.buckets) return;
+  // qs: the stamp the ray walks use to test a collider once (set here so every collider has the same shape)
+  e.qs = 0;
+  // a box that reaches past the grid also goes in CHASH.out, which every hash query reads, so none is missed outside it
+  (e.minX < CHASH.minX ||
+    e.minZ < CHASH.minZ ||
+    e.maxX >= CHASH.minX + CHASH.cols * CHASH.cell ||
+    e.maxZ >= CHASH.minZ + CHASH.rows * CHASH.cell) &&
+    CHASH.out.push(e);
   const t = Math.max(0, Math.floor((e.minX - CHASH.minX) / CHASH.cell)),
     o = Math.min(
       CHASH.cols - 1,
@@ -1174,17 +1185,40 @@ function abilityGroundY(x, z, reference = player.y || 0) {
 function abilityOnFloor(actor, y, height = 2.4) {
   return (actor.y || 0) + 1.8 > y && (actor.y || 0) < y + height;
 }
+// the highest box top at or under y + tol whose footprint, grown by m, holds (x, z), read through the hash, not off every
+// collider (the casings ask with m 0 and tol 0.05)
+function groundTop(x, z, y, m, tol) {
+  (!CHASH.dirty && CHASH.buckets) || chashBuild();
+  const lim = y + tol,
+    cell = CHASH.cell,
+    cols = CHASH.cols,
+    bk = CHASH.buckets,
+    out = CHASH.out,
+    c0 = Math.max(0, Math.floor((x - m - 1e-6 - CHASH.minX) / cell)),
+    c1 = Math.min(cols - 1, Math.floor((x + m + 1e-6 - CHASH.minX) / cell)),
+    r0 = Math.max(0, Math.floor((z - m - 1e-6 - CHASH.minZ) / cell)),
+    r1 = Math.min(CHASH.rows - 1, Math.floor((z + m + 1e-6 - CHASH.minZ) / cell));
+  let g = 0,
+    k,
+    b,
+    i;
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++) {
+      b = bk[r * cols + c];
+      if (b)
+        for (i = 0; i < b.length; i++) {
+          k = b[i];
+          x > k.minX - m && x < k.maxX + m && z > k.minZ - m && z < k.maxZ + m && k.h <= lim && k.h > g && (g = k.h);
+        }
+    }
+  for (i = 0; i < out.length; i++) {
+    k = out[i];
+    x > k.minX - m && x < k.maxX + m && z > k.minZ - m && z < k.maxZ + m && k.h <= lim && k.h > g && (g = k.h);
+  }
+  return g;
+}
 function groundAt(e, t, o) {
-  let a = 0;
-  for (const n of COLLIDERS)
-    e > n.minX - PR &&
-      e < n.maxX + PR &&
-      t > n.minZ - PR &&
-      t < n.maxZ + PR &&
-      n.h <= o + STEP_H &&
-      n.h > a &&
-      (a = n.h);
-  return a;
+  return groundTop(e, t, o, PR, STEP_H);
 }
 function rayBlocked(e, t, o, a, n, r, s) {
   const i = a - e,
@@ -17478,6 +17512,7 @@ function aiThink(e, t) {
     (o.alertT > 0 && (o.alertT -= t),
     (o.repathCd -= t),
     (o.strafeCd -= t),
+    o.pickCd > 0 && (o.pickCd -= t),
     o.skill && (o.skill.cd -= t),
     actorSpike(e, t),
     actorBusy(e))
@@ -17598,11 +17633,25 @@ function aiThink(e, t) {
   }
   r & BTN.RELOAD && actorReload(e);
 }
+// A bot looks for a target every 0.10-0.20 s (its own interval, by id), not on every step: a sight line to every enemy in
+// range, from every bot, on every step was the largest cost of a fight. In between it keeps the target it has (or none)
+// while that is still alive, an enemy and in range; a death, or an enemy hidden from it, makes it look at once. The first
+// look comes up to 0.125 s after the bot's state starts, by id, so the bots do not all look on the same step.
+const AI_SIGHT_EVERY = 0.1;
 function aiPickTarget(e) {
   let t = null,
     o = 1e9,
     a = ("function" == typeof diffTune ? diffTune().range : 80) + 20;
   e.nearsight > 0 && (a = Math.min(a, 10));
+  const s = e.ai;
+  if (s) {
+    if (void 0 === s.pickCd) return ((s.pickCd = 0.025 * (Math.abs(e.id | 0) % 6)), (s.pickT = null), null);
+    if (s.pickCd > 0) {
+      const k = s.pickT;
+      if (!k) return null;
+      if (k.alive && k.team !== e.team && Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) <= a) return (intelReport(e, k), k);
+    }
+  }
   for (const n of world.actors) {
     if (!n.alive || n.team === e.team) continue;
     const r = Math.hypot(n.pos.x - e.pos.x, n.pos.z - e.pos.z);
@@ -17610,6 +17659,7 @@ function aiPickTarget(e) {
       rayBlocked(e.pos.x, e.y + 1.5, e.pos.z, n.pos.x, n.y + 1.1, n.pos.z) ||
       (intelReport(e, n), r < o && ((t = n), (o = r)));
   }
+  s && ((s.pickCd = AI_SIGHT_EVERY + 0.025 * (Math.abs(e.id | 0) % 5)), (s.pickT = t));
   return t;
 }
 function aiGoal(e) {

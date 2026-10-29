@@ -61,41 +61,10 @@
     for(const c of candidates) if(!collideXZ(x,z,c.h+.02,r)) return c.h;
     return NaN;
   }
-  const oldGround=groundAt;
   S.standAt=(x,z)=>{const p=safe({x,z});return Math.hypot(p.x-x,p.z-z)<=8&&!collideXZ(p.x,p.z,p.y,PR)?p:null;};
-  groundAt=function(x,z,y) {
-    if(!on()) return oldGround.apply(this,arguments);
-    let top=0;
-    for(const c of nearby(x,z)) if(x>c.minX-PR&&x<c.maxX+PR&&z>c.minZ-PR&&z<c.maxZ+PR&&c.h<=y+STEP_H&&c.h>top) top=c.h;
-    return top;
-  };
-  function rayBox(c,ox,oy,oz,dx,dy,dz,max) {
-    let lo=0,hi=max;
-    for(const [p,d,min,max] of [[ox,dx,c.minX,c.maxX],[oy,dy,c.y0||0,c.h],[oz,dz,c.minZ,c.maxZ]]) {
-      if(Math.abs(d)<1e-9) {if(p<=min||p>=max)return Infinity;continue;}
-      let a=(min-p)/d,b=(max-p)/d;if(a>b)[a,b]=[b,a];lo=Math.max(lo,a);hi=Math.min(hi,b);if(lo>hi)return Infinity;
-    }
-    return lo;
-  }
-  S.rayT=function(ox,oy,oz,dx,dy,dz,max,skip) {
-    if(CHASH.dirty)chashBuild();
-    let best=max;
-    // Visit every hash bucket traversed by the segment, then exact 3D boxes.
-    const cell=CHASH.cell, seen=new Set();
-    let ix=Math.floor((ox-CHASH.minX)/cell),iz=Math.floor((oz-CHASH.minZ)/cell);
-    const sx=Math.sign(dx),sz=Math.sign(dz),tx=dx?cell/Math.abs(dx):Infinity,tz=dz?cell/Math.abs(dz):Infinity;
-    let nx=dx?((CHASH.minX+(ix+(sx>0?1:0))*cell)-ox)/dx:Infinity,nz=dz?((CHASH.minZ+(iz+(sz>0?1:0))*cell)-oz)/dz:Infinity;
-    let t=0;
-    for(let steps=0;steps<4096&&t<=best;steps++) {
-      if(ix>=0&&iz>=0&&ix<CHASH.cols&&iz<CHASH.rows) for(const c of CHASH.buckets[iz*CHASH.cols+ix]||[]) {
-        if(c===skip||seen.has(c))continue;seen.add(c);best=Math.min(best,rayBox(c,ox,oy,oz,dx,dy,dz,best));
-      }
-      if(nx<nz){t=nx;nx+=tx;ix+=sx;}else{t=nz;nz+=tz;iz+=sz;}
-      if(!Number.isFinite(t))break;
-    }
-    if(dy<0)best=Math.min(best,-oy/dy);
-    return best;
-  };
+  // groundAt, the wall rays and sight lines all read the engine's hash now (11-walls-must-stop-bullets-and-bodies.js);
+  // this map's boxes are told apart there by ascentOn
+  S.rayT=(ox,oy,oz,dx,dy,dz,max,skip)=>WALL_T(ox,oy,oz,dx,dy,dz,max,skip);
   const oldAim=aimPoint;
   aimPoint=function(distance){
     if(!on())return oldAim.apply(this,arguments);
