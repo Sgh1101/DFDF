@@ -1,8 +1,35 @@
 // Deterministic PeerJS-shaped test transport. It does NOT exercise WebRTC/ICE/TURN.
 // Real game callbacks run in two browser contexts; this relay only delivers channel events.
+//
+// Link shaping (off unless a test calls shape(), so every other test still gets immediate delivery):
+//   shape(label, { delay, jitter, loss, rto, drop, reorder, reorderMs, ordered, toHost: {...}, toGuest: {...} })
+//   delay, jitter  one-way ms (jitter is uniform +-)           loss     chance a message is lost on its first try
+//   rto            ms before a lost message is resent            drop     true: a lost message never arrives
+//   reorder        chance a message is held back reorderMs       ordered  true (the default for "event"): a message never
+//   toHost/toGuest per-direction overrides                                overtakes an earlier one, so a lost one holds up
+//                                                                         everything behind it (head-of-line blocking)
+// The "state" link is an unordered but RELIABLE data channel in PeerJS 1.5.4 ({ordered:false} only), so a lost snapshot
+// is resent and arrives late, behind newer ones: loss without drop:true imitates that.
 async function installTransport(pages) {
-  const peers = new Map(), links = new Map(), errors = [], held = new Set();
-  let stopped = false;
+  const peers = new Map(), links = new Map(), errors = [], held = new Set(), shapes = new Map(), lanes = new Map();
+  const stats = { sent: 0, lost: 0, reordered: 0, delayed: 0 };
+  let stopped = false, seed = 1;
+  const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const shapeOf = (label, toHost) => { const c = shapes.get(label); return c && { ...c, ...(toHost ? c.toHost : c.toGuest) }; };
+  function relay(link, target, m) {
+    const toHost = target === link.right, c = shapeOf(link.label, toHost);
+    stats.sent++;
+    if (!c) return deliver(target, m);
+    let wait = Math.max(0, (c.delay || 0) + (c.jitter ? (rand() * 2 - 1) * c.jitter : 0));
+    const ordered = c.ordered ?? link.label === 'event';
+    if (c.loss && rand() < c.loss) { stats.lost++; if (c.drop) return; wait += c.rto ?? 200; }
+    else if (c.reorder && !ordered && rand() < c.reorder) { stats.reordered++; wait += c.reorderMs ?? 120; }
+    let at = Date.now() + wait;
+    if (ordered) { const key = m.id + (toHost ? '>' : '<'); at = Math.max(at, lanes.get(key) || 0); lanes.set(key, at); }
+    if (at - Date.now() < 1) return deliver(target, m);
+    stats.delayed++;
+    setTimeout(() => { if (!stopped && links.has(m.id)) deliver(target, m); }, at - Date.now());
+  }
   const deliver = (page, message) => page.evaluate((m) => window.NET_TEST.receive(m), message).catch((e) => { if (!stopped) errors.push(e.message); });
   async function addPage(page) {
     await page.exposeBinding('__networkTestSend', ({ page: sender }, m) => {
@@ -20,7 +47,7 @@ async function installTransport(pages) {
       if (!link) return;
       const target = link.left === sender ? link.right : link.left;
       if (m.t === 'close') { links.delete(m.id); return deliver(target, m); }
-      if (m.t === 'data' && !held.has(link.label)) return deliver(target, m);
+      if (m.t === 'data' && !held.has(link.label)) return relay(link, target, m);
     });
     await page.evaluate(() => {
       const peers = new Map(), channels = new Map();
@@ -55,6 +82,8 @@ async function installTransport(pages) {
     });
   }
   for (const page of pages) await addPage(page);
-  return { errors, addPage, hold: (label) => held.add(label), resume: (label) => held.delete(label), stop: () => { stopped = true; } };
+  return { errors, addPage, hold: (label) => held.add(label), resume: (label) => held.delete(label), stop: () => { stopped = true; },
+    shape: (label, config) => { shapes.set(label, config); lanes.clear(); }, unshape: (label) => { shapes.delete(label); lanes.clear(); },
+    seed: (n) => { seed = n >>> 0 || 1; }, stats };
 }
 module.exports = { installTransport };
