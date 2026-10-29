@@ -88,17 +88,8 @@ const DEFAULT_CONFIG = {
     disabledAgents: "",
   },
   cheat: {
-    enabled: !0,
-    codeLength: 4,
-    startAtMiddle: !0,
-    moveAfterUse: !0,
-    resetEachRound: !0,
-    wrongWaitSec: 2,
     refillSec: 5,
     ultInfinite: !1,
-    allow: { radar: !0, wall: !0, cheat: !0, god: !0, oneShot: !0, infAmmo: !0, noRecoil: !0, speed: !0, fastFire: !0 },
-    maxSpeed: 3,
-    maxFastFire: 10,
   },
   // room rules every host applies when `force` is on (0 = the game's own default)
   room: { force: !1, roundT: 0, buyT: 0, matchT: 0, run: 0, jumpV: 0, gravity: 0, aiSpeed: 0, infAll: !1, freezeAI: !1 },
@@ -2141,7 +2132,7 @@ ADMIN.summary = async () => {
     "lobby" !== r.state && R.playing++;
     R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
   }
-  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, cheat: { enabled: c.cheat.enabled }, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), weekly: c.shop.on ? weeklyOf(c, kstWeek(t)) : [], weeklyReset: nextKstMonday(t), t };
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), weekly: c.shop.on ? weeklyOf(c, kstWeek(t)) : [], weeklyReset: nextKstMonday(t), t };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -2551,7 +2542,12 @@ ADMIN.ledger = async (q, b) => {
   const totals = { paid: sum("paid"), refund: -sum("refund"), net: sum("paid") + sum("refund"), orders: count("order"), paidCount: count("paid"), revoked: count("revoke"), refunded: count("refund"), rejected: count("reject") };
   return { rows: rows.slice(0, 1000), total: rows.length, totals, names: orderNames() };
 };
-ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_CONFIG });
+// the owner's own default ("config:default": { config, t }), merged over the built-in one like loadConfig does
+const readDefault = async () => {
+  const d = await getJ("config:default");
+  return d && isObj(d.config) ? { config: JSON.parse(JSON.stringify(merge(DEFAULT_CONFIG, d.config))), t: +d.t || 0 } : null;
+};
+ADMIN.config_get = async () => ({ config: await loadConfig(), defaults: DEFAULT_CONFIG, saved: await readDefault() });
 ADMIN.config_set = async (q, b) => {
   if (!isObj(b.config)) throw fail(400, "설정이 없습니다");
   const c = merge(DEFAULT_CONFIG, b.config);
@@ -2561,16 +2557,35 @@ ADMIN.config_set = async (q, b) => {
   await log("admin", "설정 저장");
   return { config: c };
 };
-ADMIN.config_reset = async () => {
-  await redis(["DEL", "config"]);
+// "save these settings as my default": the same checks as config_set, then both keys in one go
+ADMIN.config_default_set = async (q, b) => {
+  if (!isObj(b.config)) throw fail(400, "설정이 없습니다");
+  const c = merge(DEFAULT_CONFIG, b.config);
+  validateConfig(c);
+  const saved = { config: c, t: now() }, v = JSON.stringify(c);
+  await pipe([["SET", "config", v], ["SET", "config:default", JSON.stringify(saved)]]);
   cfgCache = null;
-  await log("admin", "설정 초기화");
-  return { config: DEFAULT_CONFIG };
+  await log("admin", "설정을 기본값으로 저장");
+  return { config: c, saved };
+};
+// back to the owner's saved default (b.to "factory": the built-in values). The season clock and number and the
+// shop's reroll numbers stay as they are: older ones would move the season or bring back an earlier shop list.
+ADMIN.config_reset = async (q, b) => {
+  const factory = b.to === "factory", saved = factory ? null : await readDefault();
+  const cur = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
+  const c = JSON.parse(JSON.stringify(saved ? saved.config : DEFAULT_CONFIG)); // a copy: merge() shares the nested objects it does not change
+  c.season.startDay = cur.season.startDay; c.season.skip = cur.season.skip;
+  c.shop.reroll = cur.shop.reroll; c.shop.weekly.reroll = cur.shop.weekly.reroll;
+  saved && validateConfig(c);
+  await setJ("config", c);
+  cfgCache = null;
+  await log("admin", saved ? "설정을 기본값으로 되돌림" : "설정을 처음 값으로 되돌림");
+  return { config: c, to: saved ? "saved" : "factory" };
 };
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "cheat.codeLength": [1, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "cheat.maxSpeed": [1, 3], "cheat.maxFastFire": [1, 10], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];

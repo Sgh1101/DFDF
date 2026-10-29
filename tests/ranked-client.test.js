@@ -65,7 +65,7 @@ test("the host hears an operator guest only about himself, and nobody else's che
   w.sb.NET.mode = "host"; w.sb.room.ranked = true; w.sb.HUNTX.OWNP.add("op");
   w.sb.world.actors = [{ id: 1, ctrl: "op", alive: true }, { id: 2, ctrl: "pl", alive: true }, { id: 3, ctrl: "me", alive: true }];
   const send = (peer, msg) => w.sb.NET.onAction(peer, msg);
-  for (const [peer, msg] of [["pl", { t: "padm", p: { god: true } }], ["pl", { t: "kit", key: "x" }], ["pl", { t: "perm-hi", ticket: "x" }], ["pl", { t: "hunt-try", c: "1" }], ["pl", { t: "own", op: "hp", id: 2, v: 5 }], ["op", { t: "own", op: "kill", id: 2 }], ["op", { t: "own", op: "cheat", id: 2, v: true }], ["op", { t: "own", op: "hp", id: 2, v: 5 }], ["op", { t: "perm-hi", ticket: "x" }]]) send(peer, msg);
+  for (const [peer, msg] of [["pl", { t: "padm", p: { god: true } }], ["pl", { t: "kit", key: "x" }], ["pl", { t: "perm-hi", ticket: "x" }], ["pl", { t: "own", op: "hp", id: 2, v: 5 }], ["op", { t: "own", op: "kill", id: 2 }], ["op", { t: "own", op: "cheat", id: 2, v: true }], ["op", { t: "own", op: "hp", id: 2, v: 5 }], ["op", { t: "perm-hi", ticket: "x" }]]) send(peer, msg);
   assert.deepEqual(got, []);
   for (const [peer, msg] of [["op", { t: "padm", p: { god: true } }], ["op", { t: "own", op: "hp", id: 1, v: 500 }], ["op", { t: "own", op: "god", id: 1, v: 1 }], ["pl", { t: "input" }], ["pl", { t: "hello" }]]) send(peer, msg);
   assert.deepEqual(got, ["op:padm", "op:own:hp", "op:own:god", "pl:input", "pl:hello"]);

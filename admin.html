@@ -59,7 +59,13 @@ button.red{border-color:#5c2630;color:#ff9aa5}
 .f label{font-size:13px}.f small{display:block;color:var(--dim);font-size:11px}
 .f input[type=number]{width:96px;text-align:right}.f input[type=text]{width:100%}
 .f.wide{grid-column:1/-1;flex-direction:column;align-items:stretch}
+.f .fi{display:flex;align-items:center;gap:6px}.f.wide>.fi input{flex:1}
+.f.chg{border-left:3px solid var(--gold);padding-left:8px}
+.rs{padding:2px 7px;font-size:13px;line-height:1.3;border-color:#5c4b1f;color:var(--gold)}.rs[hidden]{display:none}
+.dnote{color:var(--steel);font-size:12.5px;margin-bottom:12px}.dnote b{color:var(--ink)}.dnote b.n{color:var(--gold)}
 .save{position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent,var(--bg) 40%);display:flex;gap:8px;justify-content:flex-end}
+.save.cfg{flex-wrap:wrap}
+@media (max-width:640px){.save.cfg button{flex:1 1 auto}}
 .room{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .room h4{font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
@@ -605,7 +611,7 @@ const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
 const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
 // on/off switches shown as chips at the top (warn: on is the alarming side)
-const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["cheat.enabled", "치트"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
+const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
 // numbers the owner tunes most: [path, name, min, max, step, note]
 const QUICK_NUM = [["aim.strength", "에임 보정 세기", 0, 100, 1, "%"], ["aim.range", "에임 보정 거리", 5, 150, 1, "m"], ["aim.cone", "에임 보정 각도", 1, 30, 0.5, "도"], ["game.maxRoomPlayers", "방 최대 인원", 2, 12, 1, "명"], ["gold.perWin", "승리 골드", 0, 2000, 10, ""], ["gold.perLoss", "패배 골드", 0, 2000, 10, ""], ["gold.perKill", "처치당 골드", 0, 200, 1, ""], ["gacha.cost1", "뽑기 1회", 0, 10000, 10, "골드"], ["gacha.cost10", "뽑기 10회", 0, 100000, 50, "골드"], ["shop.price.common", "상점 일반", 0, 100000, 100, "골드"], ["shop.price.rare", "상점 희귀", 0, 100000, 100, "골드"], ["shop.price.epic", "상점 영웅", 0, 200000, 100, "골드"], ["shop.price.legendary", "상점 전설", 0, 500000, 500, "골드"], ["rank.win", "승리 RR", 0, 100, 1, ""], ["rank.loss", "패배 RR", 0, 100, 1, ""], ["shop.weekly.off", "주간 특가 할인", 0, 90, 5, "%"], ["cos.price.1", "꾸미기 일반", 0, 100000, 100, "골드"], ["cos.price.2", "꾸미기 희귀", 0, 100000, 100, "골드"], ["cos.price.3", "꾸미기 영웅", 0, 200000, 100, "골드"], ["cos.price.4", "꾸미기 전설", 0, 500000, 500, "골드"], ["season.weeks", "시즌 길이", 1, 26, 1, "주"], ["season.keep", "시즌 뒤 남는 RR", 0, 100, 5, "%"], ["season.minPlay", "시즌 보상 최소 랭크전", 0, 50, 1, "판"]];
 const getPath = (o, p) => p.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
@@ -939,20 +945,9 @@ const LABELS = {
   "order.price.radar": ["레이더"], "order.price.wall": ["벽 투시"], "order.price.cheat": ["치트 모드"], "order.price.god": ["무적"], "order.price.oneShot": ["한 방 처치"], "order.price.infAmmo": ["탄약 무한"], "order.price.noRecoil": ["반동 없음"], "order.price.speed": ["이동 속도 ×1.5"], "order.price.fastFire": ["연사 ×2"], "order.price.buff": ["능력 재충전 10초"],
   "order.dur": ["기간 배수", "7일 가격에 곱합니다"],
   "order.dur.d1": ["1일"], "order.dur.d7": ["7일"], "order.dur.d30": ["30일"], "order.dur.d0": ["영구"],
-  cheat: ["치트", "숨은 비밀번호로 여는 치트의 모든 규칙"],
-  "cheat.enabled": ["치트 사용", "끄면 비밀번호가 그려지지 않고 아무도 못 엽니다"],
-  "cheat.codeLength": ["비밀번호 자릿수", "3~6"],
-  "cheat.startAtMiddle": ["라운드 시작 때 가운데 건물에", "끄면 처음부터 아무 건물에나"],
-  "cheat.moveAfterUse": ["한 번 쓰면 번호 바꾸고 옮기기", "끄면 같은 번호를 여러 명이 씀"],
-  "cheat.resetEachRound": ["매 라운드 초기화"],
-  "cheat.wrongWaitSec": ["틀렸을 때 기다리는 초"],
+  cheat: ["치트", "치트 모드를 켠 계정의 능력 충전 규칙입니다. 운영자는 이 값과 상관없이 바로 찹니다"],
   "cheat.refillSec": ["치트 모드 능력 충전 간격(초)", "0이면 쓰자마자 바로 참"],
   "cheat.ultInfinite": ["치트 모드 궁극기 무한"],
-  "cheat.allow": ["허용할 치트", "끈 항목은 치트 창에 안 보이고 켜져 있어도 꺼집니다"],
-  "cheat.allow.radar": ["작은 지도에 적 표시"], "cheat.allow.wall": ["벽 너머 적 보기"], "cheat.allow.cheat": ["치트 모드 (능력·세트 변경)"],
-  "cheat.allow.god": ["무적"], "cheat.allow.oneShot": ["한 방 처치"], "cheat.allow.infAmmo": ["탄약 무제한"], "cheat.allow.noRecoil": ["반동 없음"],
-  "cheat.allow.speed": ["내 이동 속도"], "cheat.allow.fastFire": ["내 연사 속도"],
-  "cheat.maxSpeed": ["이동 속도 최대 배율"], "cheat.maxFastFire": ["연사 속도 최대 배율"],
   room: ["방 기본 규칙 강제", "켜면 모든 방장 게임에 이 값이 적용됩니다 (0 = 게임 기본값)"],
   "room.force": ["모든 방에 강제 적용"], "room.roundT": ["라운드 시간(초)"], "room.buyT": ["구매 시간(초)"], "room.matchT": ["데스매치 경기 시간(분)"],
   "room.run": ["이동 속도(m/s)", "기본 10.6"], "room.jumpV": ["점프 힘", "기본 6.1"], "room.gravity": ["중력", "기본 13.5"], "room.aiSpeed": ["봇 속도 배율"],
@@ -971,26 +966,63 @@ const LABELS = {
 };
 Object.assign(LABELS, { "transcendent": ["초월", "경기 완료 코인 700개로 구매하거나 0.00000000000000001% 고정 확률로 뽑습니다. 일반 등급 비율과 별도로 추첨합니다"] });
 VIEWS.config = async () => {
-  const { config, defaults } = await call("a_config_get");
+  const { config, defaults, saved } = await call("a_config_get");
+  // what a field is compared with, and put back to by its ↺: the owner's saved default, else the game's own values
+  // (the season's clock and number and the shop's reroll numbers stay put when settings go back, so they are never compared)
+  const ref = saved ? saved.config : defaults, KEEP = ["season.startDay", "season.skip", "shop.reroll", "shop.weekly.reroll"];
+  const refAt = (key) => (KEEP.includes(key) ? undefined : key.split(".").reduce((o, p) => (o == null ? o : o[p]), ref));
+  const show = (v) => (typeof v === "boolean" ? (v ? "켬" : "끔") : v === "" ? "비어 있음" : String(v).length > 30 ? String(v).slice(0, 30) + "…" : String(v));
   const form = (obj, pre) => Object.keys(obj).filter((k) => k !== "channels").map((k) => {
     const key = pre ? pre + "." + k : k, v = obj[k], [name, desc] = LABELS[key] || [k];
     if (v && typeof v === "object" && !Array.isArray(v)) return `<div class="${pre ? "f wide" : "sec"}">${pre ? `<label>${esc(name)}${desc ? `<small>${esc(desc)}</small>` : ""}</label>` : `<h3>${esc(name)}</h3><div class="d">${esc(desc || "")}</div>`}<div class="grid">${form(v, key)}</div></div>`;
     const inp = typeof v === "boolean" ? `<input type="checkbox" data-k="${key}" ${v ? "checked" : ""}>` : typeof v === "number" ? `<input type="number" step="any" data-k="${key}" value="${v}">` : `<input type="text" data-k="${key}" value="${esc(v)}">`;
-    return `<div class="f ${typeof v === "string" ? "wide" : ""}"><label>${esc(name)}${desc ? `<small>${esc(desc)}</small>` : ""}</label>${inp}</div>`;
+    return `<div class="f ${typeof v === "string" ? "wide" : ""}"><label>${esc(name)}${desc ? `<small>${esc(desc)}</small>` : ""}</label><span class="fi">${inp}${KEEP.includes(key) ? "" : `<button type="button" class="rs" data-rs="${key}" title="${esc("기본값(" + show(refAt(key)) + ")으로")}" hidden>↺</button>`}</span></div>`;
   }).join("");
-  $("#main").innerHTML = form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">게임의 같이 하기 화면에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code>. 끝에 <code>, 모바일</code>을 붙이면 폰·앱 전용 서버가 됩니다.</div><textarea id="chs" rows="6" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].concat(c.mobile ? ["모바일"] : []).join(", ")).join("\n"))}</textarea></div>
-    <div class="save"><button class="bad" id="crst">전부 기본값</button><button class="go" id="csave">저장</button></div>`;
-  $("#csave").onclick = async () => {
+  $("#main").innerHTML = `<div id="cfg"><div class="dnote" id="cstat"></div>` + form(config, "") + `<div class="sec"><h3>서버(채널)</h3><div class="d">게임의 같이 하기 화면에서 고르는 서버 목록. 한 줄에 하나: <code>아이디, 한국어 이름, 영어 이름</code>. 끝에 <code>, 모바일</code>을 붙이면 폰·앱 전용 서버가 됩니다.</div><textarea id="chs" rows="6" style="width:100%">${esc(config.channels.map((c) => [c.id, c.name, c.en || ""].concat(c.mobile ? ["모바일"] : []).join(", ")).join("\n"))}</textarea></div>
+    <div class="save cfg">${saved ? `<button class="bad" id="cfac">처음 설정으로</button>` : ""}<button class="bad" id="crst">전부 기본값</button><button class="gold" id="cdef">이 설정을 기본값으로</button><button class="go" id="csave">저장</button></div></div>`;
+  const inputs = [...$("#cfg").querySelectorAll("[data-k]")];
+  const valueOf = (el) => (el.type === "checkbox" ? el.checked : el.type === "number" ? +el.value : el.value);
+  // marks the fields that differ from the default, and counts them
+  const paint = () => {
+    let n = 0;
+    inputs.forEach((el) => {
+      const rv = refAt(el.dataset.k), diff = rv !== undefined && valueOf(el) !== rv;
+      n += diff; el.closest(".f").classList.toggle("chg", diff); const rs = el.closest(".fi").querySelector(".rs"); rs && (rs.hidden = !diff);
+    });
+    $("#cstat").innerHTML = `기본값: <b>${saved ? "운영자가 저장한 설정 (" + when(saved.t) + ")" : "게임 처음 설정"}</b> · 기본값과 다른 설정 <b class="${n ? "n" : ""}">${n}개</b>`;
+  };
+  $("#cfg").addEventListener("input", (e) => e.target.dataset.k && paint());
+  $("#cfg").addEventListener("change", (e) => e.target.dataset.k && paint());
+  $("#cfg").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-rs]"); if (!b) return;
+    const el = $(`[data-k="${b.dataset.rs}"]`), rv = refAt(b.dataset.rs);
+    el.type === "checkbox" ? (el.checked = rv) : (el.value = rv); paint();
+  });
+  paint();
+  const collect = () => {
     const c = JSON.parse(JSON.stringify(config));
-    $("#main").querySelectorAll("[data-k]").forEach((el) => {
+    inputs.forEach((el) => {
       const path = el.dataset.k.split("."); let o = c; path.slice(0, -1).forEach((p) => (o = o[p]));
-      const last = path[path.length - 1];
-      o[last] = el.type === "checkbox" ? el.checked : el.type === "number" ? +el.value : el.value;
+      o[path[path.length - 1]] = valueOf(el);
     });
     c.channels = $("#chs").value.split("\n").map((l) => l.split(",").map((s) => s.trim())).filter((a) => a[0]).map(([id, name, en, m]) => Object.assign({ id, name: name || id, en: en || name || id }, /^(모바일|mobile|1)$/i.test(m || "") ? { mobile: !0 } : {}));
-    await call("a_config_set", { config: c }); toast("저장했습니다. 게임에는 다음 접속·다음 신호 때 적용됩니다");
+    return c;
   };
-  $("#crst").onclick = async () => { if (confirm("모든 설정을 기본값으로 되돌릴까요?")) { await call("a_config_reset"); VIEWS.config(); } };
+  $("#csave").onclick = async () => {
+    await call("a_config_set", { config: collect() }); toast("저장했습니다. 게임에는 다음 접속·다음 신호 때 적용됩니다");
+  };
+  $("#cdef").onclick = async () => {
+    if (!confirm("지금 화면의 설정을 저장하고 기본값으로 정할까요? 앞으로 '전부 기본값'을 누르면 이 설정으로 돌아옵니다.")) return;
+    await call("a_config_default_set", { config: collect() }); toast("저장하고 기본값으로 정했습니다"); VIEWS.config();
+  };
+  $("#crst").onclick = async () => {
+    if (!confirm(saved ? `모든 설정을 저장해 둔 기본값(${when(saved.t)})으로 되돌릴까요? 시즌 번호와 오늘 상점 목록은 그대로입니다.` : "모든 설정을 게임 처음 값으로 되돌릴까요? 시즌 번호와 오늘 상점 목록은 그대로입니다.")) return;
+    await call("a_config_reset"); toast(saved ? "저장해 둔 기본값으로 되돌렸습니다" : "처음 값으로 되돌렸습니다"); VIEWS.config();
+  };
+  saved && ($("#cfac").onclick = async () => {
+    if (!confirm("모든 설정을 게임이 처음 정한 값으로 되돌릴까요? 저장해 둔 기본값은 지워지지 않습니다.")) return;
+    await call("a_config_reset", { to: "factory" }); toast("처음 값으로 되돌렸습니다"); VIEWS.config();
+  });
 };
 // ── agents: switch each one on or off (an off agent leaves the picker, the bots and the random pick) ──
 VIEWS.agents = async () => {
