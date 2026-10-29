@@ -162,9 +162,25 @@
     const ev = { from: att.id, to: vic.id, amt: Math.round(amt), head: !!head };
     const me = meA();
     me && (att === me || vic === me) && logRow(ev);
-    // tell remote players about hits they were part of
-    if ("host" === NET.mode)
-      for (const x of [att, vic]) x.ctrl && "me" !== x.ctrl && "dead" !== x.ctrl && !isAI(x) && sendEventTo(x.ctrl, Object.assign({ t: "hit" }, ev));
+    // tell remote players about hits they were part of: a shotgun shot is 7-10 pellets, which go out as one event per target
+    "host" === NET.mode && queueHit(att, vic, amt, head);
+  }
+  const HITQ = new Map();
+  function queueHit(att, vic, amt, head) {
+    const key = att.id + ">" + vic.id;
+    let q = HITQ.get(key);
+    q || (HITQ.set(key, (q = { att, vic, amt: 0, head: !1 })), 1 === HITQ.size && queueMicrotask(flushHits));
+    q.amt += amt;
+    q.head = q.head || !!head;
+  }
+  function flushHits() {
+    const list = [...HITQ.values()];
+    HITQ.clear();
+    if ("host" !== NET.mode) return;
+    for (const q of list) {
+      const ev = { t: "hit", from: q.att.id, to: q.vic.id, amt: Math.round(q.amt), head: q.head };
+      for (const x of [q.att, q.vic]) x.ctrl && "me" !== x.ctrl && "dead" !== x.ctrl && !isAI(x) && sendEventTo(x.ctrl, ev);
+    }
   }
   const _dd = dealDamage;
   dealDamage = function (e, t, o, a) {
@@ -196,11 +212,17 @@
     } catch (x) {}
     return r;
   };
+  // a guest's ping in ms (its own reading, sent with its ping message); -1 for the host's player, a bot, or a build without one
+  const pingOf = (a) => {
+    if ("host" === NET.mode) { const o = a.ctrl && NET.conns.get(a.ctrl); return o && null != o.ping ? o.ping : -1; }
+    if ("client" === NET.mode) return "me" === a.ctrl ? NET.latency || -1 : null != st(a.id).p ? st(a.id).p : -1;
+    return -1;
+  };
   let sbT = 0;
   function syncStats(dt) {
     if ("host" !== NET.mode || (sbT += dt) < 1) return;
     sbT = 0;
-    sendEventAll({ t: "sb", r: world.actors.map((a) => { const s = st(a.id); return [a.id, s.k, s.d, s.a, Math.round(s.dmg)]; }) });
+    sendEventAll({ t: "sb", r: world.actors.map((a) => { const s = st(a.id); return [a.id, s.k, s.d, s.a, Math.round(s.dmg), pingOf(a)]; }) });
   }
 
   // ═════════ 4. dropped weapons: pick up / swap ═════════
@@ -356,8 +378,19 @@
   NET.onEvent = (e) => {
     if (!e) return _oe(e);
     if ("ctrl" === e.t) return void onCtrl(e);
-    if ("sb" === e.t) return void e.r.forEach(([id, k, d, a, dmg]) => ST.set(id, { k, d, a, dmg }));
-    if ("hit" === e.t) return void logRow({ from: e.from, to: e.to, amt: e.amt, head: e.head, kill: e.kill });
+    if ("sb" === e.t) return void e.r.forEach(([id, k, d, a, dmg, p]) => ST.set(id, { k, d, a, dmg, p }));
+    if ("hit" === e.t) {
+      logRow({ from: e.from, to: e.to, amt: e.amt, head: e.head, kill: e.kill });
+      // the host's own hits get their marker, sound and number where the shot is fired; a guest's shot is fired there, so it hears of the hit here
+      const me = "client" === NET.mode && meA(), vic = me && !e.kill && e.amt > 0 && e.from === me.id && actorById(e.to);
+      if (vic && vic.team === me.team) return;
+      if (vic) {
+        try { hitMarker(!!e.head); SFX.hit(!!e.head); dmgNumber(vic, e.amt, !!e.head); } catch (x) {}
+        world.stats.hits++;
+        world.stats.dmg += e.amt;
+      }
+      return;
+    }
     if ("drops" === e.t) {
       const keep = new Set(e.l.map((r) => r[0]));
       DROPS.slice().forEach((d) => keep.has(d.id) || removeDrop(d));
@@ -426,7 +459,7 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
 .bd-team{margin-top:8px}
 .bd-team h4{font-size:11px;letter-spacing:.16em;margin:0 0 4px 4px;font-weight:700}
 .bd-team.mine h4{color:#38d6ff}.bd-team.foe h4{color:#ff4a5c}
-.bd-row{display:grid;grid-template-columns:34px minmax(0,1.6fr) repeat(4,minmax(0,.6fr)) minmax(0,.7fr);align-items:center;gap:6px;padding:5px 6px;border-radius:10px;font-size:12.5px}
+.bd-row{display:grid;grid-template-columns:34px minmax(0,1.6fr) repeat(4,minmax(0,.6fr)) minmax(0,.5fr) minmax(0,.7fr);align-items:center;gap:6px;padding:5px 6px;border-radius:10px;font-size:12.5px}
 .bd-row:nth-child(even){background:rgba(255,255,255,.025)}
 .bd-row.hd{font-size:10px;letter-spacing:.14em;color:var(--steel-dim);background:none!important}
 .bd-row.me{background:color-mix(in srgb,var(--gold) 12%,transparent)!important}
@@ -449,9 +482,28 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
 .cl-sum div{flex:1;min-width:120px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.04)}
 .cl-sum b{display:block;font-family:var(--f-display);font-size:18px}
 .cl-sum small{font-size:10.5px;color:var(--steel)}
-@media (max-width:600px){.bd-row{grid-template-columns:28px minmax(0,1.4fr) repeat(4,minmax(0,.55fr));font-size:11.5px}.bd-row .ult{display:none}.cl-row{grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);font-size:11.5px}.cl-row .k{display:none}}
+#netping{position:absolute;left:14px;top:40px;z-index:48;pointer-events:none;font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.06em;background:rgba(8,11,16,.6);padding:3px 9px;border-radius:8px;backdrop-filter:blur(4px)}
+#netping[hidden],body:has(#shop:not([hidden])) #netping{display:none}
+body.touching #netping{left:auto;right:14px;top:80px}
+.bd-row .pg{color:var(--steel)}
+#board.np .pg{display:none}
+#board.np .bd-row{grid-template-columns:34px minmax(0,1.6fr) repeat(4,minmax(0,.6fr)) minmax(0,.7fr)}
+@media (max-width:600px){#board.np .bd-row{grid-template-columns:28px minmax(0,1.4fr) repeat(4,minmax(0,.55fr))}.bd-row{grid-template-columns:28px minmax(0,1.4fr) repeat(4,minmax(0,.55fr)) minmax(0,.55fr);font-size:11.5px}.bd-row .ult{display:none}.cl-row{grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);font-size:11.5px}.cl-row .k{display:none}}
 `;
   document.head.appendChild(css);
+  // ping next to the FPS counter (same setting), guests only
+  const np = document.createElement("div");
+  np.id = "netping";
+  np.hidden = !0;
+  ($("fps") && $("fps").parentNode || $("hud") || document.body).appendChild(np);
+  setInterval(() => {
+    const on = SETTINGS.showFps && "client" === NET.mode && NET.latency > 0;
+    np.hidden = !on;
+    if (on) {
+      np.textContent = NET.latency + " ms";
+      np.style.color = NET.latency <= 80 ? "#4ade80" : NET.latency <= 160 ? "#ffc849" : "#ff6b6b";
+    }
+  }, 500);
   const ph = document.createElement("div");
   ph.id = "pick-hint";
   ph.hidden = !0;
@@ -489,6 +541,7 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
     const now = performance.now();
     if (!force && now - paintT < 250) return;
     paintT = now;
+    board.classList.toggle("np", "solo" === NET.mode);
     const me = meA() || player;
     const ffa = window.GAME_MODES && GAME_MODES[room.mode] && GAME_MODES[room.mode].ffa;
     const mine = "atk" === me.team ? world.scoreAtk : world.scoreDef,
@@ -498,9 +551,10 @@ body.touching #pick-hint{pointer-events:auto;padding:10px 18px}
   }
   function rowHTML(a, me, showUlt) {
     const s = st(a.id);
-    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
+    let p;
+    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="n pg">${(p = pingOf(a)) >= 0 ? p : ""}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
   }
-  const HEAD = '<div class="bd-row hd"><span></span><span>플레이어</span><span class="n">킬</span><span class="n">데스</span><span class="n">도움</span><span class="n">피해</span><span></span></div>';
+  const HEAD = '<div class="bd-row hd"><span></span><span>플레이어</span><span class="n">킬</span><span class="n">데스</span><span class="n">도움</span><span class="n">피해</span><span class="n pg">핑</span><span></span></div>';
   function sbHTML(me, ffa) {
     const by = (l) => l.slice().sort((x, y) => st(y.id).k - st(x.id).k || st(y.id).dmg - st(x.id).dmg);
     if (ffa) return `<div class="bd-team mine"><h4>전체</h4>${HEAD}${by(world.actors).map((a) => rowHTML(a, me, !1)).join("")}</div>`;

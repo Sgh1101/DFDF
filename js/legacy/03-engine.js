@@ -1433,7 +1433,7 @@ let locked = !1;
     const t = ("function" == typeof myActor && myActor()) || player;
     if (!t) return;
     const o = BASE_SENS * SETTINGS.sens * (t.ads ? SETTINGS.adsSens : 1);
-    ((t.yaw -= e.movementX * o),
+    ((t.yaw = wrapYaw(t.yaw - e.movementX * o)),
       (t.pitch -= e.movementY * o),
       (t.pitch = clamp(t.pitch, -1.52, 1.52)),
       t.input && ((t.input.yaw = t.yaw), (t.input.pitch = t.pitch)));
@@ -1653,7 +1653,7 @@ function enableTouch() {
             ((touch.lookX = t.clientX), (touch.lookY = t.clientY));
             const a = ("function" == typeof myActor && myActor()) || player,
               n = 0.0042 * SETTINGS.touchSens * (a.ads ? SETTINGS.adsSens : 1);
-            ((a.yaw -= e * n),
+            ((a.yaw = wrapYaw(a.yaw - e * n)),
               (a.pitch -= o * n),
               (a.pitch = clamp(a.pitch, -1.52, 1.52)),
               a.input && ((a.input.yaw = a.yaw), (a.input.pitch = a.pitch)));
@@ -11635,7 +11635,7 @@ function tickViewmodel(e) {
     d = 0.014 * Math.cos(VM.bobT) * c,
     h = 0.012 * Math.abs(Math.sin(VM.bobT)) * c;
   ((VM.sway.x +=
-    (2.2 * (player.yaw - (VM.lastYaw ?? player.yaw)) - VM.sway.x) *
+    (2.2 * wrapYaw(player.yaw - (VM.lastYaw ?? player.yaw)) - VM.sway.x) *
     Math.min(1, 9 * e)),
     (VM.sway.y +=
       (2.2 * (player.pitch - (VM.lastPitch ?? player.pitch)) - VM.sway.y) *
@@ -16209,6 +16209,12 @@ function respawnAll() {
     e.ai && (e.ai = freshAIState());
   }
 }
+// an angle in (-PI, PI]: a mouse turned for minutes makes yaw grow without bound, and the host refuses a yaw beyond 1000
+function wrapYaw(a) {
+  return a > Math.PI || a <= -Math.PI
+    ? Math.PI - ((((Math.PI - a) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))
+    : a;
+}
 const Q = {
     pos: (e) => Math.round(100 * e),
     unpos: (e) => e / 100,
@@ -16242,7 +16248,7 @@ function packActor(e) {
     Q.pos(e.pos.x),
     Q.pos(e.y),
     Q.pos(e.pos.z),
-    Q.ang(e.yaw),
+    Q.ang(wrapYaw(e.yaw)),
     Q.ang(e.pitch || 0),
     Math.max(0, Math.round(e.hp)),
     Math.round(e.armor || 0),
@@ -16431,7 +16437,7 @@ function gatherInput() {
   }
   (keys.use || keys.f || keys["4"]) && (o |= BTN.USE);
   const a = ("function" == typeof myActor && myActor()) || player;
-  return { mv: [e, t], yaw: a.yaw, pitch: a.pitch, btn: o };
+  return { mv: [e, t], yaw: wrapYaw(a.yaw), pitch: a.pitch, btn: o };
 }
 function simMove(e, t) {
   const o = e.input;
@@ -16572,7 +16578,7 @@ function interpRemote(e, t) {
   ((e.pos.x = o.px + (o.tx - o.px) * a),
     (e.y = o.py + (o.ty - o.py) * a),
     (e.pos.z = o.pz + (o.tz - o.pz) * a));
-  let n = ((o.tyaw - o.pyaw + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  const n = wrapYaw(o.tyaw - o.pyaw);
   e.yaw = o.pyaw + n * a;
 }
 function reconcileLocal(e, t) {
@@ -16708,7 +16714,16 @@ function actorFire(e) {
     "me" !== e.ctrl)
   )
     try {
-      (worldMuzzleFlash(e), GFX.tracer && worldTracer(e, dir, o.range));
+      (worldMuzzleFlash(e), GFX.tracer &&
+          worldTracer(
+            e,
+            new T.Vector3(
+              -Math.sin(e.yaw) * Math.cos(e.pitch || 0),
+              Math.sin(e.pitch || 0),
+              -Math.cos(e.yaw) * Math.cos(e.pitch || 0),
+            ),
+            o.range,
+          ));
     } catch (e) {}
   pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw));
 }
@@ -17656,6 +17671,8 @@ const NET = {
     prevSnap: null,
     snapT: 0,
     latency: 0,
+    lastK: null,
+    staleRun: 0,
     onLobby: null,
     onEvent: null,
     onSnapshot: null,
@@ -17860,7 +17877,32 @@ function sendAction(e) {
       t.send(e);
     } catch (e) {}
 }
+// ping: a guest asks about once a second, the host answers at once, and the round trip is NET.latency. The guest also says
+// what it measured last, so the host can list every player's ping. Old builds ignore a type they do not know.
+let _pingSeq = 0;
+const _pingSent = new Map();
+function netPingSend() {
+  if ("client" !== NET.mode || !NET.up || "open" !== NET.status) return;
+  const e = ++_pingSeq;
+  (_pingSent.set(e, performance.now()), _pingSent.delete(e - 8));
+  sendInput({ t: "ping", n: e, p: NET.latency || 0 });
+}
+function hostPong(e, t) {
+  const o = NET.conns.get(e);
+  if (!o || o.quiet || "number" != typeof t.n) return;
+  const a = performance.now();
+  if (a - (o.pongT || 0) < 300) return;
+  o.pongT = a;
+  "number" == typeof t.p && t.p >= 0 && t.p < 1e4 && (o.ping = Math.round(t.p));
+  const n = o.state && o.state.open ? o.state : o.event && o.event.open ? o.event : null;
+  if (n)
+    try {
+      n.send({ t: "pong", n: t.n });
+    } catch (e) {}
+}
+setInterval(netPingSend, 1000);
 function hostRecv(e, t) {
+  if (t && "ping" === t.t) return void hostPong(e, t);
   t &&
     t.t &&
     ("in" !== t.t
@@ -17868,13 +17910,27 @@ function hostRecv(e, t) {
       : NET.onInput && NET.onInput(e, t));
 }
 function clientRecv(e) {
-  if (e && e.t)
-    return "s" === e.t
-      ? ((NET.prevSnap = NET.lastSnap),
+  if (e && e.t) {
+    if ("pong" === e.t) {
+      const t = _pingSent.get(e.n);
+      return void (null != t && (_pingSent.delete(e.n), (NET.latency = Math.max(0, Math.round(performance.now() - t)))));
+    }
+    if ("s" === e.t) {
+      // the "state" link is unordered: a snapshot lost on the way is sent again and can turn up behind newer ones, and
+      // applying it would put every body back where it was. A counter that stays behind for 2 s is a host that began again.
+      if ("number" == typeof e.k) {
+        if (null != NET.lastK && e.k <= NET.lastK && ++NET.staleRun < 40) return;
+        ((NET.lastK = e.k), (NET.staleRun = 0));
+      }
+      return (
+        (NET.prevSnap = NET.lastSnap),
         (NET.lastSnap = e),
         (NET.snapT = 0),
-        void (NET.onSnapshot && NET.onSnapshot(e)))
-      : void (NET.onEvent && NET.onEvent(e));
+        void (NET.onSnapshot && NET.onSnapshot(e))
+      );
+    }
+    return void (NET.onEvent && NET.onEvent(e));
+  }
 }
 function netShutdown() {
   cancelRoundEnd();
@@ -17886,6 +17942,8 @@ function netShutdown() {
   NET.room = null;
   NET.id = null;
   NET.lastSnap = NET.prevSnap = null;
+  NET.lastK = null;
+  NET.latency = 0;
 }
 function peerCount() {
   return "host" === NET.mode ? NET.conns.size : "client" === NET.mode ? 1 : 0;
@@ -18398,10 +18456,12 @@ function netStep(e) {
     for (const t of world.actors) t.alive && resolveActions(t, e);
     "host" === NET.mode &&
       ((_snapAcc += e),
-      _snapAcc >= 0.05 && ((_snapAcc = 0), sendSnapshot(buildSnapshot())));
+      // keep the remainder: resetting to 0 made a 60 fps host send every 3rd or 4th frame, 50 and 66.7 ms in turn
+      _snapAcc >= 0.05 - 1e-6 &&
+        ((_snapAcc = Math.min(_snapAcc - 0.05, 0.025)), sendSnapshot(buildSnapshot())));
   } else {
-    if (((_inputAcc += e), _inputAcc >= 1 / 60)) {
-      _inputAcc = 0;
+    if (((_inputAcc += e), _inputAcc >= 1 / 60 - 1e-6)) {
+      _inputAcc = Math.min(_inputAcc - 1 / 60, 1 / 120);
       const e = gatherInput();
       ((e.t = "in"), (e.seq = ++_inputSeq), sendInput(e));
     }
@@ -18693,6 +18753,7 @@ function actorManifest() {
   }));
 }
 function clientBeginMatch(e) {
+  NET.lastK = null;
   room.started = true;
   ((room.map = e.map),
     e.rounds && (room.rounds = 0 | e.rounds),
