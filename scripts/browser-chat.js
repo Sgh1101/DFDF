@@ -60,7 +60,7 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     await typeIn(B, "Enter", "attack only");
     await heard(host, "attack only"); await heard(B, "attack only"); await silent(A, "attack only", "A (defence)");
     assert.equal((await hist(host)).find((m) => m.m === "attack only").s, "t");
-    await shot(host, "lobby-1280");
+    await shot(host, "lobby-852");
     console.log("lobby: join lines, all chat, team chat stays on the team");
 
     // ── start the match ──
@@ -147,7 +147,7 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     assert.equal(during.paused, false, "the pause menu is not opened by the box"); assert.equal(during.lockhint, false, "no click-to-lock cover over the box");
     await host.keyboard.press("a"); await host.keyboard.press("Space"); await host.keyboard.press("1");
     assert.match(await host.evaluate(() => document.getElementById("cht-in").value), /^w+a 1$/, "keys all went into the box");
-    await shot(host, "box-1280");
+    await shot(host, "box-852");
     await host.keyboard.press("Escape");
     assert.equal(await host.evaluate(() => CHAT.state.open || !document.getElementById("pause").hidden), false, "Escape closes the box and is not taken by the pause menu");
     await host.keyboard.down("w");
