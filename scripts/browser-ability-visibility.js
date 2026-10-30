@@ -29,6 +29,8 @@ const assert = require("node:assert/strict"), fs = require("fs"), path = require
       out.labelVisible = !!(rig && rig.label && rig.label.visible);
       // the same on me: nothing on my body (first person), the row under the crosshair names them
       Object.assign(me, { slowT: 3, root: 2, shielded: 3, revealed: 3, blind: 2 });
+      // the first-person camera at my eyes, as every live frame puts it (on a loaded machine no frame may have run yet)
+      followCamera(me, 1 / 60);
       step(1); updateStatusHud(me);
       const mine = V.fx.get(me);
       out.meDrawn = !!(mine && mine.g.visible);

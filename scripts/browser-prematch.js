@@ -133,7 +133,8 @@ const phone = { hasTouch: true, isMobile: true };
       const p = await f.page("vsphone", { width: w, height: h }, phone, { beforeLoad: force });
       for (const mode of ["std", "knife"]) {
         await open(p, mode);
-        await p.waitForTimeout(1600); // the cards have slid in
+        // the cards have slid in: every card animation finished (a fixed wait was too short on a loaded CI machine)
+        await p.waitForFunction(() => { const c = [...document.querySelectorAll(".pm-card")]; return c.length > 0 && c.every((e) => e.getAnimations().every((a) => a.playState === "finished")); }, null, { timeout: 15000 });
         const fit = await p.evaluate(() => { const r = (e) => e.getBoundingClientRect(); return { n: document.querySelectorAll(".pm-card").length, off: [...document.querySelectorAll(".pm-card, .pm-top, .pm-hint")].filter((c) => r(c).left < -0.5 || r(c).right > innerWidth + 0.5 || r(c).top < -0.5 || r(c).bottom > innerHeight + 0.5).length, scroll: document.documentElement.scrollWidth <= innerWidth, overlap: (() => { const cs = [...document.querySelectorAll(".pm-card")].map(r); let o = 0; for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) { const a = cs[i], b = cs[j]; a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && o++; } return o; })() }; });
         assert.deepEqual([fit.n, fit.off, fit.overlap], [10, 0, 0], `${w}x${h} ${mode}: ${JSON.stringify(fit)}`);
         (w === 740) && await p.screenshot({ path: `${dir}/prematch-phone-${mode}.png` });
