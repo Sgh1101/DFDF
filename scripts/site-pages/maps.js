@@ -45,7 +45,7 @@ ${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp" alt="${attr
     title: `맵 ${d.maps.length}곳`,
     description: `13의 맵 ${d.maps.length}곳을 크기별(5대5, 소규모 3대3, 1대1)로 소개합니다. 각 맵의 구조와 특징, 공략 팁, 매주 바뀌는 이번 주 맵 규칙까지.`,
     h1: `맵 ${d.maps.length}곳`,
-    lead: `13의 맵은 팀 크기에 따라 세 종류입니다. 5대5 ${cat("full")}곳, 소규모 3대3 ${cat("small")}곳, 1대1 ${cat("1v1")}곳을 모두 소개합니다. 모든 맵은 이 게임을 위해 만든 오리지널입니다.`,
+    lead: `13의 맵은 팀 크기에 따라 세 종류입니다. 5대5 ${cat("full")}곳, 소규모 3대3 ${cat("small")}곳, 1대1 ${cat("1v1")}곳을 모두 소개합니다.`,
     body: `<nav class="filters" aria-label="맵 종류로 이동"><a href="#cat-full">5대5 ${cat("full")}곳</a><a href="#cat-small">소규모 3대3 ${cat("small")}곳</a><a href="#cat-1v1">1대1 ${cat("1v1")}곳</a><a href="#week">이번 주 맵</a></nav>
 <h2>맵을 읽는 법</h2>
 <p>아래 그림은 공격 팀 출발 지점 뒤에서 맵 한가운데를 내려다본 모습입니다. 그림의 아래쪽이 공격 팀의 출발 지점이고 위쪽이 수비 팀의 출발 지점이며, 분홍빛 원은 스파이크를 설치하는 사이트입니다. 사이트는 대부분 A와 B 두 곳이고, 세 곳(A, B, C)이 있는 맵도 있습니다. 크기는 가로×세로 미터입니다.</p>
