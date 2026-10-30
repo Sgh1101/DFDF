@@ -8,6 +8,8 @@ const SKIN_TIERS = require("../js/skin-tiers");
 // every agent of the game (id, name, role): the owner page lists it, the settings keep only these ids
 const ROSTER = require("../js/agent-roster.json");
 const GAME_RULES = require("../js/game-rules.js");
+const SETTINGS_SYNC = require("../js/settings-sync.js");
+const MAP_WEEK = require("../js/map-week.js");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -85,6 +87,10 @@ const DEFAULT_CONFIG = {
     roomListOpen: !0,
     // maps out of the pool (7 · 5 · 3) the owner brings back: keys, comma separated, or "all"
     extraMaps: "",
+    // the map of the week: every Monday 0:00 (Korea) one of the maps that are switched off joins the list for the week,
+    // the same for everyone. weekMap switches it; weekMapExclude: keys it never picks, comma separated
+    weekMap: !0,
+    weekMapExclude: "",
     // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
@@ -730,9 +736,14 @@ function trimPicks(u) {
 
 // ── public actions ──
 const A = {};
+// the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
+const weekMapOf = (c, t) => {
+  const m = MAP_WEEK.choose(t, !1 !== c.game.weekMap, c.game.weekMapExclude);
+  return m ? { key: m.key, week: m.week, until: m.until } : null;
+};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -950,19 +961,30 @@ A.skin_check = async (q, b) => {
   return s && "skin" === s.k && isObj(s.m) && s.p ? { m: s.m, id: s.id, p: s.p } : { m: null, id: null, p: null };
 };
 // small things the game keeps per account: the touch-button layout (part →
-// [x, y, size]); the newer of two devices wins, as with the skins
+// [x, y, size]); the newer of two devices wins, as with the skins. And the player's settings (sensitivity, crosshair,
+// volumes, keys ...: js/settings-sync.js), each one with its own time so the newest of each wins
 const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (isObj(b.set)) {
-    const touch = {};
-    const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
-    if (isObj(b.set.touch)) for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
-    const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
-    if (!u.prefs || t > u.prefs.t) { u.prefs = { t, touch }; await saveUser(u); }
+    let dirty = !1;
+    if (isObj(b.set.touch)) {
+      const touch = {};
+      const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
+      for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
+      const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
+      if (!u.prefs || t > (u.prefs.t || 0)) { u.prefs = Object.assign({}, u.prefs, { t, touch }); dirty = !0; }
+    }
+    if (isObj(b.set.opts)) {
+      const o = isObj(u.prefs && u.prefs.o) ? u.prefs.o : {};
+      if (SETTINGS_SYNC.merge(o, SETTINGS_SYNC.cleanMap(b.set.opts, now()))) { u.prefs = Object.assign({}, u.prefs, { o }); dirty = !0; }
+    }
+    dirty && (await saveUser(u));
   }
-  return { prefs: u.prefs || null };
+  const prefs = u.prefs ? Object.assign({}, u.prefs) : null;
+  prefs && prefs.o && (prefs.o = SETTINGS_SYNC.cleanMap(prefs.o, now()));
+  return { prefs };
 };
 
 // ── feedback: bug reports, agent ideas, player reports, suggestions, reviews, questions ──

@@ -116,7 +116,7 @@
     on = on === undefined ? ov.hidden : on;
     if (on && ("menu" === world.phase || !MAP || !MAP.bounds)) return;
     ov.hidden = !on;
-    on && (($("bm-hint").textContent = document.body.classList.contains("touching") ? "화면을 누르면 닫힘" : "M · 닫기"), draw());
+    on && (($("bm-hint").textContent = document.body.classList.contains("touching") ? "화면을 누르면 닫힘" : KEYMAP.name("map") + " · 닫기"), draw());
   }
   window.toggleBigMap = toggle;
   addEventListener(
@@ -227,13 +227,13 @@
         g.save();
         g.translate(x, z);
         g.rotate(-(e.yaw || 0));
-        g.fillStyle = "rgba(74,222,128,.22)";
+        g.fillStyle = CB.rgba("mapAlly", 0.22);
         g.beginPath();
         g.moveTo(0, 0);
         g.arc(0, 0, 34, -Math.PI / 2 - 0.5, -Math.PI / 2 + 0.5);
         g.closePath();
         g.fill();
-        g.fillStyle = "#4ade80";
+        g.fillStyle = CB.get("mapAlly");
         g.beginPath();
         g.moveTo(0, -10);
         g.lineTo(7, 7);
@@ -247,10 +247,8 @@
         g.textBaseline = "alphabetic";
         g.fillText((e === holder ? "◆ " : "") + (e.name || (e.agent && e.agent.name) || ""), x, z - 14);
       } else {
-        g.fillStyle = "#ff3b4e";
-        g.beginPath();
-        g.arc(x, z, 7, 0, 7);
-        g.fill();
+        g.fillStyle = CB.get("mapEnemy");
+        CB.dot(g, x, z, 7, !0);
       }
     });
     // spike

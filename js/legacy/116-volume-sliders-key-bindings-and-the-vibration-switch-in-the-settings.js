@@ -1,6 +1,7 @@
 (() => {
   // Settings added to the pause menu: the volume sliders (master, effects, footsteps), the key bindings (js/keymap.js: a
-  // physical key -> an action -> the keys.* flags the game reads) and the vibration switch for touch controls.
+  // physical key -> an action -> the keys.* flags the game reads), the vibration switch for touch controls, the colour-blind
+  // mode (js/colorblind.js) and the on-screen hints that name keys, which follow the bindings.
   const $ = (id) => document.getElementById(id);
   const L = (ko, en) => ("en" === window.GAME_LANG ? en : ko);
   const pause = $("pause"),
@@ -36,6 +37,58 @@
       input.addEventListener("input", read);
       input.addEventListener("change", read);
     }
+
+  // ── colour-blind mode (screen effects tab) ──
+  const fxp = set.querySelector('[data-pane="fx"]');
+  let cbRow = null;
+  if (fxp && "undefined" != typeof CB) {
+    cbRow = el(`<div class="pz-row pz-wide" id="st-cb"><div class="pz-lab">${L("색약 모드", "Colour-blind mode")}</div><div class="pz-qrow" id="st-cb-opts"></div><div class="pz-sub" id="st-cb-d"></div></div>`);
+    fxp.appendChild(cbRow);
+    const box = cbRow.querySelector("#st-cb-opts");
+    for (const m of CB.MODES) {
+      const b = document.createElement("button");
+      b.className = "pz-q";
+      b.dataset.cb = m;
+      b.textContent = CB.names[L("ko", "en")][m];
+      b.onclick = () => {
+        SETTINGS.colorblind = m;
+        saveSettings();
+        CB.apply();
+        paint();
+      };
+      box.appendChild(b);
+    }
+  }
+  const paintCb = () => {
+    if (!cbRow) return;
+    const m = CB.norm(SETTINGS.colorblind);
+    cbRow.querySelectorAll(".pz-q").forEach((b) => {
+      b.classList.toggle("on", b.dataset.cb === m);
+      b.setAttribute("aria-pressed", b.dataset.cb === m ? "true" : "false");
+    });
+    $("st-cb-d").textContent = CB.descs[L("ko", "en")][m];
+  };
+
+  // ── hints that name keys follow the bindings (the default keys print as they always did) ──
+  const tips = $("tips");
+  // the <b> keys of #tips in page order: [what it shows now, the actions it stands for, how to join several]
+  const TIPS = [["WASD", ["forward", "left", "back", "right"], ""], ["SHIFT", ["crouch"]], ["SPACE", ["jump"]], 0, 0, ["R", ["reload"]], ["Q E C X", ["ability1", "ability2", "ability3", "ability4"], " "], ["1 2 3", ["slot1", "slot2", "slot3"], " "], ["4", ["plant"]], ["F", ["use"]], ["F", ["use"]], ["B", ["shop"]]];
+  let tipEls = null;
+  const paintHints = () => {
+    if (!tips) return;
+    tipEls || (tipEls = [...tips.querySelectorAll("b")]);
+    TIPS.forEach((t, i) => {
+      const b = tipEls[i];
+      if (!t || !b) return;
+      const [orig, ids, sep] = [t[0], t[1], t[2] || ""];
+      if (void 0 === b._orig) b._orig = b.textContent.trim();
+      if (b._orig !== orig) return;
+      const plain = ids.every((id) => KEYMAP.codes(id).join() === KEYMAP.ACTIONS.find((a) => a.id === id).def.join());
+      const text = plain ? orig : ids.map((id) => KEYMAP.name(id).toUpperCase()).join(sep || (ids.length > 1 && ids.every((id) => 1 === KEYMAP.name(id).length) ? "" : " "));
+      b.textContent !== text && (b.textContent = text);
+    });
+  };
+  KEYMAP.onChange(paintHints);
 
   // ── vibration (controls tab, touch only) ──
   const ctl = set.querySelector('[data-pane="ctl"]');
@@ -156,6 +209,9 @@
       $("st-haptic").classList.toggle("on", !1 !== SETTINGS.haptic);
     }
     paintKeys();
+    paintCb();
+    CB.apply();
+    paintHints();
   }
   // the settings screen repaints through paintSettings (when it opens, after "기본값"); this joins it
   const _ps = paintSettings;

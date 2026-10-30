@@ -536,7 +536,7 @@
       sx = mini.width / (b.maxX - b.minX),
       sz = mini.height / (b.maxZ - b.minZ);
     for (const g of S.gates) {
-      mctx.fillStyle = g.up ? "rgba(255,90,40,.9)" : "rgba(120,220,140,.55)";
+      mctx.fillStyle = "off" !== CB.mode() ? (g.up ? CB.rgba("bad", 0.9) : CB.rgba("good", 0.55)) : g.up ? "rgba(255,90,40,.9)" : "rgba(120,220,140,.55)";
       mctx.fillRect((g.x - g.w / 2 - b.minX) * sx, (g.z - g.d / 2 - b.minZ) * sz, Math.max(2, g.w * sx), Math.max(2, g.d * sz));
     }
     return r;
