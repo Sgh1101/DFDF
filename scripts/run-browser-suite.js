@@ -4,8 +4,12 @@ const root=path.resolve(__dirname,'..'),pkg=require('../package.json');
 const smoke=['test:startup','test:browser','test:legacy-models','test:improvements','test:mobile-preview','test:network-recovery','test:ascent-abilities','test:ability-floors'];
 const all=Object.keys(pkg.scripts).filter(k=>/^(test:|audit:)/.test(k)&&/^node scripts\/browser-/.test(pkg.scripts[k]));
 const only=process.argv.find(a=>a.startsWith('--only='));
-const jobs=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;
-for(const name of jobs)if(!all.includes(name))throw Error('Unknown browser check: '+name);
+const picked=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;
+for(const name of picked)if(!all.includes(name))throw Error('Unknown browser check: '+name);
+// --shard=I/N runs every Nth check of the list from the I-th (1-based): CI spreads a run over N machines this way
+const shard=/^--shard=(\d+)\/(\d+)$/.exec(process.argv.find(a=>a.startsWith('--shard='))||'');
+if(shard&&!(+shard[1]>=1&&+shard[1]<=+shard[2]))throw Error('Bad --shard: '+shard[0]);
+const jobs=shard?picked.filter((_,i)=>i%+shard[2]===+shard[1]-1):picked;
 const out=path.resolve(process.env.DFDF_AUDIT_DIR||'test-results/browser-suite');fs.mkdirSync(out,{recursive:true});
 const env={...process.env,DFDF_BOOT_TIMEOUT:process.env.DFDF_BOOT_TIMEOUT||'120000'};
 env.DFDF_THREE_PATH ||= path.join(path.dirname(require.resolve('three')), 'three.min.js');

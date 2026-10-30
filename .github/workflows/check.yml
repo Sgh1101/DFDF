@@ -38,9 +38,16 @@ jobs:
       - run: npm test
         env:
           DFDF_REDIS_TEST_PORT: '6379'
-  browser:
+  # The browser checks run on three machines, each taking every third check of the list (a full run took over two
+  # hours on one); "browser" below passes only when all three did.
+  browser-shard:
+    name: browser ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -52,10 +59,16 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Pull request smoke / scheduled full regression
-        run: node scripts/run-browser-suite.js ${{ (github.event_name == 'workflow_dispatch' && inputs.only != '') && format('--only={0} --keep-going --retries=1', inputs.only) || ((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '--full --keep-going --retries=1' || '') }}
+        run: node scripts/run-browser-suite.js --shard=${{ matrix.shard }}/3 ${{ (github.event_name == 'workflow_dispatch' && inputs.only != '') && format('--only={0} --keep-going --retries=1', inputs.only) || ((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '--full --keep-going --retries=1' || '') }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: browser-${{ github.sha }}
+          name: browser-${{ github.sha }}-${{ matrix.shard }}
           path: test-results/browser-suite
           retention-days: 7
+  browser:
+    needs: browser-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.browser-shard.result }}" = success
