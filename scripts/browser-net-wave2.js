@@ -198,7 +198,116 @@ const part = (n) => only.includes('all') || only.includes(String(n));
       });
       transport.unshape('state'); transport.unshape('event');
     }
+    if (part(3)) {
+      const bots = await host.evaluate(() => world.actors.filter((a) => a.ctrl === 'ai').map((a) => a.id));
+      const guestId = await guest.evaluate(() => myActor().id);
+      transport.unshape('state'); transport.unshape('event');
+      // a shot's sound
+      await guest.evaluate(() => {
+        const W = window.__w3 = { events: {}, shots: [], lines: 0, depth: 0, ownLines: 0 };
+        const oe = NET.onEvent; NET.onEvent = function (e) { e && (W.events[e.t] = (W.events[e.t] || 0) + 1); return oe.apply(this, arguments); };
+        const sg = SFX.gun; SFX.gun = function (key) { window.SKIN_SHOOTER && W.shots.push(SKIN_SHOOTER.id); return sg.apply(this, arguments); };
+        // only the tracers (FX.SHOT) of a snapshot are played, and the lines they make are counted
+        const prf = playRemoteFX; playRemoteFX = function (list) { W.depth++; try { return prf.call(this, W.onlyShot && Array.isArray(list) ? list.filter((f) => f[0] === FX.SHOT) : list); } finally { W.depth--; } };
+        const sp = T.BufferGeometry.prototype.setFromPoints; T.BufferGeometry.prototype.setFromPoints = function (pts) { W.depth && pts && pts.length === 2 && W.lines++; return sp.apply(this, arguments); };
+      });
+      const fire = (who, n) => host.evaluate(({ who, n }) => {
+        const a = actorById(who); a.alive = true; a.fireCd = 0; a.reloading = 0; a.suppress = 0; GFX.tracer = true; a.weapons && (a.slot = a.weapons.primary ? 'primary' : 'secondary');
+        for (let i = 0; i < n; i++) { const key = actorWeaponKey(a); a.ammo[key] = Math.max(a.ammo[key] || 0, 10); a.fireCd = 0; actorFire(a); }
+      }, { who, n });
+      await check('3 shot sound: no shot-sound messages on the event link, and a guest still hears every shot (with the shooter)', async () => {
+        await guest.evaluate(() => { __w3.events = {}; __w3.shots.length = 0; });
+        for (let i = 0; i < 6; i++) { await fire(bots[i % bots.length], 1); await sleep(120); }
+        await sleep(600);
+        const w = await guest.evaluate(() => ({ events: __w3.events, shots: __w3.shots }));
+        console.log('     ', JSON.stringify(w));
+        assert.equal(w.events['shot-sound'] || 0, 0, 'shot-sound events arrived');
+        assert.equal(w.shots.length, 6, `${w.shots.length} of 6 shots were heard`);
+        assert.deepEqual(w.shots.slice().sort(), Array.from({ length: 6 }, (_, i) => bots[i % bots.length]).sort(), 'the shooters');
+      });
+      await check('3 shot sound: a host that is told the guest is old (no nv in its hello) still sends it the event', async () => {
+        const peer = await host.evaluate(() => [...NET.conns.keys()][0]);
+        await host.evaluate((p) => { NET.conns.get(p).nv = 0; }, peer);
+        await guest.evaluate(() => { __w3.events = {}; __w3.shots.length = 0; });
+        await fire(bots[0], 1); await sleep(600);
+        const w = await guest.evaluate(() => ({ events: __w3.events, shots: __w3.shots }));
+        await host.evaluate((p) => { NET.conns.get(p).nv = 2; }, peer);
+        assert.equal(w.events['shot-sound'], 1);
+        assert.ok(w.shots.length >= 1, 'the event was not played');
+      });
+      await check('3 shot sound: the guest says nv 2 in its hello', async () => {
+        const nv = await host.evaluate(() => [...NET.conns.values()].map((c) => c.nv));
+        assert.deepEqual(nv, [2]);
+      });
+      await check('3 shot sound: the guest draws no second tracer for its own shot, and still draws the others\'', async () => {
+        await guest.evaluate(() => { __w3.lines = 0; __w3.onlyShot = true; });
+        await fire(guestId, 3); await sleep(700);
+        const own = await guest.evaluate(() => __w3.lines);
+        await guest.evaluate(() => { __w3.lines = 0; });
+        await fire(bots[0], 3); await sleep(700);
+        const other = await guest.evaluate(() => { __w3.onlyShot = false; return __w3.lines; });
+        console.log('     tracers drawn from the snapshot: for my 3 shots', own, ', for a bot\'s 3 shots', other);
+        assert.equal(own, 0, 'the echo of my own shot');
+        assert.ok(other >= 3, `only ${other} tracers for the bot's shots`);
+      });
+
+      // the skin tickets
+      await check('3 skt: sent when it changes, not every 8 s; in parts under the limit; the guest reads them whole', async () => {
+        const r = await host.evaluate(async (bots) => {
+          // five bodies each named by a 4000 byte connection (20 KB in all, over the 16,300 PeerJS drops at): quiet entries
+          // keep the host from handing them back to the bots
+          const ids = bots.slice(0, 7), keys = ids.map((id, i) => String(i).repeat(4000));
+          ids.forEach((id, i) => { const a = actorById(id); a.ctrl = keys[i]; NET.conns.set(keys[i], { quiet: true }); });
+          window.__bigCtrl = { ids, keys };
+          sendEventAll({ t: 'ctrl', id: ids[0], ctrl: keys[0], name: actorById(ids[0]).name });
+          return ids.length;
+        }, bots);
+        await guest.evaluate(() => { window.__skt = []; const oe = NET.onEvent; NET.onEvent = function (e) { if (e && e.t === 'skt') __skt.push({ bytes: JSON.stringify(e).length, rows: e.l.length, n: e.n || 1, i: e.i || 0, g: e.g }); return oe.apply(this, arguments); }; });
+        await sleep(1500);
+        const first = await guest.evaluate(() => __skt.slice());
+        // twelve seconds with nothing changing (the old host sent it again at 8 s)
+        await guest.evaluate(() => { __skt.length = 0; });
+        await sleep(12000);
+        const idle = await guest.evaluate(() => __skt.slice());
+        // a change: another body takes another name
+        await host.evaluate(() => { const { ids } = window.__bigCtrl; const a = actorById(ids[1]); const k = 'z'.repeat(4000); NET.conns.delete(a.ctrl); a.ctrl = k; NET.conns.set(k, { quiet: true }); window.__bigCtrl.keys[1] = k; sendEventAll({ t: 'ctrl', id: a.id, ctrl: k, name: a.name }); });
+        await sleep(1500);
+        const changed = await guest.evaluate(() => __skt.slice());
+        console.log('      first', JSON.stringify(first.map((m) => [m.rows, m.bytes])), 'idle', idle.length, 'after a change', JSON.stringify(changed.map((m) => [m.rows, m.bytes])));
+        assert.ok(first.length >= 1, 'the list never arrived (a message over 16,300 bytes is dropped)');
+        assert.ok(first.every((m) => m.bytes < 9000), `a part is ${Math.max(...first.map((m) => m.bytes))} bytes`);
+        assert.equal(first.reduce((a, m) => a + m.rows, 0), await host.evaluate(() => world.actors.length), 'every body is in the list');
+        assert.equal(idle.length, 0, `${idle.length} lists in 12 s of no change`);
+        assert.ok(changed.length >= 1, 'a change was not sent');
+        await host.evaluate(() => { const { ids, keys } = window.__bigCtrl; ids.forEach((id, i) => { NET.conns.delete(keys[i]); const a = actorById(id); a.ctrl = 'ai'; sendEventAll({ t: 'ctrl', id, ctrl: 'ai', name: a.name }); }); });
+      });
+    }
     pair && pair.transport.stop();
+    if (part(3)) {
+      // hill, flags and zone: the guest gets the state in the snapshot, not on the event link
+      for (const [mode, map, read] of [['hill', 'g05', () => ({ i: CONQUEST.Z.i, owner: CONQUEST.Z.owner, x: Math.round(CONQUEST.Z.x), z: Math.round(CONQUEST.Z.z), hud: !!document.getElementById('hill-hud') && !document.getElementById('hill-hud').hidden })], ['ctf', 'g05', () => ({ atk: CTF.F.atk.st, def: CTF.F.def.st, hx: Math.round(CTF.F.atk.home.x), hud: !!document.getElementById('ctf-hud') && !document.getElementById('ctf-hud').hidden })], ['zone', 'nightport', () => ({ stage: SHRINK_ZONE.Z.stage, state: SHRINK_ZONE.Z.state, big: SHRINK_ZONE.Z.r > 0, hud: !!document.getElementById('zone-hud') && !document.getElementById('zone-hud').hidden })]]) {
+        const p2 = await startPair(f, { mode, map });
+        try {
+          const readFn = read.toString();
+          await p2.guest.evaluate(() => { window.__st = {}; const rc = clientRecv; clientRecv = function (e) { e && e.t && e.t !== 's' && (__st[e.t] = (__st[e.t] || 0) + 1); return rc.apply(this, arguments); }; });
+          await check(`3 mode state: ${mode} reaches the guest in the snapshot, not as event messages`, async () => {
+            await sleep(3500);
+            const h = await p2.host.evaluate(`(${readFn})()`), g = await p2.guest.evaluate(`(${readFn})()`), seen = await p2.guest.evaluate(() => __st);
+            console.log('     ', JSON.stringify({ host: h, guest: g, eventMessages: seen[mode] || 0 }));
+            assert.deepEqual(g, h);
+            assert.equal(seen[mode] || 0, 0, `${seen[mode]} ${mode} messages on the event link`);
+          });
+          await check(`3 mode state: ${mode} is still sent as a message to a guest that does not read the snapshot's`, async () => {
+            const peer = await p2.host.evaluate(() => [...NET.conns.keys()][0]);
+            await p2.host.evaluate((p) => { NET.conns.get(p).nv = 0; }, peer);
+            await p2.guest.evaluate(() => { window.__st = {}; });
+            await sleep(2500);
+            const seen = await p2.guest.evaluate(() => __st);
+            assert.ok((seen[mode] || 0) >= 3, `${seen[mode] || 0} ${mode} messages in 2.5 s`);
+          });
+        } finally { p2.transport.stop(); await p2.host.close().catch(() => {}); await p2.guest.close().catch(() => {}); }
+      }
+    }
     await check('no page errors, no transport errors', async () => { assert.deepEqual(f.errors, []); assert.deepEqual(pair.transport.errors, []); });
   } finally { await f.browser.close(); }
   if (fails.length) { console.log('\nFAILED:', fails.length); process.exitCode = 1; } else console.log('\nnet-wave2 checks passed');

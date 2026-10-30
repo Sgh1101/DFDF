@@ -58,9 +58,12 @@ async function installTransport(pages) {
       }
       const send = (message) => window.__networkTestSend(message);
       class Channel extends Emitter {
-        constructor(owner, remote, label, id = crypto.randomUUID()) { super(); this.owner = owner; this.peer = remote; this.label = label; this.id = id; this.open = false; this.closed = false; channels.set(id, this); owner.channels.add(this); }
+        constructor(owner, remote, label, id = crypto.randomUUID()) { super(); this.owner = owner; this.peer = remote; this.label = label; this.id = id; this.open = false; this.closed = false; this.serialization = 'json'; channels.set(id, this); owner.channels.add(this); }
         ready() { if (!this.closed) { this.open = true; this.emit('open'); } }
-        send(data) { if (this.open) send({ t: 'data', id: this.id, data }); }
+        // like a PeerJS "json" link: the message goes as the UTF-8 bytes of JSON.stringify (dropped from 16,300 bytes up), and
+        // _bufferedSend takes bytes that were made already (the host makes a snapshot's once for all its guests)
+        send(data) { if (this.open) { const text = JSON.stringify(data); if (new TextEncoder().encode(text).byteLength < 16300) send({ t: 'data', id: this.id, str: text }); } }
+        _bufferedSend(bytes) { if (this.open) send({ t: 'data', id: this.id, str: new TextDecoder().decode(bytes) }); }
         close(local = true) { if (this.closed) return; this.closed = true; this.open = false; this.emit('close'); channels.delete(this.id); if (local) send({ t: 'close', id: this.id }); }
       }
       class Peer extends Emitter {
@@ -76,7 +79,7 @@ async function installTransport(pages) {
         else if (m.t === 'error-peer') peer && peer.emit('error', { type: m.type });
         else if (m.t === 'incoming' && peer && !peer.destroyed) { const c = new Channel(peer, m.remote, m.label, m.id); peer.emit('connection', c); c.ready(); }
         else if (m.t === 'open-channel') channel && channel.ready();
-        else if (m.t === 'data') channel && channel.open && channel.emit('data', m.data);
+        else if (m.t === 'data') channel && channel.open && channel.emit('data', 'str' in m ? JSON.parse(m.str) : m.data);
         else if (m.t === 'close') channel && channel.close(false);
       } };
     });

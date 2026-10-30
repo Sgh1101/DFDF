@@ -375,7 +375,7 @@
     sent = now;
     const pack = (f) => [f.st, f.by, Math.round(f.x * 10), Math.round(f.z * 10), Math.round(f.y * 10), Math.round(f.t)];
     try {
-      sendEventAll({ t: "ctf", a: pack(F.atk), d: pack(F.def), c: [caps.atk, caps.def], h: [F.atk.home, F.def.home].map((h) => [Math.round(h.x * 10), Math.round(h.z * 10), Math.round(h.y * 10)]) });
+      sendStateMsg({ t: "ctf", a: pack(F.atk), d: pack(F.def), c: [caps.atk, caps.def], h: [F.atk.home, F.def.home].map((h) => [Math.round(h.x * 10), Math.round(h.z * 10), Math.round(h.y * 10)]) });
     } catch (e) {}
   }
   const _oe = NET.onEvent;

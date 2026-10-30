@@ -7425,7 +7425,7 @@ function ultwFire(e, t) {
       VM.kick,
       "beam" === o.kind || "flame" === o.kind ? 0.25 : 1,
     ))),
-    pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw)));
+    pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw), e.id));
 }
 function flyBlade(e, t, o, a) {
   const n = e.distanceTo(t),
@@ -16367,8 +16367,18 @@ function netAck(a) {
   while (r.length > 2 && r[r.length - 1] === NET_ACK_DEF[r.length - 1]) r.pop();
   return r;
 }
+// State a game mode keeps for the guests (hill, flags, zone) rides in the snapshot as gm, a list of the messages the guest's
+// NET.onEvent already understands, each at most once. A guest that does not read gm (no nv in its hello) is sent the message
+// itself on the event link.
+function sendStateMsg(m) {
+  if ("host" !== NET.mode) return;
+  (NET.gm || (NET.gm = {}))[m.t] = m;
+  for (const [p, c] of NET.conns) c.nv || c.quiet || !c.event || !c.event.open || sendEventTo(p, m);
+}
 function buildSnapshot(includeEffects = true) {
-  const e = world.spike;
+  const e = world.spike,
+    gm = includeEffects && NET.gm ? Object.values(NET.gm) : null;
+  gm && (NET.gm = null);
   return {
     t: "s",
     k: ++NET.tick,
@@ -16394,6 +16404,7 @@ function buildSnapshot(includeEffects = true) {
     a: world.actors.map(packActor),
     ak: world.actors.filter(netAckable).map(netAck),
     fx: includeEffects ? drainFX() : [],
+    ...(gm ? { gm } : {}),
   };
 }
 const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
@@ -16436,10 +16447,12 @@ function applySnapshot(e) {
   for (const a of world.actors)
     !o.has(a.id) && a.group && (a.group.visible = !1);
   e.fx && e.fx.length && playRemoteFX(e.fx);
+  if (e.gm) for (const m of e.gm) try { NET.onEvent && NET.onEvent(m); } catch (x) {}
 }
 let _fx = [];
-function pushFX(e, t, o, a, n) {
-  _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n]);
+// more arguments ride on the end of the entry (a SHOT names its shooter)
+function pushFX(e, t, o, a, n, ...x) {
+  _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n, ...x]);
 }
 function drainFX() {
   const e = _fx;
@@ -16451,10 +16464,13 @@ function playRemoteFX(e) {
       o = Q.unpos(t[1]),
       a = Q.unpos(t[2]),
       n = Q.unpos(t[3]),
-      r = t[4] || 0;
+      r = t[4] || 0,
+      who = t[5];
     try {
       switch (e) {
         case FX.SHOT: {
+          // my own shot already drew its tracer when I fired it
+          if (null != who && "function" == typeof myActor && myActor() && myActor().id === who) break;
           const e = r / 100,
             t = new T.Vector3(-Math.sin(e), 0, -Math.cos(e)),
             s = new T.Vector3(o, a, n),
@@ -16913,7 +16929,7 @@ function actorFire(e) {
             o.range,
           ));
     } catch (e) {}
-  pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw));
+  pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw), e.id);
 }
 function actorHitscan(e, t, o, a, n) {
   let r = null,
@@ -17184,7 +17200,8 @@ function resolveActions(e, t) {
       : (e._held = !1),
     e.burstLeft > 0 && e.fireCd <= 0 && (actorFire(e), e.burstLeft--));
 }
-const FX = { SHOT: 1, IMPACT: 2, BLOOD: 3, BLOOD_HEAD: 4, SMOKE: 5, FLASH: 6 },
+// SND is not a picture: a gun was fired, [SND, 0, 0, 0, gun index (WKEYS), shooter id, skin if not the default, gun key if not in WKEYS]
+const FX = { SHOT: 1, IMPACT: 2, BLOOD: 3, BLOOD_HEAD: 4, SMOKE: 5, FLASH: 6, SND: 7 },
   TEAM_INTEL = { atk: new Map(), def: new Map() },
   INTEL_LIFE = 6;
 function intelTick(e) {

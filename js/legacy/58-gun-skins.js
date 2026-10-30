@@ -2049,9 +2049,22 @@
     }
     return _oa.apply(this, arguments);
   };
-  // host: every player's ticket and connection to every guest (bots marked):
-  // now and then, after a change, at the start and when a body changes hands
+  // host: every player's ticket and connection to every guest (bots marked): at the start, after a change and when a body
+  // changes hands. Each guest is sent the list when it differs from what that guest last got (not every few seconds), in parts
+  // that stay well under the 16,300 bytes PeerJS drops a message at (a list with ten signed tickets is 4 to 11 KB).
   let sktN = 0;
+  const SKT_PART = 6000;
+  function sktParts(l) {
+    const parts = [];
+    let cur = [], size = 0;
+    for (const r of l) {
+      const n = JSON.stringify(r).length + 1;
+      if (cur.length && size + n > SKT_PART) (parts.push(cur), (cur = []), (size = 0));
+      (cur.push(r), (size += n));
+    }
+    cur.length && parts.push(cur);
+    return parts;
+  }
   function hostSkt() {
     if ("host" !== NET.mode) return;
     clearTimeout(hostSkt.t);
@@ -2060,22 +2073,35 @@
       myTicket().then((mine) => {
         if (n !== sktN || "host" !== NET.mode || !world.actors) return;
         const me = NET.id || myPeerId(),
-          l = world.actors.map((a) => ("ai" === a.ctrl ? [a.id, 0, 1, "ai"] : "me" === a.ctrl ? [a.id, mine || 0, 0, me] : [a.id, TICK.get(a.ctrl) || 0, 0, String(a.ctrl || "")]));
-        try {
-          sendEventAll({ t: "skt", l });
-        } catch (e) {}
+          l = world.actors.map((a) => ("ai" === a.ctrl ? [a.id, 0, 1, "ai"] : "me" === a.ctrl ? [a.id, mine || 0, 0, me] : [a.id, TICK.get(a.ctrl) || 0, 0, String(a.ctrl || "")])),
+          sig = JSON.stringify(l);
+        let parts = null;
+        for (const [peer, c] of NET.conns) {
+          if (c.quiet || !c.event || !c.event.open || c.sktSig === sig) continue;
+          c.sktSig = sig;
+          parts = parts || sktParts(l);
+          const g = ++sktGen;
+          parts.forEach((p, i) => {
+            try {
+              sendEventTo(peer, parts.length > 1 ? { t: "skt", l: p, g, i, n: parts.length } : { t: "skt", l: p });
+            } catch (e) {}
+          });
+        }
       });
     }, 250);
   }
+  let sktGen = 0;
   setInterval(() => "host" === NET.mode && world.actors && world.actors.length && hostSkt(), 8000);
   const _seb = sendEventAll;
   sendEventAll = function (e) {
     const r = _seb.apply(this, arguments);
+    if (e && "begin" === e.t) for (const [, c] of NET.conns) c.sktSig = null;
     e && ("begin" === e.t || "ctrl" === e.t) && hostSkt();
     return r;
   };
   // guest: what each actor may be shown in (actor id → {k, m, p} | "bot" | null)
-  const VER = new Map(),
+  const SKTP = { g: null, got: [] },
+    VER = new Map(),
     WANT = new Map(),
     NOT_PEER = new Set(["", "ai", "me", "remote", "dead"]);
   function takeSkt(l) {
@@ -2122,7 +2148,16 @@
   }
   const _oe = NET.onEvent;
   NET.onEvent = function (e) {
-    if (e && "skt" === e.t && Array.isArray(e.l)) return void takeSkt(e.l);
+    if (e && "skt" === e.t && Array.isArray(e.l)) {
+      // a list sent in parts is read when the last one is in (an old guest reads each part as it comes)
+      if (e.n > 1 && Number.isInteger(e.i)) {
+        if (SKTP.g !== e.g) ((SKTP.g = e.g), (SKTP.got = []));
+        SKTP.got[e.i] = e.l;
+        if (SKTP.got.length === e.n && Array.from(SKTP.got, Boolean).every(Boolean)) takeSkt([].concat(...SKTP.got));
+        return;
+      }
+      return void takeSkt(e.l);
+    }
     e && "begin" === e.t && (VER.clear(), WANT.clear());
     if (e && "drops" === e.t && Array.isArray(e.l)) {
       for (const r of e.l) {

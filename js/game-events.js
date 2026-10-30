@@ -175,7 +175,12 @@
     const args = arguments, self = this;
     const result = DAMAGE_CAUSE.run(cause, () => fire.apply(self, args));
     // Rockets already carry their launch sound with the arm event.
-    if (NET.mode === "host" && before !== (actor.ammo && actor.ammo[gun]) && !["knife", "rpg"].includes(gun)) sendEventAll({ t: "shot-sound", actor: actor.id, gun, skin });
+    if (NET.mode === "host" && before !== (actor.ammo && actor.ammo[gun]) && !["knife", "rpg"].includes(gun)) {
+      // the sound rides in the snapshot's effects (FX.SND) with the shooter; a guest that does not read it is sent the event
+      const i = WKEYS.indexOf(gun);
+      pushFX(FX.SND, 0, 0, 0, i, actor.id, skin === "default" ? 0 : skin, ...(i < 0 ? [gun] : []));
+      for (const [peer, c] of NET.conns) c.nv || c.quiet || !c.event || !c.event.open || sendEventTo(peer, { t: "shot-sound", actor: actor.id, gun, skin });
+    }
     return result;
   };
   const kill = killActor;
@@ -219,13 +224,29 @@
   };
   const input = NET.onInput;
   NET.onInput = function (peer, data) { if (GAME_RULES.validInput(data)) return input.apply(this, arguments); };
-  const reconnectKeys = new Map();
+  // a guest says what it can read in its hello (nv 2: the snapshot carries shot sounds and mode state); the host sends the old
+  // messages to a guest that says nothing
+  const playShot = (id, gun, skin) => {
+    const actor = actorById(id);
+    if (!gun || !actor || actor === currentActor()) return;
+    const previous = window.SKIN_SHOOTER, previousShot = window.SKIN_SHOT; window.SKIN_SHOOTER = actor; window.SKIN_SHOT = { t: "shot-sound", actor: id, gun, skin };
+    try { SFX.gun(gun, Math.min(1, actor.pos.distanceTo(currentActor().pos) / 60)); }
+    finally { window.SKIN_SHOOTER = previous; window.SKIN_SHOT = previousShot; }
+  };
+  const remoteFx = playRemoteFX;
+  playRemoteFX = function (list) {
+    if (!Array.isArray(list) || !list.some((f) => f[0] === FX.SND)) return remoteFx.apply(this, arguments);
+    const rest = [];
+    for (const f of list) { if (f[0] === FX.SND) try { playShot(f[5], WKEYS[f[4]] || f[7], f[6] || "default"); } catch (e) {} else rest.push(f); }
+    return rest.length ? remoteFx.call(this, rest) : undefined;
+  };
+  const reconnectKeys = new Map(), NETV = 2;
   let reconnectCode = "", reconnectSecret = "";
   const send = sendAction;
   sendAction = function (message) {
     if (message && message.t === "hello") {
       if (reconnectCode !== NET.room) { reconnectCode = NET.room; reconnectSecret = Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(16).padStart(8, "0")).join(""); }
-      message = { ...message, reconnect: reconnectSecret };
+      message = { ...message, reconnect: reconnectSecret, nv: NETV };
     }
     return send.call(this, message);
   };
@@ -236,6 +257,7 @@
       if (message.prev && reconnectKeys.get(message.prev) !== message.reconnect) return;
       if (!/^[a-f0-9]{32}$/.test(message.reconnect || "")) { if (message.prev) return; }
       else reconnectKeys.set(peer, message.reconnect);
+      const conn = NET.conns && NET.conns.get(peer); if (conn) conn.nv = Number.isInteger(message.nv) ? message.nv : 0;
     }
     return action.apply(this, arguments);
   };
@@ -247,15 +269,7 @@
       if (!event.ok) banner(L("능력을 사용할 수 없습니다", "Ability unavailable"), "#8a97ab");
       return;
     }
-    if (event && event.t === "shot-sound") {
-      const actor = actorById(event.actor);
-      if (actor && actor !== currentActor()) {
-        const previous = window.SKIN_SHOOTER, previousShot = window.SKIN_SHOT; window.SKIN_SHOOTER = actor; window.SKIN_SHOT = event;
-        try { SFX.gun(event.gun, Math.min(1, actor.pos.distanceTo(currentActor().pos) / 60)); }
-        finally { window.SKIN_SHOOTER = previous; window.SKIN_SHOT = previousShot; }
-      }
-      return;
-    }
+    if (event && event.t === "shot-sound") { playShot(event.actor, event.gun, event.skin); return; }
     if (event && event.t === "kill-detail") {
       if (event.round !== world.round) {
         if (event.round === world.round + 1 && typeof event.id === "string") {
