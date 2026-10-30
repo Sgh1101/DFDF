@@ -45,11 +45,11 @@
       const fw = j.firstWin;
       if (fw) tile("ov-fw", L("오늘의 첫 승리 보너스", "First win of the day"), fw.gold ? gold(fw.gold) : fw.xp ? `+${fw.xp} XP` : L("상한에 도달", "daily limit reached"), fw.gold && fw.xp ? [`+${fw.xp} XP`] : [], L("하루에 한 번, 한국 시간 자정에 새로 시작합니다", "Once a day; it resets at midnight in Korea"));
       else hide("ov-fw");
-      // the level gained
+      // the level gained (or, with no level gained, the cosmetics of milestones the account had passed before level rewards began)
       const lv = j.lvReward;
       if (lv) {
-        const subs = (lv.cos || []).map((id) => L("획득: ", "Unlocked: ") + cosName(id));
-        tile("ov-lvr", `${L("레벨 보상", "Level reward")} · Lv ${lv.from} → ${lv.to}`, lv.gold ? gold(lv.gold) : L("골드 상한 도달", "daily gold limit reached"), subs, "");
+        const subs = (lv.cos || []).map((id) => L("획득: ", "Unlocked: ") + cosName(id)), up = lv.to > lv.from;
+        tile("ov-lvr", up ? `${L("레벨 보상", "Level reward")} · Lv ${lv.from} → ${lv.to}` : L("레벨 보상", "Level reward"), up ? (lv.gold ? gold(lv.gold) : L("골드 상한 도달", "daily gold limit reached")) : L("지난 레벨", "Past levels"), subs, "");
       } else hide("ov-lvr");
       // achievements
       const ach = j.ach || [];

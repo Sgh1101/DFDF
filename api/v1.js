@@ -1922,12 +1922,20 @@ function milestonesOf(c) {
 }
 // the levels gained, from the one last paid for (u.lvPaid; an account from before this, or a new one, starts at the level it had)
 // to `to`: gold for each, more at a milestone, which also gives its cosmetic. Only the gold is held to `left`, what the day's gold
-// ceiling still allows. A level pays once even if the owner's XP rules later make it be reached again.
+// ceiling still allows. A level pays once even if the owner's XP rules later make it be reached again. An account from before
+// this is given, once, the cosmetics of the milestones it had already passed (back; not their gold), as the homepage shows those
+// milestones as reached.
 function levelAward(u, c, from, to, left) {
-  const R = c.lvReward, paid = Number.isSafeInteger(u.lvPaid) && u.lvPaid >= 0 ? u.lvPaid : from;
+  const R = c.lvReward, known = Number.isSafeInteger(u.lvPaid) && u.lvPaid >= 0, paid = known ? u.lvPaid : from;
   u.lvPaid = Math.max(paid, to);
-  if (!R.on || to <= paid) return null;
-  const ms = milestonesOf(c), cos = [], reached = [], per = Math.max(0, Math.floor(+R.gold || 0)), big = Math.max(0, Math.floor(+R.milestoneGold || 0));
+  if (!R.on) return null;
+  const ms = milestonesOf(c), cos = [], back = [], reached = [], per = Math.max(0, Math.floor(+R.gold || 0)), big = Math.max(0, Math.floor(+R.milestoneGold || 0));
+  const give = (m) => {
+    const me = cosOf(u);
+    return !!m.cos && !me.own.includes(m.cos) && ((u.cos = { own: me.own.concat(m.cos), eq: me.eq }), cos.push(m.cos), !0);
+  };
+  if (!known) for (const m of ms) m.lv <= paid && give(m) && back.push(m.cos);
+  if (to <= paid && !back.length) return null;
   let sum = 0;
   for (let lv = paid + 1; lv <= to; lv++) {
     sum += per;
@@ -1935,10 +1943,9 @@ function levelAward(u, c, from, to, left) {
     if (!m) continue;
     sum += big;
     reached.push(lv);
-    const me = cosOf(u);
-    if (m.cos && !me.own.includes(m.cos)) { u.cos = { own: me.own.concat(m.cos), eq: me.eq }; cos.push(m.cos); }
+    give(m);
   }
-  return { from: paid, to, gold: Math.max(0, Math.min(sum, Math.max(0, Math.floor(+R.maxGold || 0)), left)), cos, ms: reached };
+  return { from: paid, to, gold: Math.max(0, Math.min(sum, Math.max(0, Math.floor(+R.maxGold || 0)), left)), cos, ms: reached, ...(back.length ? { back } : {}) };
 }
 // the mastery of the agent a ticketed match was played with (null: off, or not an agent we know). left: gold still
 // allowed today. Counts the match in u.mast and answers what the result screen shows.

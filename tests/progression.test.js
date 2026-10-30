@@ -85,15 +85,29 @@ test("several levels in one match pay each, milestones included, up to maxGold; 
   assert.ok(!again.lvReward || again.lvReward.from >= lv, "only the levels above the highest paid");
 });
 
-test("an account from before level rewards starts at the level it has: no back pay", async () => {
+test("an account from before level rewards: no gold for the levels it had, the cosmetics of the milestones it had passed, once", async () => {
   const h = harness(), p = await login(h);
-  put(h, "player", (u) => { u.xp = 9000; delete u.lvPaid; }); // a high level
+  put(h, "player", (u) => { u.xp = 9000; delete u.lvPaid; }); // level 13: past the milestones at 5 (scout) and 10 (neoncity)
   const lv = (await h.api("me", { token: p.token })).user.level;
-  assert.ok(lv >= 10);
+  assert.ok(lv >= 10 && lv < 20);
   const r = await play(h, p);
   assert.equal(h.user("player").lvPaid, r.user.level);
-  assert.ok(!r.lvReward || r.lvReward.from >= lv, "nothing for the levels it already had");
-  assert.ok(!r.user.cos.own.includes("scout") && !r.user.cos.own.includes("neoncity"), "and no milestone cosmetics for them");
+  assert.deepEqual(r.lvReward.back, ["scout", "neoncity"], "the cosmetics of the milestones it had passed");
+  assert.ok(r.user.cos.own.includes("scout") && r.user.cos.own.includes("neoncity"));
+  assert.ok(r.lvReward.from >= lv, "levels are paid from the one it had");
+  assert.ok(r.lvReward.gold <= 40 * (r.lvReward.to - r.lvReward.from), "no gold for the levels it already had");
+  // given once
+  const r2 = await play(h, p);
+  assert.ok(!r2.lvReward || !r2.lvReward.back, "not given again");
+  // a cosmetic it already owned is not given (nor listed) again
+  const h2 = harness(), p2 = await login(h2);
+  put(h2, "player", (u) => { u.xp = 9000; delete u.lvPaid; u.cos = { own: ["scout"], eq: {} }; });
+  const r3 = await play(h2, p2);
+  assert.deepEqual(r3.lvReward.back, ["neoncity"]);
+  // a new account (level 1) has passed none
+  const h3 = harness(), p3 = await login(h3);
+  const r4 = await play(h3, p3);
+  assert.ok(!r4.lvReward || !r4.lvReward.back);
 });
 
 test("the first win of the day pays gold and XP once, a loss or a draw does not use it, and the next Korean day brings it back", async () => {
