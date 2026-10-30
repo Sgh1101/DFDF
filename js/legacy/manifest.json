@@ -119,5 +119,6 @@
   "js/legacy/111-a-dropped-guest-can-report-the-connection-in-one-tap.js",
   "js/legacy/112-the-host-throttles-what-a-guest-can-make-it-ask-the-server.js",
   "js/legacy/113-mastery-badges-on-the-agent-cards-and-a-line-on-the-result-screen.js",
-  "js/legacy/114-the-pre-match-screen-both-sides-face-to-face-with-level-title-and-mastery.js"
+  "js/legacy/114-the-pre-match-screen-both-sides-face-to-face-with-level-title-and-mastery.js",
+  "js/legacy/116-volume-sliders-key-bindings-and-the-vibration-switch-in-the-settings.js"
 ]

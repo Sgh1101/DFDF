@@ -359,7 +359,7 @@
     "client" === NET.mode ? sendAction({ t: "pickup", id: d.id }) : give(me, d);
   }
   addEventListener("keydown", (e) => {
-    "f" !== (e.key || "").toLowerCase() || e.repeat || tryPickup();
+    KEYMAP.is(e, "use") && !KEYMAP.editing(e.target) && !e.repeat && tryPickup();
   });
 
   // ═════════ 5. network glue ═════════
@@ -596,11 +596,12 @@ body.touching #netping{left:auto;right:14px;top:80px}
       if (!inMatch() || document.body.classList.contains("mb-editing") || ["pause", "shop", "admin", "armory", "mis"].some((id) => {
         const node = $(id); return node && !node.hidden && node.getClientRects().length > 0;
       })) return;
-      if ("Tab" === e.key) {
+      if (KEYMAP.editing(e.target) && "Escape" !== e.key) return;
+      if (KEYMAP.is(e, "scoreboard")) {
         if (boardOpen && boardSticky) return;
         e.preventDefault();
         e.repeat || boardOpen || openBoard("sb", !1);
-      } else if ("n" === (e.key || "").toLowerCase() && !e.repeat && !e.ctrlKey && !e.metaKey) {
+      } else if (KEYMAP.is(e, "combatlog") && !e.repeat && !e.ctrlKey && !e.metaKey) {
         boardOpen && "cl" === view ? closeBoard() : openBoard("cl", !0);
       } else if ("Escape" === e.key && boardOpen) {
         closeBoard();
@@ -610,7 +611,7 @@ body.touching #netping{left:auto;right:14px;top:80px}
     !0
   );
   addEventListener("keyup", (e) => {
-    "Tab" === e.key && boardOpen && !boardSticky && closeBoard();
+    KEYMAP.is(e, "scoreboard") && boardOpen && !boardSticky && closeBoard();
   });
   // phones: tap the score bar
   $("topbar") && $("topbar").addEventListener("click", () => (boardOpen ? closeBoard() : openBoard("sb", !0)));
