@@ -425,6 +425,8 @@
     if (actor.alive && actor.__neonSlide > 0) camera.position.y -= 0.55 * slideDepth(actor);
     return r;
   };
+  // the sparks off the feet: 24 sprites, each with a material of its own to fade, reused oldest first
+  const SPARKS = fxPool(24, () => new T.Sprite(new T.SpriteMaterial({ map: NEON_EFFECTS.sparkTexture(), transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })));
   const sparkColor = (actor) => (actor.__neonSlide > 0 ? 0xb8c4d6 : actor.ultW ? YELLOW : CYAN);
   const oldStep = step;
   step = function (dt) {
@@ -448,7 +450,8 @@
         actor.__neonSparkT = (actor.__neonSparkT || 0) - dt;
         if (actor.__neonSparkT <= 0) {
           actor.__neonSparkT = 0.12;
-          const s = new T.Sprite(new T.SpriteMaterial({ map: NEON_EFFECTS.sparkTexture(), color: sparkColor(actor), transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }));
+          const s = SPARKS.get();
+          s.material.color.set(sparkColor(actor)); s.material.opacity = 1;
           s.position.set(actor.pos.x + (Math.random() - 0.5) * 0.3, (actor.y || 0) + 0.2 + Math.random() * 0.3, actor.pos.z + (Math.random() - 0.5) * 0.3); s.scale.setScalar(0.32);
           s.material.rotation = Math.random() * Math.PI;
           addFx(s, 0.4, (o, t) => { o.material.opacity = 1 - t; o.scale.setScalar(0.32 * (1 - 0.6 * t)); o.position.y += 0.005; });

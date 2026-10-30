@@ -222,7 +222,8 @@
         GFX.shells = was;
       }
       try {
-        if (a && a.model && shellsOn() && Math.random() < 0.85) {
+        // other shooters' brass only where the preset has casings (not on mobile and perf; your own gun's brass follows shellsOn, which is true on perf)
+        if (a && a.model && GFX.shells && Math.random() < 0.85) {
           const o = new T.Vector3();
           a.model.muzzle ? a.model.muzzle.getWorldPosition(o) : o.set(a.pos.x, a.y + 1.35, a.pos.z);
           ejectShell(o, a.yaw, actorWeaponKey(a));
@@ -314,14 +315,14 @@
   const HOLES = [];
   const maxHoles = () => Math.round(70 * Math.min(1.6, Q()));
   function addHole(x, y, z, n) {
-    const m = new T.Mesh(G.hole, HOLE_MAT());
+    // when all are used the oldest hole moves to the new place instead of a new mesh being made
+    let m = HOLES.length >= maxHoles() ? HOLES.shift() : null;
+    m || ((m = new T.Mesh(G.hole, HOLE_MAT())), (m.renderOrder = 1), (m.userData.noMerge = !0));
     m.position.set(x, y, z).addScaledVector(n, 0.006);
     m.lookAt(_v.set(x, y, z).add(n));
     m.rotateZ(rnd(0, 6.28));
     m.scale.setScalar(rnd(0.11, 0.14));
-    m.renderOrder = 1;
-    m.userData.noMerge = !0;
-    scene.add(m);
+    m.parent || scene.add(m);
     HOLES.push(m);
     while (HOLES.length > maxHoles()) {
       const o = HOLES.shift();
@@ -334,6 +335,9 @@
     for (const b of LIVE) b.mesh.parent && b.mesh.parent.remove(b.mesh);
     LIVE.length = 0;
   }
+  // dust puffs and wall chips: pooled, each with a material of its own to fade (the oldest is taken over when all are in use)
+  const DUST = fxPool(48, () => new T.Sprite(new T.SpriteMaterial({ map: glowTex(), transparent: !0, depthWrite: !1 })));
+  const CHIPS = fxPool(48, () => new T.Mesh(G.chip, new T.MeshStandardMaterial({ roughness: 0.9, transparent: !0 })));
   function wallImpact(x, y, z) {
     const s = surfaceAt(x, y, z);
     if (!s) return; // shot ended in mid-air
@@ -360,12 +364,14 @@
     // dust: soft, slow, surface-coloured
     const nd = Math.max(1, Math.round(2.5 * q));
     for (let i = 0; i < nd; i++) {
-      const mat = new T.SpriteMaterial({ map: glowTex(), color: col, transparent: !0, depthWrite: !1, opacity: 0.55 });
-      const d = new T.Sprite(mat);
+      const d = DUST.get();
+      d.material.color.set(col);
+      d.material.opacity = 0.55;
       d.position.set(x, y, z).addScaledVector(n, 0.05);
       const v = n.clone().multiplyScalar(rnd(0.5, 1.3)).add(new T.Vector3(rnd(-0.35, 0.35), rnd(0.05, 0.45), rnd(-0.35, 0.35)));
       const s0 = rnd(0.16, 0.26),
         life = rnd(0.55, 0.9);
+      d.scale.setScalar(s0);
       addFx(d, life, (e, t, dt) => {
         const k = dt || 0.016;
         e.position.addScaledVector(v, k);
@@ -376,9 +382,11 @@
     }
     // chips: a few flecks of the wall itself
     const nc = Math.max(1, Math.round(rnd(2, 4) * q));
-    const cm = new T.MeshStandardMaterial({ color: col.clone().multiplyScalar(0.8), roughness: 0.9, transparent: !0 });
     for (let i = 0; i < nc; i++) {
-      const c = new T.Mesh(G.chip, cm);
+      const c = CHIPS.get();
+      c.material.color.set(col).multiplyScalar(0.8);
+      c.material.opacity = 1;
+      c.rotation.set(0, 0, 0);
       c.position.set(x, y, z).addScaledVector(n, 0.03);
       c.scale.setScalar(rnd(0.5, 1.2));
       const v = n.clone().multiplyScalar(rnd(1.5, 3.2)).add(new T.Vector3(rnd(-1.4, 1.4), rnd(0.4, 2.2), rnd(-1.4, 1.4)));

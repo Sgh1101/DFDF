@@ -24,6 +24,9 @@
       lamps:20,detailGun:true,fx:1.5,tracer:true,shells:true,post:true,msaa:4,bloom:1.1,
       textureSize:1024,mapRelief:true,minScale:.9},
   };
+  // Point lights the effects pool keeps in the scene: each costs lighting maths in every lit pixel, lit or not.
+  const fxLights = {mobile:1,perf:2,visual:2,ultra:4};
+  for (const key of order) presets[key].fxLights = fxLights[key];
   for (const preset of Object.values(presets)) Object.freeze(preset);
   Object.freeze(presets);
   const defaultMode = phone => phone ? 'mobile' : 'perf';
