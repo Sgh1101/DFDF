@@ -7,7 +7,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   try {
     const dir = process.env.SHOT_DIR || "/tmp";
     const page = await f.page("bld", { width: 1280, height: 720 });
-    const maps = await page.evaluate(() => MAP_LIST.map((m) => m.key));
+    // the pool's maps; the map of the week (one of the switched-off maps, checked by test:map-week) is left out
+    const maps = await page.evaluate(() => MAP_LIST.map((m) => m.key).filter((k) => k !== window.WEEK_MAP_KEY));
     // Hospital and the imported Ascent have their own geometry/stair suites;
     // they do not use BUILDINGS.plan's procedural houses and towers.
     const skip = ["field", "d01", "d03", "d04", "hospital", "ascent_trial"];
