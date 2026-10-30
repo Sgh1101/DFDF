@@ -17635,22 +17635,27 @@ function aiThink(e, t) {
 }
 // A bot looks for a target every 0.10-0.20 s (its own interval, by id), not on every step: a sight line to every enemy in
 // range, from every bot, on every step was the largest cost of a fight. In between it keeps the target it has (or none)
-// while that is still alive, an enemy and in range; a death, or an enemy hidden from it, makes it look at once. The first
-// look comes up to 0.125 s after the bot's state starts, by id, so the bots do not all look on the same step.
+// while that is still alive, an enemy and in range; a death, an enemy hidden from it, or an enemy that comes within 5 m
+// that it has not looked at makes it look at once. The first look is at once too, and its next one is put off by up to
+// 0.125 s (by id) so the bots do not all look on the same step.
 const AI_SIGHT_EVERY = 0.1;
 function aiPickTarget(e) {
   let t = null,
     o = 1e9,
     a = ("function" == typeof diffTune ? diffTune().range : 80) + 20;
   e.nearsight > 0 && (a = Math.min(a, 10));
-  const s = e.ai;
-  if (s) {
-    if (void 0 === s.pickCd) return ((s.pickCd = 0.025 * (Math.abs(e.id | 0) % 6)), (s.pickT = null), null);
-    if (s.pickCd > 0) {
-      const k = s.pickT;
-      if (!k) return null;
-      if (k.alive && k.team !== e.team && Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) <= a) return (intelReport(e, k), k);
-    }
+  const s = e.ai,
+    first = !!s && void 0 === s.pickCd;
+  if (s && s.pickCd > 0) {
+    const k = s.pickT;
+    let keep = !k || (k.alive && k.team !== e.team && Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) <= a);
+    if (keep)
+      for (const n of world.actors)
+        if (n !== k && n.alive && n.team !== e.team && Math.hypot(n.pos.x - e.pos.x, n.pos.z - e.pos.z) < 5) {
+          keep = !1;
+          break;
+        }
+    if (keep) return (k && intelReport(e, k), k);
   }
   for (const n of world.actors) {
     if (!n.alive || n.team === e.team) continue;
@@ -17659,7 +17664,7 @@ function aiPickTarget(e) {
       rayBlocked(e.pos.x, e.y + 1.5, e.pos.z, n.pos.x, n.y + 1.1, n.pos.z) ||
       (intelReport(e, n), r < o && ((t = n), (o = r)));
   }
-  s && ((s.pickCd = AI_SIGHT_EVERY + 0.025 * (Math.abs(e.id | 0) % 5)), (s.pickT = t));
+  s && ((s.pickCd = AI_SIGHT_EVERY + 0.025 * (Math.abs(e.id | 0) % 5) + (first ? 0.025 * (Math.abs(e.id | 0) % 6) : 0)), (s.pickT = t));
   return t;
 }
 function aiGoal(e) {
