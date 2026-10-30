@@ -236,5 +236,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.equal(await A.evaluate(() => LAST_MATCH.outcome), "loss");
     assert.deepEqual(f.errors, []);
     console.log("ranked-away ok");
+  // the PeerServer keeps the process alive after close(), as in the other PeerServer tests: the exit is explicit
   } finally { await f.browser.close(); signaling && signaling.close && signaling.close(); }
-})().catch((e) => { console.error(e.message); console.error(e.stack); process.exit(1); });
+})().then(() => process.exit(0), (e) => { console.error(e.message); console.error(e.stack); process.exit(1); });
