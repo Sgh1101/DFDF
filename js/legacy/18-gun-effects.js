@@ -10,13 +10,6 @@
   const near = (x, y, z, d) => camera.position.distanceToSquared(_v.set(x, y, z)) < d * d;
   const _v = new T.Vector3();
 
-  // highest walkable surface under (x, z) at or below y
-  function groundAt(x, z, y) {
-    let g = 0;
-    for (const c of COLLIDERS) if (c.h <= y + 0.05 && c.h > g && x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ) g = c.h;
-    return g;
-  }
-
   // ── casings and magazines ──
   const G = {
     brass: shared(new T.CylinderGeometry(0.0085, 0.0085, 0.036, 7)),
@@ -103,7 +96,8 @@
         b.vel.x *= -0.35;
         b.vel.z *= -0.35;
       }
-      const g = groundAt(m.position.x, m.position.z, m.position.y + 0.1) + 0.012;
+      // the highest surface under it at or below its own height, from the engine's hash (not a pass over every collider)
+      const g = groundTop(m.position.x, m.position.z, m.position.y + 0.1, 0, 0.05) + 0.012;
       if (m.position.y <= g) {
         m.position.y = g;
         if (Math.abs(b.vel.y) > 1.1 && b.hops < 3) {
