@@ -85,6 +85,23 @@
     cap.style.top = Math.round(r.top + 14) + "px";
   }
 
+  // The picture above is drawn straight to the canvas. A match is drawn through the post targets with the shadow map, and
+  // nothing is drawn behind this screen any more, so those shaders and targets would be built in the first frame of the match.
+  // One real frame per map, drawn here (behind the opaque screen) a moment after the picture, builds them instead.
+  const warmed = new Set();
+  function warm(key) {
+    if (warmed.has(key) || "function" != typeof render) return;
+    warmed.add(key);
+    setTimeout(() => {
+      if (!visible() || "undefined" == typeof world || "menu" !== world.phase || (CUR_MAP_KEY !== key)) return;
+      try {
+        render();
+      } catch (e) {
+        console.warn("frame warm-up", e);
+      }
+    }, 150);
+  }
+
   let want = null, timers = [];
   function take(key) {
     timers.forEach(clearTimeout);
@@ -99,7 +116,7 @@
       }
       try {
         const url = shoot(key);
-        url && (CACHE.set(key, url), show(key));
+        url && (CACHE.set(key, url), show(key), warm(key));
       } catch (e) {
         console.warn("map shot", e);
       }
@@ -121,5 +138,5 @@
   sel.addEventListener("click", (e) => e.target.closest && e.target.closest(".lb-map") && setTimeout(check, 0));
   addEventListener("resize", place);
 
-  window.SELECT_MAPSHOT = { cache: CACHE, shoot, take, check, camera: cam };
+  window.SELECT_MAPSHOT = { cache: CACHE, shoot, take, check, camera: cam, warmed };
 })();
