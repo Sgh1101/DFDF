@@ -191,6 +191,7 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
 <script src="./js/cosmetics.js"></script>
 <script src="./js/agent-mastery.js"></script>
 <script src="./js/progression-text.js"></script>
+<script src="./js/home-clan.js"></script>
 </head>
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
@@ -252,6 +253,7 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
   <div class="hist mast" id="mast" hidden><h3 data-t="mastTitle"></h3><div id="mastList"></div></div>
   <div class="hist mast" id="lvr" hidden><h3 data-t="lvrTitle"></h3><div id="lvrList"></div></div>
   <div class="hist mast" id="ach" hidden><h3 data-t="achTitle"></h3><div id="achList"></div></div>
+  <div class="hist mast" id="clan" hidden><h3 id="clanTitle"></h3><div id="clanBody"></div></div>
 
   <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
 
@@ -347,7 +349,7 @@ async function api(a, b) {
 function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
-function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = $("#lvr").hidden = $("#ach").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
+function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = $("#lvr").hidden = $("#ach").hidden = $("#clan").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -416,6 +418,7 @@ function drawMe() {
   }
   drawMast();
   drawProg();
+  window.HOME_CLAN && HOME_CLAN.draw();
   drawHist();
 }
 // a tier badge: a gem in the tier's colour, more points the higher, a pip a division
