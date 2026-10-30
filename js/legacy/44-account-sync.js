@@ -216,6 +216,9 @@
     [/^(\d+)마리 추적$/, "tracking $1"],
     [/^(.+) 사이트 설치 완료$/, "Spike planted at site $1"],
     [/^(.+) 사이트 · 4 또는 F를 누르고 있으면 설치$/, "Site $1 · hold 4 or F to plant"],
+    // the same two hints with the keys the player bound (js/keymap.js; the game also writes these in English itself)
+    [/^(.+) 사이트 · (.+) 또는 (.+?)(?:를|을| 키를)? 누르고 있으면 설치$/, "Site $1 · hold $2 or $3 to plant"],
+    [/^스파이크 소지 · 사이트 안에서 (.+) 또는 (.+?)(?:를|을| 키를)? 눌러 설치$/, "Carrying the spike · press $1 or $2 inside a site to plant"],
     [/^(.+) 사이트 · 멈추면 설치 진행$/, "Site $1 · stand still to keep planting"],
     [/^(.+) 사이트 설치 중$/, "Planting at site $1"],
     [/^([A-Z?]) 사이트$/, "Site $1"],
