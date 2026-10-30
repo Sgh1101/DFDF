@@ -248,6 +248,16 @@
     "밀림 사당": "Jungle Shrine", "골목 장터": "Alley Market", "화물칸": "Freight Car", "서리 결투장": "Frost Duel Ground", "네온 링": "Neon Ring",
     "달빛 마당": "Moonlit Yard", "마크X발로": "MarkX Valo", "마크X발로 불러오기": "Load MarkX Valo", "마크X발로 준비 완료": "MarkX Valo is ready",
     "원본 지형과 마인크래프트 기본 텍스처를 사용합니다.": "It uses the original terrain and the Minecraft default textures.",
+    // the maps that take turns as the map of the week (js/map-week.js)
+    "해안 포구": "Coastal Harbor", "강철 항로": "Steel Sea Lane", "폐사찰": "Ruined Temple", "용암 제련소": "Lava Smelter",
+    "설원 레이더 기지": "Snowfield Radar Base", "얼음 협곡": "Ice Canyon", "북극 전진기지": "Arctic Outpost", "붉은 협곡": "Red Canyon",
+    "오아시스 마을": "Oasis Village", "황혼의 신전": "Temple of Dusk", "지하 철도": "Underground Railway", "네온 야시장": "Neon Night Market",
+    "비 내리는 옥상": "Rainy Rooftops", "대나무 숲": "Bamboo Forest", "벚꽃 정원": "Cherry Blossom Garden", "달빛 연못": "Moonlit Pond",
+    "옛 장터": "Old Marketplace", "골목 야시장": "Alley Night Market", "포목 거리": "Fabric Street", "산사 계단": "Mountain Temple Stairs",
+    "안개 사원": "Temple in the Mist", "석굴 암자": "Grotto Hermitage", "조선소": "Shipyard", "등대 언덕": "Lighthouse Hill",
+    "컨테이너 부두": "Container Dock", "제철소": "Steelworks", "화산 광산": "Volcano Mine", "주물 공장": "Foundry",
+    "폭포 협곡": "Waterfall Canyon", "고대 유적": "Ancient Ruins", "늪지 사원": "Swamp Temple", "유조선": "Oil Tanker",
+    "군함 갑판": "Warship Deck", "화물 터미널": "Cargo Terminal", "항구 창고": "Harbor Warehouse", "모래 투기장": "Sand Arena",
   });
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
