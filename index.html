@@ -180,10 +180,12 @@ section{padding:36px 0;border-top:1px solid var(--line)}
 footer{padding:30px 0;border-top:1px solid var(--line);text-align:center;font-size:11.5px;color:var(--dim)}
 footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36px;padding:4px 2px;vertical-align:middle}
 .fnav{display:flex;flex-wrap:wrap;justify-content:center;gap:0 14px;margin-bottom:6px;font-size:13px}
-.fnav a{padding:4px 2px}
+.fnav a{padding:4px 2px;min-width:36px;justify-content:center}
 .intro{padding:32px 0 36px;border-top:1px solid var(--line);color:var(--steel);font-size:14px;line-height:1.9;max-width:760px;margin:0 auto;text-align:center}
 .intro h2{margin-bottom:10px}
-.intro a{color:var(--gold)}
+.ilinks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+.ilinks a{display:inline-flex;align-items:center;min-height:36px;padding:4px 14px;border:1px solid var(--line);border-radius:99px;color:var(--gold);text-decoration:none;font-size:13px;line-height:1.3;box-sizing:border-box}
+.ilinks a:hover{border-color:var(--gold)}
 html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 .tnav{display:none}
 @media(min-width:1000px){.tnav{display:flex;gap:4px;margin-left:18px}.tnav a{color:var(--steel);text-decoration:none;font-size:13px;padding:8px 10px;border-radius:99px}.tnav a:hover{color:var(--ink);background:rgba(20,25,34,.8)}}
@@ -274,11 +276,13 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
   </section>
   <section class="intro" lang="ko">
     <h2>13은 이런 게임입니다</h2>
-    <p>13은 설치 없이 브라우저에서 바로 하는 5대5 전술 슈터입니다. 공격 팀은 스파이크를 설치하고 수비 팀은 이를 막으며, 요원마다 다른 능력으로 길을 엽니다. 혼자서는 AI와, 친구와는 초대 코드로 함께 할 수 있고 컴퓨터와 스마트폰 모두 됩니다. 처음이라면 <a href="./guide.html">게임 소개</a>와 <a href="./controls.html">조작법</a>을 읽어 보세요. <a href="./modes.html">모드 11종</a>, <a href="./maps.html">맵 22곳</a>, <a href="./agents.html">요원 28명</a>의 설명도 있습니다.</p>
+    <p>13은 설치 없이 브라우저에서 바로 하는 5대5 전술 슈터입니다. 공격 팀은 스파이크를 설치하고 수비 팀은 이를 막으며, 요원마다 다른 능력으로 길을 엽니다. 혼자서는 AI와, 친구와는 초대 코드로 함께 할 수 있고 컴퓨터와 스마트폰 모두 됩니다. 처음이라면 게임 소개와 조작법부터 읽어 보세요. 모드, 맵, 요원마다 설명한 글도 있습니다.</p>
+    <nav class="ilinks" aria-label="게임 설명"><a href="./guide.html">게임 소개</a><a href="./controls.html">조작법</a><a href="./modes.html">모드 11종</a><a href="./maps.html">맵 22곳</a><a href="./agents.html">요원 28명</a></nav>
   </section>
   <section class="intro" lang="en">
     <h2>About 13</h2>
-    <p>13 is a 5v5 tactical shooter that runs right in your browser, with nothing to install. Attackers plant the spike, defenders stop them, and every agent opens the map with different abilities. Play solo against AI or with friends by invite code, on a computer or a phone. New here? Read the <a href="./guide.html">guide</a> and the <a href="./controls.html">controls</a>, or browse the <a href="./modes.html">modes</a>, <a href="./maps.html">maps</a> and <a href="./agents.html">agents</a> (the pages are in Korean).</p>
+    <p>13 is a 5v5 tactical shooter that runs right in your browser, with nothing to install. Attackers plant the spike, defenders stop them, and every agent opens the map with different abilities. Play solo against AI or with friends by invite code, on a computer or a phone. New here? Start with the guide and the controls, then read about each mode, map and agent. These pages are in Korean.</p>
+    <nav class="ilinks" aria-label="Game guides"><a href="./guide.html">Guide</a><a href="./controls.html">Controls</a><a href="./modes.html">Modes</a><a href="./maps.html">Maps</a><a href="./agents.html">Agents</a></nav>
   </section>
   <footer>
     <nav class="fnav" aria-label="사이트 메뉴"><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a><a href="./about.html" data-t="pgAbout"></a><a href="./contact.html" data-t="pgContact"></a><a href="./privacy.html" data-t="privacy"></a></nav>
