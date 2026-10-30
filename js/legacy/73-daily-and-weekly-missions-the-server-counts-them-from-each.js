@@ -92,10 +92,17 @@
   document.body.appendChild(box);
 
   const M = { st: null, busy: !1, loading: !1, at: 0 };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  // a mission picked from the pool (the server's {f: {k: mode | role | agent, v}}) reads from the shared words (js/progression-text.js)
+  const agentName = (id) => {
+    const a = "undefined" != typeof AGENTS && AGENTS.find((x) => x.id === id);
+    return a ? a.name : id;
+  };
+  const label = (x) => (x.f && window.PROGRESSION ? PROGRESSION.mission(x, agentName) : TXT[x.stat] ? TXT[x.stat](x.n) : x.id);
   function row(x) {
     const pct = Math.round((100 * x.have) / x.n),
       b = x.got ? L("받음", "Claimed") : x.done ? L(`받기 ${x.gold}`, `Claim ${x.gold}`) : `🪙 ${x.gold}`;
-    return `<div class="ms-row ${x.got ? "got" : x.done ? "done" : ""}"><div class="ms-ic"><svg viewBox="0 0 24 24"><path d="${ICON[x.stat] || ICON.play}"/></svg></div><div class="ms-mid"><div class="ms-t">${TXT[x.stat] ? TXT[x.stat](x.n) : x.id}<span>${x.have}/${x.n}</span></div><div class="ms-bar"><i style="width:${pct}%"></i></div></div><button class="ms-btn ${x.done && !x.got ? "on" : ""}" data-id="${x.id}">${b}</button></div>`;
+    return `<div class="ms-row ${x.got ? "got" : x.done ? "done" : ""}"><div class="ms-ic"><svg viewBox="0 0 24 24"><path d="${ICON[x.stat] || ICON.play}"/></svg></div><div class="ms-mid"><div class="ms-t">${esc(label(x))}<span>${x.have}/${x.n}</span></div><div class="ms-bar"><i style="width:${pct}%"></i></div></div><button class="ms-btn ${x.done && !x.got ? "on" : ""}" data-id="${x.id}">${b}</button></div>`;
   }
   function draw() {
     const st = M.st,
