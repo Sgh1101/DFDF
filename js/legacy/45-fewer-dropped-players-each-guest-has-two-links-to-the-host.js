@@ -84,21 +84,26 @@
   // sees the game the buffer's age behind. Past about two snapshots (or 1 KB of inputs) a message is not sent; the next one
   // carries the same state anyway.
   const backed = (c, limit) => !!(c && c.dataChannel && c.dataChannel.bufferedAmount > limit);
-  let snapBytes = 0, snapSeen = 0;
-  sendSnapshot = function (s) {
+  // The snapshot is serialized once per tick, not once per guest: a PeerJS "json" link sends the UTF-8 bytes of
+  // JSON.stringify(message) (and drops one of 16,300 bytes or more), so those bytes are made once and handed to each link;
+  // the receiving side reads them as it always did, an old guest included. A link of another kind is given the object.
+  let enc = null;
+  const sendSnapshotOnce = (s) => {
     if ("host" !== NET.mode) return;
-    if (!(snapSeen++ % 20)) try { snapBytes = JSON.stringify(s).length; } catch (x) {}
-    const limit = 2 * Math.max(snapBytes, 512);
+    let bytes = null;
     for (const [, o] of conns()) {
       if (o.quiet) continue;
       const c = open(o.state) ? o.state : open(o.event) ? o.event : null;
-      if (backed(c, limit)) { NET.skipped = (NET.skipped || 0) + 1; continue; }
-      if (c)
-        try {
-          c.send(s);
-        } catch (x) {}
+      if (!c) continue;
+      const raw = "json" === c.serialization && "function" == typeof c._bufferedSend;
+      if (raw && !bytes) try { bytes = (enc || (enc = new TextEncoder())).encode(JSON.stringify(s)); } catch (x) { continue; }
+      if (backed(c, 2 * Math.max(bytes ? bytes.length : 0, 512))) { NET.skipped = (NET.skipped || 0) + 1; continue; }
+      try {
+        raw && bytes.length < 16300 ? c._bufferedSend(bytes) : c.send(s);
+      } catch (x) {}
     }
   };
+  sendSnapshot = sendSnapshotOnce;
   // lobby: hold the seat for a while
   const away = new Map();
   const _pg = NET.onPeerGone;

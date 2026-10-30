@@ -293,7 +293,7 @@
     Z.sent = now;
     const q = (n) => Math.round(n * 10);
     try {
-      sendEventAll({ t: "zone", s: Z.stage, m: "wait" === Z.state ? 0 : 1, c: Math.round(Z.t * 10), f: [q(Z.from.x), q(Z.from.z), q(Z.from.r)], o: [q(Z.to.x), q(Z.to.z), q(Z.to.r)], n: Z.alive, p: Object.entries(Z.places).map(([id, v]) => [+id, v]) });
+      sendStateMsg({ t: "zone", s: Z.stage, m: "wait" === Z.state ? 0 : 1, c: Math.round(Z.t * 10), f: [q(Z.from.x), q(Z.from.z), q(Z.from.r)], o: [q(Z.to.x), q(Z.to.z), q(Z.to.r)], n: Z.alive, p: Object.entries(Z.places).map(([id, v]) => [+id, v]) });
     } catch (e) {}
   }
   const _oe = NET.onEvent;
