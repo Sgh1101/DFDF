@@ -6,10 +6,18 @@ const all=Object.keys(pkg.scripts).filter(k=>/^(test:|audit:)/.test(k)&&/^node s
 const only=process.argv.find(a=>a.startsWith('--only='));
 const picked=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;
 for(const name of picked)if(!all.includes(name))throw Error('Unknown browser check: '+name);
-// --shard=I/N runs every Nth check of the list from the I-th (1-based): CI spreads a run over N machines this way
+// --shard=I/N runs the I-th (1-based) of N parts of the list: CI spreads a run over N machines this way. The parts are
+// balanced by the seconds each check took in CI (scripts/browser-durations.json, from the runs' "durations" notices; a
+// check not in it counts as a minute): the longest first, each to the part with the least so far. Every machine works
+// out the same parts; a check keeps its place in the list within its part.
 const shard=/^--shard=(\d+)\/(\d+)$/.exec(process.argv.find(a=>a.startsWith('--shard='))||'');
 if(shard&&!(+shard[1]>=1&&+shard[1]<=+shard[2]))throw Error('Bad --shard: '+shard[0]);
-const jobs=shard?picked.filter((_,i)=>i%+shard[2]===+shard[1]-1):picked;
+let jobs=picked;
+if(shard){
+ const n=+shard[2],dur=require('./browser-durations.json'),sec=name=>dur[name]??60,load=Array(n).fill(0),part=new Map();
+ for(const name of picked.slice().sort((a,b)=>sec(b)-sec(a)||a.localeCompare(b))){const i=load.indexOf(Math.min(...load));part.set(name,i);load[i]+=sec(name);}
+ jobs=picked.filter(name=>part.get(name)===+shard[1]-1);
+}
 const out=path.resolve(process.env.DFDF_AUDIT_DIR||'test-results/browser-suite');fs.mkdirSync(out,{recursive:true});
 const env={...process.env,DFDF_BOOT_TIMEOUT:process.env.DFDF_BOOT_TIMEOUT||'120000'};
 env.DFDF_THREE_PATH ||= path.join(path.dirname(require.resolve('three')), 'three.min.js');
