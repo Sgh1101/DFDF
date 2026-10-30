@@ -1,6 +1,6 @@
 // 개인정보처리방침. The effective date changes only when the text changes in substance.
 module.exports = {
-  file: "privacy.html", nav: "privacy", lastmod: "2026-10-30",
+  file: "privacy.html", nav: "privacy", lastmod: "2026-10-31",
   title: "개인정보처리방침",
   description: "13이 어떤 정보를 어떻게 쓰는지, 쿠키와 광고(Google 포함 제3자 광고 쿠키), 삭제 요청과 문의 방법을 알려 드립니다.",
   h1: "13 개인정보처리방침",

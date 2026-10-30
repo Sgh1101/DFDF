@@ -81,7 +81,7 @@ ${t.tips.length ? `<h4>공략 팁</h4><ul>${t.tips.map((x) => `<li>${x}</li>`).j
   };
   const rows = order.map((k) => { const m = byKey[k], ffa = m.flags.includes("ffa"), team = !ffa && k !== "inf" ? "팀" : ffa ? "개인" : "팀(감염)"; return `<tr><td><a href="#${esc(k)}">${esc(m.name)}</a></td><td>${team}</td><td>${esc(m.sub)}</td></tr>`; }).join("");
   return {
-    file: "modes.html", nav: "modes", lastmod: "2026-10-30", wide: true,
+    file: "modes.html", nav: "modes", lastmod: "2026-10-31", wide: true,
     title: `게임 모드 ${d.listed.length}종`,
     description: `13의 게임 모드 ${d.listed.length}종과 혼자 하는 표적 사격의 목표, 규칙, 공략 팁을 정리했습니다. 일반전, 신속플레이, 스파이크 돌격, 데스매치, 점령전, 깃발 탈취, 축소전, 감염까지.`,
     h1: `게임 모드 ${d.listed.length}종`,

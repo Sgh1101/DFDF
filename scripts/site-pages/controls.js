@@ -6,7 +6,7 @@ const keys = (a) => a.def.map((c) => `<kbd>${esc(KEYMAP.label(c))}</kbd>`).join(
 const table = (rows) => `<div class="tbl-wrap"><table><thead><tr><th>동작</th><th>기본 키</th></tr></thead><tbody>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</tbody></table></div>`;
 const group = ([id, name]) => `<h3>${name}</h3>${table(KEYMAP.ACTIONS.filter((a) => a.group === id).map((a) => [esc(a.ko), keys(a)]))}`;
 module.exports = {
-  file: "controls.html", nav: "controls", lastmod: "2026-10-30",
+  file: "controls.html", nav: "controls", lastmod: "2026-10-31",
   title: "조작법",
   description: "13의 PC 키보드·마우스 기본 키, 키 설정에서 바꾸는 방법, 감도, 스마트폰 터치 조작과 버튼 배치 편집, 그래픽·색약 모드·음량 설정 요령을 정리했습니다.",
   h1: "조작법",

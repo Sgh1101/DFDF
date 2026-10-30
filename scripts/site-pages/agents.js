@@ -25,7 +25,7 @@ module.exports = (d) => {
   const sections = roles.map((r) => `<h2 id="role-${esc(r)}">${esc(r)} ${count(r)}명</h2><div class="agents">${d.agents.filter((a) => a.role === r).map(card).join("\n")}</div>`).join("\n");
   const abilities = d.agents.reduce((n, a) => n + a.abilities.length, 0);
   return {
-    file: "agents.html", nav: "agents", lastmod: "2026-10-30", wide: true,
+    file: "agents.html", nav: "agents", lastmod: "2026-10-31", wide: true,
     title: `요원 ${d.agents.length}명`,
     description: `13의 요원 ${d.agents.length}명을 역할별로 소개합니다. 요원마다 다른 능력 네 가지(Q, E, C, 궁극기 X)의 이름과 효과, 상대하는 법을 담았습니다.`,
     h1: `요원 ${d.agents.length}명`,

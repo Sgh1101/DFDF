@@ -1,5 +1,5 @@
 module.exports = {
-  file: "guide.html", nav: "guide", lastmod: "2026-10-30",
+  file: "guide.html", nav: "guide", lastmod: "2026-10-31",
   title: "게임 소개와 시작하기",
   description: "13은 설치 없이 PC와 스마트폰 브라우저에서 하는 5대5 전술 FPS입니다. 한 라운드의 흐름, 스파이크 설치와 해제, AI와 혼자 하기, 초대 코드로 함께 하기, 랭크와 시즌, 성장과 스킨을 처음부터 설명합니다.",
   h1: "게임 소개와 시작하기",

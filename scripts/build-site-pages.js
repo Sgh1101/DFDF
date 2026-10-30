@@ -7,7 +7,7 @@ const { page, ORIGIN } = require("./site-pages/layout");
 const root = path.resolve(__dirname, ".."), dir = path.join(__dirname, "site-pages");
 // the order here is the order in sitemap.xml
 const PAGES = ["guide", "controls", "modes", "maps", "agents", "patch-notes", "about", "contact", "privacy"];
-const HOME_LASTMOD = "2026-10-30";
+const HOME_LASTMOD = "2026-10-31";
 function data() {
   const f = path.join(dir, "data.json");
   return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null;

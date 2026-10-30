@@ -41,7 +41,7 @@ ${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp" alt="${attr
   };
   const group = (c, title, intro) => `<h2 id="cat-${c}">${title} ${cat(c)}곳</h2><p>${intro}</p><div class="maps">${d.maps.filter((m) => m.cat === c).map(card).join("\n")}</div>`;
   return {
-    file: "maps.html", nav: "maps", lastmod: "2026-10-30", wide: true,
+    file: "maps.html", nav: "maps", lastmod: "2026-10-31", wide: true,
     title: `맵 ${d.maps.length}곳`,
     description: `13의 맵 ${d.maps.length}곳을 크기별(5대5, 소규모 3대3, 1대1)로 소개합니다. 각 맵의 구조와 특징, 공략 팁, 매주 바뀌는 이번 주 맵 규칙까지.`,
     h1: `맵 ${d.maps.length}곳`,

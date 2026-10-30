@@ -1,5 +1,5 @@
 module.exports = {
-  file: "contact.html", nav: "contact", lastmod: "2026-10-30",
+  file: "contact.html", nav: "contact", lastmod: "2026-10-31",
   title: "문의하기",
   description: "13에 대한 문의, 버그 신고, 제안, 후기, 개인정보 삭제 요청을 보내는 곳입니다. 로그인하지 않아도 보낼 수 있고, 답변은 같은 기기에서 다시 확인할 수 있습니다.",
   h1: "문의하기",

@@ -1,5 +1,5 @@
 module.exports = {
-  file: "about.html", nav: "about", lastmod: "2026-10-30",
+  file: "about.html", nav: "about", lastmod: "2026-10-31",
   title: "13 소개",
   description: "13은 설치 없이 브라우저에서 하는 5대5 전술 FPS입니다. 누가 만들고, 무료로 어디까지 즐길 수 있는지, 공정한 플레이와 개인정보를 어떻게 지키는지 소개합니다.",
   h1: "13 소개",
