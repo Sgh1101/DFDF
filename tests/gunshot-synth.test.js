@@ -105,3 +105,58 @@ test("the room impulse is finite, decays, and the indoor room is longer", () => 
   const e = (x, a, b) => { let s = 0; for (let i = Math.floor(a * SR); i < Math.min(x.length, Math.floor(b * SR)); i++) s += x[i] * x[i]; return s; };
   assert.ok(e(indoor, 0.5, 0.6) < e(indoor, 0.05, 0.15) * 0.2, "it dies away");
 });
+
+// A fake audio context that counts what the engine builds: createBuffer is where a take or an impulse response is rendered.
+function fakeContext() {
+  const node = () => ({ connect() {}, disconnect() {}, gain: { value: 0 }, frequency: { value: 0 }, threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, playbackRate: { value: 1 }, start() { this.started = true; } });
+  const c = { sampleRate: 48000, currentTime: 0, buffers: 0, started: 0, destination: node() };
+  for (const n of ["createGain", "createDynamicsCompressor", "createConvolver", "createBiquadFilter"]) c[n] = node;
+  c.createBufferSource = () => { const s = node(); s.start = () => c.started++; return s; };
+  c.createBuffer = (ch, len) => { c.buffers++; const a = new Float32Array(len); return { length: len, getChannelData: () => a, copyToChannel: (x) => a.set(x) }; };
+  return c;
+}
+test("a warmed gun plays its first shot from the cache: nothing is rendered when it is fired", () => {
+  const timers = [], realSet = global.setTimeout;
+  global.setTimeout = (fn) => timers.push(fn);
+  try {
+    const c = fakeContext(), e = G.engine(c, c.destination);
+    assert.equal(e.warmed("rifle"), false);
+    assert.equal(e.warm("rifle"), true, "the first take, then one more");
+    assert.equal(e.warmed("rifle"), false);
+    assert.equal(e.warm("rifle"), false);
+    assert.equal(e.warmed("rifle"), true);
+    e.setRoom("open");
+    const rendered = c.buffers;
+    assert.equal(rendered, 3, "two takes and the room");
+    assert.equal(e.play("rifle", 0), true);
+    assert.equal(c.buffers, rendered, "the first shot renders nothing");
+    assert.equal(c.started, 1);
+    for (const fn of timers.splice(0)) fn();
+    assert.equal(c.buffers, rendered, "no second take is rendered 30 ms later");
+    // the same gun fired cold renders its take now and the second one later: that is the hitch the warm-up removes
+    const cold = fakeContext(), ce = G.engine(cold, cold.destination);
+    ce.setRoom("open");
+    const before = cold.buffers;
+    ce.play("rifle", 0);
+    assert.equal(cold.buffers, before + 1);
+    for (const fn of timers.splice(0)) fn();
+    assert.equal(cold.buffers, before + 2);
+  } finally { global.setTimeout = realSet; }
+});
+test("warming renders the same takes as the first shot would", () => {
+  const timers = [], realSet = global.setTimeout;
+  global.setTimeout = (fn) => timers.push(fn);
+  try {
+    const grab = (warm) => {
+      const c = fakeContext(), made = [];
+      const create = c.createBuffer;
+      c.createBuffer = (ch, len) => { const b = create(ch, len); made.push(b.getChannelData(0)); return b; };
+      const e = G.engine(c, c.destination);
+      if (warm) { while (e.warm("pistol")); } else { e.take("pistol"); for (const fn of timers.splice(0)) fn(); }
+      return made;
+    };
+    const a = grab(true), b = grab(false);
+    assert.equal(a.length, 2);assert.equal(b.length, 2);
+    for (let i = 0; i < 2; i++) assert.ok(a[i].length === b[i].length && a[i].every((v, j) => v === b[i][j]), "take " + i + " is the same sound");
+  } finally { global.setTimeout = realSet; }
+});
