@@ -143,8 +143,15 @@ const DEFAULT_CONFIG = {
   // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
   // under half of loss). 100 RR a division, three divisions a tier; a day's
   // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
-  // only in a ranked room (admin and cheats off) and with at least minHumans people
-  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3 },
+  // only in a ranked room (admin and cheats off) and with at least minHumans people.
+  // Leaving a counted ranked match (on the roster, took a ticket, not there at the end) is a loss for
+  // that account plus leaveRR more; a drop that is back within leaveGraceS seconds is not leaving.
+  // The host watches for a player with no input change for afkWarnS seconds (a warning on his screen),
+  // then afkLeaveS seconds later he is handed to a bot and counts as having left (0 = no AFK check;
+  // ranked rooms only). A team can vote to surrender from round surrenderRound on (the mode's first
+  // surrenderS seconds in the modes without rounds): surrenderVoteS seconds to vote, then surrenderCoolS
+  // before the next try; surrenderRound 0 = no surrender.
+  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3, leaveRR: 8, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
   // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
   // its tier (1 common … 4 legendary); on switches the whole thing
   cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
@@ -736,6 +743,8 @@ function trimPicks(u) {
 
 // ── public actions ──
 const A = {};
+// the rank settings a game needs to run leaving, AFK and surrender (not the RR numbers)
+const publicRank = (R) => { const o = {}; for (const k of ["minHumans", "leaveGraceS", "afkWarnS", "afkLeaveS", "surrenderRound", "surrenderS", "surrenderVoteS", "surrenderCoolS"]) o[k] = Math.max(0, Math.round(+R[k]) || 0); return o; };
 // the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
 const weekMapOf = (c, t) => {
   const m = MAP_WEEK.choose(t, !1 !== c.game.weekMap, c.game.weekMapExclude);
@@ -743,7 +752,7 @@ const weekMapOf = (c, t) => {
 };
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -1738,6 +1747,7 @@ A.match_start = async (q, b) => {
     const rec = m && (await getJ("rm:" + m));
     if (!rec) throw fail(409, "랭크전이 아직 시작되지 않았습니다");
     if (!rec.a.includes(u.id) && !rec.b.includes(u.id)) throw fail(403, "이 랭크전의 참가자가 아닙니다");
+    await leaveSweep(u, m);
     ranked = 1;
     t0 = rec.t0;
     const had = await redis(["GET", "rmt:" + m + ":" + u.id]);
@@ -1746,8 +1756,10 @@ A.match_start = async (q, b) => {
   // only a new ticket counts towards the limit: a refused ask (the client asks a few times before the
   // host has opened a ranked match) or the same ranked ticket asked again does not use it up
   if (fresh && (await limited("mstart:" + u.id, 12, 600))) throw fail(429, "너무 자주 보냈습니다");
-  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", "14400"])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
+  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", String(RESULT_TTL)])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
   fresh && (await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]));
+  // the match this account sits in until he settles it (see leaveSweep)
+  ranked && (await redis(["SET", rmOpenKey(u.id), m, "EX", String(RESULT_TTL)]));
   return { ticket: sign(Object.assign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }, m ? { m } : {})), ranked: !!ranked };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
@@ -1786,7 +1798,7 @@ async function matchTrust(u, ticket) {
 //    on the account); the daily RR cap still applies.
 // Known limit: a host with accounts of his own can still lie about a match: one of them on his
 // team standing by the result outweighs the other team saying it won.
-const RESULT_TTL = 14400,
+const RESULT_TTL = 86400, // a day: a player who left is judged at his next ranked start (leaveSweep)
   // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
   RANKED_GRACE_MS = 60 * 1000;
 // Reads a ranked match for one of its players and records his vote (first one stands). The
@@ -1802,9 +1814,18 @@ async function rankedTally(u, m, b) {
   const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
   const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
   const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
-  // everybody who took a ticket and is not the host must have voted, or the grace has passed
-  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null);
+  // everybody who took a ticket and is not the host must have voted, or the grace has passed (a player the host
+  // reported as having left is not waited for)
+  const gone = Array.isArray(res.lv) ? res.lv : [];
+  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null && !gone.includes(id));
   return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
+}
+function teamAverages(rec, ticketed) {
+  const mean = (list) => {
+    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
+    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
+  };
+  return [mean(rec.a) ?? mean(rec.b) ?? rec.avgA, mean(rec.b) ?? mean(rec.a) ?? rec.avgB];
 }
 async function rankedVerdict(u, trust, b) {
   const t = await rankedTally(u, trust.m, b), { rec, res, team } = t;
@@ -1816,15 +1837,11 @@ async function rankedVerdict(u, trust, b) {
   const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
   // dissent: more than half of a team's ticketed non-host players said "0"; confirmed: one of them said "1"
-  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id));
+  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id) && !(Array.isArray(res.lv) && res.lv.includes(id)));
   const dissent = (list) => voters(list).filter((id) => votes.get(id) === "0").length * 2 > voters(list).length;
   const confirmed = (list) => voters(list).some((id) => votes.get(id) === "1");
   // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
-  const mean = (list) => {
-    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
-    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
-  };
-  const avgA = mean(rec.a) ?? mean(rec.b) ?? rec.avgA, avgB = mean(rec.b) ?? mean(rec.a) ?? rec.avgB;
+  const [avgA, avgB] = teamAverages(rec, ticketed);
   const won = "b" === res.w ? rec.b : rec.a,
     lost = "b" === res.w ? rec.a : rec.b;
   const disputed = dissent(won) || (dissent(lost) && !confirmed(won));
@@ -1835,6 +1852,8 @@ async function rankedVerdict(u, trust, b) {
     why: outcome === "draw" ? "draw" : disputed ? "disputed" : "",
     kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
     humans: ticketed.size,
+    // he left (the host said so): his loss was applied by leaveApply, the report only pays the plain reward
+    left: !!(Array.isArray(res.lv) && res.lv.includes(u.id)),
     mine: team === "a" ? avgA : avgB,
     enemy: team === "a" ? avgB : avgA,
     m: trust.m,
@@ -1847,6 +1866,7 @@ A.ranked_start = async (q, b) => {
   if (await limited("rstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
   const code = roomOf(b.room), room = await getJ("room:" + code);
   if (!room || !room.ranked || room.host !== u.id) throw fail(409, "내가 연 랭크전 방이 아닙니다");
+  await leaveSweep(u, "");
   const list = (v) => (Array.isArray(v) ? v : []).slice(0, 12).map((x) => String(x || "").toLowerCase()).filter((x) => ID_OK.test(x));
   const ta = list(b.a), tb = list(b.b), all = ta.concat(tb);
   if (new Set(all).size !== all.length) throw fail(400, "같은 계정이 두 번 들어 있습니다");
@@ -1866,7 +1886,77 @@ A.ranked_start = async (q, b) => {
   await pipe([["SET", "rm:" + id, JSON.stringify(rec), "EX", String(RESULT_TTL)], ["SET", "rmroom:" + code, id, "EX", String(RESULT_TTL)]]);
   return { id, t0, lv, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
 };
-// the host's result, once: w = "a" | "b" | "draw", k = kills per account
+// ── leaving a ranked match ──
+// A player on the roster who took a ticket and was not there at the end gets a loss from the server, and
+// rank.leaveRR more. The host, who sees the links close and open, reports per roster account how long he was
+// away at the longest and whether he was away at the end (ranked_result's `gone`); the server decides: away at
+// the end, or away for rank.leaveGraceS seconds or more, is leaving; a reconnect inside the window is not.
+// Only an account that took a ticket (so really sat in the room) can be named, never the host himself, and only
+// in a match with at least rank.minHumans of them. If the result never comes, leaveSweep judges the player at
+// his next ranked start: still unsettled then (match_start keeps `rmopen:<id>` until his report is accepted).
+const LEAVE_MAX_S = 14400, rmOpenKey = (id) => "rmopen:" + String(id).toLowerCase();
+async function rankedTicketed(rec, m) {
+  const ids = rec.a.concat(rec.b), got = await pipe(ids.map((id) => ["GET", "rmt:" + m + ":" + id]));
+  return new Set(ids.filter((id, i) => got[i]));
+}
+// the account's loss for the match he left, once (u.rmDone); false when there was nothing to apply
+async function leaveApply(id, m, rec, ticketed, c) {
+  const R = c.rank, extra = Math.max(0, Math.round(+R.leaveRR || 0));
+  for (let attempt = 0; ; attempt++) {
+    const u = await getJ(userKey(id));
+    if (!u || u.guest || !(rec.a.includes(u.id) || rec.b.includes(u.id)) || (Array.isArray(u.rmDone) && u.rmDone.includes(m))) return !1;
+    ensureWallet(u, c);
+    const [avgA, avgB] = teamAverages(rec, ticketed), a = rec.a.includes(u.id);
+    const rr0 = Math.max(0, Math.round(+u.rr || 0)), mmr0 = mmrOf(u), placed0 = placedOf(u), placing = placed0 < PLACE_N, E = eloExpected(a ? avgA : avgB, a ? avgB : avgA), rb = rankView(u);
+    u.rr = rr0;
+    u.mmr = Math.max(0, mmrAfter(mmr0, E, 0, placing) - extra);
+    if (placing) {
+      u.placed = placed0 + 1;
+      u.placed >= PLACE_N && (u.rr = rrFromMMR(u.mmr));
+    } else u.rr = Math.max(0, rr0 + rrDelta(R, !1, E, 0) - extra);
+    u.rmDone = [m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
+    isObj(u.ssn) && (u.ssn.played = (u.ssn.played | 0) + 1);
+    try { await saveUser(u); } catch (e) { if (e.retryUser && attempt < 4) continue; throw e; }
+    if ((await redis(["GET", rmOpenKey(u.id)])) === m) await redis(["DEL", rmOpenKey(u.id)]);
+    if (placedOf(u) >= PLACE_N && isObj(u.ssn)) { try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {} }
+    await ulog(u.id, "match", `랭크 이탈 · 패배 처리 (RR ${rr0} → ${u.rr})`, { rk: 1, ok: 1, left: 1, why: "left", rr: [rr0, u.rr], mmr: [mmr0, u.mmr], pl: u.placed });
+    const p = rankView(u);
+    p.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.tier} ${p.div}`, { user: u.id }));
+    return !0;
+  }
+}
+// At his next ranked start (match_start, or ranked_start for a host): the match this account took a ticket for
+// and never settled. With the host's result, he left if it names him (the penalty may not have gone through at
+// the time); with none, once the match is old enough that the result would be in, he left too, unless the
+// host is gone for everybody (a ticketed player said so: ranked_void), when only the host's own leaving counts.
+async function leaveSweep(u, current) {
+  const key = rmOpenKey(u.id), m = await redis(["GET", key]);
+  if (!m || m === current) return;
+  const drop = async () => { (await redis(["GET", key])) === m && (await redis(["DEL", key])); };
+  const rec = await getJ("rm:" + m);
+  if (!rec || !(rec.a.includes(u.id) || rec.b.includes(u.id))) return drop();
+  const c = await loadConfig(), res = await getJ("rmres:" + m), ticketed = await rankedTicketed(rec, m);
+  let left = !1;
+  if (res) left = Array.isArray(res.lv) && res.lv.includes(u.id);
+  else if (ticketed.size >= Math.max(0, +c.rank.minHumans || 0) && now() - rec.t0 >= MATCH_MIN_MS + RANKED_GRACE_MS) {
+    const claims = await pipe(rec.a.concat(rec.b).filter((id) => id !== rec.host && ticketed.has(id)).map((id) => ["GET", "rmvoid:" + m + ":" + id]));
+    left = !claims.some(Boolean) || u.id === rec.host;
+  }
+  if (left) await leaveApply(u.id, m, rec, ticketed, c);
+  await drop();
+}
+// a ticketed player says the host went away before the match ended (no result will come)
+A.ranked_void = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
+  const m = (await redis(["GET", "rmroom:" + roomOf(b.room)])) || "";
+  if (!m || (await redis(["GET", "rmt:" + m + ":" + u.id])) === null) throw fail(409, "이 랭크전의 참가자가 아닙니다");
+  await redis(["SET", "rmvoid:" + m + ":" + u.id, "1", "EX", String(RESULT_TTL)]);
+  return { ok: !0 };
+};
+// the host's result, once: w = "a" | "b" | "draw", k = kills per account, gone = per account who was away
+// ({ id: { s: longest absence in seconds, end: 1 if away at the end } })
 A.ranked_result = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -1879,9 +1969,21 @@ A.ranked_result = async (q, b) => {
   if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
   const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = Object.create(null);
   for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
+  const c = await loadConfig(), grace = Math.max(0, +c.rank.leaveGraceS || 0), canon = new Map(rec.a.concat(rec.b).map((id) => [id.toLowerCase(), id]));
+  const ticketed = await rankedTicketed(rec, t.m), lv = [];
+  if (isObj(b.gone) && ticketed.size >= Math.max(0, +c.rank.minHumans || 0))
+    for (const key of Object.keys(b.gone).slice(0, 24)) {
+      const id = canon.get(String(key).toLowerCase()), g = b.gone[key];
+      if (!id || id === rec.host || !ticketed.has(id) || !isObj(g) || lv.includes(id)) continue;
+      (g.end || Math.max(0, Math.min(LEAVE_MAX_S, +g.s || 0)) >= grace) && lv.push(id);
+    }
   // the first result stands; a second one is ignored
-  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now() }), "NX", "EX", String(RESULT_TTL)])) !== null;
-  return { accepted: first, duplicate: !first, w: first ? b.w : JSON.parse(await redis(["GET", "rmres:" + t.m])).w };
+  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now(), lv }), "NX", "EX", String(RESULT_TTL)])) !== null;
+  const res = first ? { w: b.w, lv } : JSON.parse(await redis(["GET", "rmres:" + t.m]));
+  // a loss for each who left; one that cannot be saved now is judged again at his next ranked start
+  let applied = 0;
+  for (const id of res.lv || []) { try { (await leaveApply(id, t.m, rec, ticketed, c)) && applied++; } catch (e) {} }
+  return { accepted: first, duplicate: !first, w: res.w, left: (res.lv || []).length, applied };
 };
 // may this account walk into that ranked room? Only the answer and the room's rounded band leave
 A.ranked_can_join = async (q, b) => {
@@ -2021,8 +2123,9 @@ A.progress = async (q, b) => {
   // a free-for-all (the server's own list, GAME_RULES.ffaMode) has no sides: its s is [my kills, the top kills], so equal kills
   // is not a draw there; the placing decides, as the game reports it
   const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && !GAME_RULES.ffaMode(b.match.mode) && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
-  const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
-    win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
+  const quit = !!(rkv && rkv.left);
+  const kills = trust.ok && !quit ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
+    win = trust.ok && !draw && !quit && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   ensureWallet(u, c);
   // the day's ceilings, counted from midnight in Korea: gold, XP and Champion coins each have their own
@@ -2065,8 +2168,8 @@ A.progress = async (q, b) => {
   const rb = rankView(u),
     humans = rkv ? rkv.humans : 0,
     dup = !!(rkv && Array.isArray(u.rmDone) && u.rmDone.includes(rkv.m)),
-    rankedOk = !!(rkv && rkv.counted && !dup && humans >= Math.max(0, +R.minHumans || 0)),
-    rankedWhy = rkv ? (dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
+    rankedOk = !!(rkv && rkv.counted && !dup && !quit && humans >= Math.max(0, +R.minHumans || 0)),
+    rankedWhy = rkv ? (quit ? "left" : dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
   const mmr0 = mmrOf(u);
   if (rankedOk) {
     u.rr = rr0;
@@ -2103,6 +2206,8 @@ A.progress = async (q, b) => {
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
   const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
+  // settled: this match no longer waits to be judged as a leave
+  trust.ranked && (await redis(["GET", rmOpenKey(u.id)])) === trust.m && (await redis(["DEL", rmOpenKey(u.id)]));
   // the season board: a placed account that counted a ranked match this season
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
     try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}

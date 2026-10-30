@@ -157,6 +157,8 @@
 
   // the host's result: the winning side and every roster account's kills
   async function sendResult(rec, m) {
+    // who was away, taken at the moment the match ended (119-ranked-leaving...): the server decides who left
+    const gone = RK.leave && RK.leave.report ? RK.leave.report() : undefined;
     const info = await rec.start;
     if (!info) return;
     const canon = new Map(info.a.concat(info.b).map((id) => [id.toLowerCase(), id])),
@@ -172,7 +174,7 @@
       w = "draw" === m.outcome ? "draw" : "win" === m.outcome ? mine : "a" === mine ? "b" : "a";
     for (let i = 0; i < 5; i++) {
       try {
-        await AC().api("ranked_result", { token: sess().token, rm: info.rm, w, k });
+        await AC().api("ranked_result", { token: sess().token, rm: info.rm, w, k, gone });
         return;
       } catch (e) {
         // 4xx other than a rate limit will not get better by asking again
