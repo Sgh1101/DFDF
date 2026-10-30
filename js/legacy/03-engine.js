@@ -16316,18 +16316,23 @@ function packActor(e) {
     Math.round(e.ultCharge || 0),
   ];
 }
+// a remote body's sample goes into its buffer, stamped with the host's time (see interpRemote); the first one places it
+function netSample(e, t) {
+  const b = (e.net = e.net || {}).buf || (e.net.buf = []),
+    x = Q.unpos(t[1]),
+    y = Q.unpos(t[2]),
+    z = Q.unpos(t[3]),
+    yaw = Q.unang(t[4]),
+    pitch = Q.unang(t[5]);
+  (b.push({ T: NET.clk ? NET.clk.stamp : performance.now(), x, y, z, yaw, pitch }),
+    b.length > 16 && b.shift(),
+    1 === b.length && ((e.pos.x = x), (e.y = y), (e.pos.z = z), (e.yaw = yaw), (e.pitch = pitch)));
+}
 function applyActor(e, t, o) {
   const a = Q.unpos(t[1]),
     n = Q.unpos(t[2]),
     r = Q.unpos(t[3]);
-  if (o) {
-    const b = (e.net = e.net || {}).buf || (e.net.buf = []),
-      yaw = Q.unang(t[4]),
-      pitch = Q.unang(t[5]);
-    (b.push({ T: NET.clk ? NET.clk.stamp : performance.now(), x: a, y: n, z: r, yaw, pitch }),
-      b.length > 16 && b.shift(),
-      1 === b.length && ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = yaw), (e.pitch = pitch)));
-  } else ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4])), (e.pitch = Q.unang(t[5])));
+  o ? netSample(e, t) : ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4])), (e.pitch = Q.unang(t[5])));
   ((e.hp = t[6]), (e.armor = t[7]));
   const s = t[8];
   ((e.alive = !!(s & AF.ALIVE)),
@@ -16340,6 +16345,27 @@ function applyActor(e, t, o) {
     e.weapons || (e.weapons = { primary: null, secondary: "pistol" }));
   const i = WKEYS[t[9]] || "pistol";
   ((e.netWeapon = i), e.ammo || (e.ammo = {}), (e.ammo[i] = t[10]));
+}
+// What the host tells a guest about its own body, with its position in the snapshot: [id, the last input seq the host moved it
+// by, bits, slow x100, speed buff x100, tag slow ms] with the values at their default left off the end. The guest compares the
+// position with where it had the body after that input (reconcileLocal), and takes over the things that move a body here
+// that it cannot know: bit 1 rooted, 2 concussed, 4 moved by the host (a zipline, a swing, a pull) and not by the guest's input.
+const NET_ACK_DEF = [0, 0, 0, 100, 100, 0],
+  NET_HOSTMOVED = (a) => !!(a._zip || a.__zip || a.__carry || a.__climbT > 0 || (a.__swing && !a.__swing.done));
+function netAckable(a) {
+  return null != a.simSeq && isGuestBody(a);
+}
+function netAck(a) {
+  const r = [
+    a.id,
+    a.simSeq,
+    (a.root > 0 ? 1 : 0) | (a.concuss > 0 ? 2 : 0) | (NET_HOSTMOVED(a) ? 4 : 0),
+    Math.round(100 * (a.slow || 1)),
+    Math.round(100 * (a.speedBuff || 1)),
+    a._tagT > 0 ? Math.round(1e3 * a._tagT) : 0,
+  ];
+  while (r.length > 2 && r[r.length - 1] === NET_ACK_DEF[r.length - 1]) r.pop();
+  return r;
 }
 function buildSnapshot(includeEffects = true) {
   const e = world.spike;
@@ -16366,10 +16392,14 @@ function buildSnapshot(includeEffects = true) {
       e.halfDefused ? 1 : 0,
     ],
     a: world.actors.map(packActor),
+    ak: world.actors.filter(netAckable).map(netAck),
     fx: includeEffects ? drainFX() : [],
   };
 }
 const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
+// The host stamps each snapshot with its own clock (ht, ms). The guest keeps the offset between the two clocks as the largest
+// (ht - arrival time) seen lately, i.e. that of the snapshot that was least delayed on the way; it falls 20 ms a second so a
+// link that has become slower is followed. An old host sends no ht: the arrival time stands in for it.
 function netClockSample(ht) {
   const now = performance.now(),
     c = NET.clk || (NET.clk = { off: null, at: now, stamp: now });
@@ -16394,16 +16424,17 @@ function applySnapshot(e) {
     (t.z = Q.unpos(e.sk[2])),
     (t.timer = e.sk[3] / 10),
     (t.halfDefused = !!e.sk[4]));
-  const o = new Set();
+  const o = new Set(),
+    ak = e.ak;
   for (const t of e.a) {
-    let e = actorById(t[0]);
-    (e || (e = spawnRemoteActor(t[0])),
+    let a = actorById(t[0]);
+    (a || (a = spawnRemoteActor(t[0])),
       o.add(t[0]),
-      "me" === e.ctrl ? reconcileLocal(e, t) : applyActor(e, t, !0),
-      null != t[11] && (e.ultCharge = t[11]));
+      "me" === a.ctrl ? reconcileLocal(a, t, ak && ak.find((r) => r[0] === t[0])) : applyActor(a, t, !0),
+      null != t[11] && (a.ultCharge = t[11]));
   }
-  for (const e of world.actors)
-    !o.has(e.id) && e.group && (e.group.visible = !1);
+  for (const a of world.actors)
+    !o.has(a.id) && a.group && (a.group.visible = !1);
   e.fx && e.fx.length && playRemoteFX(e.fx);
 }
 let _fx = [];
@@ -16694,21 +16725,65 @@ function interpRemote(e, t) {
   const keep = Math.max(0, i - 2);
   keep > 0 && b.splice(0, keep);
 }
-function reconcileLocal(e, t) {
+// The guest moves its own body (simMove) with the inputs it sends and keeps where each left it (e._hist). A snapshot says which
+// input the host had moved the body by (ack) and where that left it: the difference is what the guest got wrong (a slow it did
+// not know of, a door, a push), and only that is corrected, a third of it per snapshot, in the history too so that it is not
+// corrected twice. Without an ack (an old host) the body is pulled 18% toward where the host had it, as before. A body the host
+// moves itself is drawn from the snapshots like a remote one.
+function reconcileLocal(e, t, ack) {
   const o = t[1] / 100,
     a = t[2] / 100,
     n = t[3] / 100,
     r = Math.hypot(e.pos.x - o, e.pos.z - n);
-  (r > 2.5
-    ? ((e.pos.x = o), (e.y = a), (e.pos.z = n))
-    : r > 0.05 &&
-      ((e.pos.x += 0.18 * (o - e.pos.x)),
-      (e.y += 0.18 * (a - e.y)),
-      (e.pos.z += 0.18 * (n - e.pos.z))),
-    (e.hp = t[6]),
-    (e.armor = t[7]));
+  if (!ack) {
+    (r > 2.5
+      ? ((e.pos.x = o), (e.y = a), (e.pos.z = n))
+      : r > 0.05 &&
+        ((e.pos.x += 0.18 * (o - e.pos.x)),
+        (e.y += 0.18 * (a - e.y)),
+        (e.pos.z += 0.18 * (n - e.pos.z))),
+      (e.hp = t[6]),
+      (e.armor = t[7]));
+    const s = t[8];
+    return void ((e.alive = !!(s & AF.ALIVE)), (e.hasSpike = !!(s & AF.SPIKE)));
+  }
+  const bits = ack[2] | 0;
+  ((e.hp = t[6]), (e.armor = t[7]));
   const s = t[8];
   ((e.alive = !!(s & AF.ALIVE)), (e.hasSpike = !!(s & AF.SPIKE)));
+  // what moves the body here that only the host knows
+  ((e.slow = null == ack[3] ? 1 : ack[3] / 100), (e.speedBuff = null == ack[4] ? 1 : ack[4] / 100));
+  (bits & 1 ? e.root > 0 || ((e.root = 0.5), (e._netRoot = !0)) : e._netRoot && ((e.root = 0), (e._netRoot = !1)),
+    bits & 2 ? e.concuss > 0 || ((e.concuss = 0.001), (e._netConc = !0)) : e._netConc && ((e.concuss = 0), (e._netConc = !1)),
+    ack[5] > 0 && (e._tagT = Math.max(e._tagT || 0, ack[5] / 1e3)));
+  if (bits & 4) {
+    e._hostDriven || ((e._hostDriven = !0), (e._hist = null), (e.net = { buf: [] }));
+    return void netSample(e, t);
+  }
+  if (e._hostDriven) {
+    const b = e.net && e.net.buf,
+      l = b && b[b.length - 1];
+    ((e._hostDriven = !1), (e._hist = null), l && ((e.pos.x = l.x), (e.y = l.y), (e.pos.z = l.z)), e.net && (e.net.buf = []));
+  }
+  if (!e.alive) return void (e._hist = null);
+  const H = e._hist;
+  let i = -1;
+  if (H) for (let k = H.length - 1; k >= 0; k--) if (H[k].seq === ack[1]) { i = k; break; }
+  if (i < 0) return void (r > 2.5 && ((e.pos.x = o), (e.y = a), (e.pos.z = n), (e._hist = null)));
+  i > 0 && H.splice(0, i);
+  const h = H[0],
+    dx = o - h.x,
+    dy = a - h.y,
+    dz = n - h.z,
+    err = Math.hypot(dx, dz),
+    k = err > 2.5 || Math.abs(dy) > 2.5 ? 1 : err > 0.02 || Math.abs(dy) > 0.03 ? 0.3 : 0;
+  if (k) {
+    const cx = dx * k,
+      cy = dy * k,
+      cz = dz * k;
+    ((e.pos.x += cx), (e.y += cy), (e.pos.z += cz));
+    for (const q of H) ((q.x += cx), (q.y += cy), (q.z += cz));
+  }
 }
 function shotKindOf(e) {
   const t = WEAPONS[e];
@@ -18568,7 +18643,8 @@ function requestOpt(e, t) {
 const SNAP_HZ = 20,
   INPUT_HZ = 60;
 let _snapAcc = 0,
-  _inputAcc = 0;
+  _inputAcc = 0,
+  _inputDs = [];
 function isHost() {
   return "client" !== NET.mode;
 }
@@ -18587,7 +18663,9 @@ function netStep(e) {
       const e = gatherInput();
       ((t.input.mv = e.mv), (t.input.btn = e.btn));
     }
-    for (const t of world.actors) (t.alive && simMove(t, e), syncActorModel(t));
+    for (const t of world.actors)
+      (t.alive ? (t.inq && isGuestBody(t) ? guestMoves(t, e) : simMove(t, e)) : t.inq && t.inq.length && ((t.simSeq = t.inq[t.inq.length - 1].seq), (t.inq.length = 0)),
+        syncActorModel(t));
     for (const t of world.actors) t.alive && resolveActions(t, e);
     "host" === NET.mode &&
       ((_snapAcc += e),
@@ -18595,10 +18673,16 @@ function netStep(e) {
       _snapAcc >= 0.05 - 1e-6 &&
         ((_snapAcc = Math.min(_snapAcc - 0.05, 0.025)), sendSnapshot(buildSnapshot())));
   } else {
-    if (((_inputAcc += e), _inputAcc >= 1 / 60 - 1e-6)) {
+    // The input goes with the time it covers (dt, in 0.1 ms; ds lists the frames when it covers more than one) so that the host
+    // moves the body by the same steps, and the body is kept where the input left it (see reconcileLocal).
+    const dq = Math.max(1e-4, Math.round(e * 1e4) / 1e4);
+    ((_inputAcc += e), _inputDs.length < 8 && _inputDs.push(Math.round(dq * 1e4)));
+    let msg = null;
+    if (_inputAcc >= 1 / 60 - 1e-6) {
       _inputAcc = Math.min(_inputAcc - 1 / 60, 1 / 120);
-      const e = gatherInput();
-      ((e.t = "in"), (e.seq = ++_inputSeq), sendInput(e));
+      ((msg = gatherInput()), (msg.t = "in"), (msg.seq = ++_inputSeq), (msg.dt = _inputDs.reduce((a, b) => a + b, 0)));
+      (_inputDs.length > 1 && (msg.n = _inputDs.length), _inputDs.length > 1 && (msg.ds = _inputDs));
+      _inputDs = [];
     }
     if (t && t.alive) {
       {
@@ -18608,13 +18692,17 @@ function netStep(e) {
           (t.input.yaw = t.yaw),
           (t.input.pitch = t.pitch));
       }
-      simMove(t, e);
-    }
+      if (!t._hostDriven) {
+        simMove(t, dq);
+        msg && ((t._hist || (t._hist = [])).push({ seq: msg.seq, x: t.pos.x, y: t.y, z: t.pos.z }), t._hist.length > 240 && t._hist.shift());
+      }
+    } else t && (t._hist = null);
+    msg && sendInput(msg);
     try {
       (camera.updateMatrixWorld(), updateFrustum());
     } catch (e) {}
     for (const o of world.actors)
-      (o !== t && interpRemote(o, e), syncActorModel(o));
+      ((o !== t || o._hostDriven) && interpRemote(o, e), syncActorModel(o));
   }
   t && t.alive && followCamera(t, e);
 }
@@ -18968,6 +19056,37 @@ function hostLeftNotice() {
     hideAll(),
     show("s-title"));
 }
+// A guest's body is moved by the inputs the guest sent, each for the time it covered there, so that the host and the guest step
+// the body alike and the guest's prediction matches (reconcileLocal). The host's own time pays for it: a guest cannot move
+// faster than real time (a bank of at most 0.5 s), and inputs that piled up behind a slow link are caught up at once. An input
+// without a dt (an old guest) moves the body by the host's frame as before. o.simSeq is the last input the body was moved by.
+function netQueueInput(o, m) {
+  const ds = Array.isArray(m.ds) ? m.ds : null,
+    n = ds ? ds.length : 1,
+    ok = Number.isInteger(m.dt) && m.dt > 0 && m.dt <= 1e3 && (!ds || (n <= 8 && ds.every((x) => Number.isInteger(x) && x > 0) && ds.reduce((a, b) => a + b, 0) === m.dt));
+  if (!ok) return void ((o.inq = null), (o.simSeq = null));
+  const q = o.inq || (o.inq = []);
+  (q.push({ seq: m.seq, mv: m.mv, btn: m.btn, yaw: m.yaw, pitch: m.pitch, ds: (ds || [m.dt]).map((x) => x / 1e4), dt: m.dt / 1e4 }),
+    q.length > 90 && q.splice(0, q.length - 60),
+    null == o.simSeq && (o.simSeq = 0));
+}
+function guestMoves(t, e) {
+  const now = performance.now(),
+    q = t.inq;
+  ((t._bank = Math.min(0.5, (null == t._bank ? 0.1 : t._bank) + (t._bankT ? (now - t._bankT) / 1e3 : e))), (t._bankT = now));
+  if (!q.length) return;
+  const mv = t.input.mv,
+    btn = t.input.btn,
+    yaw = t.yaw,
+    pitch = t.pitch;
+  while (q.length && t._bank + 1e-9 >= q[0].dt) {
+    const i = q.shift();
+    ((t._bank -= i.dt), (t.input.mv = i.mv), (t.input.btn = i.btn), (t.yaw = i.yaw), (t.pitch = i.pitch));
+    for (const d of i.ds) simMove(t, d);
+    t.simSeq = i.seq;
+  }
+  ((t.input.mv = mv), (t.input.btn = btn), (t.yaw = yaw), (t.pitch = pitch));
+}
 ((NET.onInput = (e, t) => {
   if (!GAME_RULES.validInput(t)) return;
   const o = world.actors.find((t) => t.ctrl === e);
@@ -18977,7 +19096,9 @@ function hostLeftNotice() {
       (o.input.mv = t.mv),
       (o.input.btn = t.btn),
       (o.yaw = t.yaw),
-      (o.pitch = t.pitch)));
+      (o.pitch = t.pitch),
+      o._inPeer !== e && ((o._inPeer = e), (o.inq = null), (o.simSeq = null)),
+      netQueueInput(o, t)));
 }),
   (NET.onAction = (e, t) => {
     switch (t.t) {
