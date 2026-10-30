@@ -112,6 +112,13 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .mr .mb2 i{display:block;height:5px;border-radius:99px;background:#0d121a;border:1px solid var(--line);overflow:hidden}.mr .mb2 i u{display:block;height:100%;background:var(--mc,#8a97ab);text-decoration:none}
 .mr .mb2 small{display:block;margin-top:3px;font-size:10.5px;color:var(--steel)}
 .mr .mw{font-size:11px;color:var(--steel);text-align:right;white-space:nowrap}
+.pr{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:8px 12px;margin-bottom:5px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.pr .pb{height:30px;border-radius:8px;display:grid;place-items:center;font:700 12px var(--fd);background:#0d121a;border:1px solid var(--line);color:var(--steel);white-space:nowrap}
+.pr .pn{min-width:0}.pr .pn b{display:block;font-size:13.5px}.pr .pn small{display:block;font-size:10.5px;color:var(--steel)}
+.pr .pn i{display:block;height:5px;margin-top:5px;border-radius:99px;background:#0d121a;border:1px solid var(--line);overflow:hidden}.pr .pn i u{display:block;height:100%;background:var(--gold);text-decoration:none}
+.pr .pw{font-size:11px;color:var(--steel);text-align:right;white-space:nowrap}.pr .pw b{display:block;color:var(--gold);font-size:12px}
+.pr.on{border-color:#5c4b1f;background:linear-gradient(90deg,rgba(255,200,73,.08),transparent 60%),var(--panel)}.pr.on .pb{color:var(--gold);border-color:#5c4b1f}
+.pr.next{border-style:dashed}.prn{margin:0 4px 8px;font-size:11.5px;color:var(--steel)}
 .mast .more{display:block;width:100%;margin-top:4px;padding:8px;border-radius:12px;border:1px dashed var(--line);background:none;color:var(--steel);font-size:12px;cursor:pointer}
 .mast .more:hover{border-color:var(--steel);color:var(--ink)}
 .mast .empty{padding:14px;text-align:center;color:var(--steel-dim);font-size:12px;border:1px dashed var(--line);border-radius:12px}
@@ -183,6 +190,7 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
 <script src="./js/order.js"></script>
 <script src="./js/cosmetics.js"></script>
 <script src="./js/agent-mastery.js"></script>
+<script src="./js/progression-text.js"></script>
 </head>
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
@@ -242,6 +250,8 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
   </div>
 
   <div class="hist mast" id="mast" hidden><h3 data-t="mastTitle"></h3><div id="mastList"></div></div>
+  <div class="hist mast" id="lvr" hidden><h3 data-t="lvrTitle"></h3><div id="lvrList"></div></div>
+  <div class="hist mast" id="ach" hidden><h3 data-t="achTitle"></h3><div id="achList"></div></div>
 
   <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
 
@@ -265,6 +275,7 @@ const T = {
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
     order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
+    lvrTitle: "레벨 보상", achTitle: "업적", fwName: "오늘의 첫 승리 보너스", fwReady: "오늘 받을 수 있음", fwDone: "오늘 받음", lvEach: (g) => `레벨이 오를 때마다 🪙 ${g}`, lvReached: "달성", lvGap: (n) => `${n}레벨 남음`, achDone: "달성",
     mastTitle: "요원 숙련도", mastEmpty: "아직 숙련도가 없습니다. 요원으로 한 판 하면 그 요원의 숙련도가 쌓입니다", mastMore: (n) => `전체 보기 (${n}명)`, mastLess: "접기", mastRec: (m, w) => `${m}경기 · ${w}승`, mastMax: "최고 단계", roles: {},
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
     modes: { std: "일반전", swift: "신속플레이", rush: "스파이크 돌격", tdm: "팀 데스매치", dm: "데스매치", knife: "칼 대난투", gun: "총기 순환", range: "표적 사격", hill: "점령전", ctf: "깃발 탈취", zone: "축소전", inf: "감염" },
@@ -273,13 +284,15 @@ const T = {
     offline: "지금은 계정 서버에 연결할 수 없습니다. 게스트로 들어가면 혼자 하기와 코드 참가는 그대로 됩니다.",
     about: "게임", privacy: "개인정보처리방침", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
     ranks: ["신병", "요원", "정예 요원", "베테랑", "에이스", "전설"],
-    feat: ["<b>모드 11종</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치·칼 대난투·총기 순환·감염·점령전·깃발 탈취·축소전", "<b>요원 28명</b> — 능력 112개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 22곳</b> — 5대5 11곳 · 소규모 3대3 8곳 · 1대1 3곳. 2층이 있는 포구, 밤의 항구, 옥상이 이어진 도시", "<b>총 18종 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>총 스킨 뽑기</b> — 경기마다 골드, 스킨 30종 × 총 18종을 뽑기로. 등급이 높을수록 모션과 연출이 화려해집니다", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
+    featWeek: " · 매주 바뀌는 이번 주 맵 1곳",
+    feat: ["<b>모드 11종</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치·칼 대난투·총기 순환·감염·점령전·깃발 탈취·축소전", "<b>요원 28명</b> — 능력 112개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 22곳</b> — 5대5 11곳 · 소규모 3대3 8곳 · 1대1 3곳{wk}. 2층이 있는 포구, 밤의 항구, 옥상이 이어진 도시", "<b>총 18종 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>총 스킨 뽑기</b> — 경기마다 골드, 스킨 30종 × 총 18종을 뽑기로. 등급이 높을수록 모션과 연출이 화려해집니다", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
   },
   en: {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
     order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
+    lvrTitle: "Level rewards", achTitle: "Achievements", fwName: "First win of the day", fwReady: "Available today", fwDone: "Taken today", lvEach: (g) => `Every level gained pays 🪙 ${g}`, lvReached: "Reached", lvGap: (n) => `${n} level${n > 1 ? "s" : ""} to go`, achDone: "Done",
     mastTitle: "Agent mastery", mastEmpty: "No mastery yet. Play a match with an agent and it builds up for that agent", mastMore: (n) => `Show all (${n} agents)`, mastLess: "Show less", mastRec: (m, w) => `${m} matches · ${w} wins`, mastMax: "Max level", roles: { 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" },
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
     modes: { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" },
@@ -288,7 +301,8 @@ const T = {
     offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
     about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
     ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
-    feat: ["<b>11 modes</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch, Knife Fight, Gun Game, Infection, Conquest, Capture the Flag, Shrinking Zone", "<b>28 agents</b> — 112 abilities, no two alike", "<b>22 maps</b> — 11 for 5v5, 8 small 3v3, 3 duels: Pogu with real second floors, a harbor at night, a city of rooftops, a three-floor abandoned hospital maze", "<b>18 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 30 skins × 18 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
+    featWeek: ", plus a map of the week that changes every Monday",
+    feat: ["<b>11 modes</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch, Knife Fight, Gun Game, Infection, Conquest, Capture the Flag, Shrinking Zone", "<b>28 agents</b> — 112 abilities, no two alike", "<b>22 maps</b> — 11 for 5v5, 8 small 3v3, 3 duels{wk}: Pogu with real second floors, a harbor at night, a city of rooftops, a three-floor abandoned hospital maze", "<b>18 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 30 skins × 18 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
   },
 };
 let L = localStorage.getItem("lgp_lang") || ((navigator.language || "ko").startsWith("ko") ? "ko" : "en");
@@ -308,7 +322,7 @@ function paintLang() {
   $("#uid").placeholder = t("idPh"); $("#upw").placeholder = t("pwPh");
   $("#lang").textContent = L === "ko" ? "English" : "한국어";
   window.PROMO && PROMO.paint();
-  $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x}</li>`).join("");
+  drawFeat();
   drawEnter();
   CFG && (drawMe(), drawNotices());
 }
@@ -333,7 +347,7 @@ async function api(a, b) {
 function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
 // a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
-function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
+function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = $("#lvr").hidden = $("#ach").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -401,6 +415,7 @@ function drawMe() {
     $("#ssnEndOk").onclick = () => { try { localStorage.setItem("lgp_ssn_seen", String(last.n)); } catch (e) {} $("#ssnEnd").hidden = true; };
   }
   drawMast();
+  drawProg();
   drawHist();
 }
 // a tier badge: a gem in the tier's colour, more points the higher, a pip a division
@@ -431,6 +446,33 @@ function drawMast() {
   $("#mastList").innerHTML = rows.length ? shown.map(row).join("") + (rows.length > 5 ? `<button type="button" class="more" id="mastMore">${esc(MAST_ALL ? t("mastLess") : t("mastMore", rows.length))}</button>` : "") : `<div class="empty">${esc(t("mastEmpty"))}</div>`;
   const more = $("#mastMore");
   more && (more.onclick = () => { MAST_ALL = !MAST_ALL; drawMast(); });
+}
+// level rewards and achievements. The server pays them (only for a match with a valid ticket); the numbers here are the
+// owner's, from the public config, and the account's own progress, from its user
+function drawProg() {
+  const u = S && S.user, R = CFG && CFG.rewards, shown = !!u && typeof u.gold === "number" && !!R && !$("#v-dash").hidden;
+  const lv = shown && R.lv && R.lv.on, fw = shown && R.firstWin && R.firstWin.on, ach = shown && R.ach && R.ach.on && Array.isArray(u.ach) && u.ach.length;
+  $("#lvr").hidden = !(lv || fw); $("#ach").hidden = !ach;
+  if (lv || fw) {
+    const lvl = u.level || 1, cos = (id) => { const x = window.COSMETICS && COSMETICS.by[id]; return x ? COSMETICS.slotName(x.s) + " · " + COSMETICS.name(x) : ""; };
+    const rows = [];
+    if (fw) rows.push(`<div class="pr ${u.fw ? "" : "on"}" id="fwRow"><span class="pb">1st</span><div class="pn"><b>${esc(t("fwName"))}</b><small>${esc(R.firstWin.gold ? "🪙 " + R.firstWin.gold : "")}${R.firstWin.gold && R.firstWin.xp ? " · " : ""}${esc(R.firstWin.xp ? R.firstWin.xp + " XP" : "")}</small></div><div class="pw">${esc(t(u.fw ? "fwDone" : "fwReady"))}</div></div>`);
+    if (lv) {
+      const ms = R.lv.ms || [], gap = ms.find((m) => m.lv > lvl);
+      rows.push(`<div class="prn">${esc(t("lvEach", R.lv.gold))}</div>`);
+      for (const m of ms) {
+        const got = lvl >= m.lv;
+        rows.push(`<div class="pr ${got ? "on" : gap === m ? "next" : ""}" data-lv="${m.lv}"><span class="pb">Lv ${m.lv}</span><div class="pn"><b>${esc(m.cos ? cos(m.cos) : "🪙")}</b><small>${esc("🪙 " + (R.lv.gold + R.lv.milestoneGold))}</small></div><div class="pw">${esc(got ? t("lvReached") : t("lvGap", m.lv - lvl))}</div></div>`);
+      }
+    }
+    $("#lvrList").innerHTML = rows.join("");
+  }
+  if (ach) {
+    $("#achList").innerHTML = u.ach.map((a) => {
+      const w = window.PROGRESSION ? PROGRESSION.ach(a.id) : { name: a.id, desc: "" }, done = !!a.got, pct = Math.round(100 * Math.min(1, (a.have | 0) / Math.max(1, a.n)));
+      return `<div class="pr ${done ? "on" : ""}" data-ach="${esc(a.id)}"><span class="pb">${done ? "✓" : a.have + "/" + a.n}</span><div class="pn"><b>${esc(w.name)}</b><small>${esc(w.desc)}</small>${done ? "" : `<i><u style="width:${pct}%"></u></i>`}</div><div class="pw"><b>🪙 ${a.gold}</b>${done ? esc(t("achDone")) : ""}</div></div>`;
+    }).join("");
+  }
 }
 // the modes without sides (the same list the server reads, js/game-rules.js): they show the placing and the kills
 const FFA = ["dm", "knife", "gun", "zone", "range"];
@@ -483,13 +525,15 @@ async function auth(guest) {
 $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
 $("#uid").onkeydown = (e) => { if (e.key === "Enter") $("#upw").focus(); };
+// the feature list; its map line also names the map of the week while the server has one (js/map-week.js)
+function drawFeat() { $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x.replace("{wk}", CFG && CFG.weekMap ? T[L].featWeek : "")}</li>`).join(""); }
 // the announcement and the promo film come up in the middle once, right after signing in (js/notice-popup.js)
 function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.auto(); }
 (async () => {
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
   window.NOTICE && NOTICE.configure(CFG.game);
-  drawNotices();
+  drawNotices(); drawFeat();
   const offlineGuest = (() => { try { return !!S && !S.token && sessionStorage.getItem("lgp_gate") === "offline"; } catch (e) { return !1; } })();
   if (S && S.token && !gatePassed()) {
     // ask again; the last id is filled in

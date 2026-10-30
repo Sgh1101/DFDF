@@ -4,8 +4,20 @@ const root=path.resolve(__dirname,'..'),pkg=require('../package.json');
 const smoke=['test:startup','test:browser','test:legacy-models','test:improvements','test:mobile-preview','test:network-recovery','test:ascent-abilities','test:ability-floors'];
 const all=Object.keys(pkg.scripts).filter(k=>/^(test:|audit:)/.test(k)&&/^node scripts\/browser-/.test(pkg.scripts[k]));
 const only=process.argv.find(a=>a.startsWith('--only='));
-const jobs=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;
-for(const name of jobs)if(!all.includes(name))throw Error('Unknown browser check: '+name);
+const picked=only?only.slice(7).split(','):process.argv.includes('--full')?all:smoke;
+for(const name of picked)if(!all.includes(name))throw Error('Unknown browser check: '+name);
+// --shard=I/N runs the I-th (1-based) of N parts of the list: CI spreads a run over N machines this way. The parts are
+// balanced by the seconds each check took in CI (scripts/browser-durations.json, from the runs' "durations" notices; a
+// check not in it counts as a minute): the longest first, each to the part with the least so far. Every machine works
+// out the same parts; a check keeps its place in the list within its part.
+const shard=/^--shard=(\d+)\/(\d+)$/.exec(process.argv.find(a=>a.startsWith('--shard='))||'');
+if(shard&&!(+shard[1]>=1&&+shard[1]<=+shard[2]))throw Error('Bad --shard: '+shard[0]);
+let jobs=picked;
+if(shard){
+ const n=+shard[2],dur=require('./browser-durations.json'),sec=name=>dur[name]??60,load=Array(n).fill(0),part=new Map();
+ for(const name of picked.slice().sort((a,b)=>sec(b)-sec(a)||a.localeCompare(b))){const i=load.indexOf(Math.min(...load));part.set(name,i);load[i]+=sec(name);}
+ jobs=picked.filter(name=>part.get(name)===+shard[1]-1);
+}
 const out=path.resolve(process.env.DFDF_AUDIT_DIR||'test-results/browser-suite');fs.mkdirSync(out,{recursive:true});
 const env={...process.env,DFDF_BOOT_TIMEOUT:process.env.DFDF_BOOT_TIMEOUT||'120000'};
 env.DFDF_THREE_PATH ||= path.join(path.dirname(require.resolve('three')), 'three.min.js');
@@ -36,6 +48,8 @@ async function main(){
   if(row.passed&&attempt>0){row.flaky=attempt;fs.writeFileSync(report,JSON.stringify(rows,null,2));annotate('warning',name+' flaky','failed '+attempt+'x, then passed on a retry. The first try ended:\n'+first.slice(-2500));}
   if(!row.passed){const tail=tailOf(name);console.error(tail);annotate('error',name+' failed',tail.slice(-3000));if(!keepGoing)throw Error(name+' failed');failed.push(name);}
  }
+ // how long each check took here (its last try), readable through the checks API, to balance the shards by
+ annotate('notice','durations',jobs.map(n=>{const r=rows.find(x=>x.name===n);return r?n+' '+r.seconds+'s'+(r.flaky?' (retried)':r.passed?'':' (failed)'):'';}).filter(Boolean).join('\n'));
  if(failed.length)throw Error(failed.length+' browser check(s) failed: '+failed.join(', '));
  async function runOne(name,old,testSha256){
   const dir=path.join(out,name.replaceAll(':','-'));fs.mkdirSync(dir,{recursive:true});const log=path.join(dir,'output.log');if(old&&fs.existsSync(log))fs.copyFileSync(log,path.join(dir,'output.previous-'+Date.now()+'.log'));

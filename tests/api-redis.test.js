@@ -18,9 +18,11 @@ test("actual Redis Lua commits preserve parallel pulls and replayable rewards", 
   const mt = await h.api("match_start", { token: p.token }); h.advance(61000);
   const report = { token: p.token, mt: mt.ticket, win: true, kills: 4 };
   const first = await h.api("progress", report), replay = await h.api("progress", report);
-  assert.equal(first.status, 200); assert.deepEqual(replay, first); assert.equal(user().matches, 1); assert.equal(user().gold, 120);
+  // what the receipt says the match paid: its own gold and what comes with it (first win of the day, level, mastery, achievements)
+  const paid = (r) => r.gold + (r.firstWin ? r.firstWin.gold : 0) + (r.lvReward ? r.lvReward.gold : 0) + (r.mastery ? r.mastery.gold : 0) + (r.ach || []).reduce((s, x) => s + x.gold, 0);
+  assert.equal(first.status, 200); assert.deepEqual(replay, first); assert.equal(user().matches, 1); assert.equal(first.gold, 120); assert.equal(user().gold, paid(first), "paid once");
   const claims = await Promise.all([h.api("mission_claim", { token: p.token, id: "d_win" }), h.api("mission_claim", { token: p.token, id: "d_win" })]);
-  assert.deepEqual(claims.map((x) => x.status).sort(), [200, 409]); assert.equal(user().gold, 270);
+  assert.deepEqual(claims.map((x) => x.status).sort(), [200, 409]); assert.equal(user().gold, paid(first) + 150);
   // The same real Lua CAS also protects coin purchases and legacy ownership.
   const seeded=user();seeded.championCoins=700;seeded.own.scout=(seeded.own.scout||[]).filter(s=>!s.startsWith('champions_'));
   command(['SET','user:'+id,JSON.stringify(seeded)]);
@@ -33,7 +35,7 @@ test("actual Redis Lua commits preserve parallel pulls and replayable rewards", 
   assert.equal((await h.api('me',{token:p.token})).status,200);const migrated=user();
   assert.equal(migrated.skins.m.scout,missing);assert.equal(migrated.own.scout.filter(s=>s.startsWith('champions_')).length,2);assert.ok(!(migrated.own.carbine||[]).includes(missing));
   await h.api('me',{token:p.token});await h.api('progress',report);
-  assert.deepEqual(user().own,migrated.own);assert.equal(user().championCoins,0);assert.equal(user().matches,1);assert.equal(user().gold,270);
+  assert.deepEqual(user().own,migrated.own);assert.equal(user().championCoins,0);assert.equal(user().matches,1);assert.equal(user().gold,paid(first)+150);
 });
 test("actual Redis: the per-order lock lets one of two parallel grants through and is released", { skip: !process.env.DFDF_REDIS_TEST_PORT && (!process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET) }, async (t) => {
   const prefix = 'dfdf-test-' + require('node:crypto').randomUUID() + ':';

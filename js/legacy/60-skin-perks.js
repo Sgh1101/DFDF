@@ -413,7 +413,11 @@
       for (const f of list) {
         let col = 0;
         try {
-          f[0] === FX.SHOT && (col = shotAccent(Q.unpos(f[1]), Q.unpos(f[3])));
+          if (f[0] === FX.SHOT) {
+            // the host names the shooter; an old one does not, and the actor nearest the muzzle is guessed
+            const who = null != f[5] ? actorById(f[5]) : null;
+            col = null != f[5] ? (who && who.alive && "me" !== who.ctrl ? accentOf(who) : 0) : shotAccent(Q.unpos(f[1]), Q.unpos(f[3]));
+          }
         } catch (e) {}
         col ? withAccent(col, () => _prf.call(self, [f])) : rest.push(f);
       }

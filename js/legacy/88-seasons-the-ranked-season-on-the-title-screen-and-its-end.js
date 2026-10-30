@@ -31,13 +31,16 @@
       return 0;
     }
   };
+  // the note's own style says display:flex, which beats the hidden attribute: it is hidden by its display too (with only
+  // hidden set, its button did nothing until the page was loaded again)
+  const put = (n, on) => ((n.hidden = !on), (n.style.display = on ? "flex" : "none"));
   function note() {
     let n = $("ssn-note");
     const s = season(),
       last = s && s.last,
       t = $("s-title"),
       onTitle = "object" == typeof world && "menu" === world.phase && t && !t.hidden && "none" !== getComputedStyle(t).display;
-    if (!onTitle || !last || last.n <= seen()) return void (n && (n.hidden = !0));
+    if (!onTitle || !last || last.n <= seen()) return void (n && put(n, !1));
     if (!n) {
       n = document.createElement("div");
       n.id = "ssn-note";
@@ -49,7 +52,7 @@
         try {
           localStorage.setItem("lgp_ssn_seen", String((s2 && s2.last && s2.last.n) || 0));
         } catch (e) {}
-        n.hidden = !0;
+        put(n, !1);
       };
     }
     const tier = NAMES[last.t] + (last.div ? " " + last.div : "");
@@ -57,7 +60,7 @@
       `<b style="color:#ffc849">시즌 ${last.n} 종료</b> — ${tier}로 마쳤습니다. ${last.gold ? `보상 🪙${last.gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${last.skin ? ` · 전용 스킨 「월계관」 총 ${last.skin}종` : ""} · RR은 ${last.after || 0}부터 다시`,
       `<b style="color:#ffc849">Season ${last.n} is over</b> — you finished ${tier}. ${last.gold ? `Reward 🪙${last.gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${last.skin ? ` · season skin Laurel on ${last.skin} guns` : ""} · RR starts again from ${last.after || 0}`
     );
-    n.hidden = !1;
+    put(n, !0);
   }
   // the tier chip says which season and how long is left
   function chipTitle() {

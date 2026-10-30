@@ -32,6 +32,13 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const hits = await scan(en, [name]);
       check(!hits.length, "English page, match on " + key + " still shows " + name + ": " + hits.join(" | "));
     }
+    // every map that takes its turn as the map of the week (js/map-week.js) has an English name, not only this week's
+    const fs = require("node:fs"), path = require("node:path"), dir = path.join(__dirname, "../js/legacy");
+    const src = fs.readdirSync(dir).map((n) => fs.readFileSync(path.join(dir, n), "utf8")).join("\n");
+    const weekNames = require("../js/map-week.js").CANDIDATES.map((k) => { const m = new RegExp(`(?:"key":"${k}","name":"|key: "${k}", name: ")([^"]+)"`).exec(src); return [k, m && m[1]]; });
+    check(weekNames.every(([, n]) => n), "setup: a name for every map of the week: " + weekNames.filter(([, n]) => !n).map(([k]) => k).join(","));
+    const untranslated = await en.evaluate((list) => list.filter(([, n]) => n && /[가-힣]/.test(GAME_EN(n))).map(([k, n]) => k + " " + n), weekNames);
+    check(!untranslated.length, "maps of the week without an English name: " + untranslated.join(" | "));
     check(f.errors.length === 0, "page errors: " + f.errors.join(" | "));
     await en.context().close();
 

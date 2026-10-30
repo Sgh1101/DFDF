@@ -27,6 +27,8 @@
     A("scoreboard", "other", "점수판", "Scoreboard", ["Tab"]),
     A("combatlog", "other", "전투 기록", "Combat log", ["KeyN"]),
     A("map", "other", "큰 지도", "Big map", ["KeyM"]),
+    A("ping", "other", "핑 찍기", "Ping", ["KeyV"]),
+    A("quickchat", "other", "빠른 채팅", "Quick chat", ["KeyZ"]),
   ];
   const BY_ID = {};
   for (const a of ACTIONS) BY_ID[a.id] = a;
@@ -99,11 +101,17 @@
     if (t.isContentEditable || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return true;
     return t.tagName === "INPUT" && !NON_TEXT.test(t.type || "");
   }
+  // whoever shows a key (the hints) is told when the bindings change, here or from the account (settings sync)
+  const subs = [];
+  function notify() {
+    for (const f of subs) try { f(); } catch (e) {}
+  }
   function save(next) {
     const s = settings();
     if (!s) return;
     s.binds = next;
     try { if (typeof saveSettings === "function") saveSettings(); } catch (e) {}
+    notify();
   }
   // Binds `code` to the action. A key that served another action is taken from it; an action left with no key at all takes
   // the old key of this one (a swap). Returns { ok, reason?, swapped? }.
@@ -127,6 +135,10 @@
     return { ok: true, swapped };
   }
   const reset = () => save({});
+  // the first key of an action as the hints print it (M, Tab, Num 4)
+  const name = (id) => label(codes(id)[0]);
+  // a key name with the Korean object particle: "F를", "L을", "Tab 키를" (letters and digits by how they are read aloud)
+  const eul = (k) => (/^[A-Z0-9]$/.test(k) ? k + (/[LMNR013678]/.test(k) ? "을" : "를") : k + " 키를");
   // a short name for a code on the key caps
   function label(code) {
     const m = /^(Key|Digit|Numpad)(.+)$/.exec(code || "");
@@ -134,7 +146,7 @@
     const names = { Space: "Space", ShiftLeft: "Shift (L)", ShiftRight: "Shift (R)", Tab: "Tab", Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backslash: "\\", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", CapsLock: "Caps Lock", Enter: "Enter", Backspace: "Backspace" };
     return names[code] || code || "—";
   }
-  const KEYMAP = { ACTIONS, codeOf, codes, actionsOf, is, apply, release, editing, bind, reset, label, bindable, clean, catcher: null };
+  const KEYMAP = { ACTIONS, codeOf, codes, actionsOf, is, apply, release, editing, bind, reset, label, name, eul, bindable, clean, notify, onChange: (f) => subs.push(f), catcher: null };
   if (typeof module === "object" && module.exports) { module.exports = KEYMAP; return; }
   root.KEYMAP = KEYMAP;
   // the settings screen, while it waits for the key to bind, takes the next key before any other handler of the page

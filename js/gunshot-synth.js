@@ -271,6 +271,16 @@
         takes[key].length < 2 && setTimeout(() => takes[key] && takes[key].length < 2 && takes[key].push(toBuf(render(S, c.sampleRate, 97 + key.length * 53))), 30);
         return takes[key][Math.floor(Math.random() * takes[key].length)];
       },
+      // Renders ahead what the first shot of `key` would render, one take per call so an idle callback can take them one at a
+      // time. True while a take is left; warmed(key) says both are in.
+      warm(key) {
+        const S = SPEC[key];
+        if (!S) return false;
+        if (!takes[key]) takes[key] = [toBuf(render(S, c.sampleRate, 11 + key.length * 131))];
+        else if (takes[key].length < 2) takes[key].push(toBuf(render(S, c.sampleRate, 97 + key.length * 53)));
+        return takes[key].length < 2;
+      },
+      warmed: (key) => !!(takes[key] && takes[key].length > 1),
       // far: 0 (at your ear) to 1 (across the map); the sound arrives later, duller, quieter and wetter
       play(key, far) {
         const S = SPEC[key];

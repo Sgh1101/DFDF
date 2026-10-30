@@ -8,6 +8,8 @@ const SKIN_TIERS = require("../js/skin-tiers");
 // every agent of the game (id, name, role): the owner page lists it, the settings keep only these ids
 const ROSTER = require("../js/agent-roster.json");
 const GAME_RULES = require("../js/game-rules.js");
+const SETTINGS_SYNC = require("../js/settings-sync.js");
+const MAP_WEEK = require("../js/map-week.js");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -85,6 +87,10 @@ const DEFAULT_CONFIG = {
     roomListOpen: !0,
     // maps out of the pool (7 · 5 · 3) the owner brings back: keys, comma separated, or "all"
     extraMaps: "",
+    // the map of the week: every Monday 0:00 (Korea) one of the maps that are switched off joins the list for the week,
+    // the same for everyone. weekMap switches it; weekMapExclude: keys it never picks, comma separated
+    weekMap: !0,
+    weekMapExclude: "",
     // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
@@ -109,6 +115,20 @@ const DEFAULT_CONFIG = {
   // 4500). Each level gained pays `gold`, out of the same day's ceiling as the match gold (gold.maxPerDay), and
   // maxGold at most for one match. on: switches the whole thing (nothing counted, nothing shown)
   mastery: { on: !0, perMatch: 30, perWin: 30, perKill: 5, maxPerMatch: 120, step: 100, gold: 50, maxGold: 200 },
+  // rewards for the account level (u.xp). Each level gained pays `gold`, and a milestone level also `milestoneGold` and the
+  // cosmetic named for it in `milestones` ("level:cosmetic id" pairs, comma separated; no id = gold only; the ids are in
+  // js/cosmetics.js). The gold is out of the same day's ceiling as the match gold (gold.maxPerDay), maxGold at most for one
+  // match; a cosmetic is not gold and is always given. A level is paid once, whatever the XP rules are changed to later.
+  lvReward: { on: !0, gold: 40, maxGold: 400, milestoneGold: 200, milestones: "5:scout,10:neoncity,20:commander,30:galaxy,50:legend13" },
+  // the first win of the day (a win with a valid ticket; the day is Korea's, like the other daily counters) pays gold and XP
+  // on top of the match, out of the day's gold and XP ceilings
+  firstWin: { on: !0, gold: 100, xp: 50 },
+  // more missions next to the six below: every day (dCount) and week (wCount) a few are picked from a pool, the same for
+  // everyone: win / play / kills (the three targets each, d* a day, w* a week) in one mode, as one role or as one agent.
+  // dGold / wGold: what each pays when claimed. A target of 0 leaves that kind of mission out
+  mission2: { on: !0, dCount: 2, wCount: 2, dGold: 120, wGold: 400, dPlay: 3, dWin: 2, dKill: 15, wPlay: 8, wWin: 5, wKill: 60 },
+  // achievements, once each, from counted matches: the gold each pays (0 = off). roles / modes: a win with every role / in every mode
+  ach: { on: !0, win1: 100, kill100: 300, play50: 200, mast5: 400, roles: 500, modes: 800 },
   // a pull: the odds of each tier (any numbers; they are weights), what one or
   // ten cost, and the highest tier a bot is seen wearing
   gacha: { cost1: 300, cost10: 2700, odds: { common: 60, rare: 25, epic: 11, legendary: 4 }, botMaxTier: 4 },
@@ -123,8 +143,15 @@ const DEFAULT_CONFIG = {
   // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
   // under half of loss). 100 RR a division, three divisions a tier; a day's
   // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
-  // only in a ranked room (admin and cheats off) and with at least minHumans people
-  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3 },
+  // only in a ranked room (admin and cheats off) and with at least minHumans people.
+  // Leaving a counted ranked match (on the roster, took a ticket, not there at the end) is a loss for
+  // that account plus leaveRR more; a drop that is back within leaveGraceS seconds is not leaving.
+  // The host watches for a player with no input change for afkWarnS seconds (a warning on his screen),
+  // then afkLeaveS seconds later he is handed to a bot and counts as having left (0 = no AFK check;
+  // ranked rooms only). A team can vote to surrender from round surrenderRound on (the mode's first
+  // surrenderS seconds in the modes without rounds): surrenderVoteS seconds to vote, then surrenderCoolS
+  // before the next try; surrenderRound 0 = no surrender.
+  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3, leaveRR: 8, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
   // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
   // its tier (1 common … 4 legendary); on switches the whole thing
   cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
@@ -175,6 +202,8 @@ const loadConfig = async () => {
   c.xp.perLevel = Math.max(1, Number.isFinite(+c.xp.perLevel) ? +c.xp.perLevel : 100);
   MC.on = !!c.mastery.on;
   MC.step = Math.max(1, Number.isFinite(+c.mastery.step) ? +c.mastery.step : 100);
+  AC.on = !!c.ach.on;
+  AC.gold = c.ach;
   // the mobile-only server: there when switched on (also in older saved settings), gone when off
   c.channels = (c.channels || []).filter((x) => c.game.mobileServer || !x.mobile);
   c.game.mobileServer && !c.channels.some((x) => x.mobile) && c.channels.push({ id: "mobile", name: "모바일 전용", en: "Mobile only", mobile: !0 });
@@ -417,6 +446,8 @@ const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankO
 const MAST_MAX = 10;
 // the owner's numbers, as the last loadConfig() read them (publicUser has no config to hand)
 const MC = { on: !0, step: 100 };
+// the same for the achievements: on, and the gold of each (config.ach)
+const AC = { on: !0, gold: DEFAULT_CONFIG.ach };
 // the game sends the agent's name (Korean, as shown); the roster id is taken too, in any case. Anything else is not an agent.
 const AGENT_BY = new Map();
 for (const a of ROSTER) { AGENT_BY.set(a.id, a.id); AGENT_BY.set(a.name.toLowerCase(), a.id); }
@@ -439,9 +470,40 @@ function mastView(u) {
   }
   return out;
 }
+// ── achievements (u.ach = {got: {id: when}, roles: {role: 1}, modes: {mode: 1}}; roles and modes are the ones a counted match was won with) ──
+const ROLE_ID = { 타격대: "duelist", 감시자: "sentinel", 척후대: "initiator", 전략가: "controller" };
+const ROLE_OF = new Map(ROSTER.map((a) => [a.id, ROLE_ID[a.role]]));
+const ROLES = [...new Set(ROLE_OF.values())];
+// the modes a match is queued in (the target range is practice, not a match); the mode a report names counts only if it is one of these
+const MODES = ["std", "swift", "rush", "tdm", "dm", "knife", "gun", "hill", "ctf", "zone", "inf"];
+const ACH = [["win1", 1], ["kill100", 100], ["play50", 50], ["mast5", 5], ["roles", ROLES.length], ["modes", MODES.length]];
+// the record, read without changing the account; store: put it on the account (an account from before this starts from its last matches)
+function achState(u, store) {
+  const a = isObj(u.ach) ? u.ach : { got: {}, roles: {}, modes: {} };
+  if (!isObj(u.ach)) for (const m of histOf(u)) if (m && m.win) { const r = ROLE_OF.get(agentIdOf(m.agent)); r && (a.roles[r] = 1); MODES.includes(m.mode) && (a.modes[m.mode] = 1); }
+  for (const k of ["got", "roles", "modes"]) isObj(a[k]) || (a[k] = {});
+  store && (u.ach = a);
+  return a;
+}
+// every achievement with its progress; the ones the owner priced at 0 are left out until they are had
+function achView(u) {
+  if (!AC.on) return [];
+  const a = achState(u), mv = mastView(u), best = Math.max(0, ...Object.values(mv).map((x) => x.lv | 0));
+  const have = { win1: u.wins | 0, kill100: u.kills | 0, play50: u.matches | 0, mast5: best, roles: ROLES.filter((r) => a.roles[r]).length, modes: MODES.filter((m) => a.modes[m]).length };
+  return ACH.map(([id, n]) => ({ id, have: Math.min(n, have[id]), n, gold: Math.max(0, Math.floor(+AC.gold[id] || 0)), got: a.got[id] | 0 })).filter((x) => x.got || x.gold > 0);
+}
+// a counted match: the role and the mode of a win; then the achievements that are now reached pay their gold, once each
+function achAward(u, win, mode, agent) {
+  if (!AC.on) return [];
+  const a = achState(u, true);
+  if (win) { const r = ROLE_OF.get(agent); r && (a.roles[r] = 1); MODES.includes(mode) && (a.modes[mode] = 1); }
+  const out = [];
+  for (const x of achView(u)) if (!x.got && x.have >= x.n) { a.got[x.id] = now(); u.gold += x.gold; out.push({ id: x.id, gold: x.gold }); }
+  return out;
+}
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), mast: mastView(u), placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -709,9 +771,16 @@ function trimPicks(u) {
 
 // ── public actions ──
 const A = {};
+// the rank settings a game needs to run leaving, AFK and surrender (not the RR numbers)
+const publicRank = (R) => { const o = {}; for (const k of ["minHumans", "leaveGraceS", "afkWarnS", "afkLeaveS", "surrenderRound", "surrenderS", "surrenderVoteS", "surrenderCoolS"]) o[k] = Math.max(0, Math.round(+R[k]) || 0); return o; };
+// the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
+const weekMapOf = (c, t) => {
+  const m = MAP_WEEK.choose(t, !1 !== c.game.weekMap, c.game.weekMapExclude);
+  return m ? { key: m.key, week: m.week, until: m.until } : null;
+};
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -931,19 +1000,30 @@ A.skin_check = async (q, b) => {
   return s && "skin" === s.k && isObj(s.m) && s.p ? { m: s.m, id: s.id, p: s.p } : { m: null, id: null, p: null };
 };
 // small things the game keeps per account: the touch-button layout (part →
-// [x, y, size]); the newer of two devices wins, as with the skins
+// [x, y, size]); the newer of two devices wins, as with the skins. And the player's settings (sensitivity, crosshair,
+// volumes, keys ...: js/settings-sync.js), each one with its own time so the newest of each wins
 const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (isObj(b.set)) {
-    const touch = {};
-    const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
-    if (isObj(b.set.touch)) for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
-    const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
-    if (!u.prefs || t > u.prefs.t) { u.prefs = { t, touch }; await saveUser(u); }
+    let dirty = !1;
+    if (isObj(b.set.touch)) {
+      const touch = {};
+      const num = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : lo));
+      for (const k of TOUCH_PARTS) { const v = b.set.touch[k]; Array.isArray(v) && 3 === v.length && (touch[k] = [num(v[0], 0, 1), num(v[1], 0, 1), num(v[2], 0.4, 2.5)]); }
+      const t = Math.max(0, Math.min(now() + 6e4, +b.t || now()));
+      if (!u.prefs || t > (u.prefs.t || 0)) { u.prefs = Object.assign({}, u.prefs, { t, touch }); dirty = !0; }
+    }
+    if (isObj(b.set.opts)) {
+      const o = isObj(u.prefs && u.prefs.o) ? u.prefs.o : {};
+      if (SETTINGS_SYNC.merge(o, SETTINGS_SYNC.cleanMap(b.set.opts, now()))) { u.prefs = Object.assign({}, u.prefs, { o }); dirty = !0; }
+    }
+    dirty && (await saveUser(u));
   }
-  return { prefs: u.prefs || null };
+  const prefs = u.prefs ? Object.assign({}, u.prefs) : null;
+  prefs && prefs.o && (prefs.o = SETTINGS_SYNC.cleanMap(prefs.o, now()));
+  return { prefs };
 };
 
 // ── feedback: bug reports, agent ideas, player reports, suggestions, reviews, questions ──
@@ -1592,6 +1672,38 @@ const kstWeek = (t) => {
     back = (d.getUTCDay() + 6) % 7;
   return new Date(d.getTime() - back * 864e5).toISOString().slice(0, 10);
 };
+// ── more missions, picked from a pool ──
+// Every day and week the same few for everyone, from a hash of the day (the week) and the server secret, like the daily shop:
+// a kind (win / play / kills, in one mode, as one role or as one agent) at a time, the stats varied first. The id says what it is,
+// so its progress and its claim stay with it all day (or week) whatever the owner changes.
+function dynMissions(c, day, week) {
+  const M = c.mission2;
+  if (!M || !M.on) return [];
+  const off = new Set(String(c.game.disabledAgents || "").split(/[\s,]+/).filter(Boolean));
+  const vals = { mode: MODES, role: ROLES, agent: ROSTER.filter((a) => !off.has(a.id)).map((a) => a.id) };
+  const out = [];
+  for (const [per, key, count, gold, tg] of [["d", day, M.dCount, M.dGold, { play: M.dPlay, wins: M.dWin, kills: M.dKill }], ["w", week, M.wCount, M.wGold, { play: M.wPlay, wins: M.wWin, kills: M.wKill }]]) {
+    const h = crypto.createHmac("sha256", SECRET).update(`mis2|${per}|${key}`).digest();
+    let st = h.readUInt32LE(0) >>> 0 || 1;
+    const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0), st / 4294967296);
+    const kinds = [];
+    for (const stat of ["play", "wins", "kills"]) if (Math.round(+tg[stat]) > 0) for (const kind of ["mode", "role", "agent"]) kinds.push([stat, kind]);
+    for (let i = kinds.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
+    }
+    const want = Math.max(0, Math.min(4, Math.floor(+count) || 0)), picked = [];
+    for (const k of kinds) picked.length < want && !picked.some((x) => x[0] === k[0]) && picked.push(k);
+    for (const k of kinds) picked.length < want && !picked.includes(k) && picked.push(k);
+    for (const [stat, kind] of picked) {
+      const v = vals[kind][Math.floor(rnd() * vals[kind].length)];
+      v && out.push({ id: `${per}x:${stat}:${kind}:${v}`, per, stat, f: { k: kind, v }, n: Math.round(+tg[stat]), gold: Math.max(0, Math.round(+gold) || 0) });
+    }
+  }
+  return out;
+}
+// does a match (its mode, the agent id, the agent's role) count towards one of them
+const dynHit = (x, info) => info.mode && ("mode" === x.f.k ? info.mode === x.f.v : "role" === x.f.k ? info.role === x.f.v : info.agent === x.f.v);
 function misState(u, c) {
   const M = c.mission || {},
     t = now(),
@@ -1607,6 +1719,8 @@ function misState(u, c) {
       delete m.p[id];
       delete m.got[id];
     }
+  // the picked ones keep their progress and claims for the whole day (week), even if the pool or the owner's numbers change
+  for (const id of Object.keys(m.p).concat(Object.keys(m.got))) (("dx:" === id.slice(0, 3) && m.d !== day) || ("wx:" === id.slice(0, 3) && m.w !== week)) && (delete m.p[id], delete m.got[id]);
   m.d = day;
   m.w = week;
   const list = [];
@@ -1616,15 +1730,20 @@ function misState(u, c) {
     const have = Math.min(n, m.p[id] || 0);
     list.push({ id, per, stat, n, have, gold: Math.max(0, Math.round(+M[k + "Gold"] || 0)), done: have >= n, got: !!m.got[id] });
   }
+  for (const x of dynMissions(c, day, week)) {
+    const have = Math.min(x.n, m.p[x.id] || 0);
+    list.push(Object.assign(x, { have, done: have >= x.n, got: !!m.got[x.id] }));
+  }
   m.ready = list.filter((x) => x.done && !x.got).length;
   // when the day and the week end (ms since 1970)
   const dayEnd = Date.parse(day + "T00:00:00Z") - KST + 864e5,
     weekEnd = Date.parse(week + "T00:00:00Z") - KST + 7 * 864e5;
   return { list, ready: m.ready, dayEnd, weekEnd };
 }
-function misCount(u, c, add) {
-  misState(u, c);
+function misCount(u, c, add, info) {
+  const st = misState(u, c);
   for (const [id, , stat] of MIS) add[stat] > 0 && (u.mis.p[id] = (u.mis.p[id] || 0) + add[stat]);
+  if (info) for (const x of st.list) "x" === x.id[1] && dynHit(x, info) && add[x.stat] > 0 && (u.mis.p[x.id] = (u.mis.p[x.id] || 0) + add[x.stat]);
   return misState(u, c);
 }
 A.missions = async (q, b) => {
@@ -1676,6 +1795,7 @@ A.match_start = async (q, b) => {
     const rec = m && (await getJ("rm:" + m));
     if (!rec) throw fail(409, "랭크전이 아직 시작되지 않았습니다");
     if (!rec.a.includes(u.id) && !rec.b.includes(u.id)) throw fail(403, "이 랭크전의 참가자가 아닙니다");
+    await leaveSweep(u, m);
     ranked = 1;
     t0 = rec.t0;
     const had = await redis(["GET", "rmt:" + m + ":" + u.id]);
@@ -1684,8 +1804,10 @@ A.match_start = async (q, b) => {
   // only a new ticket counts towards the limit: a refused ask (the client asks a few times before the
   // host has opened a ranked match) or the same ranked ticket asked again does not use it up
   if (fresh && (await limited("mstart:" + u.id, 12, 600))) throw fail(429, "너무 자주 보냈습니다");
-  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", "14400"])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
+  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", String(RESULT_TTL)])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
   fresh && (await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]));
+  // the match this account sits in until he settles it (see leaveSweep)
+  ranked && (await redis(["SET", rmOpenKey(u.id), m, "EX", String(RESULT_TTL)]));
   return { ticket: sign(Object.assign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }, m ? { m } : {})), ranked: !!ranked };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
@@ -1724,7 +1846,7 @@ async function matchTrust(u, ticket) {
 //    on the account); the daily RR cap still applies.
 // Known limit: a host with accounts of his own can still lie about a match: one of them on his
 // team standing by the result outweighs the other team saying it won.
-const RESULT_TTL = 14400,
+const RESULT_TTL = 86400, // a day: a player who left is judged at his next ranked start (leaveSweep)
   // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
   RANKED_GRACE_MS = 60 * 1000;
 // Reads a ranked match for one of its players and records his vote (first one stands). The
@@ -1740,9 +1862,18 @@ async function rankedTally(u, m, b) {
   const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
   const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
   const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
-  // everybody who took a ticket and is not the host must have voted, or the grace has passed
-  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null);
+  // everybody who took a ticket and is not the host must have voted, or the grace has passed (a player the host
+  // reported as having left is not waited for)
+  const gone = Array.isArray(res.lv) ? res.lv : [];
+  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null && !gone.includes(id));
   return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
+}
+function teamAverages(rec, ticketed) {
+  const mean = (list) => {
+    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
+    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
+  };
+  return [mean(rec.a) ?? mean(rec.b) ?? rec.avgA, mean(rec.b) ?? mean(rec.a) ?? rec.avgB];
 }
 async function rankedVerdict(u, trust, b) {
   const t = await rankedTally(u, trust.m, b), { rec, res, team } = t;
@@ -1754,15 +1885,11 @@ async function rankedVerdict(u, trust, b) {
   const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
   // dissent: more than half of a team's ticketed non-host players said "0"; confirmed: one of them said "1"
-  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id));
+  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id) && !(Array.isArray(res.lv) && res.lv.includes(id)));
   const dissent = (list) => voters(list).filter((id) => votes.get(id) === "0").length * 2 > voters(list).length;
   const confirmed = (list) => voters(list).some((id) => votes.get(id) === "1");
   // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
-  const mean = (list) => {
-    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
-    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
-  };
-  const avgA = mean(rec.a) ?? mean(rec.b) ?? rec.avgA, avgB = mean(rec.b) ?? mean(rec.a) ?? rec.avgB;
+  const [avgA, avgB] = teamAverages(rec, ticketed);
   const won = "b" === res.w ? rec.b : rec.a,
     lost = "b" === res.w ? rec.a : rec.b;
   const disputed = dissent(won) || (dissent(lost) && !confirmed(won));
@@ -1773,6 +1900,8 @@ async function rankedVerdict(u, trust, b) {
     why: outcome === "draw" ? "draw" : disputed ? "disputed" : "",
     kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
     humans: ticketed.size,
+    // he left (the host said so): his loss was applied by leaveApply, the report only pays the plain reward
+    left: !!(Array.isArray(res.lv) && res.lv.includes(u.id)),
     mine: team === "a" ? avgA : avgB,
     enemy: team === "a" ? avgB : avgA,
     m: trust.m,
@@ -1785,6 +1914,7 @@ A.ranked_start = async (q, b) => {
   if (await limited("rstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
   const code = roomOf(b.room), room = await getJ("room:" + code);
   if (!room || !room.ranked || room.host !== u.id) throw fail(409, "내가 연 랭크전 방이 아닙니다");
+  await leaveSweep(u, "");
   const list = (v) => (Array.isArray(v) ? v : []).slice(0, 12).map((x) => String(x || "").toLowerCase()).filter((x) => ID_OK.test(x));
   const ta = list(b.a), tb = list(b.b), all = ta.concat(tb);
   if (new Set(all).size !== all.length) throw fail(400, "같은 계정이 두 번 들어 있습니다");
@@ -1804,7 +1934,77 @@ A.ranked_start = async (q, b) => {
   await pipe([["SET", "rm:" + id, JSON.stringify(rec), "EX", String(RESULT_TTL)], ["SET", "rmroom:" + code, id, "EX", String(RESULT_TTL)]]);
   return { id, t0, lv, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
 };
-// the host's result, once: w = "a" | "b" | "draw", k = kills per account
+// ── leaving a ranked match ──
+// A player on the roster who took a ticket and was not there at the end gets a loss from the server, and
+// rank.leaveRR more. The host, who sees the links close and open, reports per roster account how long he was
+// away at the longest and whether he was away at the end (ranked_result's `gone`); the server decides: away at
+// the end, or away for rank.leaveGraceS seconds or more, is leaving; a reconnect inside the window is not.
+// Only an account that took a ticket (so really sat in the room) can be named, never the host himself, and only
+// in a match with at least rank.minHumans of them. If the result never comes, leaveSweep judges the player at
+// his next ranked start: still unsettled then (match_start keeps `rmopen:<id>` until his report is accepted).
+const LEAVE_MAX_S = 14400, rmOpenKey = (id) => "rmopen:" + String(id).toLowerCase();
+async function rankedTicketed(rec, m) {
+  const ids = rec.a.concat(rec.b), got = await pipe(ids.map((id) => ["GET", "rmt:" + m + ":" + id]));
+  return new Set(ids.filter((id, i) => got[i]));
+}
+// the account's loss for the match he left, once (u.rmDone); false when there was nothing to apply
+async function leaveApply(id, m, rec, ticketed, c) {
+  const R = c.rank, extra = Math.max(0, Math.round(+R.leaveRR || 0));
+  for (let attempt = 0; ; attempt++) {
+    const u = await getJ(userKey(id));
+    if (!u || u.guest || !(rec.a.includes(u.id) || rec.b.includes(u.id)) || (Array.isArray(u.rmDone) && u.rmDone.includes(m))) return !1;
+    ensureWallet(u, c);
+    const [avgA, avgB] = teamAverages(rec, ticketed), a = rec.a.includes(u.id);
+    const rr0 = Math.max(0, Math.round(+u.rr || 0)), mmr0 = mmrOf(u), placed0 = placedOf(u), placing = placed0 < PLACE_N, E = eloExpected(a ? avgA : avgB, a ? avgB : avgA), rb = rankView(u);
+    u.rr = rr0;
+    u.mmr = Math.max(0, mmrAfter(mmr0, E, 0, placing) - extra);
+    if (placing) {
+      u.placed = placed0 + 1;
+      u.placed >= PLACE_N && (u.rr = rrFromMMR(u.mmr));
+    } else u.rr = Math.max(0, rr0 + rrDelta(R, !1, E, 0) - extra);
+    u.rmDone = [m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
+    isObj(u.ssn) && (u.ssn.played = (u.ssn.played | 0) + 1);
+    try { await saveUser(u); } catch (e) { if (e.retryUser && attempt < 4) continue; throw e; }
+    if ((await redis(["GET", rmOpenKey(u.id)])) === m) await redis(["DEL", rmOpenKey(u.id)]);
+    if (placedOf(u) >= PLACE_N && isObj(u.ssn)) { try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {} }
+    await ulog(u.id, "match", `랭크 이탈 · 패배 처리 (RR ${rr0} → ${u.rr})`, { rk: 1, ok: 1, left: 1, why: "left", rr: [rr0, u.rr], mmr: [mmr0, u.mmr], pl: u.placed });
+    const p = rankView(u);
+    p.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.tier} ${p.div}`, { user: u.id }));
+    return !0;
+  }
+}
+// At his next ranked start (match_start, or ranked_start for a host): the match this account took a ticket for
+// and never settled. With the host's result, he left if it names him (the penalty may not have gone through at
+// the time); with none, once the match is old enough that the result would be in, he left too, unless the
+// host is gone for everybody (a ticketed player said so: ranked_void), when only the host's own leaving counts.
+async function leaveSweep(u, current) {
+  const key = rmOpenKey(u.id), m = await redis(["GET", key]);
+  if (!m || m === current) return;
+  const drop = async () => { (await redis(["GET", key])) === m && (await redis(["DEL", key])); };
+  const rec = await getJ("rm:" + m);
+  if (!rec || !(rec.a.includes(u.id) || rec.b.includes(u.id))) return drop();
+  const c = await loadConfig(), res = await getJ("rmres:" + m), ticketed = await rankedTicketed(rec, m);
+  let left = !1;
+  if (res) left = Array.isArray(res.lv) && res.lv.includes(u.id);
+  else if (ticketed.size >= Math.max(0, +c.rank.minHumans || 0) && now() - rec.t0 >= MATCH_MIN_MS + RANKED_GRACE_MS) {
+    const claims = await pipe(rec.a.concat(rec.b).filter((id) => id !== rec.host && ticketed.has(id)).map((id) => ["GET", "rmvoid:" + m + ":" + id]));
+    left = !claims.some(Boolean) || u.id === rec.host;
+  }
+  if (left) await leaveApply(u.id, m, rec, ticketed, c);
+  await drop();
+}
+// a ticketed player says the host went away before the match ended (no result will come)
+A.ranked_void = async (q, b) => {
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
+  const m = (await redis(["GET", "rmroom:" + roomOf(b.room)])) || "";
+  if (!m || (await redis(["GET", "rmt:" + m + ":" + u.id])) === null) throw fail(409, "이 랭크전의 참가자가 아닙니다");
+  await redis(["SET", "rmvoid:" + m + ":" + u.id, "1", "EX", String(RESULT_TTL)]);
+  return { ok: !0 };
+};
+// the host's result, once: w = "a" | "b" | "draw", k = kills per account, gone = per account who was away
+// ({ id: { s: longest absence in seconds, end: 1 if away at the end } })
 A.ranked_result = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -1817,9 +2017,21 @@ A.ranked_result = async (q, b) => {
   if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
   const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = Object.create(null);
   for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
+  const c = await loadConfig(), grace = Math.max(0, +c.rank.leaveGraceS || 0), canon = new Map(rec.a.concat(rec.b).map((id) => [id.toLowerCase(), id]));
+  const ticketed = await rankedTicketed(rec, t.m), lv = [];
+  if (isObj(b.gone) && ticketed.size >= Math.max(0, +c.rank.minHumans || 0))
+    for (const key of Object.keys(b.gone).slice(0, 24)) {
+      const id = canon.get(String(key).toLowerCase()), g = b.gone[key];
+      if (!id || id === rec.host || !ticketed.has(id) || !isObj(g) || lv.includes(id)) continue;
+      (g.end || Math.max(0, Math.min(LEAVE_MAX_S, +g.s || 0)) >= grace) && lv.push(id);
+    }
   // the first result stands; a second one is ignored
-  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now() }), "NX", "EX", String(RESULT_TTL)])) !== null;
-  return { accepted: first, duplicate: !first, w: first ? b.w : JSON.parse(await redis(["GET", "rmres:" + t.m])).w };
+  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now(), lv }), "NX", "EX", String(RESULT_TTL)])) !== null;
+  const res = first ? { w: b.w, lv } : JSON.parse(await redis(["GET", "rmres:" + t.m]));
+  // a loss for each who left; one that cannot be saved now is judged again at his next ranked start
+  let applied = 0;
+  for (const id of res.lv || []) { try { (await leaveApply(id, t.m, rec, ticketed, c)) && applied++; } catch (e) {} }
+  return { accepted: first, duplicate: !first, w: res.w, left: (res.lv || []).length, applied };
 };
 // may this account walk into that ranked room? Only the answer and the room's rounded band leave
 A.ranked_can_join = async (q, b) => {
@@ -1871,6 +2083,42 @@ A.leaderboard = async (q, b) => {
   lbCache = { out, n: cur.n, size: n, until: now() + 10000 };
   return out;
 };
+// the milestone levels of the owner's lvReward.milestones ("5:scout,10:neoncity"), a cosmetic id that is not one left out
+function milestonesOf(c) {
+  const out = [];
+  for (const part of String(c.lvReward.milestones || "").split(",")) {
+    const [lv, id] = part.trim().split(":"), n = Math.floor(+lv), cos = (id || "").trim();
+    Number.isFinite(n) && n >= 2 && n <= 999 && !out.some((x) => x.lv === n) && out.push({ lv: n, cos: COS_BY[cos] ? cos : "" });
+  }
+  return out.sort((x, y) => x.lv - y.lv);
+}
+// the levels gained, from the one last paid for (u.lvPaid; an account from before this, or a new one, starts at the level it had)
+// to `to`: gold for each, more at a milestone, which also gives its cosmetic. Only the gold is held to `left`, what the day's gold
+// ceiling still allows. A level pays once even if the owner's XP rules later make it be reached again. An account from before
+// this is given, once, the cosmetics of the milestones it had already passed (back; not their gold), as the homepage shows those
+// milestones as reached.
+function levelAward(u, c, from, to, left) {
+  const R = c.lvReward, known = Number.isSafeInteger(u.lvPaid) && u.lvPaid >= 0, paid = known ? u.lvPaid : from;
+  u.lvPaid = Math.max(paid, to);
+  if (!R.on) return null;
+  const ms = milestonesOf(c), cos = [], back = [], reached = [], per = Math.max(0, Math.floor(+R.gold || 0)), big = Math.max(0, Math.floor(+R.milestoneGold || 0));
+  const give = (m) => {
+    const me = cosOf(u);
+    return !!m.cos && !me.own.includes(m.cos) && ((u.cos = { own: me.own.concat(m.cos), eq: me.eq }), cos.push(m.cos), !0);
+  };
+  if (!known) for (const m of ms) m.lv <= paid && give(m) && back.push(m.cos);
+  if (to <= paid && !back.length) return null;
+  let sum = 0;
+  for (let lv = paid + 1; lv <= to; lv++) {
+    sum += per;
+    const m = ms.find((x) => x.lv === lv);
+    if (!m) continue;
+    sum += big;
+    reached.push(lv);
+    give(m);
+  }
+  return { from: paid, to, gold: Math.max(0, Math.min(sum, Math.max(0, Math.floor(+R.maxGold || 0)), left)), cos, ms: reached, ...(back.length ? { back } : {}) };
+}
 // the mastery of the agent a ticketed match was played with (null: off, or not an agent we know). left: gold still
 // allowed today. Counts the match in u.mast and answers what the result screen shows.
 function masteryAward(u, c, name, win, kills, left) {
@@ -1923,8 +2171,9 @@ A.progress = async (q, b) => {
   // a free-for-all (the server's own list, GAME_RULES.ffaMode) has no sides: its s is [my kills, the top kills], so equal kills
   // is not a draw there; the placing decides, as the game reports it
   const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && !GAME_RULES.ffaMode(b.match.mode) && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
-  const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
-    win = trust.ok && !draw && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
+  const quit = !!(rkv && rkv.left);
+  const kills = trust.ok && !quit ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
+    win = trust.ok && !draw && !quit && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   ensureWallet(u, c);
   // the day's ceilings, counted from midnight in Korea: gold, XP and Champion coins each have their own
@@ -1945,9 +2194,16 @@ A.progress = async (q, b) => {
   // mastery of the agent played: XP for the match, and gold for each level gained out of what is left of the day's ceiling
   const mastery = masteryAward(u, c, b.match && b.match.agent, win, kills, Math.max(0, left - gold));
   mastery && (u.gold += mastery.gold);
+  // the first win of the day: its XP (out of what is left of the day's XP ceiling) counts towards the level below; its gold
+  // comes last, after the level's, out of what is left of the gold ceiling
+  const F = c.firstWin, fwOn = !!(F.on && win && u.fwDay !== day), fwXp = fwOn ? Math.max(0, Math.min(Math.floor(+F.xp) || 0, xleft - gain)) : 0;
+  const lvAward = levelAward(u, c, before, levelOf((u.xp || 0) + gain + fwXp, c.xp.perLevel).level, Math.max(0, left - gold - (mastery ? mastery.gold : 0)));
+  const fwGold = fwOn ? Math.max(0, Math.min(Math.floor(+F.gold) || 0, left - gold - (mastery ? mastery.gold : 0) - (lvAward ? lvAward.gold : 0))) : 0;
+  fwOn && (u.fwDay = day);
+  u.gold += (lvAward ? lvAward.gold : 0) + fwGold;
   u.championCoins += coinGain;
   u.coinDay.n = (u.coinDay.n || 0) + coinGain;
-  u.goldDay.n = (u.goldDay.n || 0) + gold + (mastery ? mastery.gold : 0);
+  u.goldDay.n = (u.goldDay.n || 0) + gold + (mastery ? mastery.gold : 0) + (lvAward ? lvAward.gold : 0) + fwGold;
   // the rank: up with a win (more with kills), down a little with a loss
   const R = c.rank,
     kb = Math.max(0, Math.min(+R.maxKill || 0, kills * (+R.perKill || 0))),
@@ -1960,8 +2216,8 @@ A.progress = async (q, b) => {
   const rb = rankView(u),
     humans = rkv ? rkv.humans : 0,
     dup = !!(rkv && Array.isArray(u.rmDone) && u.rmDone.includes(rkv.m)),
-    rankedOk = !!(rkv && rkv.counted && !dup && humans >= Math.max(0, +R.minHumans || 0)),
-    rankedWhy = rkv ? (dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
+    rankedOk = !!(rkv && rkv.counted && !dup && !quit && humans >= Math.max(0, +R.minHumans || 0)),
+    rankedWhy = rkv ? (quit ? "left" : dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
   const mmr0 = mmrOf(u);
   if (rankedOk) {
     u.rr = rr0;
@@ -1983,25 +2239,29 @@ A.progress = async (q, b) => {
     u.rmDone = [rkv.m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
     isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
   }
-  u.xp = (u.xp || 0) + gain;
-  u.xpDay.n = (u.xpDay.n || 0) + gain;
+  u.xp = (u.xp || 0) + gain + fwXp;
+  u.xpDay.n = (u.xpDay.n || 0) + gain + fwXp;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
   m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
-  const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 });
+  const agent = agentIdOf(b.match && b.match.agent), mode = m && MODES.includes(m.mode) ? m.mode : "";
+  const mis = misCount(u, c, { play: 1, kills, wins: win ? 1 : 0 }, { mode, agent, role: ROLE_OF.get(agent) || "" });
+  const ach = achAward(u, win, mode, agent);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
+  // settled: this match no longer waits to be judged as a leave
+  trust.ranked && (await redis(["GET", rmOpenKey(u.id)])) === trust.m && (await redis(["DEL", rmOpenKey(u.id)]));
   // the season board: a placed account that counted a ranked match this season
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
     try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
   }
   // the account's own log gets the hidden MMR too: it is read on the owner page only
-  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level });
+  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
@@ -2703,7 +2963,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -2719,6 +2979,11 @@ function validateConfig(c) {
   walk(DEFAULT_CONFIG, c);
   c.game.promoNotice = !!c.game.promoNotice;
   c.mastery.on = !!c.mastery.on;
+  for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
+  for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
+    const [lv, id] = part.split(":");
+    if (!/^\d{1,3}$/.test(lv) || +lv < 2 || (id !== undefined && !COS_BY[id.trim()])) throw fail(400, "레벨 보상 목록을 확인해 주세요 (예: 5:scout,10:neoncity): " + part);
+  }
   if (!Array.isArray(c.channels) || !c.channels.length || c.channels.length > 20 || new Set(c.channels.map((x) => x && x.id)).size !== c.channels.length || c.channels.some((x) => !x || !/^[a-zA-Z0-9_-]{1,20}$/.test(x.id) || typeof x.name !== "string" || !x.name.trim() || x.name.length > 40)) throw fail(400, "서버 목록을 확인해 주세요");
   if (Object.values(c.gacha.odds).every((x) => x === 0)) throw fail(400, "뽑기 확률을 하나 이상 설정해 주세요");
   // agents switched off: only known ids, in roster order; enough must stay on, every role with at least one

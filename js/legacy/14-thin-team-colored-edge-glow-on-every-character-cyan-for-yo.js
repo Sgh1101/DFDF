@@ -20,11 +20,18 @@
     m.envMapIntensity = CH_VC.envMapIntensity;
     m.userData.keep = !0;
     m.userData.chTeam = key;
+    m.userData.uTeam = U;
     return m;
   }
-  const ALLY = teamVC("ally", 0x38d6ff),
-    ENEMY = teamVC("enemy", 0xff2e44);
+  const ALLY = teamVC("ally", CB.PAL.off.outAlly),
+    ENEMY = teamVC("enemy", CB.PAL.off.outEnemy);
   window.TEAM_GLOW = { ALLY, ENEMY };
+  // the colour-blind mode (js/colorblind.js) changes the two colours in place; the shader reads them every frame
+  CB.onChange(() => {
+    ALLY.userData.uTeam.value.setHex(CB.get("outAlly"));
+    ENEMY.userData.uTeam.value.setHex(CB.get("outEnemy"));
+  });
+  CB.apply(!0);
   function tag(a) {
     const m = a && a.model;
     if (!m || !m.group) return;

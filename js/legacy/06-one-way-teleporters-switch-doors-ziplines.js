@@ -133,8 +133,8 @@
     door.open = open;
     door.col.h = open ? 0 : door.h;
     instant && (door.k = open ? 1 : 0);
-    door.sws.forEach((s) => s.g.userData.btn.material.color.setHex(open ? 0x4ade80 : 0xff3b4e));
-    door.sws.forEach((s) => s.g.userData.btn.material.emissive.setHex(open ? 0x4ade80 : 0xff3b4e));
+    door.sws.forEach((s) => s.g.userData.btn.material.color.setHex(CB.num(open ? "good" : "bad")));
+    door.sws.forEach((s) => s.g.userData.btn.material.emissive.setHex(CB.num(open ? "good" : "bad")));
     CHASH.dirty = !0;
     try {
       buildGrid();
@@ -312,7 +312,7 @@
       mctx.stroke();
     }
     for (const d of G.door) {
-      mctx.fillStyle = d.open ? "rgba(74,222,128,.6)" : "#ff3b4e";
+      mctx.fillStyle = d.open ? CB.rgba("good", 0.6) : CB.get("bad");
       mctx.fillRect(X(d.x - d.w / 2), Z(d.z - d.d / 2), Math.max(2, d.w * sx), Math.max(2, d.d * sz));
     }
     return r;

@@ -289,10 +289,16 @@
       extra = String((window.SERVER_CFG && SERVER_CFG.game && SERVER_CFG.game.extraMaps) || "");
     } catch (e) {}
     const more = "all" === extra.trim() ? ALL.concat(window.MAP_EXTRA || []).map((m) => m.key) : extra.split(/[\s,]+/).filter(Boolean);
-    const on = new Set(POOL.concat(more));
+    // the map of the week (the server picks it by the week number: js/map-week.js) joins the list, first, for the week
+    let week = "";
+    try {
+      week = String((window.SERVER_CFG && SERVER_CFG.weekMap && SERVER_CFG.weekMap.key) || "");
+    } catch (e) {}
+    window.WEEK_MAP_KEY = week;
+    const on = new Set(POOL.concat(more, week ? [week] : []));
     // maps added by later modules (the open field) join the same list
     const all = ALL.concat((window.MAP_EXTRA || []).filter((m) => !ALL.some((a) => a.key === m.key)));
-    const list = all.filter((m) => on.has(m.key) && MAPS[m.key]).sort((a, b) => (POOL.indexOf(a.key) + 1 || 99) - (POOL.indexOf(b.key) + 1 || 99));
+    const list = all.filter((m) => on.has(m.key) && MAPS[m.key]).sort((a, b) => (a.key === week ? -1 : POOL.indexOf(a.key) + 1 || 99) - (b.key === week ? -1 : POOL.indexOf(b.key) + 1 || 99));
     if (list.map((m) => m.key).join() === MAP_LIST.map((m) => m.key).join()) return;
     MAP_LIST.length = 0;
     list.forEach((m) => MAP_LIST.push(m));

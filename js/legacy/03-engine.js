@@ -1524,6 +1524,7 @@ const touch = {
     volSteps: 1,
     haptic: !0,
     binds: {},
+    colorblind: "off",
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
@@ -1541,6 +1542,7 @@ function loadSettings() {
       }
     }
   } catch (e) {}
+  ["off", "rg", "by"].includes(SETTINGS.colorblind) || (SETTINGS.colorblind = "off");
   SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
 }
 function saveSettings() {
@@ -1981,14 +1983,37 @@ function eyeHeight() {
 }
 const fx = [];
 function addFx(e, t, o) {
+  let r;
   e.userData.t = 0;
   const a = e.material;
   (a &&
     a.isLineBasicMaterial &&
     !a.userData.hdr &&
     (a.color.multiplyScalar(1.6), (a.userData.hdr = 1)),
-    fx.push({ mesh: e, life: t, fn: o }),
+    // a pooled object that is still playing takes the new play into its entry
+    e.userData.pool && e.userData.fxEntry
+      ? ((e.userData.fxEntry.life = t), (e.userData.fxEntry.fn = o))
+      : (fx.push((r = { mesh: e, life: t, fn: o })), e.userData.pool && (e.userData.fxEntry = r)),
     scene.add(e));
+}
+// Effects that come every shot reuse a fixed set of objects (and their materials) instead of making and disposing new ones:
+// get() hands out the one used longest ago (a play it is still in is replaced by the next addFx); updateFx lets it go when its life ends.
+function fxPool(n, make) {
+  const items = [];
+  let i = 0;
+  return {
+    items,
+    get() {
+      let o;
+      if (items.length < n) {
+        o = make();
+        const u = o.userData;
+        ((u.pool = 1), (u.keep = !0), (u.noMerge = !0));
+        (o.material && (o.material.userData.keep = !0), o.geometry && (o.geometry.userData.shared = !0), items.push(o));
+      } else ((o = items[i]), (i = (i + 1) % n));
+      return o;
+    },
+  };
 }
 const FXG = (() => {
     const e = (e) => ((e.userData.shared = !0), e);
@@ -2023,17 +2048,31 @@ function glowTex() {
     _glowTex
   );
 }
+// glow sprites go back on a shelf when their fx ends (updateFx) and are handed out again: no new material and
+// no dispose per spark. The shelf is capped; a sprite whose caller marked its material "keep" is never taken back.
+const GLOW_FREE = [];
 function glowDot(e, t, o) {
-  const a = new T.SpriteMaterial({
-    map: glowTex(),
-    color: e,
-    transparent: !0,
-    depthWrite: !1,
-    blending: T.AdditiveBlending,
-  });
-  a.color.multiplyScalar(o || 1.8);
-  const n = new T.Sprite(a);
+  let n = GLOW_FREE.pop();
+  n ||
+    ((n = new T.Sprite(
+      new T.SpriteMaterial({
+        map: glowTex(),
+        transparent: !0,
+        depthWrite: !1,
+        blending: T.AdditiveBlending,
+      }),
+    )),
+    (n.userData.glow = 1));
+  const a = n.material;
+  (a.color.setHex(16777215).set(e), a.color.multiplyScalar(o || 1.8), (a.opacity = 1));
   return (n.scale.setScalar(t), n);
+}
+function glowFree(e) {
+  const t = e.material;
+  if (GLOW_FREE.length >= 640) return void t.dispose();
+  ((t.rotation = 0), (t.depthTest = !0), (t.opacity = 1));
+  for (const o in e.userData) "glow" !== o && delete e.userData[o];
+  ((e.visible = !0), (e.renderOrder = 0), e.position.set(0, 0, 0), GLOW_FREE.push(e));
 }
 function glowFlare(e, t, o, a, n, r) {
   if (camera.position.distanceTo(_v3a.set(e, t, o)) < 1.3 * n + 2) return;
@@ -2120,24 +2159,29 @@ function cloudTex() {
     _cloudTex
   );
 }
+// Every point light costs lighting maths in every lit pixel, even at intensity 0, so the pool is small and
+// set by the preset (GFX.fxLights: 1, 2, 2, 4). Its size changes only with the preset (loadMap, applyGfx), never while playing.
 const FX_LIGHTS = [];
-function fxLightPool() {
-  if (FX_LIGHTS.length)
-    for (const e of FX_LIGHTS) e.parent !== scene && scene.add(e);
-  else
-    for (let e = 0; e < 4; e++) {
-      const e = new T.PointLight(16777215, 0, 10, 2);
-      ((e.userData.keep = !0),
-        (e._life = 0),
-        (e._t = 0),
-        (e._peak = 0),
-        (e._pow = 2),
-        scene.add(e),
-        FX_LIGHTS.push(e));
-    }
+function fxLightPool(keep) {
+  const n = (keep && FX_LIGHTS.length) || Math.max(1, ("undefined" != typeof GFX && GFX.fxLights) | 0 || 2);
+  for (; FX_LIGHTS.length > n; ) {
+    const e = FX_LIGHTS.pop();
+    (scene.remove(e), e.dispose && e.dispose());
+  }
+  for (const e of FX_LIGHTS) e.parent !== scene && scene.add(e);
+  for (; FX_LIGHTS.length < n; ) {
+    const e = new T.PointLight(16777215, 0, 10, 2);
+    ((e.userData.keep = !0),
+      (e._life = 0),
+      (e._t = 0),
+      (e._peak = 0),
+      (e._pow = 2),
+      scene.add(e),
+      FX_LIGHTS.push(e));
+  }
 }
 function fxFlash(e, t, o, a, n, r, s, i) {
-  fxLightPool();
+  fxLightPool(!0);
   let l = null,
     c = 1 / 0;
   for (const e of FX_LIGHTS) {
@@ -2176,29 +2220,44 @@ function impactSpark(e, t, o, a) {
       ((e.material.opacity = 1 - t), e.scale.setScalar(0.55 * (1 + 1.4 * t)));
     }));
 }
+// a tracer is one of 48 lines whose two points are rewritten; its own material fades it (the oldest line is taken over when all are in use)
+const FX_TRACE = fxPool(48, () => {
+  const g = new T.BufferGeometry();
+  g.setAttribute("position", new T.BufferAttribute(new Float32Array(6), 3));
+  const l = new T.Line(g, new T.LineBasicMaterial({ transparent: !0 }));
+  return ((l.frustumCulled = !1), l);
+});
+function tracerFade(e, t) {
+  e.material.opacity = e.userData.op * (1 - t);
+}
+function poolTracer(e, t, o, a, n, r, s, i, l) {
+  const c = FX_TRACE.get(),
+    d = c.geometry.attributes.position,
+    h = c.material;
+  (d.setXYZ(0, e, t, o),
+    d.setXYZ(1, a, n, r),
+    (d.needsUpdate = !0),
+    h.color.setHex(s),
+    (h.userData.hdr = 0),
+    (h.opacity = c.userData.op = i),
+    addFx(c, l, tracerFade));
+}
 function addTracer(e, t, o, a) {
-  const n = new T.Vector3(
-      -Math.sin(t) * Math.cos(o),
-      Math.sin(o),
-      -Math.cos(t) * Math.cos(o),
-    ),
-    r = new T.BufferGeometry().setFromPoints([
-      e.clone().add(n.clone().multiplyScalar(1.4)),
-      e.clone().add(n.clone().multiplyScalar(Math.min(a, 70))),
-    ]);
-  addFx(
-    new T.Line(
-      r,
-      new T.LineBasicMaterial({
-        color: 16773312,
-        transparent: !0,
-        opacity: 0.7,
-      }),
-    ),
+  const n = Math.cos(o),
+    r = -Math.sin(t) * n,
+    s = Math.sin(o),
+    i = -Math.cos(t) * n,
+    l = Math.min(a, 70);
+  poolTracer(
+    e.x + 1.4 * r,
+    e.y + 1.4 * s,
+    e.z + 1.4 * i,
+    e.x + l * r,
+    e.y + l * s,
+    e.z + l * i,
+    16773312,
+    0.7,
     0.07,
-    (e, t) => {
-      e.material.opacity = 0.7 * (1 - t);
-    },
   );
 }
 let flashLight = null;
@@ -2214,37 +2273,41 @@ function muzzleFlash() {
     1,
   );
 }
-const MZ_LIGHTS = [];
-let _mzIdx = 0;
-function muzzleLightPool() {
-  if (MZ_LIGHTS.length < 3) {
-    const e = new T.PointLight(16762992, 0, 9);
-    return (scene.add(e), MZ_LIGHTS.push(e), e);
-  }
-  return ((_mzIdx = (_mzIdx + 1) % MZ_LIGHTS.length), MZ_LIGHTS[_mzIdx]);
-}
-function worldMuzzleFlash(e) {
-  if (!e || !e.model) return;
-  const t = e.model.muzzle,
-    o = new T.Vector3();
-  t ? t.getWorldPosition(o) : o.set(e.pos.x, e.y + 1.35, e.pos.z);
-  const a = new T.MeshBasicMaterial({
+// the flash of someone else's gun: one of 16 groups of two planes that share one material (the old muzzle light pool, never filled, is gone)
+const FX_FLASH = fxPool(16, () => {
+  const e = new T.Group(),
+    t = new T.MeshBasicMaterial({
       color: 16768922,
       transparent: !0,
       opacity: 0.95,
       side: T.DoubleSide,
       depthWrite: !1,
-    }),
-    n = new T.Group();
-  for (let e = 0; e < 2; e++) {
-    const t = new T.Mesh(FXG.flash, a);
-    ((t.rotation.z = (e * Math.PI) / 2), n.add(t));
+    });
+  for (let o = 0; o < 2; o++) {
+    const a = new T.Mesh(FXG.flash, t);
+    ((a.rotation.z = (o * Math.PI) / 2), e.add(a));
   }
-  (n.position.copy(o), n.lookAt(camera.position));
-  const r = 0.7 + 0.5 * Math.random();
-  (addFx(n, 0.055, (e, t) => {
-    (e.scale.setScalar(r * (1 + 1.3 * t)), (a.opacity = 0.95 * (1 - t)));
-  }),
+  return ((e.userData.pool = 1), (t.userData.keep = !0), e);
+});
+const _v3b = new T.Vector3(),
+  _v3c = new T.Vector3();
+function flashFade(e, t) {
+  (e.scale.setScalar(e.userData.r * (1 + 1.3 * t)), (e.children[0].material.opacity = 0.95 * (1 - t)));
+}
+function worldMuzzleFlash(e) {
+  if (!e || !e.model) return;
+  const t = e.model.muzzle,
+    o = _v3b;
+  t ? t.getWorldPosition(o) : o.set(e.pos.x, e.y + 1.35, e.pos.z);
+  const n = FX_FLASH.get(),
+    a = n.children[0].material;
+  (a.color.setHex(16768922),
+    (a.opacity = 0.95),
+    n.position.copy(o),
+    n.scale.setScalar(1),
+    n.lookAt(camera.position),
+    (n.userData.r = 0.7 + 0.5 * Math.random()),
+    addFx(n, 0.055, flashFade),
     fxFlash(16762992, 0.75, 9, o.x, o.y, o.z, 0.07, 1),
     GFX.shells && Math.random() < 0.8 * (GFX.fx || 1) && ejectShell(o, e.yaw));
 }
@@ -2265,51 +2328,38 @@ function ejectShell(e, t) {
 }
 function worldTracer(e, t, o) {
   const a = e.model && e.model.muzzle,
-    n = new T.Vector3();
+    n = _v3b;
   a ? a.getWorldPosition(n) : n.set(e.pos.x, e.y + 1.35, e.pos.z);
-  const r = new T.BufferGeometry().setFromPoints([
-    n.clone(),
-    n.clone().add(t.clone().multiplyScalar(Math.min(o, 75))),
-  ]);
-  addFx(
-    new T.Line(
-      r,
-      new T.LineBasicMaterial({
-        color: 16771504,
-        transparent: !0,
-        opacity: 0.55,
-      }),
-    ),
-    0.06,
-    (e, t) => {
-      e.material.opacity = 0.55 * (1 - t);
-    },
-  );
+  const r = Math.min(o, 75);
+  poolTracer(n.x, n.y, n.z, n.x + t.x * r, n.y + t.y * r, n.z + t.z * r, 16771504, 0.55, 0.06);
 }
 function hitMarker(e) {
   const t = $("cross");
   ((t.style.filter = e
-    ? "drop-shadow(0 0 5px #ff3b4e)"
+    ? "drop-shadow(0 0 5px " + CB.get("head") + ")"
     : "drop-shadow(0 0 4px #fff)"),
     clearTimeout(t._t),
     (t._t = setTimeout(() => {
       t.style.filter = "";
     }, 110)));
 }
+// 128 drops, each with a material of its own to fade (a shotgun hit throws 7 per pellet; the oldest drop is taken over when all are in use)
+const FX_BLOOD = fxPool(128, () => new T.Mesh(FXG.blood, new T.MeshBasicMaterial({ transparent: !0 })));
+function bloodFade(e, t, o) {
+  const a = e.userData;
+  ((a.vy -= 12 * o),
+    (e.position.x += a.vx * o),
+    (e.position.y += a.vy * o),
+    (e.position.z += a.vz * o),
+    (e.material.opacity = 1 - t));
+}
 function bloodBurst(e, t, o, a) {
   const n = Math.max(2, Math.round(7 * (GFX.fx || 1)));
   for (let r = 0; r < n; r++) {
-    const n = new T.Mesh(
-      FXG.blood,
-      new T.MeshBasicMaterial({ color: a, transparent: !0 }),
-    );
-    n.position.set(e, t, o);
-    const r = new T.Vector3(rnd(-3, 3), rnd(1, 4.5), rnd(-3, 3));
-    addFx(n, 0.62, (e, t, o) => {
-      ((r.y -= 12 * o),
-        e.position.addScaledVector(r, o),
-        (e.material.opacity = 1 - t));
-    });
+    const n = FX_BLOOD.get(),
+      s = n.userData;
+    (n.material.color.set(a), (n.material.opacity = 1), n.position.set(e, t, o));
+    ((s.vx = rnd(-3, 3)), (s.vy = rnd(1, 4.5)), (s.vz = rnd(-3, 3)), addFx(n, 0.62, bloodFade));
   }
 }
 function allFighters() {
@@ -7425,7 +7475,7 @@ function ultwFire(e, t) {
       VM.kick,
       "beam" === o.kind || "flame" === o.kind ? 0.25 : 1,
     ))),
-    pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw)));
+    pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw), e.id));
 }
 function flyBlade(e, t, o, a) {
   const n = e.distanceTo(t),
@@ -11745,6 +11795,7 @@ const _rnd = (e, t) => e + Math.random() * (t - e),
   LAMP_LIT = { n: 0, max: 6 },
   DECOR = new T.Group();
 ((DECOR.userData.keep = !0), scene.add(DECOR));
+document.body.classList.toggle("gfx-blur", !!GFX.blur); // glass blur behind the HUD only on the visual and ultra presets
 const deco = (e) => (DECOR.add(e), e);
 function mergeDecor() {
   if (!DECOR) return 0;
@@ -15486,7 +15537,9 @@ function handleSpike(e) {
         (player.planting = 0),
         (player.plantAnchor = null),
         void spikeUI(
-          "스파이크 소지 · 사이트 안에서 4 또는 F를 눌러 설치",
+          "en" === window.GAME_LANG
+            ? `Carrying the spike · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
+            : `스파이크 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
           "#8a97ab",
           0,
           "#5b6879",
@@ -15498,7 +15551,9 @@ function handleSpike(e) {
         (player.planting = 0),
         (player.plantAnchor = null),
         void spikeUI(
-          `${t.id} 사이트 · 4 또는 F를 누르고 있으면 설치`,
+          "en" === window.GAME_LANG
+            ? `Site ${t.id} · hold ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} to plant`
+            : `${t.id} 사이트 · ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 누르고 있으면 설치`,
           "#ffc849",
           0,
           "#ffc849",
@@ -16316,25 +16371,24 @@ function packActor(e) {
     Math.round(e.ultCharge || 0),
   ];
 }
+// a remote body's sample goes into its buffer, stamped with the host's time (see interpRemote); the first one places it
+function netSample(e, t) {
+  const b = (e.net = e.net || {}).buf || (e.net.buf = []),
+    x = Q.unpos(t[1]),
+    y = Q.unpos(t[2]),
+    z = Q.unpos(t[3]),
+    yaw = Q.unang(t[4]),
+    pitch = Q.unang(t[5]);
+  (b.push({ T: NET.clk ? NET.clk.stamp : performance.now(), x, y, z, yaw, pitch }),
+    b.length > 16 && b.shift(),
+    1 === b.length && ((e.pos.x = x), (e.y = y), (e.pos.z = z), (e.yaw = yaw), (e.pitch = pitch)));
+}
 function applyActor(e, t, o) {
   const a = Q.unpos(t[1]),
     n = Q.unpos(t[2]),
     r = Q.unpos(t[3]);
-  (o
-    ? ((e.net = e.net || {}),
-      (e.net.px = e.pos.x),
-      (e.net.py = e.y),
-      (e.net.pz = e.pos.z),
-      (e.net.tx = a),
-      (e.net.ty = n),
-      (e.net.tz = r),
-      (e.net.pyaw = e.yaw),
-      (e.net.tyaw = Q.unang(t[4])),
-      (e.net.t = 0))
-    : ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4]))),
-    (e.pitch = Q.unang(t[5])),
-    (e.hp = t[6]),
-    (e.armor = t[7]));
+  o ? netSample(e, t) : ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4])), (e.pitch = Q.unang(t[5])));
+  ((e.hp = t[6]), (e.armor = t[7]));
   const s = t[8];
   ((e.alive = !!(s & AF.ALIVE)),
     (e.crouch = !!(s & AF.CROUCH)),
@@ -16347,11 +16401,43 @@ function applyActor(e, t, o) {
   const i = WKEYS[t[9]] || "pistol";
   ((e.netWeapon = i), e.ammo || (e.ammo = {}), (e.ammo[i] = t[10]));
 }
+// What the host tells a guest about its own body, with its position in the snapshot: [id, the last input seq the host moved it
+// by, bits, slow x100, speed buff x100, tag slow ms] with the values at their default left off the end. The guest compares the
+// position with where it had the body after that input (reconcileLocal), and takes over the things that move a body here
+// that it cannot know: bit 1 rooted, 2 concussed, 4 moved by the host (a zipline, a swing, a pull) and not by the guest's input.
+const NET_ACK_DEF = [0, 0, 0, 100, 100, 0],
+  NET_HOSTMOVED = (a) => !!(a._zip || a.__zip || a.__carry || a.__climbT > 0 || (a.__swing && !a.__swing.done));
+function netAckable(a) {
+  return null != a.simSeq && isGuestBody(a);
+}
+function netAck(a) {
+  const r = [
+    a.id,
+    a.simSeq,
+    (a.root > 0 ? 1 : 0) | (a.concuss > 0 ? 2 : 0) | (NET_HOSTMOVED(a) ? 4 : 0),
+    Math.round(100 * (a.slow || 1)),
+    Math.round(100 * (a.speedBuff || 1)),
+    a._tagT > 0 ? Math.round(1e3 * a._tagT) : 0,
+  ];
+  while (r.length > 2 && r[r.length - 1] === NET_ACK_DEF[r.length - 1]) r.pop();
+  return r;
+}
+// State a game mode keeps for the guests (hill, flags, zone) rides in the snapshot as gm, a list of the messages the guest's
+// NET.onEvent already understands, each at most once. A guest that does not read gm (no nv in its hello) is sent the message
+// itself on the event link.
+function sendStateMsg(m) {
+  if ("host" !== NET.mode) return;
+  (NET.gm || (NET.gm = {}))[m.t] = m;
+  for (const [p, c] of NET.conns) c.nv || c.quiet || !c.event || !c.event.open || sendEventTo(p, m);
+}
 function buildSnapshot(includeEffects = true) {
-  const e = world.spike;
+  const e = world.spike,
+    gm = includeEffects && NET.gm ? Object.values(NET.gm) : null;
+  gm && (NET.gm = null);
   return {
     t: "s",
     k: ++NET.tick,
+    ht: Math.round(performance.now()),
     ph: world.phase,
     rt: Math.round(10 * world.roundTime),
     sa: world.scoreAtk,
@@ -16371,12 +16457,29 @@ function buildSnapshot(includeEffects = true) {
       e.halfDefused ? 1 : 0,
     ],
     a: world.actors.map(packActor),
+    ak: world.actors.filter(netAckable).map(netAck),
     fx: includeEffects ? drainFX() : [],
+    ...(gm ? { gm } : {}),
   };
 }
 const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
+// The host stamps each snapshot with its own clock (ht, ms). The guest keeps the offset between the two clocks as the largest
+// (ht - arrival time) seen lately, i.e. that of the snapshot that was least delayed on the way; it falls 20 ms a second so a
+// link that has become slower is followed. An old host sends no ht: the arrival time stands in for it.
+function netClockSample(ht) {
+  const now = performance.now(),
+    c = NET.clk || (NET.clk = { off: null, at: now, stamp: now });
+  if ("number" != typeof ht) return ((c.stamp = now), c);
+  const s = ht - now;
+  if (null == c.off || Math.abs(s - c.off) > 3e3) {
+    c.off = s;
+    for (const a of world.actors || []) a.net && (a.net.buf = []);
+  } else c.off = Math.max(s, c.off - (now - c.at) * 0.02);
+  return ((c.at = now), (c.stamp = ht), c);
+}
 function applySnapshot(e) {
-  ((world.phase = e.ph),
+  (netClockSample(e.ht),
+    (world.phase = e.ph),
     (world.roundTime = e.rt / 10),
     (world.scoreAtk = e.sa),
     (world.scoreDef = e.sd),
@@ -16387,21 +16490,25 @@ function applySnapshot(e) {
     (t.z = Q.unpos(e.sk[2])),
     (t.timer = e.sk[3] / 10),
     (t.halfDefused = !!e.sk[4]));
-  const o = new Set();
+  const o = new Set(),
+    ak = e.ak;
   for (const t of e.a) {
-    let e = actorById(t[0]);
-    (e || (e = spawnRemoteActor(t[0])),
+    let a = actorById(t[0]);
+    (a || (a = spawnRemoteActor(t[0])),
       o.add(t[0]),
-      "me" === e.ctrl ? reconcileLocal(e, t) : applyActor(e, t, !0),
-      null != t[11] && (e.ultCharge = t[11]));
+      "me" === a.ctrl ? reconcileLocal(a, t, ak && ak.find((r) => r[0] === t[0])) : applyActor(a, t, !0),
+      null != t[11] && (a.ultCharge = t[11]));
   }
-  for (const e of world.actors)
-    !o.has(e.id) && e.group && (e.group.visible = !1);
+  for (const a of world.actors)
+    !o.has(a.id) && a.group && (a.group.visible = !1);
   e.fx && e.fx.length && playRemoteFX(e.fx);
+  if (e.gm) for (const m of e.gm) try { NET.onEvent && NET.onEvent(m); } catch (x) {}
 }
 let _fx = [];
-function pushFX(e, t, o, a, n) {
-  _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n]);
+// more arguments ride on the end of the entry (a SHOT names its shooter). Only a host sends them (each snapshot drains the
+// list); solo play and a guest kept every entry for the whole session.
+function pushFX(e, t, o, a, n, ...x) {
+  "host" === NET.mode && _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n, ...x]);
 }
 function drainFX() {
   const e = _fx;
@@ -16413,31 +16520,17 @@ function playRemoteFX(e) {
       o = Q.unpos(t[1]),
       a = Q.unpos(t[2]),
       n = Q.unpos(t[3]),
-      r = t[4] || 0;
+      r = t[4] || 0,
+      who = t[5];
     try {
       switch (e) {
         case FX.SHOT: {
+          // my own shot already drew its tracer when I fired it
+          if (null != who && "function" == typeof myActor && myActor() && myActor().id === who) break;
           const e = r / 100,
-            t = new T.Vector3(-Math.sin(e), 0, -Math.cos(e)),
-            s = new T.Vector3(o, a, n),
-            i = new T.BufferGeometry().setFromPoints([
-              s.clone().add(t.clone().multiplyScalar(0.8)),
-              s.clone().add(t.clone().multiplyScalar(60)),
-            ]);
-          addFx(
-            new T.Line(
-              i,
-              new T.LineBasicMaterial({
-                color: 16771504,
-                transparent: !0,
-                opacity: 0.55,
-              }),
-            ),
-            0.06,
-            (e, t) => {
-              e.material.opacity = 0.55 * (1 - t);
-            },
-          );
+            t = -Math.sin(e),
+            s = -Math.cos(e);
+          poolTracer(o + 0.8 * t, a, n + 0.8 * s, o + 60 * t, a, n + 60 * s, 16771504, 0.55, 0.06);
           break;
         }
         case FX.IMPACT:
@@ -16632,33 +16725,120 @@ function followCamera(e, t) {
       (camera.rotation.y += 0.03 * Math.sin(3.3 * o) * t));
   }
 }
-const LERP_TIME = 0.05;
+// A remote body is drawn INTERP_MS in the past, on the line between the two host snapshots around that time (position, yaw the
+// short way round, pitch). When the newest snapshot is older than that it goes on at the speed of its last step for up to
+// EXTRAP_MS and then stands. A step of more than 2.5 m (a respawn, a teleporter) is not crossed: the body stays until the
+// later snapshot's time and then appears there.
+const INTERP_MS = 100,
+  EXTRAP_MS = 100;
 function interpRemote(e, t) {
-  const o = e.net;
-  if (!o) return;
-  o.t = Math.min(1, (o.t || 0) + t / 0.05);
-  const a = o.t;
-  ((e.pos.x = o.px + (o.tx - o.px) * a),
-    (e.y = o.py + (o.ty - o.py) * a),
-    (e.pos.z = o.pz + (o.tz - o.pz) * a));
-  const n = wrapYaw(o.tyaw - o.pyaw);
-  e.yaw = o.pyaw + n * a;
+  const o = e.net,
+    b = o && o.buf;
+  if (!b || !b.length) return;
+  const c = NET.clk,
+    rt = (c && null != c.off ? performance.now() + c.off : performance.now()) - INTERP_MS;
+  let i = b.length - 1;
+  while (i > 0 && b[i].T > rt) i--;
+  const A = b[i],
+    B = b[i + 1],
+    far = (p, q) => Math.hypot(q.x - p.x, q.z - p.z) > 2.5 || Math.abs(q.y - p.y) > 2.5;
+  let x = A.x,
+    y = A.y,
+    z = A.z,
+    yaw = A.yaw,
+    pitch = A.pitch,
+    vx = 0,
+    vz = 0;
+  if (B && rt >= A.T) {
+    const span = Math.max(1, B.T - A.T);
+    if (!far(A, B)) {
+      const k = Math.min(1, (rt - A.T) / span);
+      ((x = A.x + (B.x - A.x) * k),
+        (y = A.y + (B.y - A.y) * k),
+        (z = A.z + (B.z - A.z) * k),
+        (yaw = A.yaw + wrapYaw(B.yaw - A.yaw) * k),
+        (pitch = A.pitch + (B.pitch - A.pitch) * k),
+        (vx = ((B.x - A.x) / span) * 1e3),
+        (vz = ((B.z - A.z) / span) * 1e3));
+    }
+  } else if (!B && i > 0 && rt > A.T) {
+    const P = b[i - 1],
+      span = A.T - P.T;
+    if (span > 0 && span < 300 && !far(P, A)) {
+      const ms = Math.min(rt - A.T, EXTRAP_MS),
+        k = ms / span;
+      ((x = A.x + (A.x - P.x) * k),
+        (y = A.y + (A.y - P.y) * k),
+        (z = A.z + (A.z - P.z) * k),
+        (yaw = A.yaw + wrapYaw(A.yaw - P.yaw) * k),
+        rt - A.T < EXTRAP_MS && ((vx = ((A.x - P.x) / span) * 1e3), (vz = ((A.z - P.z) / span) * 1e3)));
+    }
+  }
+  ((e.pos.x = x), (e.y = y), (e.pos.z = z), (e.yaw = yaw), (e.pitch = pitch));
+  // the legs of a remote body walk by its velocity
+  e.vel && ((e.vel.x = vx), (e.vel.z = vz));
+  const keep = Math.max(0, i - 2);
+  keep > 0 && b.splice(0, keep);
 }
-function reconcileLocal(e, t) {
+// The guest moves its own body (simMove) with the inputs it sends and keeps where each left it (e._hist). A snapshot says which
+// input the host had moved the body by (ack) and where that left it: the difference is what the guest got wrong (a slow it did
+// not know of, a door, a push), and only that is corrected, a third of it per snapshot, in the history too so that it is not
+// corrected twice. Without an ack (an old host) the body is pulled 18% toward where the host had it, as before. A body the host
+// moves itself is drawn from the snapshots like a remote one.
+function reconcileLocal(e, t, ack) {
   const o = t[1] / 100,
     a = t[2] / 100,
     n = t[3] / 100,
     r = Math.hypot(e.pos.x - o, e.pos.z - n);
-  (r > 2.5
-    ? ((e.pos.x = o), (e.y = a), (e.pos.z = n))
-    : r > 0.05 &&
-      ((e.pos.x += 0.18 * (o - e.pos.x)),
-      (e.y += 0.18 * (a - e.y)),
-      (e.pos.z += 0.18 * (n - e.pos.z))),
-    (e.hp = t[6]),
-    (e.armor = t[7]));
+  if (!ack) {
+    (r > 2.5
+      ? ((e.pos.x = o), (e.y = a), (e.pos.z = n))
+      : r > 0.05 &&
+        ((e.pos.x += 0.18 * (o - e.pos.x)),
+        (e.y += 0.18 * (a - e.y)),
+        (e.pos.z += 0.18 * (n - e.pos.z))),
+      (e.hp = t[6]),
+      (e.armor = t[7]));
+    const s = t[8];
+    return void ((e.alive = !!(s & AF.ALIVE)), (e.hasSpike = !!(s & AF.SPIKE)));
+  }
+  const bits = ack[2] | 0;
+  ((e.hp = t[6]), (e.armor = t[7]));
   const s = t[8];
   ((e.alive = !!(s & AF.ALIVE)), (e.hasSpike = !!(s & AF.SPIKE)));
+  // what moves the body here that only the host knows
+  ((e.slow = null == ack[3] ? 1 : ack[3] / 100), (e.speedBuff = null == ack[4] ? 1 : ack[4] / 100));
+  (bits & 1 ? e.root > 0 || ((e.root = 0.5), (e._netRoot = !0)) : e._netRoot && ((e.root = 0), (e._netRoot = !1)),
+    bits & 2 ? e.concuss > 0 || ((e.concuss = 0.001), (e._netConc = !0)) : e._netConc && ((e.concuss = 0), (e._netConc = !1)),
+    ack[5] > 0 && (e._tagT = Math.max(e._tagT || 0, ack[5] / 1e3)));
+  if (bits & 4) {
+    e._hostDriven || ((e._hostDriven = !0), (e._hist = null), (e.net = { buf: [] }));
+    return void netSample(e, t);
+  }
+  if (e._hostDriven) {
+    const b = e.net && e.net.buf,
+      l = b && b[b.length - 1];
+    ((e._hostDriven = !1), (e._hist = null), l && ((e.pos.x = l.x), (e.y = l.y), (e.pos.z = l.z)), e.net && (e.net.buf = []));
+  }
+  if (!e.alive) return void (e._hist = null);
+  const H = e._hist;
+  let i = -1;
+  if (H) for (let k = H.length - 1; k >= 0; k--) if (H[k].seq === ack[1]) { i = k; break; }
+  if (i < 0) return void (r > 2.5 && ((e.pos.x = o), (e.y = a), (e.pos.z = n), (e._hist = null)));
+  i > 0 && H.splice(0, i);
+  const h = H[0],
+    dx = o - h.x,
+    dy = a - h.y,
+    dz = n - h.z,
+    err = Math.hypot(dx, dz),
+    k = err > 2.5 || Math.abs(dy) > 2.5 ? 1 : err > 0.02 || Math.abs(dy) > 0.03 ? 0.3 : 0;
+  if (k) {
+    const cx = dx * k,
+      cy = dy * k,
+      cz = dz * k;
+    ((e.pos.x += cx), (e.y += cy), (e.pos.z += cz));
+    for (const q of H) ((q.x += cx), (q.y += cy), (q.z += cz));
+  }
 }
 function shotKindOf(e) {
   const t = WEAPONS[e];
@@ -16780,7 +16960,7 @@ function actorFire(e) {
       (worldMuzzleFlash(e), GFX.tracer &&
           worldTracer(
             e,
-            new T.Vector3(
+            _v3c.set(
               -Math.sin(e.yaw) * Math.cos(e.pitch || 0),
               Math.sin(e.pitch || 0),
               -Math.cos(e.yaw) * Math.cos(e.pitch || 0),
@@ -16788,7 +16968,7 @@ function actorFire(e) {
             o.range,
           ));
     } catch (e) {}
-  pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw));
+  pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw), e.id);
 }
 function actorHitscan(e, t, o, a, n) {
   let r = null,
@@ -17059,7 +17239,8 @@ function resolveActions(e, t) {
       : (e._held = !1),
     e.burstLeft > 0 && e.fireCd <= 0 && (actorFire(e), e.burstLeft--));
 }
-const FX = { SHOT: 1, IMPACT: 2, BLOOD: 3, BLOOD_HEAD: 4, SMOKE: 5, FLASH: 6 },
+// SND is not a picture: a gun was fired, [SND, 0, 0, 0, gun index (WKEYS), shooter id, skin if not the default, gun key if not in WKEYS]
+const FX = { SHOT: 1, IMPACT: 2, BLOOD: 3, BLOOD_HEAD: 4, SMOKE: 5, FLASH: 6, SND: 7 },
   TEAM_INTEL = { atk: new Map(), def: new Map() },
   INTEL_LIFE = 6;
 function intelTick(e) {
@@ -18027,6 +18208,7 @@ function netShutdown() {
   NET.id = null;
   NET.lastSnap = NET.prevSnap = null;
   NET.lastK = null;
+  NET.clk = null;
   NET.latency = 0;
 }
 function peerCount() {
@@ -18517,7 +18699,8 @@ function requestOpt(e, t) {
 const SNAP_HZ = 20,
   INPUT_HZ = 60;
 let _snapAcc = 0,
-  _inputAcc = 0;
+  _inputAcc = 0,
+  _inputDs = [];
 function isHost() {
   return "client" !== NET.mode;
 }
@@ -18536,7 +18719,9 @@ function netStep(e) {
       const e = gatherInput();
       ((t.input.mv = e.mv), (t.input.btn = e.btn));
     }
-    for (const t of world.actors) (t.alive && simMove(t, e), syncActorModel(t));
+    for (const t of world.actors)
+      (t.alive ? (t.inq && isGuestBody(t) ? guestMoves(t, e) : simMove(t, e)) : t.inq && t.inq.length && ((t.simSeq = t.inq[t.inq.length - 1].seq), (t.inq.length = 0)),
+        syncActorModel(t));
     for (const t of world.actors) t.alive && resolveActions(t, e);
     "host" === NET.mode &&
       ((_snapAcc += e),
@@ -18544,10 +18729,16 @@ function netStep(e) {
       _snapAcc >= 0.05 - 1e-6 &&
         ((_snapAcc = Math.min(_snapAcc - 0.05, 0.025)), sendSnapshot(buildSnapshot())));
   } else {
-    if (((_inputAcc += e), _inputAcc >= 1 / 60 - 1e-6)) {
+    // The input goes with the time it covers (dt, in 0.1 ms; ds lists the frames when it covers more than one) so that the host
+    // moves the body by the same steps, and the body is kept where the input left it (see reconcileLocal).
+    const dq = Math.max(1e-4, Math.round(e * 1e4) / 1e4);
+    ((_inputAcc += e), _inputDs.length < 8 && _inputDs.push(Math.round(dq * 1e4)));
+    let msg = null;
+    if (_inputAcc >= 1 / 60 - 1e-6) {
       _inputAcc = Math.min(_inputAcc - 1 / 60, 1 / 120);
-      const e = gatherInput();
-      ((e.t = "in"), (e.seq = ++_inputSeq), sendInput(e));
+      ((msg = gatherInput()), (msg.t = "in"), (msg.seq = ++_inputSeq), (msg.dt = _inputDs.reduce((a, b) => a + b, 0)));
+      (_inputDs.length > 1 && (msg.n = _inputDs.length), _inputDs.length > 1 && (msg.ds = _inputDs));
+      _inputDs = [];
     }
     if (t && t.alive) {
       {
@@ -18557,13 +18748,17 @@ function netStep(e) {
           (t.input.yaw = t.yaw),
           (t.input.pitch = t.pitch));
       }
-      simMove(t, e);
-    }
+      if (!t._hostDriven) {
+        simMove(t, dq);
+        msg && ((t._hist || (t._hist = [])).push({ seq: msg.seq, x: t.pos.x, y: t.y, z: t.pos.z }), t._hist.length > 240 && t._hist.shift());
+      }
+    } else t && (t._hist = null);
+    msg && sendInput(msg);
     try {
       (camera.updateMatrixWorld(), updateFrustum());
     } catch (e) {}
     for (const o of world.actors)
-      (o !== t && interpRemote(o, e), syncActorModel(o));
+      ((o !== t || o._hostDriven) && interpRemote(o, e), syncActorModel(o));
   }
   t && t.alive && followCamera(t, e);
 }
@@ -18917,6 +19112,37 @@ function hostLeftNotice() {
     hideAll(),
     show("s-title"));
 }
+// A guest's body is moved by the inputs the guest sent, each for the time it covered there, so that the host and the guest step
+// the body alike and the guest's prediction matches (reconcileLocal). The host's own time pays for it: a guest cannot move
+// faster than real time (a bank of at most 0.5 s), and inputs that piled up behind a slow link are caught up at once. An input
+// without a dt (an old guest) moves the body by the host's frame as before. o.simSeq is the last input the body was moved by.
+function netQueueInput(o, m) {
+  const ds = Array.isArray(m.ds) ? m.ds : null,
+    n = ds ? ds.length : 1,
+    ok = Number.isInteger(m.dt) && m.dt > 0 && m.dt <= 1e3 && (!ds || (n <= 8 && ds.every((x) => Number.isInteger(x) && x > 0) && ds.reduce((a, b) => a + b, 0) === m.dt));
+  if (!ok) return void ((o.inq = null), (o.simSeq = null));
+  const q = o.inq || (o.inq = []);
+  (q.push({ seq: m.seq, mv: m.mv, btn: m.btn, yaw: m.yaw, pitch: m.pitch, ds: (ds || [m.dt]).map((x) => x / 1e4), dt: m.dt / 1e4 }),
+    q.length > 90 && q.splice(0, q.length - 60),
+    null == o.simSeq && (o.simSeq = 0));
+}
+function guestMoves(t, e) {
+  const now = performance.now(),
+    q = t.inq;
+  ((t._bank = Math.min(0.5, (null == t._bank ? 0.1 : t._bank) + (t._bankT ? (now - t._bankT) / 1e3 : e))), (t._bankT = now));
+  if (!q.length) return;
+  const mv = t.input.mv,
+    btn = t.input.btn,
+    yaw = t.yaw,
+    pitch = t.pitch;
+  while (q.length && t._bank + 1e-9 >= q[0].dt) {
+    const i = q.shift();
+    ((t._bank -= i.dt), (t.input.mv = i.mv), (t.input.btn = i.btn), (t.yaw = i.yaw), (t.pitch = i.pitch));
+    for (const d of i.ds) simMove(t, d);
+    t.simSeq = i.seq;
+  }
+  ((t.input.mv = mv), (t.input.btn = btn), (t.yaw = yaw), (t.pitch = pitch));
+}
 ((NET.onInput = (e, t) => {
   if (!GAME_RULES.validInput(t)) return;
   const o = world.actors.find((t) => t.ctrl === e);
@@ -18926,7 +19152,9 @@ function hostLeftNotice() {
       (o.input.mv = t.mv),
       (o.input.btn = t.btn),
       (o.yaw = t.yaw),
-      (o.pitch = t.pitch)));
+      (o.pitch = t.pitch),
+      o._inPeer !== e && ((o._inPeer = e), (o.inq = null), (o.simSeq = null)),
+      netQueueInput(o, t)));
 }),
   (NET.onAction = (e, t) => {
     switch (t.t) {
@@ -20005,17 +20233,15 @@ function drawTac() {
     (tctx.save(),
       tctx.translate(o, a),
       tctx.rotate(-e.yaw),
-      (tctx.fillStyle = t ? "rgba(74,222,128,.16)" : "rgba(255,59,78,.18)"),
+      (tctx.fillStyle = t ? CB.rgba("mapAlly", 0.16) : CB.rgba("mapEnemy", 0.18)),
       tctx.beginPath(),
       tctx.moveTo(0, 0),
       tctx.arc(0, 0, 26, -Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55),
       tctx.closePath(),
       tctx.fill(),
       tctx.restore(),
-      (tctx.fillStyle = t ? "#4ade80" : "#ff3b4e"),
-      tctx.beginPath(),
-      tctx.arc(o, a, 6, 0, 7),
-      tctx.fill(),
+      (tctx.fillStyle = t ? CB.get("mapAlly") : CB.get("mapEnemy")),
+      CB.dot(tctx, o, a, 6, !t),
       (tctx.strokeStyle = "rgba(0,0,0,.6)"),
       (tctx.lineWidth = 1.5),
       tctx.stroke(),
@@ -20271,10 +20497,8 @@ function drawMini() {
     if (!e.alive) return;
     const t = e.team === player.team;
     (!t && e.revealed <= 0) ||
-      ((mctx.fillStyle = t ? "#4ade80" : "#ff3b4e"),
-      mctx.beginPath(),
-      mctx.arc(r(e.pos.x), s(e.pos.z), 5, 0, 7),
-      mctx.fill());
+      ((mctx.fillStyle = t ? CB.get("mapAlly") : CB.get("mapEnemy")),
+      CB.dot(mctx, r(e.pos.x), s(e.pos.z), 5, !t));
   });
   const l = r(player.pos.x),
     c = s(player.pos.z);
@@ -20366,9 +20590,12 @@ function applyGfx(e, t) {
       loadMap(CUR_MAP_KEY);
     } catch (e) {}
   if (window.ASCENT_TRIAL?.active) window.ASCENT_TRIAL.applyGraphics(SETTINGS.quality);
+  "function" == typeof fxLightPool && fxLightPool(); // the effects light pool follows the preset (also on maps that are not reloaded)
   (scene.traverse((e) => {
     e.material && (e.material.needsUpdate = !0);
   }),
+    shadowRefresh(),
+    document.body.classList.toggle("gfx-blur", !!GFX.blur),
     t || updateGfxLabel());
 }
 function rebuildActorModels() {
@@ -20399,6 +20626,17 @@ function rebuildActorModels() {
       } catch (e) {}
     }
 }
+// What setQuality last applied. startGame skips setQuality while this still describes the graphics (it marks every material
+// in the scene for update, a stall at the start of each match); the cheap parts of a match start are kept (gfxKeep).
+var _gfxSig = "";
+function gfxSig() {
+  return SETTINGS.quality + "|" + (window.ASCENT_TRIAL?.active ? 1 : 0) + "|" + (devicePixelRatio || 1) + "|" + JSON.stringify(GFX);
+}
+function gfxKeep() {
+  Object.assign(DYNRES, {scale:1,ema:1/60,cool:2,good:0});
+  const e = Math.min(devicePixelRatio || 1, GFX.pixel);
+  renderer.getPixelRatio() !== e && renderer.setPixelRatio(e);
+}
 function setQuality(e) {
   e = GRAPHICS_SETTINGS.normalize(e, SET_DEF.quality === 'mobile');
   ((SETTINGS.quality = e),
@@ -20406,6 +20644,7 @@ function setQuality(e) {
     applyGfx(GFX_PRESETS[e], !1),
     updateGfxLabel());
   Object.assign(DYNRES, {scale:1,ema:1/60,cool:2,good:0});
+  _gfxSig = gfxSig();
 }
 function updateGfxLabel() {
   const e = $("st-q-now");
@@ -20606,7 +20845,6 @@ function step(e) {
     bannerT > 0 &&
       ((bannerT -= e), bannerT <= 0 && $("banner").classList.remove("show")),
     flashLight && (flashLight.intensity *= 0.82));
-  for (const e of MZ_LIGHTS) e.intensity > 0.01 && (e.intensity *= 0.74);
   (tickViewmodel(e),
     tickKillFx(e),
     tickDmgNums(e),
@@ -20998,16 +21236,20 @@ function updateFx(e) {
     const a = o.mesh.userData.t / o.life;
     a >= 1
       ? (scene.remove(o.mesh),
-        o.mesh.traverse((e) => {
-          !e.geometry ||
-            e.isSprite ||
-            (e.geometry.userData && e.geometry.userData.shared) ||
-            e.geometry.dispose();
-          const t = e.material;
-          !t ||
-            (t.userData && t.userData.keep) ||
-            (Array.isArray(t) ? t.forEach((e) => e.dispose()) : t.dispose());
-        }),
+        o.mesh.userData.pool
+          ? (o.mesh.userData.fxEntry = null)
+          : o.mesh.userData.glow && !o.mesh.material.userData.keep
+            ? glowFree(o.mesh)
+            : o.mesh.traverse((e) => {
+                !e.geometry ||
+                  e.isSprite ||
+                  (e.geometry.userData && e.geometry.userData.shared) ||
+                  e.geometry.dispose();
+                const t = e.material;
+                !t ||
+                  (t.userData && t.userData.keep) ||
+                  (Array.isArray(t) ? t.forEach((e) => e.dispose()) : t.dispose());
+              }),
         fx.splice(t, 1))
       : o.fn(o.mesh, a, e);
   }
@@ -21239,49 +21481,34 @@ function postRender() {
 function postActive() {
   return !!POST.on && (void 0 === GFX || !1 !== GFX.post) && postInit();
 }
-// Keep the existing shadow texture until a shadow-producing input changes.
-let _shadowInputs = new Map();
-function shadowInputsChanged() {
-  scene.updateMatrixWorld();
-  const next = new Map();
-  let changed = false;
-  scene.traverseVisible((object) => {
-    if (!object.castShadow) return;
-    const values = [...object.matrixWorld.elements, object.layers.mask, camera.layers.mask, renderer.shadowMap.type];
-    if (object.isLight && object.shadow) {
-      const sh = object.shadow;
-      object.target?.updateWorldMatrix(true, false);
-      values.push(...(object.target?.matrixWorld.elements || []),
-        ...sh.camera.projectionMatrix.elements, sh.mapSize.x, sh.mapSize.y,
-        sh.bias, sh.normalBias, sh.radius, object.distance, object.angle,
-        !!sh.map);
-    } else {
-      const geometry = object.geometry;
-      values.push(geometry?.id, geometry?.index?.version,
-        ...Object.values(geometry?.attributes || {}).map(a => a.version),
-        object.instanceMatrix?.version, ...(object.morphTargetInfluences || []));
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      for (const m of materials) if (m) values.push(m.id, m.version, m.visible, m.side,
-        m.alphaTest, m.opacity, m.map?.version, m.alphaMap?.version, m.displacementMap?.version,
-        m.displacementScale, m.displacementBias);
-      // Bones and custom vertex shaders may deform without changing matrixWorld.
-      if (object.isSkinnedMesh || object.customDepthMaterial || object.customDistanceMaterial ||
-          materials.some(m => m?.isShaderMaterial || m?.displacementMap)) changed = true;
-    }
-    const previous = _shadowInputs.get(object);
-    if (!previous || previous.length !== values.length || values.some((v, i) => v !== previous[i])) changed = true;
-    next.set(object, values);
-  });
-  if (next.size !== _shadowInputs.size) changed = true;
-  _shadowInputs = next;
-  return changed;
+// The shadow map is drawn every GFX.shadowEvery frames (a moving caster's shadow may lag by that many frames, the static map's
+// shadows are exact either way: the map and its matrix are replaced together). It is drawn at once on the first frame, when
+// the shadow map was just made, the map or the graphics preset changed (shadowRefresh), the sun moved by more than a few
+// metres (a respawn, a spectate switch, a teleport) or its direction changed. No per-frame lists: a frame costs a few compares.
+var _shN = 0, _shNow = true, _shMap = "", _shTx = 0, _shTz = 0, _shDx = 0, _shDy = 0, _shDz = 0;
+function shadowRefresh() {
+  _shNow = true;
+}
+function shadowDue() {
+  const p = sun.position, t = sun.target.position, e = GFX.shadowEvery | 0;
+  if (
+    _shNow || !sun.shadow.map || _shMap !== CUR_MAP_KEY ||
+    Math.abs(t.x - _shTx) + Math.abs(t.z - _shTz) > 6 ||
+    Math.abs(p.x - t.x - _shDx) + Math.abs(p.y - _shDy) + Math.abs(p.z - t.z - _shDz) > 1e-3 ||
+    ++_shN >= (e > 1 ? e : 1)
+  ) {
+    _shN = 0; _shNow = false; _shMap = CUR_MAP_KEY;
+    _shTx = t.x; _shTz = t.z; _shDx = p.x - t.x; _shDy = p.y; _shDz = p.z - t.z;
+    return true;
+  }
+  return false;
 }
 function render() {
   renderer.shadowMap.autoUpdate = !1;
   if (renderer.shadowMap.enabled) {
     followSun();
-    if (shadowInputsChanged()) renderer.shadowMap.needsUpdate = !0;
-  } else _shadowInputs.clear();
+    if (shadowDue()) renderer.shadowMap.needsUpdate = !0;
+  } else _shNow = true;
   if (postActive())
     try {
       return void postRender();
@@ -21481,7 +21708,7 @@ function startGame(e, t) {
     document.body.classList.toggle("touching", IS_TOUCH),
     IS_TOUCH && enableTouch());
   try {
-    setQuality(SETTINGS.quality);
+    gfxSig() === _gfxSig ? gfxKeep() : setQuality(SETTINGS.quality);
     const e = $("fps");
     e && (e.hidden = !SETTINGS.showFps);
   } catch (e) {}

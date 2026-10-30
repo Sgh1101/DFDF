@@ -223,7 +223,7 @@
     if (!force && now - Z.sent < 250) return;
     Z.sent = now;
     try {
-      sendEventAll({ t: "hill", i: Z.i, x: Math.round(Z.x * 10), z: Math.round(Z.z * 10), y: Math.round(Z.y * 10), p: Math.round(Z.p), o: Z.owner, w: Z.who, a: Math.round(Z.age), n: Z.next ? 1 : 0, s: Z.at.map((s) => [Math.round(s.x * 10), Math.round(s.z * 10), Math.round(s.y * 10)]) });
+      sendStateMsg({ t: "hill", i: Z.i, x: Math.round(Z.x * 10), z: Math.round(Z.z * 10), y: Math.round(Z.y * 10), p: Math.round(Z.p), o: Z.owner, w: Z.who, a: Math.round(Z.age), n: Z.next ? 1 : 0, s: Z.at.map((s) => [Math.round(s.x * 10), Math.round(s.z * 10), Math.round(s.y * 10)]) });
     } catch (e) {}
   }
   const _oe = NET.onEvent;

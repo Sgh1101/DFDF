@@ -8,7 +8,7 @@ test("defaults are the keys the game always had", () => {
     forward: ["KeyW"], back: ["KeyS"], left: ["KeyA"], right: ["KeyD"], jump: ["Space"], crouch: ["ShiftLeft", "ShiftRight"], reload: ["KeyR"],
     slot1: ["Digit1", "Numpad1"], slot2: ["Digit2", "Numpad2"], slot3: ["Digit3", "Numpad3"], grenade: ["KeyG"], inspect: ["KeyY"],
     ability1: ["KeyQ"], ability2: ["KeyE"], ability3: ["KeyC"], ability4: ["KeyX"], use: ["KeyF"], plant: ["Digit4", "Numpad4"], shop: ["KeyB"],
-    scoreboard: ["Tab"], combatlog: ["KeyN"], map: ["KeyM"],
+    scoreboard: ["Tab"], combatlog: ["KeyN"], map: ["KeyM"], ping: ["KeyV"], quickchat: ["KeyZ"],
   };
   assert.deepEqual(Object.fromEntries(K.ACTIONS.map((a) => [a.id, K.codes(a.id)])), want);
   const keys = {};

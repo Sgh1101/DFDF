@@ -25,7 +25,7 @@
   const play = (key, far) => {
     const e = get();
     if (!e) return !0;
-    e.setRoom("hospital" === CUR_MAP_KEY ? "indoor" : "open");
+    e.setRoom(roomNow());
     return e.play(key, far);
   };
   const _gun = SFX.gun,
@@ -45,5 +45,38 @@
     } catch (e) {}
     return _shot.apply(this, arguments);
   };
+  // The first shot of a gun used to render its takes on the spot (and the room's reverb on the first shot of all), a hitch
+  // in the middle of a fight. While a match runs, the takes of every gun held by someone in it are rendered ahead, mine first,
+  // one piece per idle callback; the shot itself is the same buffer that would have been rendered.
+  const idle = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 60));
+  let warming = !1;
+  const inPlay = () => {
+    const me = "function" == typeof myActor ? myActor() : null,
+      keys = new Set();
+    for (const a of [me, ...((world && world.actors) || [])])
+      if (a && a.weapons) for (const k of Object.values(a.weapons)) GUNSYNTH.has(k) && keys.add(k);
+    return [...keys];
+  };
+  let roomed = "";
+  const roomNow = () => ("hospital" === CUR_MAP_KEY ? "indoor" : "open");
+  const warmNext = () => {
+    warming = !1;
+    try {
+      const e = get();
+      if (!e || !e.warm) return;
+      const room = roomNow(),
+        k = inPlay().find((k) => !e.warmed(k));
+      if (roomed !== room) ((roomed = room), e.setRoom(room));
+      else if (k) e.warm(k);
+      warming = roomed !== room || inPlay().some((k) => !e.warmed(k));
+      warming && idle(warmNext);
+    } catch (e) {
+      warming = !1;
+    }
+  };
+  setInterval(() => {
+    if (warming || document.hidden || "undefined" == typeof world || ("buy" !== world.phase && "live" !== world.phase)) return;
+    if (!eng || roomed !== roomNow() || inPlay().some((k) => !eng.warmed(k))) ((warming = !0), idle(warmNext));
+  }, 1000);
   window.GUNSOUND_ENGINE = () => eng;
 })();

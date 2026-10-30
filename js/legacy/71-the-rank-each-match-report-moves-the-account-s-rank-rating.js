@@ -64,6 +64,7 @@
     disputed: L("플레이어 결과가 달라 RR에 반영되지 않았습니다", "Players disagreed on the result, so RR did not move"),
     no_result: L("방장의 결과를 받지 못해 RR에 반영되지 않았습니다", "No result from the host, so RR did not move"),
     duplicate: L("이미 반영된 경기입니다", "This match was already counted"),
+    left: L("경기 도중 나가 패배로 처리되었습니다 (추가 벌점 포함)", "You left during the match: counted as a loss, with a penalty"),
   };
   function overCell() {
     const u = user(),

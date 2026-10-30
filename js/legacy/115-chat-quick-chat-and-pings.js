@@ -500,7 +500,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
         e.stopImmediatePropagation();
         qmClose();
         quick(q, e.shiftKey || ffa() ? "a" : "t");
-      } else if ("Escape" === e.key || "KeyZ" === e.code) {
+      } else if ("Escape" === e.key || KEYMAP.is(e, "quickchat")) {
         e.preventDefault();
         e.stopImmediatePropagation();
         qmClose();
@@ -510,11 +510,11 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || editable(e.target) || !on() || !here()) return;
     if ("Enter" === e.key) {
       if (open(e.shiftKey ? "a" : "t")) (e.preventDefault(), e.stopImmediatePropagation());
-    } else if ("KeyZ" === e.code && live() && !modal()) {
+    } else if (KEYMAP.is(e, "quickchat") && live() && !modal()) {
       e.preventDefault();
       e.stopImmediatePropagation();
       qmOpen();
-    } else if ("KeyV" === e.code && live() && !modal() && (locked || IS_TOUCH)) {
+    } else if (KEYMAP.is(e, "ping") && live() && !modal() && (locked || IS_TOUCH)) {
       e.stopImmediatePropagation();
       ping();
     }
@@ -854,7 +854,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
       }
       bmFit();
       const hint = $("bm-hint");
-      hint && on() && !ffa() && (hint.textContent = IS_TOUCH ? L("지도를 눌러 핑 · 바깥을 누르면 닫힘", "Tap the map to ping · tap outside to close") : L("지도를 눌러 핑 · M 닫기", "Click the map to ping · M to close"));
+      hint && on() && !ffa() && (hint.textContent = IS_TOUCH ? L("지도를 눌러 핑 · 바깥을 누르면 닫힘", "Tap the map to ping · tap outside to close") : L("지도를 눌러 핑 · " + KEYMAP.name("map") + " 닫기", "Click the map to ping · " + KEYMAP.name("map") + " to close"));
       bmp.style.display = on() && !ffa() ? "" : "none";
       // a mouse needs its cursor to click the map: let the lock go while it is open (it comes back when it closes)
       if (!IS_TOUCH && document.pointerLockElement && on() && !ffa()) {
