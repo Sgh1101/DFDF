@@ -15,6 +15,7 @@ async function play(h, p, o = {}) {
 }
 async function setConfig(h, owner, edit) {
   const c = JSON.parse(JSON.stringify(h.config));
+  c.firstWin.on = c.lvReward.on = c.ach.on = false; // the gold of progression rewards (progression.test.js) is not what these tests count
   edit(c);
   const r = await h.api("a_config_set", { atoken: owner.atoken, config: c });
   assert.equal(r.status, 200, JSON.stringify(r));

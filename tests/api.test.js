@@ -89,7 +89,8 @@ test("unverified reports award nothing; verified reports can be replayed once", 
   const first = await h.api("progress", body), replay = await h.api("progress", body);
   assert.equal(first.status, 200); assert.deepEqual(replay, first);
   assert.equal(h.user("player").matches, 1);
-  assert.equal(h.user("player").gold, 420);
+  // 300 sign-up + 100 win + 4 x 5 kills, and the rewards of progression: 40 for the level reached (110 XP), the first win of the day 100, the first-win achievement 100
+  assert.equal(h.user("player").gold, 420 + 40 + 100 + 100);
 });
 
 test("a failed report commit preserves its ticket and succeeds on retry", async () => {
@@ -111,7 +112,7 @@ test("replaying an old award preserves current wallet and inventory", async () =
   await h.api("gacha", { token: p.token });
   await h.api("a_user_set", { atoken: admin.atoken, id: "player", op: "grant", item: "rifle|dragon" });
   const replay = await h.api("progress", body);
-  assert.equal(replay.gold, original.gold); assert.equal(replay.user.gold, 100);
+  assert.equal(replay.gold, original.gold); assert.equal(replay.user.gold, 100 + 40 + 100 + 100); // 300 + 100 - the 300 pull, and the rewards of progression
   assert.equal(replay.user.owned, 2); assert.equal(replay.hist.length, 1);
 });
 

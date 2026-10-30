@@ -513,7 +513,7 @@ function pfInfo(p) {
   if (!a) return '<p class="muted">계정이 없습니다 (지워졌거나 기록만 남은 이름). 기록 탭을 보세요.</p>';
   const ban = a.ban && a.ban.active, rk = a.rank, eq = Object.entries(a.equipped), cos = a.cos || { own: [], eq: {} };
   const tags = `${a.guest ? '<span class="tag">게스트</span>' : ""} ${a.owner ? '<span class="tag gold">소유자</span>' : a.admin ? `<span class="tag gold">관리자 ${a.adminUntil ? "~" + when(a.adminUntil) : ""}</span>` : ""} ${ban ? `<span class="tag red">차단 ${a.ban.until ? "~" + when(a.ban.until) : "영구"}</span>` : '<span class="tag green">정상</span>'} ${a.permActive ? '<span class="tag blue">치트 권한</span>' : ""} ${a.aim.pc ? '<span class="tag blue">PC 에임 보정</span>' : ""}${a.aim.mobile === !1 ? ' <span class="tag red">모바일 보정 막힘</span>' : ""}`;
-  const mis = a.missions.list.map((m) => `<span class="tag ${m.got ? "green" : m.done ? "gold" : ""}">${m.per === "d" ? "일일" : "주간"} ${{ play: "경기", kills: "처치", wins: "승리" }[m.stat] || m.stat} ${m.have}/${m.n}${m.got ? " · 받음" : m.done ? " · 받을 수 있음" : ""}</span>`).join(" ");
+  const mis = a.missions.list.map((m) => `<span class="tag ${m.got ? "green" : m.done ? "gold" : ""}">${m.per === "d" ? "일일" : "주간"} ${{ play: "경기", kills: "처치", wins: "승리" }[m.stat] || m.stat}${m.f ? " " + esc(m.f.v) : ""} ${m.have}/${m.n}${m.got ? " · 받음" : m.done ? " · 받을 수 있음" : ""}</span>`).join(" ");
   return `<div class="pf-grid">
     ${pfCard("계정", pfKv([["상태", tags], ["레벨", `Lv.${a.level} <span class="muted">${pfNum(a.xp)}xp (다음까지 ${pfNum(a.need - a.into)})</span>`], ["가입", when(a.created)], ["마지막 접속", when(a.lastSeen)], ["마지막 IP", esc(a.lastIp || "-")], ["기기", esc(a.dev || "-")], ["전적", `${pfNum(a.kills)}킬 · ${pfNum(a.wins)}승 / ${pfNum(a.matches)}판`], ["메모", esc(a.note || "-")]]))}
     ${pfCard("제한·권한", pfKv([["차단", a.ban ? `${ban ? "" : "(끝남) "}${a.ban.until ? "~" + when(a.ban.until) : "영구"} · ${esc(a.ban.reason || "사유 없음")} <span class="muted">${when(a.ban.at)}</span>` : "-"], ["관리자 모드", a.admin ? (a.adminUntil ? "~" + when(a.adminUntil) : a.owner ? "소유자" : "기한 없음") : "-"], ["치트 권한", a.perm && a.perm.on ? `${a.permActive ? "" : "(만료) "}${esc(permParts(a.perm).join(" · ") || "아무것도 안 엶")}${a.perm.until ? " ~" + when(a.perm.until) : ""}` : "-"], ["에임 보정", `PC ${a.aim.pc ? "허용" : "없음"}${a.aim.until ? " ~" + when(a.aim.until) : ""} · 모바일 ${a.aim.mobile ? "허용" : "막힘"}`]]))}
@@ -974,6 +974,21 @@ Object.assign(LABELS, {
   "mastery.step": ["단계 기준 경험치", "n단계는 이 값 × n × (n-1) ÷ 2부터 (100이면 2단계 100, 3단계 300 … 10단계 4500)"],
   "mastery.gold": ["단계 상승 골드", "단계가 하나 오를 때마다 주는 골드. 하루 골드 상한(골드 > 하루 최대)에 포함됩니다"],
   "mastery.maxGold": ["한 경기 최대 골드", "한 경기에서 단계가 여러 번 올라도 이 값까지만 줍니다"],
+});
+Object.assign(LABELS, {
+  lvReward: ["레벨 보상", "레벨이 오를 때마다 골드를 주고, 정해 둔 레벨(이정표)에는 골드를 더하고 칭호·네임카드를 한 번 줍니다. 골드는 하루 골드 상한(골드 > 하루 최대)에 포함되고, 꾸미기 아이템은 상한과 상관없이 줍니다. 이미 지급한 레벨은 다시 주지 않습니다"],
+  "lvReward.on": ["레벨 보상 켜기"], "lvReward.gold": ["레벨 상승 골드", "레벨이 하나 오를 때마다"], "lvReward.maxGold": ["한 경기 최대 골드", "한 경기에서 레벨이 여러 번 올라도 이 값까지만 줍니다"],
+  "lvReward.milestoneGold": ["이정표 추가 골드", "이정표 레벨에서 더 주는 골드"],
+  "lvReward.milestones": ["이정표 목록", "레벨:꾸미기 아이템 아이디를 쉼표로 적습니다. 예: 5:scout,10:neoncity,20:commander. 아이디를 빼고 레벨만 쓰면 골드만 줍니다. 아이디는 꾸미기 상점 목록(칭호·네임카드·킬 효과)의 것입니다"],
+  firstWin: ["오늘의 첫 승리", "하루(한국 시간 자정부터)의 첫 승리에 경기 보상과 별도로 주는 보너스. 하루 골드·경험치 상한에 포함됩니다"],
+  "firstWin.on": ["첫 승리 보너스 켜기"], "firstWin.gold": ["보너스 골드"], "firstWin.xp": ["보너스 경험치"],
+  mission2: ["선택 미션", "기본 미션 여섯 개 말고, 매일·매주 모두에게 같은 미션을 풀에서 골라 냅니다 (모드·역할·요원별 승리/경기/처치). 받기를 눌러야 골드를 줍니다. 목표를 0으로 하면 그 종류는 나오지 않습니다"],
+  "mission2.on": ["선택 미션 켜기"], "mission2.dCount": ["일일 개수", "0~4"], "mission2.wCount": ["주간 개수", "0~4"],
+  "mission2.dGold": ["일일 보상 골드"], "mission2.wGold": ["주간 보상 골드"],
+  "mission2.dPlay": ["일일 · 경기 수"], "mission2.dWin": ["일일 · 승리 수"], "mission2.dKill": ["일일 · 처치 수"],
+  "mission2.wPlay": ["주간 · 경기 수"], "mission2.wWin": ["주간 · 승리 수"], "mission2.wKill": ["주간 · 처치 수"],
+  ach: ["업적", "경기 확인표가 있는 경기에서 한 번만 달성하는 업적과 그 골드. 0이면 그 업적은 꺼집니다 (이미 달성한 것은 남습니다). 골드는 하루 골드 상한과 상관없이 한 번만 줍니다"],
+  "ach.on": ["업적 켜기"], "ach.win1": ["첫 승리"], "ach.kill100": ["총 100킬"], "ach.play50": ["50경기"], "ach.mast5": ["요원 숙련도 5단계"], "ach.roles": ["모든 역할로 승리", "타격대·감시자·척후대·전략가"], "ach.modes": ["모든 모드에서 승리", "표적 사격을 뺀 모든 모드"],
 });
 VIEWS.config = async () => {
   const { config, defaults, saved } = await call("a_config_get");
