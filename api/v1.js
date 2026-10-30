@@ -336,6 +336,31 @@ function cleanPerm(p, days) {
   out.until = days > 0 ? now() + days * 864e5 : 0;
   return out;
 }
+// Each cheat has its own end: ends[k] (0 = permanent). A perm with no ends (made before they existed, or set by the owner
+// page) gives every cheat the one `until`. `until` stays the latest end of the cheats that are on (0 if one is permanent).
+const permKeys = (p) => [...PERM_SW.filter((k) => p[k]), ...(p.speed > 1 ? ["speed"] : []), ...(p.fastFire > 1 ? ["fastFire"] : []), ...(p.buff > 0 ? ["buff"] : [])];
+const permEnd = (p, k) => (isObj(p.ends) && Number.isFinite(p.ends[k]) ? p.ends[k] : +p.until || 0);
+const permUntil = (p) => {
+  const e = permKeys(p).map((k) => permEnd(p, k));
+  return !e.length || e.includes(0) ? 0 : Math.max(...e);
+};
+// the cheats of a perm that have not run out (null if none); a perm without ends is whole or nothing, as it always was
+function permNow(p, t = now()) {
+  if (!isObj(p) || !p.on) return null;
+  if (!isObj(p.ends)) return p.until && p.until < t ? null : p;
+  const q = Object.assign({}, p), ends = {};
+  for (const k of permKeys(p)) {
+    const e = permEnd(p, k);
+    if (e && e < t) {
+      if (PERM_SW.includes(k)) q[k] = !1;
+      else q[k] = "buff" === k ? 0 : 1;
+    } else ends[k] = e;
+  }
+  q.ends = ends;
+  if (!permKeys(q).length) return null;
+  q.until = permUntil(q);
+  return q;
+}
 // what an account in admin mode may change on a room: every knob of the
 // panel's room-wide tab, unless the owner closed some
 const ADMIN_KNOBS = ["run", "roundT", "buyT", "matchT", "jumpV", "gravity", "aiSpeed", "infAll", "freezeAI"];
@@ -354,7 +379,7 @@ const aimOf = (u) => {
 // (permAdmin, see adminCheats) only while it lasts: once it has run out, the account's own cheats are back.
 const activePerm = (u) => {
   u && u.permAdmin && !(u.adminUntil && u.adminUntil > now()) && adminCheats(u);
-  return u && u.perm && u.perm.on && !(u.perm.until && u.perm.until < now()) ? u.perm : null;
+  return u ? permNow(u.perm) : null;
 };
 // where the account's own cheats live: under the full set admin mode lends (permBefore), or in perm itself
 const ownPerm = (u) => (u.permAdmin ? u.permBefore || null : u.perm || null);
@@ -540,6 +565,9 @@ async function saveUser(u, report) {
   else Object.defineProperty(u, SNAPSHOT, { value, writable: true });
 }
 const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
+// who a player is for owning things (orders, rooms): an account by its id, a guest by its device, never by a shown
+// name alone (a guest's name can read the same as an account's)
+const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:" + u.id.toLowerCase());
 
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
@@ -798,6 +826,8 @@ A.auth = async (q, b, req) => {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
     if (PROTO_ID.test(id)) throw fail(400, "쓸 수 없는 아이디입니다");
+    // a name a guest already goes by is taken too
+    if (await redis(["GET", guestNameKey(id)])) throw fail(409, "이미 쓰이고 있는 이름입니다. 다른 아이디를 쓰세요");
     u = { id, pass: hashPw(pw), created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -1145,7 +1175,7 @@ const orderTotal = (c, items, days) => {
 };
 const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.name, desc: x.desc, price: c.order.price[x.k] || 0, gold: x.gold || 0 })), legacy: ORDER_LEGACY, durations: ORDER_DUR.map((d) => ({ days: d.days, label: d.label, mult: c.order.dur[d.id] || 0 })) });
 const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
-const orderMe = (u) => "u:" + u.id.toLowerCase();
+const orderMe = ownerKey;
 const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
 // The books of the paid orders: one line for each thing that happened (order made, money confirmed and opened,
 // taken back, refunded, declined, cancelled), kept for good. `money` is what moved in (+) or out (-) in won.
@@ -1189,42 +1219,48 @@ async function ledgerSeed() {
 //    An order that has already run out leaves `until` alone (its days are used up). While the owner's admin mode
 //    lends its own full set (permAdmin), the account's own cheats underneath (permBefore) are the ones changed.
 // Orders are read from the account's order index (ordu:, the latest 200); older ones are not counted.
-const ordExp = (o) => (0 === o.days ? 0 : Number.isFinite(o.exp) ? o.exp : o.until > 0 ? o.until : (o.grantedAt || o.t || 0) + o.days * 864e5);
+const ordExp = (o, k) => (0 === o.days ? 0 : isObj(o.ends) && Number.isFinite(o.ends[k]) ? o.ends[k] : Number.isFinite(o.exp) ? o.exp : o.until > 0 ? o.until : (o.grantedAt || o.t || 0) + o.days * 864e5);
 async function takeBackOrder(u, o) {
   const cheats = o.items.filter((k) => !goldOf(k));
   if (cheats.length) {
     const t = now(), ids = await redis(["LRANGE", "ordu:" + orderMe(u), "0", "199"]);
     const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-    const others = rows.filter((x) => x.id !== o.id && "granted" === x.status && x.items.some((k) => !goldOf(k)) && (0 === x.days || ordExp(x) > t));
-    const keep = new Set(others.flatMap((x) => x.items));
-    const permanent = others.some((x) => 0 === x.days);
-    const latest = others.reduce((n, x) => Math.max(n, ordExp(x)), 0);
-    const expired = o.days > 0 && ordExp(o) <= t;
+    const others = rows.filter((x) => x.id !== o.id && "granted" === x.status && x.items.some((k) => !goldOf(k)));
     const fix = (perm) => {
       if (!isObj(perm)) return perm;
-      const p = Object.assign({}, perm);
+      const p = Object.assign({}, perm), ends = {}, off = (k) => (PERM_SW.includes(k) ? (p[k] = !1) : (p[k] = "buff" === k ? 0 : 1));
+      for (const k of permKeys(perm)) ends[k] = permEnd(perm, k);
       for (const k of cheats) {
-        if (keep.has(k)) continue;
-        if (PERM_SW.includes(k)) p[k] = !1;
-        else if ("speed" === k) p.speed = 1;
-        else if ("fastFire" === k) p.fastFire = 1;
-        else if ("buff" === k) p.buff = 0;
-      }
-      p.on = !!p.on && (PERM_SW.some((k) => p[k]) || p.speed > 1 || p.fastFire > 1 || p.buff > 0);
-      if (permanent) p.until = 0;
-      else if (!expired && p.on) {
-        if (0 === o.days) {
-          // this order made the account permanent: whatever the others still run to
-          if (latest > t) p.until = latest;
-          else p.on = !1;
-        } else if (p.until > 0) {
-          const to = Number.isFinite(o.prevUntil) && o.prevUntil > 0 && p.until === o.until ? o.prevUntil : p.until - o.days * 864e5;
-          // nothing of this order's time is left: only what the other orders still run to keeps the cheats on
-          if (to > t) p.until = to;
-          else if (latest > t) p.until = latest;
-          else p.on = !1;
+        const ok = others.filter((x) => x.items.includes(k) && (0 === x.days || ordExp(x, k) > t));
+        if (!ok.length) {
+          off(k);
+          delete ends[k];
+          continue;
+        }
+        const e = ends[k];
+        if (undefined === e) continue;
+        if (ok.some((x) => 0 === x.days)) ends[k] = 0;
+        else if (o.days > 0 && ordExp(o, k) <= t) continue;
+        else {
+          const latest = ok.reduce((n, x) => Math.max(n, ordExp(x, k)), 0);
+          if (0 === o.days) {
+            // this order made the cheat permanent: whatever the others still run to
+            if (latest > t) ends[k] = latest;
+            else (off(k), delete ends[k]);
+          } else if (e > 0) {
+            const pe = isObj(o.prevEnds) && k in o.prevEnds ? o.prevEnds[k] : o.prevUntil,
+              own = isObj(o.ends) && Number.isFinite(o.ends[k]) ? o.ends[k] : o.until;
+            const to = pe > 0 && e === own ? pe : e - o.days * 864e5;
+            // nothing of this order's time is left: only what the other orders still run to keeps the cheat on
+            if (to > t) ends[k] = to;
+            else if (latest > t) ends[k] = latest;
+            else (off(k), delete ends[k]);
+          }
         }
       }
+      p.ends = ends;
+      p.on = !!p.on && permKeys(p).length > 0;
+      if (p.on) p.until = permUntil(p);
       return p;
     };
     if (u.permAdmin) u.permBefore && (u.permBefore = fix(u.permBefore));
@@ -1257,7 +1293,7 @@ A.order_create = async (q, b) => {
   const mine = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
   if (mine.filter((o) => "pending" === o.status).length >= 3) throw fail(409, "입금 확인을 기다리는 주문이 이미 3건 있습니다");
   const id = Array.from(crypto.randomBytes(6), (x) => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[x % 31]).join("");
-  const rec = { id, t: now(), by: u.id, items, days, total, depositor, status: "pending", note: "", reason: "" };
+  const rec = { id, t: now(), by: u.id, byKey: me, items, days, total, depositor, status: "pending", note: "", reason: "" };
   await pipe([
     ["SET", "ord:" + id, JSON.stringify(rec), "EX", String(400 * 86400)],
     ["LPUSH", "ord", id],
@@ -1286,7 +1322,8 @@ A.order_cancel = async (q, b) => {
     const raw = await redis(["GET", "ord:" + id]);
     if (!raw) throw fail(404, "없는 주문입니다");
     const o = JSON.parse(raw);
-    if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
+    // orders made before `byKey` was kept were all made by accounts (a guest cannot order)
+    if (o.byKey ? o.byKey !== orderMe(u) : u.guest || o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
     if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
     o.status = "cancelled";
     // the new status is written first: a failed ledger line can never let a retry act on the old one
@@ -1296,32 +1333,43 @@ A.order_cancel = async (q, b) => {
     return { ok: !0 };
   });
 };
-// the account's cheat end before an order is opened (0 = permanent or none) and the order's own end (0 = never)
+// each cheat of an order: the end it had on the account before (null = not on) and the end the order gives it (0 = never)
 function orderEnds(u, o) {
-  const own = ownPerm(u), cur = own && own.on && !(own.until && own.until < now()) ? own : null;
-  return { until: cur ? cur.until || 0 : 0, exp: 0 === o.days ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5 };
+  const t = now(), cur = permNow(ownPerm(u), t), prevEnds = {}, ends = {};
+  for (const k of o.items.filter((x) => !goldOf(x))) {
+    const e = cur && permKeys(cur).includes(k) ? permEnd(cur, k) : null;
+    prevEnds[k] = e;
+    ends[k] = 0 === o.days || 0 === e ? 0 : (e > t ? e : t) + o.days * 864e5;
+  }
+  const all = Object.values(ends);
+  return { until: cur ? permUntil(cur) : 0, exp: 0 === o.days || all.includes(0) ? 0 : Math.max(0, ...all), prevEnds, ends };
 }
-// opening what was paid for: cheats merged into those the account already has, the length added on; gold is added to the wallet
+// opening what was paid for: cheats merged into those the account already has, each one's length added on its own end; gold is added to the wallet
 function applyOrder(u, o) {
   const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
     cheats = o.items.filter((k) => !goldOf(k));
   const own = ownPerm(u);
   let out = own;
   if (cheats.length) {
-    const cur = own && own.on && !(own.until && own.until < now()) ? own : null,
-      p = Object.assign({}, cur || {});
+    const cur = permNow(own),
+      p = Object.assign({}, cur || {}),
+      oe = orderEnds(u, o),
+      kept = {};
+    if (cur) for (const k of permKeys(cur)) kept[k] = permEnd(cur, k);
     for (const k of cheats) {
       const it = ORDER_ITEMS.find((x) => x.k === k);
-      if (!it) continue;
-      if (it.sw) p[k] = !0;
+      // an order made while god mode was still sold opens it too
+      if (!it) ORDER_LEGACY[k] && PERM_SW.includes(k) && (p[k] = !0);
+      else if (it.sw) p[k] = !0;
       else if ("speed" === k) p.speed = Math.max(+p.speed || 1, 1.5);
       else if ("fastFire" === k) p.fastFire = Math.max(+p.fastFire || 1, 2);
       else if ("buff" === k) p.buff = Math.max(+p.buff || 0, 10);
+      kept[k] = oe.ends[k];
     }
     p.on = !0;
     out = cleanPerm(p, 0);
-    // permanent stays permanent; else from now, or from the end of what is running
-    out.until = o.days === 0 || (cur && !cur.until) ? 0 : (cur && cur.until > now() ? cur.until : now()) + o.days * 864e5;
+    out.ends = kept;
+    out.until = permUntil(out);
     setOwnPerm(u, out);
   }
   if (gold) u.gold = Math.min(9e6, (+u.gold || 0) + gold);
@@ -2261,6 +2309,13 @@ A.ice = async () => {
 const ROOM_TTL = 70;
 const ROOM_NEW_MAX = 10;
 let roomsCache = null;
+// a room is its opener's by `hostKey`; a room written before it was kept (gone within ROOM_TTL * 4) goes by the
+// name, and a guest's name that an account also has is the account's
+async function roomMine(room, u) {
+  if (room.hostKey) return room.hostKey === ownerKey(u);
+  if (room.host !== u.id) return !1;
+  return !u.guest || !(await getJ(userKey(u.id)));
+}
 A.rooms = async () => {
   const c = await loadConfig();
   if (!c.game.roomListOpen) return { rooms: [] };
@@ -2280,7 +2335,7 @@ A.room_up = async (q, b, req) => {
   const code = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
   if (6 !== code.length) throw fail(400, "방 코드가 이상합니다");
   const prev = await getJ("room:" + code);
-  if (prev && prev.host !== u.id) throw fail(409, "다른 사람의 방입니다");
+  if (prev && !(await roomMine(prev, u))) throw fail(409, "다른 사람의 방입니다");
   // opening a new code writes a log line and a list entry; a room that is already open just beats its heart
   if (!prev && (await limited("roomnew:" + rlKey(u), ROOM_NEW_MAX, 600))) throw fail(429, "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요");
   const players = (Array.isArray(b.players) ? b.players : []).slice(0, 12).map((p) => String(p).slice(0, 20));
@@ -2297,6 +2352,7 @@ A.room_up = async (q, b, req) => {
     ranked: !!b.ranked && !u.guest,
     state: String(b.state || "lobby").slice(0, 10),
     host: u.id,
+    hostKey: ownerKey(u),
     ip: ipOf(req),
     created: (prev && prev.created) || now(),
     seen: now(),
@@ -2343,7 +2399,7 @@ A.room_down = async (q, b) => {
   if (!u) throw fail(401, "다시 로그인해 주세요");
   const code = String(b.code || "").toUpperCase().slice(0, 6);
   const prev = await getJ("room:" + code);
-  if (prev && prev.host === u.id) {
+  if (prev && (await roomMine(prev, u))) {
     await pipe([
       ["DEL", "room:" + code],
       ["ZREM", "rooms", code],
@@ -2476,7 +2532,7 @@ ADMIN.users = async (q, b) => {
 function adminCheats(u) {
   const t = now();
   if (u.adminUntil && u.adminUntil > t) {
-    const cur = u.perm && u.perm.on && !(u.perm.until && u.perm.until < t) ? u.perm : null,
+    const cur = permNow(u.perm, t),
       full = Object.assign({ on: !0, speed: 3, fastFire: 10, buff: Math.max(10, (cur && cur.buff) || 0) }, Object.fromEntries(PERM_SW.map((k) => [k, !0])));
     const out = cleanPerm(full, 0);
     // whatever the account already had keeps its own end if that is later (or none)
@@ -2802,7 +2858,7 @@ ADMIN.order_set = async (q, b) => {
         o.grantedAt = now();
         o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
         // kept for the take-back (see takeBackOrder): the account's end before this order, and this order's own end
-        if (o.items.some((k) => !goldOf(k))) { o.prevUntil = prev.until; o.exp = prev.exp; }
+        if (o.items.some((k) => !goldOf(k))) { o.prevUntil = prev.until; o.exp = prev.exp; o.prevEnds = prev.prevEnds; o.ends = prev.ends; }
         after = async () => {
           await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
           await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });

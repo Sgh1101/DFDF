@@ -19576,7 +19576,7 @@ function flyStep(e) {
     t.d && (a += 1),
     t.space && (n += 1),
     t.shift && (n -= 1));
-  const r = FLY.speed * (t.control ? 2.6 : 1),
+  const r = FLY.speed * (t.flyFast ? 2.6 : 1),
     s = Math.cos(FLY.yaw),
     i = Math.sin(FLY.yaw),
     l = Math.cos(FLY.pitch),

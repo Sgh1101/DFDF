@@ -233,3 +233,44 @@ test("the order lock and the status-before-ledger order of a take-back are uncha
   h.db.set("ordlock:" + pending, "someone-else");
   assert.equal((await set(pending, "grant")).status, 409, "another request holds the order");
 });
+
+test("each cheat has its own end: a one-day radar on top of a permanent wall is not permanent, and it runs out alone", async () => {
+  const { h, p, grant, perm } = await shop();
+  await grant(["wall"], 0);
+  const r = await grant(["radar"], 1);
+  assert.equal(perm().ends.wall, 0, "wall stays permanent");
+  assert.ok(Math.abs(perm().ends.radar - (h.now() + DAY)) < 5000, "radar ends in a day");
+  assert.equal((await h.api("me", { token: p.token })).user.perm.radar, true);
+  h.advance(2 * DAY);
+  const me = (await h.api("me", { token: p.token })).user.perm;
+  assert.deepEqual([me.wall, me.radar, me.on, me.until], [true, false, true, 0], "radar is gone, the wall remains");
+  const ow2 = await login(h, "owner");
+  assert.equal((await h.api("a_order_set", { atoken: ow2.atoken, id: r, op: "revoke" })).status, 200, "an order that has run out can still be taken back");
+  assert.equal(perm().wall, true); assert.equal(perm().radar, false);
+});
+
+test("a cheat bought again extends its own end only; refund of the later order restores that end, not the others'", async () => {
+  const { h, grant, set, perm } = await shop();
+  const t0 = h.now();
+  await grant(["wall"], 30);
+  const radar = await grant(["radar"], 1);
+  const more = await grant(["radar"], 7);
+  assert.ok(Math.abs(perm().ends.radar - (t0 + 8 * DAY)) < 5000);
+  assert.ok(Math.abs(perm().ends.wall - (t0 + 30 * DAY)) < 5000, "wall is untouched");
+  await set(more, "refund", { revoke: true });
+  assert.ok(Math.abs(perm().ends.radar - (t0 + DAY)) < 5000, "radar is back to one day");
+  assert.ok(Math.abs(perm().ends.wall - (t0 + 30 * DAY)) < 5000);
+  await set(radar, "revoke");
+  assert.equal(perm().radar, false); assert.equal(perm().wall, true);
+});
+
+test("a perm from before per-cheat ends (only until) keeps working, and an order merges into it", async () => {
+  const { h, grant, set, perm } = await shop();
+  const until = h.now() + 20 * DAY;
+  h.db.set("user:player", JSON.stringify({ ...h.user("player"), perm: { on: true, radar: true, wall: false, cheat: false, god: false, oneShot: false, infAmmo: false, noRecoil: false, speed: 1, fastFire: 1, buff: 0, until } }));
+  const w = await grant(["wall"], 7);
+  assert.equal(perm().ends.radar, until, "the old cheat keeps the old end");
+  assert.ok(Math.abs(perm().ends.wall - (h.now() + 7 * DAY)) < 5000);
+  await set(w, "revoke");
+  assert.deepEqual([perm().radar, perm().wall, perm().until], [true, false, until]);
+});

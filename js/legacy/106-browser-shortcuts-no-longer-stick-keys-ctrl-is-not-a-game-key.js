@@ -8,10 +8,16 @@
   const playing = () => world.phase && "menu" !== world.phase;
   // the zoom keys stay the browser's own
   const keep = (k) => ["+", "-", "=", "0", "_"].includes(k);
+  const flying = () => "object" == typeof FLY && FLY && FLY.on;
   addEventListener(
     "keydown",
     (e) => {
       if (!playing() || editing(e.target)) return;
+      // the free camera's Ctrl speeds it up, held with W and the rest: the browser still gets no shortcut, the game gets the keys
+      if (flying() && !e.metaKey && !e.altKey) {
+        if ("Control" === e.key) return void (keys.flyFast = !0);
+        if (e.ctrlKey && !keep(e.key)) return void e.preventDefault();
+      }
       if ("Control" === e.key || "Meta" === e.key) return void e.stopImmediatePropagation();
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !keep(e.key)) {
         e.preventDefault();
@@ -34,6 +40,7 @@
     (e) => {
       // the Meta key swallows the key-ups of the keys pressed under it
       "Meta" === e.key && letGo();
+      "Control" === e.key && (keys.flyFast = !1);
     },
     !0,
   );

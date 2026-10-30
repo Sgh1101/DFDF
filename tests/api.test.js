@@ -926,7 +926,8 @@ test("paid cheats by bank transfer: an order with a code and the account to pay;
   await h.api("a_order_set", { atoken: ow.atoken, id: o2.order.id, op: "grant" });
   const perm2 = h.user("player").perm;
   assert.deepEqual([perm2.radar, perm2.wall, perm2.oneShot, perm2.god, perm2.speed, perm2.buff], [true, true, true, false, 1.5, 10]);
-  assert.ok(Math.abs(perm2.until - (perm.until + 30 * 864e5)) < 5000, "added to what was running");
+  assert.ok(Math.abs(perm2.ends.oneShot - (h.now() + 30 * 864e5)) < 5000, "a new cheat runs its own length from now");
+  assert.ok(Math.abs(perm2.ends.radar - perm.until) < 5000, "radar keeps its own end");
   // reject, refund with the cheats taken back
   const rej = await h.api("a_order_set", { atoken: ow.atoken, id: o30.order.id, op: "reject", reason: "입금 없음" });
   assert.equal(rej.order.status, "rejected");
