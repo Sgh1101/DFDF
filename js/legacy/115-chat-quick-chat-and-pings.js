@@ -500,7 +500,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
         e.stopImmediatePropagation();
         qmClose();
         quick(q, e.shiftKey || ffa() ? "a" : "t");
-      } else if ("Escape" === e.key || "KeyZ" === e.code) {
+      } else if ("Escape" === e.key || KEYMAP.is(e, "quickchat")) {
         e.preventDefault();
         e.stopImmediatePropagation();
         qmClose();
@@ -510,11 +510,11 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || editable(e.target) || !on() || !here()) return;
     if ("Enter" === e.key) {
       if (open(e.shiftKey ? "a" : "t")) (e.preventDefault(), e.stopImmediatePropagation());
-    } else if ("KeyZ" === e.code && live() && !modal()) {
+    } else if (KEYMAP.is(e, "quickchat") && live() && !modal()) {
       e.preventDefault();
       e.stopImmediatePropagation();
       qmOpen();
-    } else if ("KeyV" === e.code && live() && !modal() && (locked || IS_TOUCH)) {
+    } else if (KEYMAP.is(e, "ping") && live() && !modal() && (locked || IS_TOUCH)) {
       e.stopImmediatePropagation();
       ping();
     }

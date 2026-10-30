@@ -1524,6 +1524,7 @@ const touch = {
     volSteps: 1,
     haptic: !0,
     binds: {},
+    colorblind: "off",
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
@@ -1541,6 +1542,7 @@ function loadSettings() {
       }
     }
   } catch (e) {}
+  SETTINGS.colorblind = CB.norm(SETTINGS.colorblind);
   SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
 }
 function saveSettings() {
@@ -2289,7 +2291,7 @@ function worldTracer(e, t, o) {
 function hitMarker(e) {
   const t = $("cross");
   ((t.style.filter = e
-    ? "drop-shadow(0 0 5px #ff3b4e)"
+    ? "drop-shadow(0 0 5px " + CB.get("head") + ")"
     : "drop-shadow(0 0 4px #fff)"),
     clearTimeout(t._t),
     (t._t = setTimeout(() => {
@@ -15486,7 +15488,9 @@ function handleSpike(e) {
         (player.planting = 0),
         (player.plantAnchor = null),
         void spikeUI(
-          "스파이크 소지 · 사이트 안에서 4 또는 F를 눌러 설치",
+          "en" === window.GAME_LANG
+            ? `Carrying the spike · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
+            : `스파이크 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
           "#8a97ab",
           0,
           "#5b6879",
@@ -15498,7 +15502,9 @@ function handleSpike(e) {
         (player.planting = 0),
         (player.plantAnchor = null),
         void spikeUI(
-          `${t.id} 사이트 · 4 또는 F를 누르고 있으면 설치`,
+          "en" === window.GAME_LANG
+            ? `Site ${t.id} · hold ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} to plant`
+            : `${t.id} 사이트 · ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 누르고 있으면 설치`,
           "#ffc849",
           0,
           "#ffc849",
@@ -20005,17 +20011,15 @@ function drawTac() {
     (tctx.save(),
       tctx.translate(o, a),
       tctx.rotate(-e.yaw),
-      (tctx.fillStyle = t ? "rgba(74,222,128,.16)" : "rgba(255,59,78,.18)"),
+      (tctx.fillStyle = t ? CB.rgba("mapAlly", 0.16) : CB.rgba("mapEnemy", 0.18)),
       tctx.beginPath(),
       tctx.moveTo(0, 0),
       tctx.arc(0, 0, 26, -Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55),
       tctx.closePath(),
       tctx.fill(),
       tctx.restore(),
-      (tctx.fillStyle = t ? "#4ade80" : "#ff3b4e"),
-      tctx.beginPath(),
-      tctx.arc(o, a, 6, 0, 7),
-      tctx.fill(),
+      (tctx.fillStyle = t ? CB.get("mapAlly") : CB.get("mapEnemy")),
+      CB.dot(tctx, o, a, 6, !t),
       (tctx.strokeStyle = "rgba(0,0,0,.6)"),
       (tctx.lineWidth = 1.5),
       tctx.stroke(),
@@ -20271,10 +20275,8 @@ function drawMini() {
     if (!e.alive) return;
     const t = e.team === player.team;
     (!t && e.revealed <= 0) ||
-      ((mctx.fillStyle = t ? "#4ade80" : "#ff3b4e"),
-      mctx.beginPath(),
-      mctx.arc(r(e.pos.x), s(e.pos.z), 5, 0, 7),
-      mctx.fill());
+      ((mctx.fillStyle = t ? CB.get("mapAlly") : CB.get("mapEnemy")),
+      CB.dot(mctx, r(e.pos.x), s(e.pos.z), 5, !t));
   });
   const l = r(player.pos.x),
     c = s(player.pos.z);

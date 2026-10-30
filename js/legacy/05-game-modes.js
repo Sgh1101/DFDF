@@ -736,16 +736,12 @@
     }
     for (const a of world.actors) {
       if (!a.alive || a === me || a.team !== me.team) continue;
-      mctx.fillStyle = "#4ade80";
-      mctx.beginPath();
-      mctx.arc(X(a.pos.x), Z(a.pos.z), 4.5, 0, 7);
-      mctx.fill();
+      mctx.fillStyle = CB.get("mapAlly");
+      CB.dot(mctx, X(a.pos.x), Z(a.pos.z), 4.5, !1);
     }
     for (const e of spottedEnemies(me)) {
-      mctx.fillStyle = "#ff3b4e";
-      mctx.beginPath();
-      mctx.arc(X(e.pos.x), Z(e.pos.z), 5, 0, 7);
-      mctx.fill();
+      mctx.fillStyle = CB.get("mapEnemy");
+      CB.dot(mctx, X(e.pos.x), Z(e.pos.z), 5, !0);
     }
     return r;
   };
