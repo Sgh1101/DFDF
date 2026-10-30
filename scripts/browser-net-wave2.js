@@ -282,6 +282,31 @@ const part = (n) => only.includes('all') || only.includes(String(n));
         await host.evaluate(() => { const { ids, keys } = window.__bigCtrl; ids.forEach((id, i) => { NET.conns.delete(keys[i]); const a = actorById(id); a.ctrl = 'ai'; sendEventAll({ t: 'ctrl', id, ctrl: 'ai', name: a.name }); }); });
       });
     }
+    if (part(4)) {
+      await check('4 serialize once: a snapshot is turned into bytes once per tick, however many guests there are', async () => {
+        const r = await host.evaluate(() => {
+          const enc = new TextEncoder(), saved = new Map(NET.conns); let calls = 0, got = [];
+          const stringify = JSON.stringify; JSON.stringify = function (v) { v && v.t === 's' && calls++; return stringify.apply(this, arguments); };
+          try {
+            for (let i = 0; i < 4; i++) NET.conns.set('fake' + i, { state: { open: true, serialization: 'json', send(o) { enc.encode(JSON.stringify(o)); got.push('obj'); }, _bufferedSend(b) { got.push(b.length); } }, event: { open: true, send() {} } });
+            // a link of another kind (not "json") gets the object
+            NET.conns.set('other', { state: { open: true, serialization: 'binary', send(o) { got.push('obj'); } }, event: { open: true, send() {} } });
+            const k0 = NET.tick; calls = 0; sendSnapshot(buildSnapshot()); const n = calls;
+            return { calls: n, k: NET.tick - k0, got };
+          } finally { JSON.stringify = stringify; for (const k of [...NET.conns.keys()]) saved.has(k) || NET.conns.delete(k); }
+        });
+        console.log('     ', JSON.stringify(r));
+        assert.equal(r.calls, 1, `the snapshot was serialized ${r.calls} times for 6 links`);
+        assert.equal(r.got.filter((x) => typeof x === 'number').length, 4);
+        assert.equal(new Set(r.got.filter((x) => typeof x === 'number')).size, 1, 'the same bytes');
+        assert.equal(r.got.filter((x) => x === 'obj').length, 1, 'the link of another kind');
+      });
+      await check('4 serialize once: the real guest still receives and applies the snapshots', async () => {
+        const k0 = await guest.evaluate(() => NET.lastK); await sleep(1000);
+        const k1 = await guest.evaluate(() => NET.lastK);
+        assert.ok(k1 - k0 >= 15, `${k1 - k0} snapshots in a second`);
+      });
+    }
     pair && pair.transport.stop();
     if (part(3)) {
       // hill, flags and zone: the guest gets the state in the snapshot, not on the event link
