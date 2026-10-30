@@ -6,7 +6,7 @@
   //    its number, so every player reads it in their own language.
   //  - Pings: V (or the touch button, or a click on the minimap / the M map) marks a point for the team for 4 s: a sprite
   //    in the world, a ring on the minimap and the M map, a sound.
-  //  Network: a guest sends {t:"chat"} / {t:"ping"} on the reliable event link; the host checks it (80 characters, no
+  //  Network: a guest sends {t:"chat"} / {t:"mark"} (a ping; "ping" is the latency probe) on the reliable event link; the host checks it (80 characters, no
   //  control characters, 3 messages per 5 s, 1 ping per second, swear words become ***), then relays it: all chat to
   //  everyone, team chat and pings only to the peers whose body is on the sender's team (in a free-for-all the team is
   //  one player, so a team message comes back to the sender alone). The host's own messages and solo play take the same
@@ -592,7 +592,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     if (!who.alive) return "dead";
     if (!inMap(msg.x, msg.y, msg.z)) return "bad";
     if (!take(who.key, "ping")) return "rate";
-    const out = { t: "ping", id: who.key, n: who.name, tm: who.color, x: r1(msg.x), y: r1(msg.y), z: r1(msg.z) };
+    const out = { t: "mark", id: who.key, n: who.name, tm: who.color, x: r1(msg.x), y: r1(msg.y), z: r1(msg.z) };
     if ("host" === NET.mode)
       for (const [p, c] of NET.conns) {
         if (c.quiet || p === peer) continue;
@@ -615,7 +615,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     if (!me || !1 === me.alive) return !1;
     pt = pt || aimPoint();
     if (!pt || !inMap(pt.x, pt.y, pt.z)) return !1;
-    const msg = { t: "ping", x: r1(pt.x), y: r1(pt.y), z: r1(pt.z) };
+    const msg = { t: "mark", x: r1(pt.x), y: r1(pt.y), z: r1(pt.z) };
     if ("client" === NET.mode) {
       if (!take(LOCAL, "ping")) return !1;
       sendAction(msg);
@@ -937,7 +937,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
   const _oa = NET.onAction;
   NET.onAction = function (peer, msg) {
     const t = msg && "object" == typeof msg ? msg.t : "";
-    if ("chat" === t || "ping" === t) {
+    if ("chat" === t || "mark" === t) {
       "host" === NET.mode && ("chat" === t ? hostChat(peer, msg) : hostPing(peer, msg));
       return;
     }
@@ -947,7 +947,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
   NET.onEvent = function (e) {
     const t = e && "object" == typeof e ? e.t : "";
     if ("chat" === t) return void recvChat(e);
-    if ("ping" === t) return void addPing(e);
+    if ("mark" === t) return void addPing(e);
     return _oe && _oe.apply(this, arguments);
   };
   const _pg = NET.onPeerGone;
