@@ -121,7 +121,7 @@
 .pm-info{padding:6px 7px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .pm-name{font-weight:800;font-size:clamp(11px,1.15vw,14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pm-sub{display:flex;flex-direction:column;min-width:0}
-.pm-ag{font-size:10.5px;color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm-ag{font-family:var(--f-agent,inherit);font-weight:400;font-size:10.5px;color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pm-ttl{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pm-chips{display:flex;align-items:center;gap:3px;flex-wrap:wrap;min-height:16px}
 .pm-chips .lv-chip{margin-left:0}

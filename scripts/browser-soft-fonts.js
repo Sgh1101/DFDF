@@ -8,7 +8,13 @@ const DISPLAY = /^Jua\b/, BODY = /^"Gowun Dodum"/;
   const f = await fixture();
   try {
     const page = await f.page("softfonts", { width: 1280, height: 720 });
-    await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "pogu"; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live"; });
+    // the agents' names on the select screen: Black Han Sans (the owner's pick) at its own weight, not made bold by the
+    // browser (Jua at 900 looked smeared)
+    await page.evaluate(() => { titleCam = () => {}; document.getElementById("go-play").click(); });
+    await page.waitForFunction(() => document.querySelector("#sel-grid .acard-name") && document.querySelector("#sel-detail .det-name"));
+    const agentNames = await page.evaluate(() => [".acard-name", ".det-name"].map((s) => { const cs = getComputedStyle(document.querySelector(s)); return [s, cs.fontFamily, cs.fontWeight]; }));
+    for (const [s, fam, weight] of agentNames) { assert.match(fam, /^"Black Han Sans"/, s + " is in Black Han Sans: " + fam); assert.equal(weight, "400", s + " is not made bold"); }
+    await page.evaluate(() => { room.mode = "std"; room.map = "pogu"; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live"; });
     await page.waitForTimeout(800);
     const read = () => page.evaluate(() => Object.fromEntries(["#kf-main", "#kf-sub", "#kf-tag", "#kf-streak", "#phantom-emblems", "#banner", "#tb-time", "#roster", "body"].map((s) => { const e = document.querySelector(s); return [s, e ? getComputedStyle(e).fontFamily : null]; })));
     // a kill with a plain skin: the banner's word and the centre banner in Jua, the rest in Gowun Dodum
@@ -30,7 +36,7 @@ const DISPLAY = /^Jua\b/, BODY = /^"Gowun Dodum"/;
     assert.match((await read())["#kf-main"], DISPLAY, "a plain banner after the Champions one is in Jua again");
     // the pages ask Google Fonts for both faces (and still for the two the Champions banner and the map labels use)
     const links = await page.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href).filter((h) => /fonts\.googleapis/.test(h)));
-    assert.ok(links.some((h) => /family=Jua/.test(h) && /family=Gowun\+Dodum/.test(h) && /family=Orbitron/.test(h) && /family=Noto\+Sans\+KR/.test(h)), "the game page loads Jua, Gowun Dodum, Orbitron and Noto Sans KR: " + links);
+    assert.ok(links.some((h) => /family=Jua/.test(h) && /family=Gowun\+Dodum/.test(h) && /family=Black\+Han\+Sans/.test(h) && /family=Orbitron/.test(h) && /family=Noto\+Sans\+KR/.test(h)), "the game page loads Jua, Gowun Dodum, Black Han Sans, Orbitron and Noto Sans KR: " + links);
     await page.context().close();
 
     // the homepage
@@ -45,6 +51,6 @@ const DISPLAY = /^Jua\b/, BODY = /^"Gowun Dodum"/;
     assert.match(hv.body, BODY, "homepage body in Gowun Dodum: " + hv.body);
     await ctx.close();
     assert.deepEqual(f.errors, []);
-    console.log("soft fonts: Jua for titles and banners, Gowun Dodum for text, on the game and the homepage; the Champions banner as it was");
+    console.log("soft fonts: Jua for titles and banners, Gowun Dodum for text, Black Han Sans for the agents' names, on the game and the homepage; the Champions banner as it was");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
