@@ -628,6 +628,16 @@ body.touching #netping{left:auto;right:14px;top:80px}
       localStorage.setItem("lgp_xhair", JSON.stringify(XH));
     } catch (e) {}
   };
+  // the account's settings (js/legacy/117) read the crosshair and put a changed one back through here
+  window.XHAIR = {
+    get: () => Object.assign({}, XH),
+    set: (o) => {
+      XH = Object.assign({}, XD, o);
+      saveX();
+      const c = $("cross");
+      c && ((c._x = ""), drawCross(c, 0));
+    },
+  };
   function drawCross(el, spread) {
     if (!el) return;
     const c = XH,

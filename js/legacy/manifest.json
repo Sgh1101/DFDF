@@ -121,5 +121,7 @@
   "js/legacy/113-mastery-badges-on-the-agent-cards-and-a-line-on-the-result-screen.js",
   "js/legacy/114-the-pre-match-screen-both-sides-face-to-face-with-level-title-and-mastery.js",
   "js/legacy/115-chat-quick-chat-and-pings.js",
-  "js/legacy/116-volume-sliders-key-bindings-and-the-vibration-switch-in-the-settings.js"
+  "js/legacy/116-volume-sliders-key-bindings-and-the-vibration-switch-in-the-settings.js",
+  "js/legacy/117-settings-follow-the-account.js",
+  "js/legacy/118-the-map-of-the-week-joins-the-list-for-seven-days.js"
 ]

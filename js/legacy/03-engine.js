@@ -1542,7 +1542,7 @@ function loadSettings() {
       }
     }
   } catch (e) {}
-  SETTINGS.colorblind = CB.norm(SETTINGS.colorblind);
+  ["off", "rg", "by"].includes(SETTINGS.colorblind) || (SETTINGS.colorblind = "off");
   SETTINGS.quality = GRAPHICS_SETTINGS.normalize(SETTINGS.quality, SET_DEF.quality === 'mobile');
 }
 function saveSettings() {
