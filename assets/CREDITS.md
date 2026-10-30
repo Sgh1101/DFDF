@@ -38,3 +38,7 @@
 
 - ambientCG: https://ambientcg.com (CC0 1.0)
 - Poly Haven: https://polyhaven.com (CC0 1.0)
+
+## 사막 마을 (Kour.io 맵 7)
+
+`assets/maps/kour`의 맵(모델, UV, 재질, 텍스처)은 Kour.io 공개 클라이언트(`https://kour.io/StreamingAssets/map7?v=4.24`)의 맵 7을 운영자의 kouor 프로젝트가 JSON으로 옮긴 것을 그대로 가져온 것입니다. 원본 파일 이름과 해시는 `assets/maps/kour/manifest.json`에 적혀 있습니다. 충돌 상자(`map7-collision.json`)는 이 게임이 `scripts/import-kour-map.js`로 같은 파일에서 만들었습니다.

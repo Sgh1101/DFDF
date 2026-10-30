@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..');let checked=0;
-for(const file of ['assets/champions-phantom/2026-0.1.0/manifest.json','assets/valorant-packs/v1/manifest.json']){
+for(const file of ['assets/champions-phantom/2026-0.1.0/manifest.json','assets/valorant-packs/v1/manifest.json','assets/maps/kour/manifest.json']){
  const base=path.join(root,path.dirname(file)),m=JSON.parse(fs.readFileSync(path.join(root,file)));
  for(const row of m.files){const name=row.file||row.name,p=path.resolve(base,name);
   if(!p.startsWith(base+path.sep))throw Error('Asset path escapes its package: '+name);

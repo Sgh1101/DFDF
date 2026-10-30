@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "name": "사막 마을",
+  "origin": "Kour.io public client, map7 (StreamingAssets/map7?v=4.24), as converted by the kouor project",
+  "source": {
+    "id": "map7",
+    "source": {
+      "url": "https://kour.io/StreamingAssets/map7?v=4.24",
+      "sha256": "8f088efa730db8dcb85250b4d69343a6304dc9b3b57ea6eb5b1f998383ba2768",
+      "scene": "BuildPlayer-map7"
+    },
+    "sha256": "26e045f27dd20291596280b84b34d6792058e69f657ebb1753ab08cee14de9a0",
+    "bytes": 440160,
+    "renderers": 268,
+    "colliders": 198,
+    "geometries": 137
+  },
+  "files": [
+    {
+      "file": "map7.json.gz",
+      "from": "kouor dist/assets/original-maps/map7.json.gz (catalog.json entry map7)",
+      "sha256": "26e045f27dd20291596280b84b34d6792058e69f657ebb1753ab08cee14de9a0",
+      "bytes": 440160
+    },
+    {
+      "file": "textures/03982d80887146daca111a24.png",
+      "from": "kouor dist/assets/original-maps/textures/03982d80887146daca111a24.png",
+      "sha256": "ab8b324a9f858f2776b926bba66ed2df25ff996ab29c136cf4b4dd04cfa2bacf",
+      "bytes": 1141
+    },
+    {
+      "file": "textures/1569b63ad7409c5c60efc33c.png",
+      "from": "kouor dist/assets/original-maps/textures/1569b63ad7409c5c60efc33c.png",
+      "sha256": "73c8f45da3af4c384d574907cc627d047dc466a859c6481e06aaf0b54b56be33",
+      "bytes": 1075
+    },
+    {
+      "file": "textures/15a9f4032a0e359148aca078.png",
+      "from": "kouor dist/assets/original-maps/textures/15a9f4032a0e359148aca078.png",
+      "sha256": "4b41c9c0ec88759c6d4682e9171666f048ab4f96ff1a670e6321f774d30839b6",
+      "bytes": 1078
+    },
+    {
+      "file": "textures/3f2506ec96f3b3524b1a9cb1.png",
+      "from": "kouor dist/assets/original-maps/textures/3f2506ec96f3b3524b1a9cb1.png",
+      "sha256": "cae2328e8469f00dc4b6f4573c6f7079c196cf42524078e6f8240fffa95abfea",
+      "bytes": 14028
+    },
+    {
+      "file": "textures/574bd56b829ae72598407dcb.png",
+      "from": "kouor dist/assets/original-maps/textures/574bd56b829ae72598407dcb.png",
+      "sha256": "e323c8cac7d1c1a25da264586ef10e74192fbb424aeafca4a6587f67277887da",
+      "bytes": 1064
+    },
+    {
+      "file": "textures/5f5df1ee759cd2e0d0d9ee97.png",
+      "from": "kouor dist/assets/original-maps/textures/5f5df1ee759cd2e0d0d9ee97.png",
+      "sha256": "9dcd7460f2460ea5efb206c153ce4292a1628aec3bf571ecc5a3e085e6a968cc",
+      "bytes": 2948
+    },
+    {
+      "file": "textures/6fe6505c1c016134c9a7376b.png",
+      "from": "kouor dist/assets/original-maps/textures/6fe6505c1c016134c9a7376b.png",
+      "sha256": "b76a42e7db23aa9b5ec695411c980f32816883124968f92d503ff00f5df723c4",
+      "bytes": 1665
+    },
+    {
+      "file": "textures/79ec05761eacd401698db9eb.png",
+      "from": "kouor dist/assets/original-maps/textures/79ec05761eacd401698db9eb.png",
+      "sha256": "89da4cc78c8c5614b95bdc5f93ccab22d4dcb48300b5ac33af7232aff0273306",
+      "bytes": 1944
+    },
+    {
+      "file": "textures/7f7b2897459af8325f26e509.png",
+      "from": "kouor dist/assets/original-maps/textures/7f7b2897459af8325f26e509.png",
+      "sha256": "7aedd543dd4fe34209b79e9e2aa76bcbba3b2fae6e482ead091f405042e1eb82",
+      "bytes": 2278
+    },
+    {
+      "file": "textures/9b12f321c742697c01ef65a9.png",
+      "from": "kouor dist/assets/original-maps/textures/9b12f321c742697c01ef65a9.png",
+      "sha256": "a7eeb39f95eacd29d14843df987c6a2154cffeabf3e40eba44f95125c5b41509",
+      "bytes": 106
+    },
+    {
+      "file": "textures/cd50a3dbe44677e461c30c64.png",
+      "from": "kouor dist/assets/original-maps/textures/cd50a3dbe44677e461c30c64.png",
+      "sha256": "4e8f60791528b120c50958b7db69bdfd4506dae04303a89452af3cc71efab9b9",
+      "bytes": 913
+    },
+    {
+      "file": "textures/ce971e27992e06780e2d5ed1.png",
+      "from": "kouor dist/assets/original-maps/textures/ce971e27992e06780e2d5ed1.png",
+      "sha256": "bab36c2a9f9c5e136810b444145f08d70e971f28e13f7e18f39e7af3b8f1f6bd",
+      "bytes": 1783
+    },
+    {
+      "file": "textures/db14e6aeba57ada8d3b77b0a.png",
+      "from": "kouor dist/assets/original-maps/textures/db14e6aeba57ada8d3b77b0a.png",
+      "sha256": "c344c088dc940dfe2b38f7aa8b5bb8195e9b532c5c8b27c8016317380c2acf51",
+      "bytes": 11498
+    },
+    {
+      "file": "textures/dfcc8888adfd9be59e519a29.png",
+      "from": "kouor dist/assets/original-maps/textures/dfcc8888adfd9be59e519a29.png",
+      "sha256": "9aa754b6a72dc8f598745917c8cea224e56c9779229381668cd81a6f4e782dcd",
+      "bytes": 2198
+    },
+    {
+      "file": "textures/e28b908eada3409771ad7ca4.png",
+      "from": "kouor dist/assets/original-maps/textures/e28b908eada3409771ad7ca4.png",
+      "sha256": "678728f7016426653454199c8d3746a0b6558c1acbca684e75c1b7f7dd30ef8d",
+      "bytes": 4489
+    },
+    {
+      "file": "textures/f49f015d84d1dfee19f18631.png",
+      "from": "kouor dist/assets/original-maps/textures/f49f015d84d1dfee19f18631.png",
+      "sha256": "48131610fdec5e434f27414c5688dd001964630045fc906edb982cb32552b0fc",
+      "bytes": 3447
+    },
+    {
+      "file": "map7-collision.json",
+      "from": "scripts/import-kour-map.js (made from map7.json.gz)",
+      "sha256": "9cfead05243b1f6f9fec4e4457569bb5b8647264e8a726ea6cb4c9d25dd0c8aa",
+      "bytes": 136262
+    }
+  ]
+}
