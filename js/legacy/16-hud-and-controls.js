@@ -632,16 +632,20 @@ body.touching #netping{left:auto;right:14px;top:80px}
     if (!el) return;
     const c = XH,
       sh = c.outline ? "0 0 0 1px rgba(0,0,0,.85)" : "none",
-      g = c.gap + (c.dyn ? spread : 0),
+      // the bars of a cross sit at the resting gap; the spread of a moving or firing player slides them with a transform
+      // (the markup stays, nothing is laid out again), whole pixels so they stay sharp
+      sp = c.dyn ? Math.round(spread) : 0,
+      g = c.gap + sp,
       L = c.len,
       t = c.thick;
     const parts = [];
-    const bar = (x, y, w, h) => parts.push(`<i style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${c.color};box-shadow:${sh};opacity:${c.alpha}"></i>`);
+    const bar = (x, y, w, h, dx, dy) => parts.push(`<i data-d="${dx},${dy}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${c.color};box-shadow:${sh};opacity:${c.alpha}"></i>`);
     if ("cross" === c.style || "t" === c.style) {
-      "t" === c.style || bar(-t / 2, -g - L, t, L);
-      bar(-t / 2, g, t, L);
-      bar(-g - L, -t / 2, L, t);
-      bar(g, -t / 2, L, t);
+      const g0 = c.gap;
+      "t" === c.style || bar(-t / 2, -g0 - L, t, L, 0, -1);
+      bar(-t / 2, g0, t, L, 0, 1);
+      bar(-g0 - L, -t / 2, L, t, -1, 0);
+      bar(g0, -t / 2, L, t, 1, 0);
     }
     if ("circle" === c.style) {
       const r = Math.max(4, g + L / 2);
@@ -652,7 +656,16 @@ body.touching #netping{left:auto;right:14px;top:80px}
       parts.push(`<i style="left:${-d / 2}px;top:${-d / 2}px;width:${d}px;height:${d}px;border-radius:50%;background:${c.color};box-shadow:${sh};opacity:${c.alpha}"></i>`);
     }
     const html = parts.join("");
-    el._x !== html && ((el.innerHTML = html), (el._x = html));
+    el._x !== html && ((el.innerHTML = html), (el._x = html), (el._sp = null));
+    if (el._sp !== sp) {
+      el._sp = sp;
+      for (const i of el.children) {
+        const d = i.dataset.d;
+        if (!d) continue;
+        const [dx, dy] = d.split(",");
+        i.style.transform = sp ? `translate(${dx * sp}px,${dy * sp}px)` : "";
+      }
+    }
   }
   const crossStyle = document.createElement("style");
   crossStyle.textContent = "#cross.xh{width:0!important;height:0!important}#cross.xh i{position:absolute;transition:none}";

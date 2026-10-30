@@ -265,14 +265,25 @@
   tab && tab.appendChild(tb);
   tb.addEventListener("touchstart", (e) => (e.preventDefault(), inspect()), { passive: !1 });
   tb.addEventListener("click", inspect);
+  let placedQ = null,
+    placedKey = "",
+    placedAt = -1e9;
   function placeButton() {
     const live = !!(world.actors && world.actors.length > 0 && "menu" !== world.phase && "over" !== world.phase);
     tb.hidden = !(live && player.alive && (tier() >= 2 || typed()) && !holding());
     if (tb.hidden) return;
     // just left of the grenade button when it is out, else left of Q
     const nade = $("tb-nade"),
-      q = nade && !nade.hidden ? nade : document.querySelector('#tabil .tab[data-a="0"]'),
-      r = q && q.getBoundingClientRect();
+      q = nade && !nade.hidden ? nade : document.querySelector('#tabil .tab[data-a="0"]');
+    // measuring forces a layout: done only when something that moves the anchor changed (a resize or turn, the touch layout
+    // or its edit, the control size, the grenade button coming or going), not every frame
+    const key = [innerWidth, innerHeight, document.body.className, document.documentElement.style.cssText, q && q.style.cssText, q && q.id, !!(nade && !nade.hidden), nade && nade.style.cssText, window.TOUCHLAY ? TOUCHLAY.layout().t : 0].join("|");
+    const now = performance.now();
+    (q !== placedQ || key !== placedKey) && (placedAt = now);
+    // for 0.7 s after a change it is measured every frame (the anchor may still be sliding to its new place)
+    if (now - placedAt >= 700 && tb.style.getPropertyValue("left")) return;
+    const r = q && q.getBoundingClientRect();
+    q && ((placedQ = q), (placedKey = key)); // (also when Q is not laid out, as on a desktop: not measured again until something changes)
     if (!r || !(r.width > 0)) return;
     const set = (k, v) => tb.style.setProperty(k, v, "important");
     set("position", "fixed");

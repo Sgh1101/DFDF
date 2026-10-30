@@ -25,9 +25,14 @@
   // in <body> above the "click to play" cover, below the pause screen
   document.body.appendChild(b);
   const shop = document.getElementById("shop");
-  let last = null;
+  let last = null,
+    lastT = 0;
   (function place() {
     requestAnimationFrame(place);
+    // it measures the minimap and reads computed styles, which forces a layout: a few times a second is enough
+    const now = performance.now();
+    if (now - lastT < 150) return;
+    lastT = now;
     const r = mini.getBoundingClientRect();
     const over = ["pause", "admin", "bigmap", "board", "lobby"].some((id) => {
       const el = document.getElementById(id);

@@ -29,6 +29,7 @@ const {fixture} = require('./browser-fixture');
     for (let i=0;i<120;i++) {world.phase='live';world.roundTime=999;const start=performance.now();step(.016);times.push(performance.now()-start);}
     times.sort((a,b)=>a-b);
     const result={colliders:COLLIDERS.length,textures:ASCENT_TRIAL.textureCount,medianMs:times[60],p95Ms:times[114],totalMs:times.reduce((a,b)=>a+b,0)};
+    drawMini();drawTac(); // step() no longer draws the maps (the frame does, on a clock): warm both terrain images here
     const fill=CanvasRenderingContext2D.prototype.fillRect, counts={mini:0,terrain:0};
     CanvasRenderingContext2D.prototype.fillRect=function(){if(this.canvas===mini)counts.mini++;else if(this.canvas!==tac)counts.terrain++;return fill.apply(this,arguments);};
     try {for(let i=0;i<30;i++){drawMini();drawTac();}} finally {CanvasRenderingContext2D.prototype.fillRect=fill;}

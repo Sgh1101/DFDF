@@ -453,7 +453,7 @@
   const ds = document.createElement("style");
   ds.textContent = `
 #hit-dir{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden}
-#hit-dir .hd-edge{position:absolute;inset:0;opacity:0;will-change:opacity}
+#hit-dir .hd-edge{position:absolute;inset:0;opacity:0;will-change:transform,opacity;background:radial-gradient(ellipse 55% 60% at 50% 50%,rgba(255,24,44,.62),rgba(255,24,44,.18) 45%,transparent 70%)}
 #hit-dir .hd-arc{position:absolute;left:50%;top:50%;width:180px;height:44px;margin:-22px 0 0 -90px;opacity:0;will-change:transform,opacity;overflow:visible}
 #hit-dir .hd-arc path{fill:none;stroke:#ff2a3c;stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,30,50,.95)) drop-shadow(0 0 14px rgba(255,30,50,.6))}
 #hit-dir .hd-arc path.core{stroke:#ffc2c7;stroke-width:1.6;filter:none}
@@ -508,9 +508,9 @@
       d.arc.style.transform = `rotate(${a}rad) translateY(${-R}px)`;
       d.arc.style.opacity = op;
       if (!d.miss) {
-        const ex = 50 + Math.sin(a) * 62,
-          ey = 50 - Math.cos(a) * 62;
-        d.edge.style.background = `radial-gradient(ellipse 55% 60% at ${ex}% ${ey}%,rgba(255,24,44,.62),rgba(255,24,44,.18) 45%,transparent 70%)`;
+        // the glow is one gradient painted once, centred; it is moved round the screen edge with a transform (the
+        // compositor's work), where it used to be repainted full screen every frame with a new gradient position
+        d.edge.style.transform = `translate(${(Math.sin(a) * 62).toFixed(2)}%,${(-Math.cos(a) * 62).toFixed(2)}%)`;
         d.edge.style.opacity = op;
       }
     }
