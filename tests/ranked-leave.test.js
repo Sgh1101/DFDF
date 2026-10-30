@@ -193,3 +193,17 @@ test("a result that named a leaver but could not be applied is applied at his ne
   await open(h, tok, ["bobby", "dave1"], ["player", "carol"], { room: "LVE002" });
   assert.equal(h.user("carol").rr, 280, "applied when he started the next ranked match");
 });
+
+test("a player who left is not waited for, and his vote does not count for or against the result", async () => {
+  const { h, tok } = await fresh();
+  const m = await open(h, tok, ["player", "bobby"], ["carol", "dave1"]);
+  await result(m, { carol: { s: 0, end: 1 } }, "a");
+  // the others settle at once (no 60 s wait for carol's vote): the last voter, dave1, settles in the first pass
+  const out = {};
+  for (let pass = 0; pass < 2; pass++) for (const id of ["player", "bobby", "dave1"]) if (!out[id] || out[id].status === 425) out[id] = await settle(m, id);
+  for (const id of ["player", "bobby", "dave1"]) { assert.equal(out[id].status, 200, id); assert.equal(out[id].rankedCounted, true, id); }
+  // carol saying the result is wrong (a bot played her seat to the end) cannot dispute it
+  const c = await settle(m, "carol", { win: true });
+  assert.equal(c.status, 409);
+  assert.equal(h.user("carol").rr, 280);
+});

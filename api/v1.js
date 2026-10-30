@@ -1704,8 +1704,10 @@ async function rankedTally(u, m, b) {
   const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
   const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
   const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
-  // everybody who took a ticket and is not the host must have voted, or the grace has passed
-  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null);
+  // everybody who took a ticket and is not the host must have voted, or the grace has passed (a player the host
+  // reported as having left is not waited for)
+  const gone = Array.isArray(res.lv) ? res.lv : [];
+  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null && !gone.includes(id));
   return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
 }
 function teamAverages(rec, ticketed) {
@@ -1725,7 +1727,7 @@ async function rankedVerdict(u, trust, b) {
   const { outcome, said, ticketed, votes } = t;
   if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
   // dissent: more than half of a team's ticketed non-host players said "0"; confirmed: one of them said "1"
-  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id));
+  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id) && !(Array.isArray(res.lv) && res.lv.includes(id)));
   const dissent = (list) => voters(list).filter((id) => votes.get(id) === "0").length * 2 > voters(list).length;
   const confirmed = (list) => voters(list).some((id) => votes.get(id) === "1");
   // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
