@@ -29,7 +29,15 @@
   "방 코드가 이상합니다": "The room code is invalid", "다른 사람의 방입니다": "That room belongs to someone else", "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요": "You are opening rooms too often. Please try again shortly",
   "관리자 비밀번호가 서버에 설정되지 않았습니다": "The admin password is not set on the server",
   };
-  const PAT = [[/^골드가 부족합니다 \((.+) 필요\)$/, "Not enough gold ($1 needed)"], [/^찜은 (\d+)개까지입니다$/, "You can wishlist up to $1"]];
+  // clans and the leaderboards
+  Object.assign(EN, {
+  "클랜은 지금 쓸 수 없습니다": "Clans are switched off right now", "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요": "Guests cannot use clans. Please make an account",
+  "클랜 이름은 2~16자 (한글·영문·숫자, 낱말 사이 띄어쓰기 하나)": "Clan name: 2-16 characters (Korean, English, digits, one space between words)", "클랜 태그는 2~4자 (한글·영문·숫자)": "Clan tag: 2-4 characters (Korean, English, digits)",
+  "쓸 수 없는 말이 들어 있습니다": "That text has a word that is not allowed", "이미 클랜에 들어 있습니다": "You are already in a clan", "이미 있는 클랜 이름입니다": "That clan name is taken", "이미 있는 클랜 태그입니다": "That clan tag is taken",
+  "없는 클랜입니다": "No such clan", "클랜이 가득 찼습니다": "The clan is full", "클랜에 들어 있지 않습니다": "You are not in a clan", "클랜장만 할 수 있습니다": "Only the clan leader can do that",
+  "자기 자신은 내보낼 수 없습니다": "You cannot kick yourself", "그 사람은 이 클랜에 없습니다": "That player is not in this clan", "순위표를 고르세요": "Pick a leaderboard",
+  });
+  const PAT = [[/^골드가 부족합니다 \((.+) 필요\)$/, "Not enough gold ($1 needed)"], [/^찜은 (\d+)개까지입니다$/, "You can wishlist up to $1"], [/^클랜 소개는 (\d+)자까지입니다$/, "The description can be up to $1 characters"]];
   window.GAME_ERROR_EN = function (m) {
     try { if ("en" !== localStorage.getItem("lgp_lang") || "string" !== typeof m) return m; } catch (e) { return m; }
     if (Object.prototype.hasOwnProperty.call(EN, m)) return EN[m];
