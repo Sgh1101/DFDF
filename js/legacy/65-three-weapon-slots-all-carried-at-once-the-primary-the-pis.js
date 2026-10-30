@@ -56,7 +56,7 @@
   const inGame = () => "undefined" != typeof locked && locked;
   // 3 draws the knife (1 and 2 are the game's own)
   addEventListener("keydown", (e) => {
-    if (e.repeat || "3" !== e.key || typing(e) || !inGame() || busy()) return;
+    if (e.repeat || !KEYMAP.is(e, "slot3") || typing(e) || !inGame() || busy()) return;
     switchSlot("knife");
   });
   // the wheel runs through the three
@@ -81,7 +81,7 @@
         if (busy()) return;
         cycle(1);
         try {
-          navigator.vibrate && navigator.vibrate(5);
+          SETTINGS.haptic !== !1 && navigator.vibrate && navigator.vibrate(5);
         } catch (x) {}
       },
       { capture: !0, passive: !1 }

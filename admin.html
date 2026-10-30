@@ -936,6 +936,7 @@ const LABELS = {
   "game.registerOpen": ["새 가입 허용"],
   "game.maxRoomPlayers": ["방 최대 인원"],
   "game.roomListOpen": ["방 목록 공개", "끄면 게임의 같이 하기 화면에서 방 목록이 비어 보입니다"],
+  "game.chat": ["채팅과 핑", "켜면 방 대기실과 경기에서 채팅(전체·팀)·빠른 말하기·핑을 쓸 수 있습니다. 끄면 버튼이 사라지고 방장도 메시지를 받지 않습니다"],
   order: ["치트 판매 (계좌이체)", "플레이어가 원하는 치트를 골라 주문하고, 입금을 확인한 뒤 운영자가 '구매 주문'에서 열어 줍니다. 입금 계좌는 여기에만 적고 저장소에는 올리지 마세요"],
   "order.on": ["판매 열기", "켜면 홈페이지와 게임 메뉴에 '치트 구매'가 나타납니다. 계좌를 먼저 적으세요"],
   "order.bank": ["입금 계좌 (은행 + 계좌번호)", "예: 국민 123456-78-901234"],
@@ -965,6 +966,15 @@ const LABELS = {
   rank: ["티어", "경기마다 오르내리는 티어 점수(RR). 100마다 한 단계, 세 단계가 한 티어 (아이언 → 브론즈 → 실버 → 골드 → 플래티넘 → 다이아몬드 → 초월자 → 불멸 → 레디언트)"], "rank.win": ["승리 RR"], "rank.loss": ["패배 RR", "지면 이만큼 내려갑니다 (처치가 많으면 절반까지 덜 내려감)"], "rank.perKill": ["처치당 추가 RR"], "rank.maxKill": ["처치 보너스 최대"], "rank.maxPerDay": ["하루 최대 상승 RR", "0이면 한도 없음. 경기 결과는 게임이 보고하므로 꾸민 결과로 끝없이 올리지 못하게 합니다"], mission: ["미션", "일일 미션(한국 시간 자정에 새로)과 주간 미션(월요일에 새로). 숫자는 목표, 골드는 받기를 누르면 주는 보상. 목표를 0으로 하면 그 미션은 꺼집니다"], "mission.dPlay": ["일일 · 경기 수"], "mission.dPlayGold": ["일일 · 경기 보상"], "mission.dKill": ["일일 · 처치 수"], "mission.dKillGold": ["일일 · 처치 보상"], "mission.dWin": ["일일 · 승리 수"], "mission.dWinGold": ["일일 · 승리 보상"], "mission.wPlay": ["주간 · 경기 수"], "mission.wPlayGold": ["주간 · 경기 보상"], "mission.wKill": ["주간 · 처치 수"], "mission.wKillGold": ["주간 · 처치 보상"], "mission.wWin": ["주간 · 승리 수"], "mission.wWinGold": ["주간 · 승리 보상"],
 };
 Object.assign(LABELS, { "transcendent": ["초월", "경기 완료 코인 700개로 구매하거나 0.00000000000000001% 고정 확률로 뽑습니다. 일반 등급 비율과 별도로 추첨합니다"] });
+Object.assign(LABELS, {
+  mastery: ["요원 숙련도", "요원마다 1~10단계. 요원으로 치른 경기(경기 확인표가 있는 경기)마다 숙련도 경험치가 쌓이고, 단계가 오르면 골드를 줍니다. 요원 카드와 경기 시작 화면에 단계가 보입니다"],
+  "mastery.on": ["숙련도 켜기", "끄면 쌓지도 보여 주지도 않습니다 (쌓인 기록은 그대로 남습니다)"],
+  "mastery.perMatch": ["경기 참가 숙련도"], "mastery.perWin": ["승리 숙련도", "이겼을 때 더해집니다"], "mastery.perKill": ["처치당 숙련도"],
+  "mastery.maxPerMatch": ["한 경기 최대 숙련도", "한 경기에서 얻는 숙련도의 상한"],
+  "mastery.step": ["단계 기준 경험치", "n단계는 이 값 × n × (n-1) ÷ 2부터 (100이면 2단계 100, 3단계 300 … 10단계 4500)"],
+  "mastery.gold": ["단계 상승 골드", "단계가 하나 오를 때마다 주는 골드. 하루 골드 상한(골드 > 하루 최대)에 포함됩니다"],
+  "mastery.maxGold": ["한 경기 최대 골드", "한 경기에서 단계가 여러 번 올라도 이 값까지만 줍니다"],
+});
 VIEWS.config = async () => {
   const { config, defaults, saved } = await call("a_config_get");
   // what a field is compared with, and put back to by its ↺: the owner's saved default, else the game's own values

@@ -192,12 +192,12 @@
   }
   let fWas = !1;
   addEventListener("keydown", (e) => {
-    if ("f" !== (e.key || "").toLowerCase() || fWas) return;
+    if (!KEYMAP.is(e, "use") || KEYMAP.editing(e.target) || fWas) return;
     fWas = !0;
     tryUse();
   });
   addEventListener("keyup", (e) => {
-    "f" === (e.key || "").toLowerCase() && (fWas = !1);
+    KEYMAP.is(e, "use") && (fWas = !1);
   });
   // touch: the on-screen F button and the prompt itself both work
   $("tb-use") && $("tb-use").addEventListener("pointerdown", () => tryUse());

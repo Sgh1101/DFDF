@@ -10,13 +10,6 @@
   const near = (x, y, z, d) => camera.position.distanceToSquared(_v.set(x, y, z)) < d * d;
   const _v = new T.Vector3();
 
-  // highest walkable surface under (x, z) at or below y
-  function groundAt(x, z, y) {
-    let g = 0;
-    for (const c of COLLIDERS) if (c.h <= y + 0.05 && c.h > g && x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ) g = c.h;
-    return g;
-  }
-
   // ── casings and magazines ──
   const G = {
     brass: shared(new T.CylinderGeometry(0.0085, 0.0085, 0.036, 7)),
@@ -56,7 +49,7 @@
     o.frequency.exponentialRampToValueAtTime(heavy ? 90 : 1500, t + 0.06);
     g.gain.setValueAtTime(heavy ? 0.03 : 0.018, t);
     g.gain.exponentialRampToValueAtTime(1e-4, t + (heavy ? 0.09 : 0.07));
-    o.connect(g).connect(AC.destination);
+    o.connect(g).connect(GAME_AUDIO.output); // through the volume sliders, not past them
     o.start(t);
     o.stop(t + 0.1);
   }
@@ -103,7 +96,8 @@
         b.vel.x *= -0.35;
         b.vel.z *= -0.35;
       }
-      const g = groundAt(m.position.x, m.position.z, m.position.y + 0.1) + 0.012;
+      // the highest surface under it at or below its own height, from the engine's hash (not a pass over every collider)
+      const g = groundTop(m.position.x, m.position.z, m.position.y + 0.1, 0, 0.05) + 0.012;
       if (m.position.y <= g) {
         m.position.y = g;
         if (Math.abs(b.vel.y) > 1.1 && b.hops < 3) {
@@ -453,7 +447,7 @@
   const ds = document.createElement("style");
   ds.textContent = `
 #hit-dir{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden}
-#hit-dir .hd-edge{position:absolute;inset:0;opacity:0;will-change:opacity}
+#hit-dir .hd-edge{position:absolute;inset:0;opacity:0;will-change:transform,opacity;background:radial-gradient(ellipse 55% 60% at 50% 50%,rgba(255,24,44,.62),rgba(255,24,44,.18) 45%,transparent 70%)}
 #hit-dir .hd-arc{position:absolute;left:50%;top:50%;width:180px;height:44px;margin:-22px 0 0 -90px;opacity:0;will-change:transform,opacity;overflow:visible}
 #hit-dir .hd-arc path{fill:none;stroke:#ff2a3c;stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,30,50,.95)) drop-shadow(0 0 14px rgba(255,30,50,.6))}
 #hit-dir .hd-arc path.core{stroke:#ffc2c7;stroke-width:1.6;filter:none}
@@ -508,9 +502,9 @@
       d.arc.style.transform = `rotate(${a}rad) translateY(${-R}px)`;
       d.arc.style.opacity = op;
       if (!d.miss) {
-        const ex = 50 + Math.sin(a) * 62,
-          ey = 50 - Math.cos(a) * 62;
-        d.edge.style.background = `radial-gradient(ellipse 55% 60% at ${ex}% ${ey}%,rgba(255,24,44,.62),rgba(255,24,44,.18) 45%,transparent 70%)`;
+        // the glow is one gradient painted once, centred; it is moved round the screen edge with a transform (the
+        // compositor's work), where it used to be repainted full screen every frame with a new gradient position
+        d.edge.style.transform = `translate(${(Math.sin(a) * 62).toFixed(2)}%,${(-Math.cos(a) * 62).toFixed(2)}%)`;
         d.edge.style.opacity = op;
       }
     }

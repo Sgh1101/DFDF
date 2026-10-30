@@ -80,11 +80,19 @@
     });
     e.on("error", () => {});
   };
+  // A link that cannot keep up piles messages in its send buffer, and each one arrives later than the one before: the guest
+  // sees the game the buffer's age behind. Past about two snapshots (or 1 KB of inputs) a message is not sent; the next one
+  // carries the same state anyway.
+  const backed = (c, limit) => !!(c && c.dataChannel && c.dataChannel.bufferedAmount > limit);
+  let snapBytes = 0, snapSeen = 0;
   sendSnapshot = function (s) {
     if ("host" !== NET.mode) return;
+    if (!(snapSeen++ % 20)) try { snapBytes = JSON.stringify(s).length; } catch (x) {}
+    const limit = 2 * Math.max(snapBytes, 512);
     for (const [, o] of conns()) {
       if (o.quiet) continue;
       const c = open(o.state) ? o.state : open(o.event) ? o.event : null;
+      if (backed(c, limit)) { NET.skipped = (NET.skipped || 0) + 1; continue; }
       if (c)
         try {
           c.send(s);
@@ -138,6 +146,7 @@
   sendInput = function (e) {
     if ("client" !== NET.mode || !NET.up) return;
     const c = open(NET.up.state) ? NET.up.state : open(NET.up.event) ? NET.up.event : null;
+    if (backed(c, 1024) && "in" === e.t) return void (NET.skippedIn = (NET.skippedIn || 0) + 1);
     if (c)
       try {
         c.send(e);

@@ -118,6 +118,8 @@ const COLLIDERS = [],
     minZ: 0,
     buckets: null,
     dirty: !0,
+    out: [],
+    gen: 0,
   },
   matWall = () => TH().wall,
   matCover = () => TH().crate,
@@ -1062,12 +1064,21 @@ function chashBuild() {
     (CHASH.rows = Math.max(1, Math.ceil((e.maxZ - e.minZ + 8) / CHASH.cell))));
   const t = CHASH.cols * CHASH.rows;
   CHASH.buckets = new Array(t);
+  CHASH.out = [];
   for (let e = 0; e < t; e++) CHASH.buckets[e] = null;
   for (const e of COLLIDERS) chashAdd(e);
   CHASH.dirty = !1;
 }
 function chashAdd(e) {
   if (!CHASH.buckets) return;
+  // qs: the stamp the ray walks use to test a collider once (set here so every collider has the same shape)
+  e.qs = 0;
+  // a box that reaches past the grid also goes in CHASH.out, which every hash query reads, so none is missed outside it
+  (e.minX < CHASH.minX ||
+    e.minZ < CHASH.minZ ||
+    e.maxX >= CHASH.minX + CHASH.cols * CHASH.cell ||
+    e.maxZ >= CHASH.minZ + CHASH.rows * CHASH.cell) &&
+    CHASH.out.push(e);
   const t = Math.max(0, Math.floor((e.minX - CHASH.minX) / CHASH.cell)),
     o = Math.min(
       CHASH.cols - 1,
@@ -1174,17 +1185,40 @@ function abilityGroundY(x, z, reference = player.y || 0) {
 function abilityOnFloor(actor, y, height = 2.4) {
   return (actor.y || 0) + 1.8 > y && (actor.y || 0) < y + height;
 }
+// the highest box top at or under y + tol whose footprint, grown by m, holds (x, z), read through the hash, not off every
+// collider (the casings ask with m 0 and tol 0.05)
+function groundTop(x, z, y, m, tol) {
+  (!CHASH.dirty && CHASH.buckets) || chashBuild();
+  const lim = y + tol,
+    cell = CHASH.cell,
+    cols = CHASH.cols,
+    bk = CHASH.buckets,
+    out = CHASH.out,
+    c0 = Math.max(0, Math.floor((x - m - 1e-6 - CHASH.minX) / cell)),
+    c1 = Math.min(cols - 1, Math.floor((x + m + 1e-6 - CHASH.minX) / cell)),
+    r0 = Math.max(0, Math.floor((z - m - 1e-6 - CHASH.minZ) / cell)),
+    r1 = Math.min(CHASH.rows - 1, Math.floor((z + m + 1e-6 - CHASH.minZ) / cell));
+  let g = 0,
+    k,
+    b,
+    i;
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++) {
+      b = bk[r * cols + c];
+      if (b)
+        for (i = 0; i < b.length; i++) {
+          k = b[i];
+          x > k.minX - m && x < k.maxX + m && z > k.minZ - m && z < k.maxZ + m && k.h <= lim && k.h > g && (g = k.h);
+        }
+    }
+  for (i = 0; i < out.length; i++) {
+    k = out[i];
+    x > k.minX - m && x < k.maxX + m && z > k.minZ - m && z < k.maxZ + m && k.h <= lim && k.h > g && (g = k.h);
+  }
+  return g;
+}
 function groundAt(e, t, o) {
-  let a = 0;
-  for (const n of COLLIDERS)
-    e > n.minX - PR &&
-      e < n.maxX + PR &&
-      t > n.minZ - PR &&
-      t < n.maxZ + PR &&
-      n.h <= o + STEP_H &&
-      n.h > a &&
-      (a = n.h);
-  return a;
+  return groundTop(e, t, o, PR, STEP_H);
 }
 function rayBlocked(e, t, o, a, n, r, s) {
   const i = a - e,
@@ -1316,10 +1350,14 @@ function curWeapon() {
 const keys = {};
 let locked = !1;
 (addEventListener("keydown", (e) => {
-  const t = e.key.toLowerCase();
+  // keys are read by their place on the keyboard (js/keymap.js), so the Korean input method cannot hide them; what is typed
+  // into a text field is not the game's (Escape still is: it closes the admin panel from its password field)
+  const t = (e.key || "").toLowerCase();
+  if ("escape" !== t && KEYMAP.editing(e.target)) return;
+  const c = KEYMAP.codeOf(e),
+    a = KEYMAP.apply(keys, e, !0);
   if (
-    ((keys[t] = !0),
-    "Space" === e.code && ((keys.space = !0), FLY.on && e.preventDefault()),
+    (a.includes("jump") && FLY.on && e.preventDefault(),
     "menu" !== world.phase)
   )
     return "escape" === t
@@ -1329,10 +1367,10 @@ let locked = !1;
           : void togglePause()
         : void closeAdmin()
       : FLY.on
-        ? "c" === t
+        ? "KeyC" === c
           ? ((FLY.locked = !FLY.locked),
             void banner(FLY.locked ? "시점 고정" : "시점 해제", "#ffc849"))
-          : "r" === t
+          : "KeyR" === c
             ? (flyReset(), void banner("시작 지점", "#4ade80"))
             : "ArrowRight" === e.code || "ArrowDown" === e.code
               ? (e.preventDefault(), void flyStepMap(1))
@@ -1341,19 +1379,20 @@ let locked = !1;
                 : void 0
         : void (
             locked &&
-            ("b" === t && toggleShop(),
-            "r" === t && startReload(),
-            "1" === t && player.weapons.primary && switchSlot("primary"),
-            "2" === t && switchSlot("secondary"),
-            "q" === t && useAbility(0),
-            "e" === t && useAbility(1),
-            "c" === t && useAbility(2),
-            "x" === t && useAbility(3),
-            "Space" === e.code && jump())
+            (a.includes("shop") && toggleShop(),
+            a.includes("reload") && startReload(),
+            a.includes("slot1") && player.weapons.primary && switchSlot("primary"),
+            a.includes("slot2") && switchSlot("secondary"),
+            a.includes("ability1") && useAbility(0),
+            a.includes("ability2") && useAbility(1),
+            a.includes("ability3") && useAbility(2),
+            a.includes("ability4") && useAbility(3),
+            a.includes("jump") && jump())
           );
 }),
   addEventListener("keyup", (e) => {
-    ((keys[e.key.toLowerCase()] = !1), "Space" === e.code && (keys.space = !1));
+    // a key that is let go always lets go of its action, even when the focus has moved into a text field meanwhile
+    KEYMAP.release(keys, e);
   }),
   addEventListener(
     "wheel",
@@ -1433,7 +1472,7 @@ let locked = !1;
     const t = ("function" == typeof myActor && myActor()) || player;
     if (!t) return;
     const o = BASE_SENS * SETTINGS.sens * (t.ads ? SETTINGS.adsSens : 1);
-    ((t.yaw -= e.movementX * o),
+    ((t.yaw = wrapYaw(t.yaw - e.movementX * o)),
       (t.pitch -= e.movementY * o),
       (t.pitch = clamp(t.pitch, -1.52, 1.52)),
       t.input && ((t.input.yaw = t.yaw), (t.input.pitch = t.pitch)));
@@ -1480,12 +1519,17 @@ const touch = {
     motion: 1,
     ultCut: !0,
     slowMo: !1,
+    volMaster: 1,
+    volFx: 1,
+    volSteps: 1,
+    haptic: !0,
+    binds: {},
   },
   SETTINGS = Object.assign({}, SET_DEF);
 function loadSettings() {
   // a stored value is taken only if the setting can hold it: the default's type and, for a number, finite and inside
   // its slider's range (a NaN once saved comes back as null, which stopped mouse look and the settings screen for good)
-  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2] };
+  const range = { sens: [0.2, 3], adsSens: [0.2, 1.2], touchSens: [0.2, 3], motion: [0, 2], volMaster: [0, 1], volFx: [0, 1], volSteps: [0, 1] };
   try {
     const e = localStorage.getItem("lgp_set");
     if (e) {
@@ -1653,7 +1697,7 @@ function enableTouch() {
             ((touch.lookX = t.clientX), (touch.lookY = t.clientY));
             const a = ("function" == typeof myActor && myActor()) || player,
               n = 0.0042 * SETTINGS.touchSens * (a.ads ? SETTINGS.adsSens : 1);
-            ((a.yaw -= e * n),
+            ((a.yaw = wrapYaw(a.yaw - e * n)),
               (a.pitch -= o * n),
               (a.pitch = clamp(a.pitch, -1.52, 1.52)),
               a.input && ((a.input.yaw = a.yaw), (a.input.pitch = a.pitch)));
@@ -11635,7 +11679,7 @@ function tickViewmodel(e) {
     d = 0.014 * Math.cos(VM.bobT) * c,
     h = 0.012 * Math.abs(Math.sin(VM.bobT)) * c;
   ((VM.sway.x +=
-    (2.2 * (player.yaw - (VM.lastYaw ?? player.yaw)) - VM.sway.x) *
+    (2.2 * wrapYaw(player.yaw - (VM.lastYaw ?? player.yaw)) - VM.sway.x) *
     Math.min(1, 9 * e)),
     (VM.sway.y +=
       (2.2 * (player.pitch - (VM.lastPitch ?? player.pitch)) - VM.sway.y) *
@@ -14028,7 +14072,8 @@ function dressJungle() {
 }
 const SFX = (() => {
     let e = null,
-      t = null;
+      t = null,
+      g = null;
     function o() {
       if ("object" == typeof SETTINGS && SETTINGS && !SETTINGS.sfx) return null;
       if (e) return ("suspended" === e.state && e.resume(), e);
@@ -14044,7 +14089,17 @@ const SFX = (() => {
       }
       return e;
     }
-    function a(e, a, n, r, s) {
+    // where a footstep goes: the footsteps volume, panned if it has a side (-1 left .. 1 right). Own steps have none.
+    function u(p) {
+      if (!e) return t;
+      g || ((g = e.createGain()), (g.gain.value = 0.22), g.connect(GAME_AUDIO.steps));
+      if ("number" != typeof p || !e.createStereoPanner) return g;
+      const s = e.createStereoPanner();
+      ((s.pan.value = clamp(p, -1, 1)), s.connect(g));
+      setTimeout(() => s.disconnect(), 600);
+      return s;
+    }
+    function a(e, a, n, r, s, x) {
       const i = o();
       if (!i) return;
       const l = i.createOscillator(),
@@ -14060,11 +14115,11 @@ const SFX = (() => {
         c.gain.exponentialRampToValueAtTime(r || 0.3, i.currentTime + 0.008),
         c.gain.exponentialRampToValueAtTime(1e-4, i.currentTime + a),
         l.connect(c),
-        c.connect(t),
+        c.connect(x || t),
         l.start(),
         l.stop(i.currentTime + a + 0.02));
     }
-    function n(e, a, n, r) {
+    function n(e, a, n, r, x) {
       const s = o();
       if (!s) return;
       const i = Math.max(1, Math.floor(s.sampleRate * e)),
@@ -14080,7 +14135,7 @@ const SFX = (() => {
       ((p.gain.value = a || 0.4),
         d.connect(h),
         h.connect(p),
-        p.connect(t),
+        p.connect(x || t),
         d.start());
     }
     function r(e, a, n) {
@@ -14256,14 +14311,16 @@ const SFX = (() => {
           (a(300, 0.09, "square", 0.2, 140),
             setTimeout(() => a(190, 0.12, "square", 0.18, 90), 80));
         },
-        step(e, t, r) {
+        // p: where the step is heard, -1 (left) .. 1 (right), from GAME_AUDIO.panFor
+        step(e, t, r, p) {
           if (!o()) return;
           const s = clamp(r || 0, 0, 1),
             i = (1 - s) * (1 - s);
           if (i < 0.04) return;
           const l = STEP_SFX[t] || STEP_SFX.stone,
-            c = "run" === e ? 1 : "crouch" === e ? 0.34 : 0.6;
-          (n(l.d, l.v * c * i, l.cut * (1 - 0.55 * s), l.filt || "lowpass"),
+            c = "run" === e ? 1 : "crouch" === e ? 0.34 : 0.6,
+            x = u(p);
+          (n(l.d, l.v * c * i, l.cut * (1 - 0.55 * s), l.filt || "lowpass", x),
             l.f &&
               a(
                 l.f * (0.92 + 0.16 * Math.random()),
@@ -14271,6 +14328,7 @@ const SFX = (() => {
                 "triangle",
                 0.09 * c * i,
                 0.7 * l.f,
+                x,
               ));
         },
       }
@@ -15358,11 +15416,11 @@ function detonate() {
 function spikeUI(e, t, o, a, n) {
   $("spike").classList.add("on");
   const r = $("sp-txt");
-  ((r.textContent = e), (r.style.color = t));
+  (_hT(r, e), _hS(r, "color", t));
   const s = $("sp-bar").firstElementChild;
-  ((s.style.width = 100 * clamp(o, 0, 1) + "%"), (s.style.background = a));
+  (_hW(s, 100 * clamp(o, 0, 1) + "%"), _hS(s, "background", a));
   const i = $("sp-mark");
-  i && (i.style.display = n ? "block" : "none");
+  i && _hS(i, "display", n ? "block" : "none");
 }
 function handleSpike(e) {
   const t = world.spike,
@@ -16209,6 +16267,12 @@ function respawnAll() {
     e.ai && (e.ai = freshAIState());
   }
 }
+// an angle in (-PI, PI]: a mouse turned for minutes makes yaw grow without bound, and the host refuses a yaw beyond 1000
+function wrapYaw(a) {
+  return a > Math.PI || a <= -Math.PI
+    ? Math.PI - ((((Math.PI - a) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))
+    : a;
+}
 const Q = {
     pos: (e) => Math.round(100 * e),
     unpos: (e) => e / 100,
@@ -16242,7 +16306,7 @@ function packActor(e) {
     Q.pos(e.pos.x),
     Q.pos(e.y),
     Q.pos(e.pos.z),
-    Q.ang(e.yaw),
+    Q.ang(wrapYaw(e.yaw)),
     Q.ang(e.pitch || 0),
     Math.max(0, Math.round(e.hp)),
     Math.round(e.armor || 0),
@@ -16431,7 +16495,7 @@ function gatherInput() {
   }
   (keys.use || keys.f || keys["4"]) && (o |= BTN.USE);
   const a = ("function" == typeof myActor && myActor()) || player;
-  return { mv: [e, t], yaw: a.yaw, pitch: a.pitch, btn: o };
+  return { mv: [e, t], yaw: wrapYaw(a.yaw), pitch: a.pitch, btn: o };
 }
 function simMove(e, t) {
   const o = e.input;
@@ -16486,11 +16550,16 @@ function simMove(e, t) {
         e._stepAcc >= n &&
           ((e._stepAcc = 0), !("crouch" === a && Math.random() < 0.55)))
       ) {
-        let t = 0;
+        let t = 0,
+          pan;
         "me" !== e.ctrl &&
           player &&
           player.pos &&
-          ((t = clamp(
+          ((pan = GAME_AUDIO.panFor(
+            { x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y },
+            e.pos,
+          )),
+          (t = clamp(
             Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z) / 34,
             0,
             1,
@@ -16506,7 +16575,7 @@ function simMove(e, t) {
             ) &&
             (t = Math.min(1, t + 0.3)));
         try {
-          SFX.step(a, surfaceAt(e), t);
+          SFX.step(a, surfaceAt(e), t, pan);
         } catch (e) {}
       }
     } else e._stepAcc = 0;
@@ -16572,7 +16641,7 @@ function interpRemote(e, t) {
   ((e.pos.x = o.px + (o.tx - o.px) * a),
     (e.y = o.py + (o.ty - o.py) * a),
     (e.pos.z = o.pz + (o.tz - o.pz) * a));
-  let n = ((o.tyaw - o.pyaw + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  const n = wrapYaw(o.tyaw - o.pyaw);
   e.yaw = o.pyaw + n * a;
 }
 function reconcileLocal(e, t) {
@@ -16708,7 +16777,16 @@ function actorFire(e) {
     "me" !== e.ctrl)
   )
     try {
-      (worldMuzzleFlash(e), GFX.tracer && worldTracer(e, dir, o.range));
+      (worldMuzzleFlash(e), GFX.tracer &&
+          worldTracer(
+            e,
+            new T.Vector3(
+              -Math.sin(e.yaw) * Math.cos(e.pitch || 0),
+              Math.sin(e.pitch || 0),
+              -Math.cos(e.yaw) * Math.cos(e.pitch || 0),
+            ),
+            o.range,
+          ));
     } catch (e) {}
   pushFX(FX.SHOT, e.pos.x, actorEye(e), e.pos.z, Math.round(100 * e.yaw));
 }
@@ -17478,6 +17556,7 @@ function aiThink(e, t) {
     (o.alertT > 0 && (o.alertT -= t),
     (o.repathCd -= t),
     (o.strafeCd -= t),
+    o.pickCd > 0 && (o.pickCd -= t),
     o.skill && (o.skill.cd -= t),
     actorSpike(e, t),
     actorBusy(e))
@@ -17598,11 +17677,30 @@ function aiThink(e, t) {
   }
   r & BTN.RELOAD && actorReload(e);
 }
+// A bot looks for a target every 0.10-0.20 s (its own interval, by id), not on every step: a sight line to every enemy in
+// range, from every bot, on every step was the largest cost of a fight. In between it keeps the target it has (or none)
+// while that is still alive, an enemy and in range; a death, an enemy hidden from it, or an enemy that comes within 5 m
+// that it has not looked at makes it look at once. The first look is at once too, and its next one is put off by up to
+// 0.125 s (by id) so the bots do not all look on the same step.
+const AI_SIGHT_EVERY = 0.1;
 function aiPickTarget(e) {
   let t = null,
     o = 1e9,
     a = ("function" == typeof diffTune ? diffTune().range : 80) + 20;
   e.nearsight > 0 && (a = Math.min(a, 10));
+  const s = e.ai,
+    first = !!s && void 0 === s.pickCd;
+  if (s && s.pickCd > 0) {
+    const k = s.pickT;
+    let keep = !k || (k.alive && k.team !== e.team && Math.hypot(k.pos.x - e.pos.x, k.pos.z - e.pos.z) <= a);
+    if (keep)
+      for (const n of world.actors)
+        if (n !== k && n.alive && n.team !== e.team && Math.hypot(n.pos.x - e.pos.x, n.pos.z - e.pos.z) < 5) {
+          keep = !1;
+          break;
+        }
+    if (keep) return (k && intelReport(e, k), k);
+  }
   for (const n of world.actors) {
     if (!n.alive || n.team === e.team) continue;
     const r = Math.hypot(n.pos.x - e.pos.x, n.pos.z - e.pos.z);
@@ -17610,6 +17708,7 @@ function aiPickTarget(e) {
       rayBlocked(e.pos.x, e.y + 1.5, e.pos.z, n.pos.x, n.y + 1.1, n.pos.z) ||
       (intelReport(e, n), r < o && ((t = n), (o = r)));
   }
+  s && ((s.pickCd = AI_SIGHT_EVERY + 0.025 * (Math.abs(e.id | 0) % 5) + (first ? 0.025 * (Math.abs(e.id | 0) % 6) : 0)), (s.pickT = t));
   return t;
 }
 function aiGoal(e) {
@@ -17656,6 +17755,8 @@ const NET = {
     prevSnap: null,
     snapT: 0,
     latency: 0,
+    lastK: null,
+    staleRun: 0,
     onLobby: null,
     onEvent: null,
     onSnapshot: null,
@@ -17860,7 +17961,32 @@ function sendAction(e) {
       t.send(e);
     } catch (e) {}
 }
+// ping: a guest asks about once a second, the host answers at once, and the round trip is NET.latency. The guest also says
+// what it measured last, so the host can list every player's ping. Old builds ignore a type they do not know.
+let _pingSeq = 0;
+const _pingSent = new Map();
+function netPingSend() {
+  if ("client" !== NET.mode || !NET.up || "open" !== NET.status) return;
+  const e = ++_pingSeq;
+  (_pingSent.set(e, performance.now()), _pingSent.delete(e - 8));
+  sendInput({ t: "ping", n: e, p: NET.latency || 0 });
+}
+function hostPong(e, t) {
+  const o = NET.conns.get(e);
+  if (!o || o.quiet || "number" != typeof t.n) return;
+  const a = performance.now();
+  if (a - (o.pongT || 0) < 300) return;
+  o.pongT = a;
+  "number" == typeof t.p && t.p >= 0 && t.p < 1e4 && (o.ping = Math.round(t.p));
+  const n = o.state && o.state.open ? o.state : o.event && o.event.open ? o.event : null;
+  if (n)
+    try {
+      n.send({ t: "pong", n: t.n });
+    } catch (e) {}
+}
+setInterval(netPingSend, 1000);
 function hostRecv(e, t) {
+  if (t && "ping" === t.t) return void hostPong(e, t);
   t &&
     t.t &&
     ("in" !== t.t
@@ -17868,13 +17994,27 @@ function hostRecv(e, t) {
       : NET.onInput && NET.onInput(e, t));
 }
 function clientRecv(e) {
-  if (e && e.t)
-    return "s" === e.t
-      ? ((NET.prevSnap = NET.lastSnap),
+  if (e && e.t) {
+    if ("pong" === e.t) {
+      const t = _pingSent.get(e.n);
+      return void (null != t && (_pingSent.delete(e.n), (NET.latency = Math.max(0, Math.round(performance.now() - t)))));
+    }
+    if ("s" === e.t) {
+      // the "state" link is unordered: a snapshot lost on the way is sent again and can turn up behind newer ones, and
+      // applying it would put every body back where it was. A counter that stays behind for 2 s is a host that began again.
+      if ("number" == typeof e.k) {
+        if (null != NET.lastK && e.k <= NET.lastK && ++NET.staleRun < 40) return;
+        ((NET.lastK = e.k), (NET.staleRun = 0));
+      }
+      return (
+        (NET.prevSnap = NET.lastSnap),
         (NET.lastSnap = e),
         (NET.snapT = 0),
-        void (NET.onSnapshot && NET.onSnapshot(e)))
-      : void (NET.onEvent && NET.onEvent(e));
+        void (NET.onSnapshot && NET.onSnapshot(e))
+      );
+    }
+    return void (NET.onEvent && NET.onEvent(e));
+  }
 }
 function netShutdown() {
   cancelRoundEnd();
@@ -17886,6 +18026,8 @@ function netShutdown() {
   NET.room = null;
   NET.id = null;
   NET.lastSnap = NET.prevSnap = null;
+  NET.lastK = null;
+  NET.latency = 0;
 }
 function peerCount() {
   return "host" === NET.mode ? NET.conns.size : "client" === NET.mode ? 1 : 0;
@@ -18398,10 +18540,12 @@ function netStep(e) {
     for (const t of world.actors) t.alive && resolveActions(t, e);
     "host" === NET.mode &&
       ((_snapAcc += e),
-      _snapAcc >= 0.05 && ((_snapAcc = 0), sendSnapshot(buildSnapshot())));
+      // keep the remainder: resetting to 0 made a 60 fps host send every 3rd or 4th frame, 50 and 66.7 ms in turn
+      _snapAcc >= 0.05 - 1e-6 &&
+        ((_snapAcc = Math.min(_snapAcc - 0.05, 0.025)), sendSnapshot(buildSnapshot())));
   } else {
-    if (((_inputAcc += e), _inputAcc >= 1 / 60)) {
-      _inputAcc = 0;
+    if (((_inputAcc += e), _inputAcc >= 1 / 60 - 1e-6)) {
+      _inputAcc = Math.min(_inputAcc - 1 / 60, 1 / 120);
       const e = gatherInput();
       ((e.t = "in"), (e.seq = ++_inputSeq), sendInput(e));
     }
@@ -18693,6 +18837,7 @@ function actorManifest() {
   }));
 }
 function clientBeginMatch(e) {
+  NET.lastK = null;
   room.started = true;
   ((room.map = e.map),
     e.rounds && (room.rounds = 0 | e.rounds),
@@ -19959,15 +20104,15 @@ function updateRoster() {
     const n = o.querySelector(".rs-hp");
     if (n) {
       const o = t && a ? clamp(e.hp, 0, 100) : a ? 100 : 0;
-      ((n.firstElementChild.style.width = o + "%"),
+      (_hW(n.firstElementChild, o + "%"),
         n.classList.toggle("low", t && o <= 35),
-        (n.style.opacity = t ? 1 : 0));
+        _hS(n, "opacity", t ? "1" : "0"));
     }
   };
   (n.forEach((e) => c(e, !0)),
     r.forEach((e) => c(e, !1)),
-    ($("rs-n-mine").textContent = i),
-    ($("rs-n-foe").textContent = l));
+    _hT($("rs-n-mine"), i),
+    _hT($("rs-n-foe"), l));
 }
 const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
 let teamBuilt = 0;
@@ -20047,7 +20192,11 @@ function updateCross() {
       (player.ads ? -1.5 : 0),
     a = e.children,
     n = (e, t, o, a, n) => {
-      ((e.style.width = a + "px"),
+      // written only when it changed (js/legacy/16 replaces this with the transform version)
+      const k = a + "," + n + "," + t + "," + o;
+      e._k !== k &&
+        ((e._k = k),
+        (e.style.width = a + "px"),
         (e.style.height = n + "px"),
         (e.style.left = 13 + t + "px"),
         (e.style.top = 13 + o + "px"));
@@ -20292,10 +20441,9 @@ function tick(e) {
   if ((1 !== TIMEFX.scale && (t *= TIMEFX.scale), FLY.on))
     ($("admin").hidden && flyStep(t), render());
   else if ("menu" !== world.phase && "over" !== world.phase) {
-    if (
-      !("solo" === NET.mode) ||
-      ($("pause").hidden && !shopOpen && $("admin").hidden)
-    ) {
+    const p =
+      "solo" === NET.mode && (!$("pause").hidden || shopOpen || !$("admin").hidden);
+    if (!p) {
       const s = 1 !== TIMEFX.scale ? u * TIMEFX.scale : u;
       for (
         let i = 0;
@@ -20303,9 +20451,45 @@ function tick(e) {
         i++
       )
         step(s);
+      hudFrame();
     }
-    render();
-  } else "over" === world.phase && render();
+    frameDue(p ? "pause" : "") && render();
+  } else
+    "over" === world.phase &&
+      frameDue($("s-over").hidden ? "" : "over") &&
+      render();
+}
+// Frames nobody can see. While the simulation is stopped (solo pause, shop, admin) or the results screen covers the
+// canvas, the scene is drawn once after the screen opens and again only when something visible changed: the canvas
+// size or aspect, the field of view, the graphics preset, or a click or edit inside the screen (a setting).
+let _fdKey = "",
+  _fdLeft = 0;
+function frameDue(e) {
+  if (!e) return ((_fdKey = ""), !0);
+  const t = renderer.domElement,
+    o = e + t.width + "x" + t.height + "/" + camera.fov + "/" + camera.aspect + "/" + SETTINGS.quality;
+  return (
+    o !== _fdKey && ((_fdKey = o), (_fdLeft = 2)),
+    _fdLeft > 0 && (_fdLeft--, !0)
+  );
+}
+for (const e of ["click", "input", "change", "keyup"])
+  document.addEventListener(
+    e,
+    (e) => {
+      e.target &&
+        e.target.closest &&
+        e.target.closest("#pause,#shop,#admin,#s-over") &&
+        (_fdLeft = 3);
+    },
+    !0,
+  );
+addEventListener("resize", () => {
+  _fdLeft = 3;
+});
+// Agent select and the lobby are opaque full-screen screens: the title scene under them is not drawn.
+function menuCovered() {
+  return !$("s-select").hidden || !$("lobby").hidden;
 }
 function step(e) {
   "buy" === world.phase
@@ -20429,14 +20613,21 @@ function step(e) {
     tickEdge(e),
     tickUltCut(e),
     tickTimeFx(e),
-    updateLockHint(),
-    updateHUD(),
-    updateCross(),
-    (_mapF = (_mapF + 1) % 6),
-    1 & _mapF || drawTac(),
-    _mapF % 3 == 0 && drawMini());
+    updateLockHint());
 }
-let _mapF = 0;
+// The HUD is drawn once per rendered frame, after the substeps (step() is also run by a hidden host tab's timer, and
+// once per substep after a hitch), never while the tab is hidden; the two maps are redrawn at about 15 Hz of wall time.
+const MAP_DRAW_MS = 62;
+let _tacT = 0,
+  _miniT = 0;
+function hudFrame() {
+  if (document.hidden) return;
+  const e = performance.now();
+  (updateHUD(),
+    updateCross(),
+    e - _tacT >= MAP_DRAW_MS && ((_tacT = e), drawTac()),
+    e - _miniT >= MAP_DRAW_MS && ((_miniT = e), drawMini()));
+}
 const DMGN = { pool: [], live: [], v: new T.Vector3() };
 function dmgNumber(e, t, o) {
   if (!1 === SETTINGS.dmgNums || !(t > 0)) return;
@@ -21454,7 +21645,8 @@ let tlast = performance.now();
 function boot(e) {
   requestAnimationFrame(boot);
   const t = Math.min(0.05, (e - tlast) / 1e3);
-  ((tlast = e), "menu" === world.phase && (titleCam(t), render()));
+  ((tlast = e),
+    "menu" === world.phase && (titleCam(t), menuCovered() || render()));
 }
 (requestAnimationFrame(boot),
   requestAnimationFrame(tick),

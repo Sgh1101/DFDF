@@ -152,9 +152,10 @@
   const draw = render;
   let lastHomeFrame = -Infinity, lastHomeMap = null;
   render = function () {
-    if (world.phase === "menu" && !FLY.on && title.classList.contains("home-reduced")) {
+    if (world.phase === "menu" && !FLY.on) {
+      // the reduced title is a still picture (redrawn twice a second); the full one orbits, at 30 fps instead of every refresh
       const now = performance.now();
-      if (lastHomeMap === CUR_MAP_KEY && now - lastHomeFrame < 500) return;
+      if (lastHomeMap === CUR_MAP_KEY && now - lastHomeFrame < (title.classList.contains("home-reduced") ? 500 : 28)) return;
       lastHomeFrame = now; lastHomeMap = CUR_MAP_KEY;
     } else lastHomeFrame = -Infinity;
     return draw.apply(this, arguments);

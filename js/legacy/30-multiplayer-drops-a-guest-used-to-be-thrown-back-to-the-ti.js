@@ -131,6 +131,7 @@
     return new Promise((resolve, reject) => {
       if (typeof Peer === "undefined") return reject(new Error("네트워크 모듈을 불러오지 못했습니다"));
       netCloseTransport();
+      NET.lastK = null;
       NET.room = code;
       NET.mode = "client";
       NET.status = "connecting";

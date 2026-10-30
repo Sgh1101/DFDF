@@ -20,6 +20,8 @@
     ["tb-rel", () => $("tb-rel"), L("장전", "Reload"), !0],
     ["tb-use", () => $("tb-use"), L("설치/해제 (F)", "Use (F)"), !0],
     ["tb-nade", () => $("tb-nade"), L("수류탄", "Grenade"), !0],
+    ["tb-chat", () => $("tb-chat"), L("채팅", "Chat"), !0],
+    ["tb-ping", () => $("tb-ping"), L("핑", "Ping"), !0],
     ["tab-0", () => document.querySelector('#tabil .tab[data-a="0"]'), L("능력 Q", "Ability Q"), !0],
     ["tab-1", () => document.querySelector('#tabil .tab[data-a="1"]'), L("능력 E", "Ability E"), !0],
     ["tab-2", () => document.querySelector('#tabil .tab[data-a="2"]'), L("능력 C", "Ability C"), !0],

@@ -120,9 +120,14 @@
     const sa = world.scoreAtk | 0,
       sd = world.scoreDef | 0,
       myS = "atk" === m.team ? sa : sd,
-      thS = "atk" === m.team ? sd : sa,
-      rank = mine ? list.indexOf(mine) + 1 : 0,
-      outcome = GAME_RULES.outcome(room.mode || "std", [myS, thS], rank),
+      thS = "atk" === m.team ? sd : sa;
+    let rank = mine ? list.indexOf(mine) + 1 : 0;
+    // Shrinking Zone is placed by who was left standing, not by kills (the game's own result line says so too)
+    if ("zone" === room.mode && mine && window.SHRINK_ZONE)
+      try {
+        rank = SHRINK_ZONE.placeOf(mine.a) || rank;
+      } catch (e) {}
+    const outcome = GAME_RULES.outcome(room.mode || "std", [myS, thS], rank),
       win = outcome === "win";
     window.LAST_MATCH = { outcome, mode: room.mode || "std", map: mapName(), agent: m.agent ? m.agent.name : "", k: mine ? mine.s.k : 0, d: mine ? mine.s.d : 0, a: mine ? mine.s.a : 0, dmg: mine ? mine.s.dmg : 0, cs: mine ? mine.cs : 0, rank, n: list.length, s: ffa ? [mine ? mine.s.k : 0, list[0] ? list[0].s.k : 0] : [myS, thS], win, mvp: 1 === rank };
     return window.LAST_MATCH;

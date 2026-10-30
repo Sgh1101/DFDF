@@ -720,7 +720,7 @@
     { capture: !0, passive: !1 }
   );
   addEventListener("keydown", (e) => {
-    if ("KeyG" !== e.code || e.repeat) return;
+    if (!KEYMAP.is(e, "grenade") || e.repeat) return;
     const t = e.target;
     if (t && ("INPUT" === t.tagName || "TEXTAREA" === t.tagName)) return;
     for (const id of ["shop", "pause"]) {
@@ -744,6 +744,10 @@
   tab && tab.appendChild(tb);
   tb.addEventListener("touchstart", (e) => (e.preventDefault(), toggleHold()), { passive: !1 });
   tb.addEventListener("click", toggleHold);
+  const compactMq = matchMedia("(orientation:landscape) and (max-height:600px)");
+  let placedQ = null,
+    placedKey = "",
+    placedAt = -1e9;
   function paint() {
     const m = me(),
       n = (m && m.alive && m.nades) | 0;
@@ -761,20 +765,30 @@
     tb._html !== tbHtml && ((tb._html = tbHtml), (tb.innerHTML = tbHtml));
     // Follow Q on custom layouts; compact defaults place the grenade above the pair.
     if (!tb.hidden && !(window.TOUCHLAY && TOUCHLAY.layout().m["tb-nade"])) {
-      const q = document.querySelector('#tabil .tab[data-a="0"]'),
-        r = q && q.getBoundingClientRect();
-      if (r && r.width > 0) {
-        const set = (k, v) => tb.style.setProperty(k, v, "important");
-        set("position", "fixed");
-        set("width", r.width + "px");
-        set("height", r.height + "px");
-        const gap = Math.max(6, r.width * 0.14);
-        const compact = document.body.classList.contains("touching") && matchMedia("(orientation:landscape) and (max-height:600px)").matches && !q.style.getPropertyValue("left");
-        // Above the second ability column avoids the joystick and left fire button.
-        set("left", (compact ? r.left + r.width + gap : Math.max(4, r.left - r.width - gap)) + "px");
-        set("top", (compact ? Math.max(56, r.top - r.height - gap) : r.top) + "px");
-        set("right", "auto");
-        set("bottom", "auto");
+      const q = document.querySelector('#tabil .tab[data-a="0"]');
+      // measuring Q forces a layout, so it is done only when something that moves Q changed (a resize or turn, the touch
+      // layout or its edit, the control size, another agent's buttons), not every frame
+      const key = [innerWidth, innerHeight, document.body.className, document.documentElement.style.cssText, q && q.style.cssText, compactMq.matches, $("hud") && $("hud").hidden, window.TOUCHLAY ? TOUCHLAY.layout().t : 0].join("|");
+      const now = performance.now();
+      (q !== placedQ || key !== placedKey) && (placedAt = now);
+      // for 0.7 s after a change it is measured every frame (Q may still be sliding to its new place)
+      if (now - placedAt < 700 || !tb.style.getPropertyValue("left")) {
+        const r = q && q.getBoundingClientRect();
+        // (on a desktop Q is not laid out: that too is remembered, so it is not measured again until something changes)
+        q && ((placedQ = q), (placedKey = key));
+        if (r && r.width > 0) {
+          const set = (k, v) => tb.style.setProperty(k, v, "important");
+          set("position", "fixed");
+          set("width", r.width + "px");
+          set("height", r.height + "px");
+          const gap = Math.max(6, r.width * 0.14);
+          const compact = document.body.classList.contains("touching") && compactMq.matches && !q.style.getPropertyValue("left");
+          // Above the second ability column avoids the joystick and left fire button.
+          set("left", (compact ? r.left + r.width + gap : Math.max(4, r.left - r.width - gap)) + "px");
+          set("top", (compact ? Math.max(56, r.top - r.height - gap) : r.top) + "px");
+          set("right", "auto");
+          set("bottom", "auto");
+        }
       }
     }
   }
