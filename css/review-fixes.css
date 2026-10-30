@@ -170,6 +170,15 @@ body:not(.touching) #hud:not(:has(#tips.show)) #am-credit{display:none}
   #s-over .ovb-mvp-t b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #s-over .ovb-mvp-s{margin-left:auto!important;width:auto!important;gap:14px!important}
 }
+/* a short landscape phone: with a match's rewards the tiles (the four numbers, then rank, mastery, first win, level reward,
+   achievement) wrapped into two tall rows at 740x360 and pushed the MVP card under the buttons; they are compact there */
+@media(orientation:landscape) and (max-height:420px) and (max-width:1000px){
+  #s-over .ov-stats{gap:6px!important;margin-top:8px!important;padding:0 12px!important}
+  #s-over .ov-st{padding:5px 9px!important;min-width:56px!important}
+  #s-over .ov-st b{font-size:17px!important}
+  #s-over .ov-st:is(.prg,#ov-mast,#ov-rank) b{font-size:14px!important}
+  #s-over .ov-st:is(.prg,#ov-mast,#ov-rank) .lbl{max-width:100px;margin:0 auto;white-space:normal;line-height:1.25}
+}
 /* a wide short screen (a 1280x720 laptop up to 1440x900) has room beside the table: the result goes left, the
    board right, and the whole result fits without scrolling (only while there is a board; without one the column stays centred) */
 @media(min-width:1180px) and (max-height:940px){
