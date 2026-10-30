@@ -16498,9 +16498,10 @@ function applySnapshot(e) {
   if (e.gm) for (const m of e.gm) try { NET.onEvent && NET.onEvent(m); } catch (x) {}
 }
 let _fx = [];
-// more arguments ride on the end of the entry (a SHOT names its shooter)
+// more arguments ride on the end of the entry (a SHOT names its shooter). Only a host sends them (each snapshot drains the
+// list); solo play and a guest kept every entry for the whole session.
 function pushFX(e, t, o, a, n, ...x) {
-  _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n, ...x]);
+  "host" === NET.mode && _fx.push([e, Q.pos(t), Q.pos(o), Q.pos(a), 0 | n, ...x]);
 }
 function drainFX() {
   const e = _fx;
