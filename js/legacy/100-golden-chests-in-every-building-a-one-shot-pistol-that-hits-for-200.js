@@ -28,6 +28,7 @@
 
   // ── the chests: one per house, in the middle of the ground floor, off the stair ──
   let CH = [],
+    lit = 0, // chest lights counted in LAMP_LIT.n
     clockT = 0,
     prog = 0,
     touchHold = !1;
@@ -60,9 +61,15 @@
     ring.position.y = 0.03;
     ring.userData.noMerge = !0;
     g.add(ring);
-    const light = new T.PointLight(0xffc24a, 0.9, 7);
-    light.position.y = 1.2;
-    g.add(light);
+    // a real light only on the presets with many lamps and inside their lamp budget (every point light costs lighting maths in every lit
+    // pixel, so none on mobile and perf); the beam and the gold glow without one
+    let light = null;
+    if ("object" == typeof LAMP_LIT && "undefined" != typeof GFX && GFX.lamps >= 12 && LAMP_LIT.n < GFX.lamps) {
+      (LAMP_LIT.n++, lit++);
+      light = new T.PointLight(0xffc24a, 0.9, 7);
+      light.position.y = 1.2;
+      g.add(light);
+    }
     g.position.set(x, 0, z);
     g.rotation.y = rot;
     g.userData.keep = !0;
@@ -86,6 +93,8 @@
     }
     CH = [];
     prog = 0;
+    "object" == typeof LAMP_LIT && (LAMP_LIT.n = Math.max(0, LAMP_LIT.n - lit));
+    lit = 0;
   }
   function place(key) {
     clear();
@@ -104,6 +113,7 @@
   const _lm = loadMap;
   loadMap = function (key) {
     const r = _lm.apply(this, arguments);
+    lit = 0; // the map cleared its own count of lamps
     if (r !== !1)
       try {
         place(key);
@@ -228,7 +238,7 @@
       lid.rotation.x = -1.9 * (c.open ? 1 - Math.pow(1 - want, 3) : 0);
       c.m.beam.material.opacity = c.open ? Math.max(0, 0.16 * (1 - c.t / 1.5)) : 0.13 + 0.05 * Math.sin(now * 3 + c.i);
       c.m.ring.visible = !c.open;
-      c.m.light.intensity = c.open ? Math.max(0.15, 2.2 - c.t * 1.5) : 0.9 + 0.2 * Math.sin(now * 4 + c.i);
+      c.m.light && (c.m.light.intensity = c.open ? Math.max(0.15, 2.2 - c.t * 1.5) : 0.9 + 0.2 * Math.sin(now * 4 + c.i));
       if (c.gun) {
         c.gunT += dt;
         const k = c.gunT;

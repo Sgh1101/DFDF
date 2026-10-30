@@ -1981,14 +1981,37 @@ function eyeHeight() {
 }
 const fx = [];
 function addFx(e, t, o) {
+  let r;
   e.userData.t = 0;
   const a = e.material;
   (a &&
     a.isLineBasicMaterial &&
     !a.userData.hdr &&
     (a.color.multiplyScalar(1.6), (a.userData.hdr = 1)),
-    fx.push({ mesh: e, life: t, fn: o }),
+    // a pooled object that is still playing takes the new play into its entry
+    e.userData.pool && e.userData.fxEntry
+      ? ((e.userData.fxEntry.life = t), (e.userData.fxEntry.fn = o))
+      : (fx.push((r = { mesh: e, life: t, fn: o })), e.userData.pool && (e.userData.fxEntry = r)),
     scene.add(e));
+}
+// Effects that come every shot reuse a fixed set of objects (and their materials) instead of making and disposing new ones:
+// get() hands out the one used longest ago (a play it is still in is replaced by the next addFx); updateFx lets it go when its life ends.
+function fxPool(n, make) {
+  const items = [];
+  let i = 0;
+  return {
+    items,
+    get() {
+      let o;
+      if (items.length < n) {
+        o = make();
+        const u = o.userData;
+        ((u.pool = 1), (u.keep = !0), (u.noMerge = !0));
+        (o.material && (o.material.userData.keep = !0), o.geometry && (o.geometry.userData.shared = !0), items.push(o));
+      } else ((o = items[i]), (i = (i + 1) % n));
+      return o;
+    },
+  };
 }
 const FXG = (() => {
     const e = (e) => ((e.userData.shared = !0), e);
@@ -2023,17 +2046,31 @@ function glowTex() {
     _glowTex
   );
 }
+// glow sprites go back on a shelf when their fx ends (updateFx) and are handed out again: no new material and
+// no dispose per spark. The shelf is capped; a sprite whose caller marked its material "keep" is never taken back.
+const GLOW_FREE = [];
 function glowDot(e, t, o) {
-  const a = new T.SpriteMaterial({
-    map: glowTex(),
-    color: e,
-    transparent: !0,
-    depthWrite: !1,
-    blending: T.AdditiveBlending,
-  });
-  a.color.multiplyScalar(o || 1.8);
-  const n = new T.Sprite(a);
+  let n = GLOW_FREE.pop();
+  n ||
+    ((n = new T.Sprite(
+      new T.SpriteMaterial({
+        map: glowTex(),
+        transparent: !0,
+        depthWrite: !1,
+        blending: T.AdditiveBlending,
+      }),
+    )),
+    (n.userData.glow = 1));
+  const a = n.material;
+  (a.color.setHex(16777215).set(e), a.color.multiplyScalar(o || 1.8), (a.opacity = 1));
   return (n.scale.setScalar(t), n);
+}
+function glowFree(e) {
+  const t = e.material;
+  if (GLOW_FREE.length >= 640) return void t.dispose();
+  ((t.rotation = 0), (t.depthTest = !0), (t.opacity = 1));
+  for (const o in e.userData) "glow" !== o && delete e.userData[o];
+  ((e.visible = !0), (e.renderOrder = 0), e.position.set(0, 0, 0), GLOW_FREE.push(e));
 }
 function glowFlare(e, t, o, a, n, r) {
   if (camera.position.distanceTo(_v3a.set(e, t, o)) < 1.3 * n + 2) return;
@@ -2120,24 +2157,29 @@ function cloudTex() {
     _cloudTex
   );
 }
+// Every point light costs lighting maths in every lit pixel, even at intensity 0, so the pool is small and
+// set by the preset (GFX.fxLights: 1, 2, 2, 4). Its size changes only with the preset (loadMap, applyGfx), never while playing.
 const FX_LIGHTS = [];
-function fxLightPool() {
-  if (FX_LIGHTS.length)
-    for (const e of FX_LIGHTS) e.parent !== scene && scene.add(e);
-  else
-    for (let e = 0; e < 4; e++) {
-      const e = new T.PointLight(16777215, 0, 10, 2);
-      ((e.userData.keep = !0),
-        (e._life = 0),
-        (e._t = 0),
-        (e._peak = 0),
-        (e._pow = 2),
-        scene.add(e),
-        FX_LIGHTS.push(e));
-    }
+function fxLightPool(keep) {
+  const n = (keep && FX_LIGHTS.length) || Math.max(1, ("undefined" != typeof GFX && GFX.fxLights) | 0 || 2);
+  for (; FX_LIGHTS.length > n; ) {
+    const e = FX_LIGHTS.pop();
+    (scene.remove(e), e.dispose && e.dispose());
+  }
+  for (const e of FX_LIGHTS) e.parent !== scene && scene.add(e);
+  for (; FX_LIGHTS.length < n; ) {
+    const e = new T.PointLight(16777215, 0, 10, 2);
+    ((e.userData.keep = !0),
+      (e._life = 0),
+      (e._t = 0),
+      (e._peak = 0),
+      (e._pow = 2),
+      scene.add(e),
+      FX_LIGHTS.push(e));
+  }
 }
 function fxFlash(e, t, o, a, n, r, s, i) {
-  fxLightPool();
+  fxLightPool(!0);
   let l = null,
     c = 1 / 0;
   for (const e of FX_LIGHTS) {
@@ -2176,29 +2218,44 @@ function impactSpark(e, t, o, a) {
       ((e.material.opacity = 1 - t), e.scale.setScalar(0.55 * (1 + 1.4 * t)));
     }));
 }
+// a tracer is one of 48 lines whose two points are rewritten; its own material fades it (the oldest line is taken over when all are in use)
+const FX_TRACE = fxPool(48, () => {
+  const g = new T.BufferGeometry();
+  g.setAttribute("position", new T.BufferAttribute(new Float32Array(6), 3));
+  const l = new T.Line(g, new T.LineBasicMaterial({ transparent: !0 }));
+  return ((l.frustumCulled = !1), l);
+});
+function tracerFade(e, t) {
+  e.material.opacity = e.userData.op * (1 - t);
+}
+function poolTracer(e, t, o, a, n, r, s, i, l) {
+  const c = FX_TRACE.get(),
+    d = c.geometry.attributes.position,
+    h = c.material;
+  (d.setXYZ(0, e, t, o),
+    d.setXYZ(1, a, n, r),
+    (d.needsUpdate = !0),
+    h.color.setHex(s),
+    (h.userData.hdr = 0),
+    (h.opacity = c.userData.op = i),
+    addFx(c, l, tracerFade));
+}
 function addTracer(e, t, o, a) {
-  const n = new T.Vector3(
-      -Math.sin(t) * Math.cos(o),
-      Math.sin(o),
-      -Math.cos(t) * Math.cos(o),
-    ),
-    r = new T.BufferGeometry().setFromPoints([
-      e.clone().add(n.clone().multiplyScalar(1.4)),
-      e.clone().add(n.clone().multiplyScalar(Math.min(a, 70))),
-    ]);
-  addFx(
-    new T.Line(
-      r,
-      new T.LineBasicMaterial({
-        color: 16773312,
-        transparent: !0,
-        opacity: 0.7,
-      }),
-    ),
+  const n = Math.cos(o),
+    r = -Math.sin(t) * n,
+    s = Math.sin(o),
+    i = -Math.cos(t) * n,
+    l = Math.min(a, 70);
+  poolTracer(
+    e.x + 1.4 * r,
+    e.y + 1.4 * s,
+    e.z + 1.4 * i,
+    e.x + l * r,
+    e.y + l * s,
+    e.z + l * i,
+    16773312,
+    0.7,
     0.07,
-    (e, t) => {
-      e.material.opacity = 0.7 * (1 - t);
-    },
   );
 }
 let flashLight = null;
@@ -2214,37 +2271,41 @@ function muzzleFlash() {
     1,
   );
 }
-const MZ_LIGHTS = [];
-let _mzIdx = 0;
-function muzzleLightPool() {
-  if (MZ_LIGHTS.length < 3) {
-    const e = new T.PointLight(16762992, 0, 9);
-    return (scene.add(e), MZ_LIGHTS.push(e), e);
-  }
-  return ((_mzIdx = (_mzIdx + 1) % MZ_LIGHTS.length), MZ_LIGHTS[_mzIdx]);
-}
-function worldMuzzleFlash(e) {
-  if (!e || !e.model) return;
-  const t = e.model.muzzle,
-    o = new T.Vector3();
-  t ? t.getWorldPosition(o) : o.set(e.pos.x, e.y + 1.35, e.pos.z);
-  const a = new T.MeshBasicMaterial({
+// the flash of someone else's gun: one of 16 groups of two planes that share one material (the old muzzle light pool, never filled, is gone)
+const FX_FLASH = fxPool(16, () => {
+  const e = new T.Group(),
+    t = new T.MeshBasicMaterial({
       color: 16768922,
       transparent: !0,
       opacity: 0.95,
       side: T.DoubleSide,
       depthWrite: !1,
-    }),
-    n = new T.Group();
-  for (let e = 0; e < 2; e++) {
-    const t = new T.Mesh(FXG.flash, a);
-    ((t.rotation.z = (e * Math.PI) / 2), n.add(t));
+    });
+  for (let o = 0; o < 2; o++) {
+    const a = new T.Mesh(FXG.flash, t);
+    ((a.rotation.z = (o * Math.PI) / 2), e.add(a));
   }
-  (n.position.copy(o), n.lookAt(camera.position));
-  const r = 0.7 + 0.5 * Math.random();
-  (addFx(n, 0.055, (e, t) => {
-    (e.scale.setScalar(r * (1 + 1.3 * t)), (a.opacity = 0.95 * (1 - t)));
-  }),
+  return ((e.userData.pool = 1), (t.userData.keep = !0), e);
+});
+const _v3b = new T.Vector3(),
+  _v3c = new T.Vector3();
+function flashFade(e, t) {
+  (e.scale.setScalar(e.userData.r * (1 + 1.3 * t)), (e.children[0].material.opacity = 0.95 * (1 - t)));
+}
+function worldMuzzleFlash(e) {
+  if (!e || !e.model) return;
+  const t = e.model.muzzle,
+    o = _v3b;
+  t ? t.getWorldPosition(o) : o.set(e.pos.x, e.y + 1.35, e.pos.z);
+  const n = FX_FLASH.get(),
+    a = n.children[0].material;
+  (a.color.setHex(16768922),
+    (a.opacity = 0.95),
+    n.position.copy(o),
+    n.scale.setScalar(1),
+    n.lookAt(camera.position),
+    (n.userData.r = 0.7 + 0.5 * Math.random()),
+    addFx(n, 0.055, flashFade),
     fxFlash(16762992, 0.75, 9, o.x, o.y, o.z, 0.07, 1),
     GFX.shells && Math.random() < 0.8 * (GFX.fx || 1) && ejectShell(o, e.yaw));
 }
@@ -2265,26 +2326,10 @@ function ejectShell(e, t) {
 }
 function worldTracer(e, t, o) {
   const a = e.model && e.model.muzzle,
-    n = new T.Vector3();
+    n = _v3b;
   a ? a.getWorldPosition(n) : n.set(e.pos.x, e.y + 1.35, e.pos.z);
-  const r = new T.BufferGeometry().setFromPoints([
-    n.clone(),
-    n.clone().add(t.clone().multiplyScalar(Math.min(o, 75))),
-  ]);
-  addFx(
-    new T.Line(
-      r,
-      new T.LineBasicMaterial({
-        color: 16771504,
-        transparent: !0,
-        opacity: 0.55,
-      }),
-    ),
-    0.06,
-    (e, t) => {
-      e.material.opacity = 0.55 * (1 - t);
-    },
-  );
+  const r = Math.min(o, 75);
+  poolTracer(n.x, n.y, n.z, n.x + t.x * r, n.y + t.y * r, n.z + t.z * r, 16771504, 0.55, 0.06);
 }
 function hitMarker(e) {
   const t = $("cross");
@@ -2296,20 +2341,23 @@ function hitMarker(e) {
       t.style.filter = "";
     }, 110)));
 }
+// 128 drops, each with a material of its own to fade (a shotgun hit throws 7 per pellet; the oldest drop is taken over when all are in use)
+const FX_BLOOD = fxPool(128, () => new T.Mesh(FXG.blood, new T.MeshBasicMaterial({ transparent: !0 })));
+function bloodFade(e, t, o) {
+  const a = e.userData;
+  ((a.vy -= 12 * o),
+    (e.position.x += a.vx * o),
+    (e.position.y += a.vy * o),
+    (e.position.z += a.vz * o),
+    (e.material.opacity = 1 - t));
+}
 function bloodBurst(e, t, o, a) {
   const n = Math.max(2, Math.round(7 * (GFX.fx || 1)));
   for (let r = 0; r < n; r++) {
-    const n = new T.Mesh(
-      FXG.blood,
-      new T.MeshBasicMaterial({ color: a, transparent: !0 }),
-    );
-    n.position.set(e, t, o);
-    const r = new T.Vector3(rnd(-3, 3), rnd(1, 4.5), rnd(-3, 3));
-    addFx(n, 0.62, (e, t, o) => {
-      ((r.y -= 12 * o),
-        e.position.addScaledVector(r, o),
-        (e.material.opacity = 1 - t));
-    });
+    const n = FX_BLOOD.get(),
+      s = n.userData;
+    (n.material.color.set(a), (n.material.opacity = 1), n.position.set(e, t, o));
+    ((s.vx = rnd(-3, 3)), (s.vy = rnd(1, 4.5)), (s.vz = rnd(-3, 3)), addFx(n, 0.62, bloodFade));
   }
 }
 function allFighters() {
@@ -16418,26 +16466,9 @@ function playRemoteFX(e) {
       switch (e) {
         case FX.SHOT: {
           const e = r / 100,
-            t = new T.Vector3(-Math.sin(e), 0, -Math.cos(e)),
-            s = new T.Vector3(o, a, n),
-            i = new T.BufferGeometry().setFromPoints([
-              s.clone().add(t.clone().multiplyScalar(0.8)),
-              s.clone().add(t.clone().multiplyScalar(60)),
-            ]);
-          addFx(
-            new T.Line(
-              i,
-              new T.LineBasicMaterial({
-                color: 16771504,
-                transparent: !0,
-                opacity: 0.55,
-              }),
-            ),
-            0.06,
-            (e, t) => {
-              e.material.opacity = 0.55 * (1 - t);
-            },
-          );
+            t = -Math.sin(e),
+            s = -Math.cos(e);
+          poolTracer(o + 0.8 * t, a, n + 0.8 * s, o + 60 * t, a, n + 60 * s, 16771504, 0.55, 0.06);
           break;
         }
         case FX.IMPACT:
@@ -16780,7 +16811,7 @@ function actorFire(e) {
       (worldMuzzleFlash(e), GFX.tracer &&
           worldTracer(
             e,
-            new T.Vector3(
+            _v3c.set(
               -Math.sin(e.yaw) * Math.cos(e.pitch || 0),
               Math.sin(e.pitch || 0),
               -Math.cos(e.yaw) * Math.cos(e.pitch || 0),
@@ -20366,6 +20397,7 @@ function applyGfx(e, t) {
       loadMap(CUR_MAP_KEY);
     } catch (e) {}
   if (window.ASCENT_TRIAL?.active) window.ASCENT_TRIAL.applyGraphics(SETTINGS.quality);
+  "function" == typeof fxLightPool && fxLightPool(); // the effects light pool follows the preset (also on maps that are not reloaded)
   (scene.traverse((e) => {
     e.material && (e.material.needsUpdate = !0);
   }),
@@ -20606,7 +20638,6 @@ function step(e) {
     bannerT > 0 &&
       ((bannerT -= e), bannerT <= 0 && $("banner").classList.remove("show")),
     flashLight && (flashLight.intensity *= 0.82));
-  for (const e of MZ_LIGHTS) e.intensity > 0.01 && (e.intensity *= 0.74);
   (tickViewmodel(e),
     tickKillFx(e),
     tickDmgNums(e),
@@ -20998,16 +21029,20 @@ function updateFx(e) {
     const a = o.mesh.userData.t / o.life;
     a >= 1
       ? (scene.remove(o.mesh),
-        o.mesh.traverse((e) => {
-          !e.geometry ||
-            e.isSprite ||
-            (e.geometry.userData && e.geometry.userData.shared) ||
-            e.geometry.dispose();
-          const t = e.material;
-          !t ||
-            (t.userData && t.userData.keep) ||
-            (Array.isArray(t) ? t.forEach((e) => e.dispose()) : t.dispose());
-        }),
+        o.mesh.userData.pool
+          ? (o.mesh.userData.fxEntry = null)
+          : o.mesh.userData.glow && !o.mesh.material.userData.keep
+            ? glowFree(o.mesh)
+            : o.mesh.traverse((e) => {
+                !e.geometry ||
+                  e.isSprite ||
+                  (e.geometry.userData && e.geometry.userData.shared) ||
+                  e.geometry.dispose();
+                const t = e.material;
+                !t ||
+                  (t.userData && t.userData.keep) ||
+                  (Array.isArray(t) ? t.forEach((e) => e.dispose()) : t.dispose());
+              }),
         fx.splice(t, 1))
       : o.fn(o.mesh, a, e);
   }
