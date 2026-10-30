@@ -11745,6 +11745,7 @@ const _rnd = (e, t) => e + Math.random() * (t - e),
   LAMP_LIT = { n: 0, max: 6 },
   DECOR = new T.Group();
 ((DECOR.userData.keep = !0), scene.add(DECOR));
+document.body.classList.toggle("gfx-blur", !!GFX.blur); // glass blur behind the HUD only on the visual and ultra presets
 const deco = (e) => (DECOR.add(e), e);
 function mergeDecor() {
   if (!DECOR) return 0;
@@ -20369,6 +20370,8 @@ function applyGfx(e, t) {
   (scene.traverse((e) => {
     e.material && (e.material.needsUpdate = !0);
   }),
+    shadowRefresh(),
+    document.body.classList.toggle("gfx-blur", !!GFX.blur),
     t || updateGfxLabel());
 }
 function rebuildActorModels() {
@@ -20399,6 +20402,17 @@ function rebuildActorModels() {
       } catch (e) {}
     }
 }
+// What setQuality last applied. startGame skips setQuality while this still describes the graphics (it marks every material
+// in the scene for update, a stall at the start of each match); the cheap parts of a match start are kept (gfxKeep).
+var _gfxSig = "";
+function gfxSig() {
+  return SETTINGS.quality + "|" + (window.ASCENT_TRIAL?.active ? 1 : 0) + "|" + (devicePixelRatio || 1) + "|" + JSON.stringify(GFX);
+}
+function gfxKeep() {
+  Object.assign(DYNRES, {scale:1,ema:1/60,cool:2,good:0});
+  const e = Math.min(devicePixelRatio || 1, GFX.pixel);
+  renderer.getPixelRatio() !== e && renderer.setPixelRatio(e);
+}
 function setQuality(e) {
   e = GRAPHICS_SETTINGS.normalize(e, SET_DEF.quality === 'mobile');
   ((SETTINGS.quality = e),
@@ -20406,6 +20420,7 @@ function setQuality(e) {
     applyGfx(GFX_PRESETS[e], !1),
     updateGfxLabel());
   Object.assign(DYNRES, {scale:1,ema:1/60,cool:2,good:0});
+  _gfxSig = gfxSig();
 }
 function updateGfxLabel() {
   const e = $("st-q-now");
@@ -21239,49 +21254,34 @@ function postRender() {
 function postActive() {
   return !!POST.on && (void 0 === GFX || !1 !== GFX.post) && postInit();
 }
-// Keep the existing shadow texture until a shadow-producing input changes.
-let _shadowInputs = new Map();
-function shadowInputsChanged() {
-  scene.updateMatrixWorld();
-  const next = new Map();
-  let changed = false;
-  scene.traverseVisible((object) => {
-    if (!object.castShadow) return;
-    const values = [...object.matrixWorld.elements, object.layers.mask, camera.layers.mask, renderer.shadowMap.type];
-    if (object.isLight && object.shadow) {
-      const sh = object.shadow;
-      object.target?.updateWorldMatrix(true, false);
-      values.push(...(object.target?.matrixWorld.elements || []),
-        ...sh.camera.projectionMatrix.elements, sh.mapSize.x, sh.mapSize.y,
-        sh.bias, sh.normalBias, sh.radius, object.distance, object.angle,
-        !!sh.map);
-    } else {
-      const geometry = object.geometry;
-      values.push(geometry?.id, geometry?.index?.version,
-        ...Object.values(geometry?.attributes || {}).map(a => a.version),
-        object.instanceMatrix?.version, ...(object.morphTargetInfluences || []));
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      for (const m of materials) if (m) values.push(m.id, m.version, m.visible, m.side,
-        m.alphaTest, m.opacity, m.map?.version, m.alphaMap?.version, m.displacementMap?.version,
-        m.displacementScale, m.displacementBias);
-      // Bones and custom vertex shaders may deform without changing matrixWorld.
-      if (object.isSkinnedMesh || object.customDepthMaterial || object.customDistanceMaterial ||
-          materials.some(m => m?.isShaderMaterial || m?.displacementMap)) changed = true;
-    }
-    const previous = _shadowInputs.get(object);
-    if (!previous || previous.length !== values.length || values.some((v, i) => v !== previous[i])) changed = true;
-    next.set(object, values);
-  });
-  if (next.size !== _shadowInputs.size) changed = true;
-  _shadowInputs = next;
-  return changed;
+// The shadow map is drawn every GFX.shadowEvery frames (a moving caster's shadow may lag by that many frames, the static map's
+// shadows are exact either way: the map and its matrix are replaced together). It is drawn at once on the first frame, when
+// the shadow map was just made, the map or the graphics preset changed (shadowRefresh), the sun moved by more than a few
+// metres (a respawn, a spectate switch, a teleport) or its direction changed. No per-frame lists: a frame costs a few compares.
+var _shN = 0, _shNow = true, _shMap = "", _shTx = 0, _shTz = 0, _shDx = 0, _shDy = 0, _shDz = 0;
+function shadowRefresh() {
+  _shNow = true;
+}
+function shadowDue() {
+  const p = sun.position, t = sun.target.position, e = GFX.shadowEvery | 0;
+  if (
+    _shNow || !sun.shadow.map || _shMap !== CUR_MAP_KEY ||
+    Math.abs(t.x - _shTx) + Math.abs(t.z - _shTz) > 6 ||
+    Math.abs(p.x - t.x - _shDx) + Math.abs(p.y - _shDy) + Math.abs(p.z - t.z - _shDz) > 1e-3 ||
+    ++_shN >= (e > 1 ? e : 1)
+  ) {
+    _shN = 0; _shNow = false; _shMap = CUR_MAP_KEY;
+    _shTx = t.x; _shTz = t.z; _shDx = p.x - t.x; _shDy = p.y; _shDz = p.z - t.z;
+    return true;
+  }
+  return false;
 }
 function render() {
   renderer.shadowMap.autoUpdate = !1;
   if (renderer.shadowMap.enabled) {
     followSun();
-    if (shadowInputsChanged()) renderer.shadowMap.needsUpdate = !0;
-  } else _shadowInputs.clear();
+    if (shadowDue()) renderer.shadowMap.needsUpdate = !0;
+  } else _shNow = true;
   if (postActive())
     try {
       return void postRender();
@@ -21481,7 +21481,7 @@ function startGame(e, t) {
     document.body.classList.toggle("touching", IS_TOUCH),
     IS_TOUCH && enableTouch());
   try {
-    setQuality(SETTINGS.quality);
+    gfxSig() === _gfxSig ? gfxKeep() : setQuality(SETTINGS.quality);
     const e = $("fps");
     e && (e.hidden = !SETTINGS.showFps);
   } catch (e) {}

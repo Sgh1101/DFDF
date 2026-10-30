@@ -59,17 +59,14 @@
   task.querySelector('button').onclick=()=>{tutorial=null;task.hidden=true;};
   $('guide-start').onclick=()=>{guide.hidden=true;TARGET_RANGE.enter();tutorial={kind:'range',start:null,reload:false,cast:false,hits:TARGET_RANGE.RANGE.hits||0};task.hidden=false;};
   button('guide-ability',L('능력 · 스파이크 연습','Ability & spike practice'),()=>{guide.hidden=true;room.mode='std';room.map='glacier';startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();tutorial={kind:'ability',cast:false,planted:false};task.hidden=false;},guide.querySelector('footer'));
-  const begin=startGame;startGame=function(){lifetime.reset();bots.clear();for(const k of Object.keys(weapons))delete weapons[k];tutorial=null;task.hidden=true;death.hidden=true;events.add('match-start',{map:room.map,mode:room.mode});reset();return begin.apply(this,arguments);};
-  let shadowFrame=0;
-  const shadowCheck=shadowInputsChanged;
-  shadowInputsChanged=function(){if(optional.level>0&&++shadowFrame%4)return false;return shadowCheck.apply(this,arguments);};
+  const begin=startGame;startGame=function(){lifetime.reset();bots.clear();for(const k of Object.keys(weapons))delete weapons[k];tutorial=null;task.hidden=true;death.hidden=true;events.add('match-start',{map:room.map,mode:room.mode});reset();optional.reset();return begin.apply(this,arguments);};
   function applyOptional(){
     const p=GRAPHICS_SETTINGS.presets[quality],wasPost=GFX.post;
     GFX.bloom=p.bloom;GFX.shells=p.shells&&optional.level===0;GFX.shadowEvery=optional.level?Math.max(4,p.shadowEvery):p.shadowEvery;
     GFX.post=p.post&&optional.level<2;
     if(wasPost&&!GFX.post&&POST.ok){for(const target of [POST.rt,POST.hA,POST.hB,POST.qA,POST.qB])target.setSize(4,4);POST.w=POST.h=0;}
   }
-  const qualitySet=setQuality;setQuality=function(){const r=qualitySet.apply(this,arguments);optional.reset();quality=SETTINGS.quality;shadowFrame=0;applyOptional();return r;};
+  const qualitySet=setQuality;setQuality=function(){const r=qualitySet.apply(this,arguments);optional.reset();quality=SETTINGS.quality;applyOptional();return r;};
   const baseAuto=autoQuality;autoQuality=function(dt,raw){const r=baseAuto.apply(this,arguments),ms=(raw??dt)*1000;
     if(SETTINGS.dynRes===false&&optional.level){optional.reset();applyOptional();}
     const running=world.phase==='live'&&!document.hidden&&!shopOpen&&$('pause').hidden&&diag.hidden;

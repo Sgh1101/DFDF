@@ -1,0 +1,31 @@
+/* Glass blur behind the HUD: js/legacy/03-engine.js (applyGfx) puts class gfx-blur on <body> for the visual and ultra presets.
+   Without it (phone and performance presets) every translucent panel over the live canvas would need the canvas read back and blurred
+   again each frame, so the blur goes and the panel gets a more opaque background instead, so its text stays readable. */
+body:not(.gfx-blur) :is(#roster,#topbar,#vitals,#ammo,#spike,#sp-hint,#stick,#tacmap,#fps,#netping,#tips,#btn-touch,#tb-shop,#tb-menu,.tb,.tab,.tm,#mode-board,
+  .cht-tb,.mb,.fly-map,.fly-x,.fly-help,.fly-info,#pause,#agent-swap,#bigmap,#shop.weapon-shop){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body:not(.gfx-blur) #roster{background:linear-gradient(180deg,rgba(8,11,16,.94),rgba(14,19,27,.88))}
+body:not(.gfx-blur) #topbar{background:linear-gradient(180deg,rgba(8,11,16,.97),rgba(14,19,27,.92))}
+body:not(.gfx-blur) #vitals{background:linear-gradient(100deg,rgba(8,11,16,.88),rgba(8,11,16,.5))}
+body:not(.gfx-blur) #ammo{background:linear-gradient(260deg,rgba(8,11,16,.88),rgba(8,11,16,.5))}
+body:not(.gfx-blur) #spike{background:rgba(8,11,16,.88)}
+body:not(.gfx-blur) #sp-hint{background:rgba(8,11,16,.8)}
+body:not(.gfx-blur) #fps,body:not(.gfx-blur) #netping{background:rgba(8,11,16,.8)}
+body:not(.gfx-blur) #tips{background:rgba(10,13,18,.82)}
+body:not(.gfx-blur) #tb-menu{background:rgba(12,16,23,.9)}
+body:not(.gfx-blur) #tb-shop{background:linear-gradient(rgba(255,200,73,.2),rgba(255,200,73,.2)),rgba(12,16,23,.85)}
+body:not(.gfx-blur) .tb,body:not(.gfx-blur) .tab,body:not(.gfx-blur) .cht-tb{background:rgba(14,19,27,.82)}
+body:not(.gfx-blur) .tb:active{background:rgba(40,52,70,.92)}
+body:not(.gfx-blur) .tm{background:linear-gradient(100deg,rgba(12,16,23,.95),rgba(12,16,23,.85))}
+body:not(.gfx-blur) #mode-board{background:rgba(8,11,16,.9)}
+body:not(.gfx-blur) .fly-map,body:not(.gfx-blur) .fly-x{background:rgba(10,13,18,.9)}
+body:not(.gfx-blur) .fly-help,body:not(.gfx-blur) .fly-info{background:rgba(10,13,18,.84)}
+body:not(.gfx-blur) #pause{background:radial-gradient(ellipse at 50% 38%,rgba(10,13,19,.8),rgba(3,5,8,.94) 75%)}
+body:not(.gfx-blur) #agent-swap{background:rgba(5,7,10,.94)}
+body:not(.gfx-blur) #bigmap{background:rgba(4,6,10,.75)}
+body:not(.gfx-blur) #shop.weapon-shop{background:linear-gradient(115deg,#142722f5,#14201ef2 62%,#10231ffa)}
+/* the touch buttons: their own rules are !important, so these are too */
+body.touching:not(.gfx-blur) .mb:not(.on){background:rgba(12,16,22,.72)!important}
+body.touching:not(.gfx-blur) #hud #tabil .tab{background:conic-gradient(rgba(0,0,0,.6) calc(var(--cd,0)*360deg),rgba(12,16,22,.78) 0)!important}
+body.touching:not(.gfx-blur) #mb-util #tb-shop{background:linear-gradient(rgba(255,200,73,.24),rgba(255,200,73,.24)),rgba(12,16,22,.8)!important}
+body.touching:not(.gfx-blur) #tb-fire2{background:linear-gradient(rgba(255,59,78,.3),rgba(255,59,78,.3)),rgba(12,16,22,.75)!important}
+body.touching:not(.gfx-blur) #tb-use{background:linear-gradient(rgba(56,214,255,.22),rgba(56,214,255,.22)),rgba(12,16,22,.75)!important}
