@@ -210,6 +210,8 @@ const part = (n) => only.includes('all') || only.includes(String(n));
         // only the tracers (FX.SHOT) of a snapshot are played, and the lines they make are counted
         const prf = playRemoteFX; playRemoteFX = function (list) { W.depth++; try { return prf.call(this, W.onlyShot && Array.isArray(list) ? list.filter((f) => f[0] === FX.SHOT) : list); } finally { W.depth--; } };
         const sp = T.BufferGeometry.prototype.setFromPoints; T.BufferGeometry.prototype.setFromPoints = function (pts) { W.depth && pts && pts.length === 2 && W.lines++; return sp.apply(this, arguments); };
+        // a tracer from the effect pool is not made but moved to the shot (poolTracer): it counts as well
+        if (typeof poolTracer === 'function') { const pt = poolTracer; poolTracer = function () { W.depth && W.lines++; return pt.apply(this, arguments); }; }
       });
       const fire = (who, n) => host.evaluate(({ who, n }) => {
         const a = actorById(who); a.alive = true; a.fireCd = 0; a.reloading = 0; a.suppress = 0; GFX.tracer = true; a.weapons && (a.slot = a.weapons.primary ? 'primary' : 'secondary');
