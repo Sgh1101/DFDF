@@ -68,7 +68,7 @@ test("a coin cap of 0 means no cap, and the owner's number is used", async () =>
 
 test("XP stops at the day's ceiling: the answer's gain is what was given, a replay is the same receipt, and it resumes the next Korean day", async () => {
   const h = harness(), p = await login(h), owner = await login(h, "owner");
-  await setConfig(h, owner, (c) => { c.xp.maxPerDay = 100; });
+  await setConfig(h, owner, (c) => { c.xp.maxPerDay = 100; c.firstWin.on = false; }); // the first win's XP is out of the same ceiling (see progression.test.js)
   const xp0 = h.user("player").xp || 0;
   const a = await play(h, p), b = await play(h, p), c = await play(h, p);
   assert.equal(a.gain, 70); assert.equal(b.gain, 30, "only what is left of the day"); assert.equal(c.gain, 0);
@@ -92,7 +92,7 @@ test("XP stops at the day's ceiling: the answer's gain is what was given, a repl
 // ---- orders -------------------------------------------------------------------------------------
 async function shop() {
   const h = harness(), p = await login(h), owner = await login(h, "owner");
-  await setConfig(h, owner, (c) => { c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동"; });
+  await setConfig(h, owner, (c) => { c.firstWin.on = c.lvReward.on = c.ach.on = false; c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동"; });
   const ow = await login(h, "owner");
   const make = async (items, days) => { const r = await h.api("order_create", { token: p.token, items, days }); assert.equal(r.status, 200); return r.order.id; };
   const set = (id, op, extra = {}) => h.api("a_order_set", Object.assign({ atoken: ow.atoken, id, op }, extra));

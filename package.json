@@ -89,6 +89,7 @@
     "test:season": "node scripts/browser-season.js",
     "test:prematch": "node scripts/browser-prematch.js",
     "test:mastery": "node scripts/browser-mastery.js",
+    "test:progression": "node scripts/browser-progression.js",
     "test:infection": "node scripts/browser-infection.js",
     "test:conquest": "node scripts/browser-conquest.js",
     "test:range": "node scripts/browser-range.js",
