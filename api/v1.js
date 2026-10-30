@@ -87,6 +87,8 @@ const DEFAULT_CONFIG = {
     extraMaps: "",
     // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
     disabledAgents: "",
+    // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
+    chat: !0,
   },
   cheat: {
     refillSec: 5,
@@ -900,7 +902,7 @@ A.skin_check = async (q, b) => {
 };
 // small things the game keeps per account: the touch-button layout (part →
 // [x, y, size]); the newer of two devices wins, as with the skins
-const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
+const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
