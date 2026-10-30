@@ -40,6 +40,8 @@ async function main(){
   if(row.passed&&attempt>0){row.flaky=attempt;fs.writeFileSync(report,JSON.stringify(rows,null,2));annotate('warning',name+' flaky','failed '+attempt+'x, then passed on a retry. The first try ended:\n'+first.slice(-2500));}
   if(!row.passed){const tail=tailOf(name);console.error(tail);annotate('error',name+' failed',tail.slice(-3000));if(!keepGoing)throw Error(name+' failed');failed.push(name);}
  }
+ // how long each check took here (its last try), readable through the checks API, to balance the shards by
+ annotate('notice','durations',jobs.map(n=>{const r=rows.find(x=>x.name===n);return r?n+' '+r.seconds+'s'+(r.flaky?' (retried)':r.passed?'':' (failed)'):'';}).filter(Boolean).join('\n'));
  if(failed.length)throw Error(failed.length+' browser check(s) failed: '+failed.join(', '));
  async function runOne(name,old,testSha256){
   const dir=path.join(out,name.replaceAll(':','-'));fs.mkdirSync(dir,{recursive:true});const log=path.join(dir,'output.log');if(old&&fs.existsSync(log))fs.copyFileSync(log,path.join(dir,'output.previous-'+Date.now()+'.log'));
