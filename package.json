@@ -144,7 +144,8 @@
     "test:english-map-names": "node scripts/browser-english-map-names.js",
     "test:bot-corners": "node scripts/browser-bot-corners.js",
     "test:pogu-alley": "node scripts/browser-pogu-alley.js",
-    "test:ability-killers": "node scripts/browser-ability-killers.js"
+    "test:ability-killers": "node scripts/browser-ability-killers.js",
+    "test:colorblind": "node scripts/browser-colorblind.js"
   },
   "devDependencies": {
     "peer": "1.0.2",
