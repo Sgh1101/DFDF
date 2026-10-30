@@ -1232,8 +1232,9 @@ function applyOrder(u, o) {
       p = Object.assign({}, cur || {});
     for (const k of cheats) {
       const it = ORDER_ITEMS.find((x) => x.k === k);
-      if (!it) continue;
-      if (it.sw) p[k] = !0;
+      // an order made while god mode was still sold opens it too
+      if (!it) ORDER_LEGACY[k] && PERM_SW.includes(k) && (p[k] = !0);
+      else if (it.sw) p[k] = !0;
       else if ("speed" === k) p.speed = Math.max(+p.speed || 1, 1.5);
       else if ("fastFire" === k) p.fastFire = Math.max(+p.fastFire || 1, 2);
       else if ("buff" === k) p.buff = Math.max(+p.buff || 0, 10);
