@@ -95,6 +95,8 @@ const DEFAULT_CONFIG = {
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
     chat: !0,
+    // the e-mail address the contact page (contact.html) shows; empty = none shown. Set by the owner, never in the code
+    contactEmail: "",
   },
   cheat: {
     refillSec: 5,
@@ -2978,6 +2980,8 @@ function validateConfig(c) {
   };
   walk(DEFAULT_CONFIG, c);
   c.game.promoNotice = !!c.game.promoNotice;
+  c.game.contactEmail = String(c.game.contactEmail == null ? "" : c.game.contactEmail).trim();
+  if (c.game.contactEmail && (c.game.contactEmail.length > 80 || !/^[^\s@<>"'&]+@[^\s@<>"'&]+\.[^\s@<>"'&]+$/.test(c.game.contactEmail))) throw fail(400, "문의 이메일 형식을 확인해 주세요");
   c.mastery.on = !!c.mastery.on;
   for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
   for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
