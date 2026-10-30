@@ -121,8 +121,8 @@
     {
       "file": "map7-collision.json",
       "from": "scripts/import-kour-map.js (made from map7.json.gz)",
-      "sha256": "9cfead05243b1f6f9fec4e4457569bb5b8647264e8a726ea6cb4c9d25dd0c8aa",
-      "bytes": 136262
+      "sha256": "6c0aa059ee350461f18f26141643c131e9ca8607a7a85806491978190f1a8b07",
+      "bytes": 318620
     }
   ]
 }

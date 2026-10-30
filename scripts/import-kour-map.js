@@ -18,7 +18,7 @@ const ROOT = path.resolve(__dirname, '..'), DIR = path.join(ROOT, 'assets/maps/k
 const gz = fs.readFileSync(path.join(DIR, 'map7.json.gz')), src = JSON.parse(zlib.gunzipSync(gz));
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
-const Q = 0.5, STEP = 0.25;                       // column size, sampling step (source units)
+const Q = 0.25, STEP = 0.125;                       // column size, sampling step (source units)
 const SCALE = 1.848 / 2.5;                        // metres per unit: the game's eye height over Kour's 2.5-unit camera
 const CLEAR = 2.45 / SCALE;                       // room under a floor for a body to pass (units)
 const SLAB = 0.3 / SCALE;                         // thickness of a slab (units)
@@ -68,33 +68,32 @@ for (const c of src.colliders) {
   for (let i = 0; i < idx.length; i += 3) sampleTri(...[0, 1, 2].map((q) => ap(c.matrix, p[idx[i + q] * 3], p[idx[i + q] * 3 + 1], p[idx[i + q] * 3 + 2])));
 }
 
-// per column: the boxes [y0, y1] (units, absolute), and whether it is void
+// per column: the boxes [y0, y1] (units, absolute) of each kind
 const cols = new Array(NX * NZ);
 let voidCells = 0;
 const add = (id, y0, y1, kind) => { if (y1 - y0 > 0.02) (cols[id] || (cols[id] = [])).push([y0, y1, kind]); };
 for (let id = 0; id < NX * NZ; id++) {
-  const fl = floors.get(id);
-  let levels = [];
+  const fl = floors.get(id), sol = solids.get(id), wl = walls.get(id);
+  if (!fl && !sol && !wl) { voidCells++; add(id, YB, YB + 55, 'void'); continue; }
   if (fl) {
+    // floors of this column, close ones as one
     fl.sort((a, b) => a - b);
-    let cl = [fl[0]];
+    const levels = []; let cl = [fl[0]];
     for (let i = 1; i < fl.length; i++) fl[i] - cl[cl.length - 1] > GAP ? (levels.push(cl[cl.length - 1]), cl = [fl[i]]) : cl.push(fl[i]);
     levels.push(cl[cl.length - 1]);
-  }
-  const sol = solids.get(id), wl = walls.get(id);
-  if (!levels.length && !sol && !wl) { voidCells++; add(id, YB, YB + 200, 'void'); continue; }
-  if (!levels.length) { if (!sol) { /* a wall with no floor: closed below it too */ add(id, YB, YB + 200, 'void'); } }
-  // floors: the lowest holds the ground up, a floor close over another joins it, the rest are slabs
-  let prev = null, base = null;
-  for (const h of levels) {
-    if (prev === null) { base = h; prev = h; continue; }
-    if ((h - prev) < CLEAR) prev = h;            // too low to walk under: one solid block
-    else { if (base !== null) { if (base - YB > 0.35) add(id, YB, base, 'floor'); base = null; } add(id, h - SLAB, h, 'slab'); prev = h; }
-  }
-  if (base !== null && base - YB > 0.35) add(id, YB, base, 'floor');
-  else if (prev !== null && base === null) { /* slabs only above, ground below stays open */ }
-  // the solid part under the highest of a joined run
-  if (levels.length > 1 && base === null) { /* handled by slabs */ }
+    // the lowest holds the ground up (a floor within a body's height over it is part of that solid); above, a floor with room
+    // under it is a lid, and one close over a lid makes the lid thicker
+    let top = levels[0], k = 1;
+    while (k < levels.length && levels[k] - top < CLEAR) top = levels[k++];
+    if (top - YB > 0.35) add(id, YB, top, 'floor');
+    let lid = null;
+    for (let prev = top; k < levels.length; k++) {
+      const h = levels[k];
+      if (lid && h - prev < CLEAR) lid[1] = h;
+      else { lid = [h - SLAB, h, 'lid']; (cols[id] || (cols[id] = [])).push(lid); }
+      prev = h;
+    }
+  } else if (!sol) add(id, YB, YB + 55, 'void');      // a wall with no floor: closed below it too
   if (sol) add(id, sol[0], sol[1], 'solid');
   if (wl) {
     wl.sort((a, b) => a - b);
@@ -106,22 +105,6 @@ for (let id = 0; id < NX * NZ; id++) {
     }
   }
 }
-// the solid under a run of joined floors: [YB, top of run]. Redo it properly: a column's solid ground is its lowest floor,
-// raised by every floor that sits closer than CLEAR over the one below it.
-for (let id = 0; id < NX * NZ; id++) {
-  const fl = floors.get(id);
-  if (!fl) continue;
-  fl.sort((a, b) => a - b);
-  const levels = []; let cl = [fl[0]];
-  for (let i = 1; i < fl.length; i++) fl[i] - cl[cl.length - 1] > GAP ? (levels.push(cl[cl.length - 1]), cl = [fl[i]]) : cl.push(fl[i]);
-  levels.push(cl[cl.length - 1]);
-  let top = levels[0];
-  for (let i = 1; i < levels.length && levels[i] - top < CLEAR; i++) top = levels[i];
-  // replace the 'floor' entry made above with the right one
-  const list = cols[id] || (cols[id] = []);
-  for (let i = list.length - 1; i >= 0; i--) if (list[i][2] === 'floor') list.splice(i, 1);
-  if (top - YB > 0.35) list.push([YB, top, 'floor']);
-}
 
 // merge equal neighbours into rectangles, one key (y0, y1, kind) at a time
 const q = (v) => Math.round(v * 20) / 20;
@@ -130,6 +113,8 @@ for (let id = 0; id < cols.length; id++) for (const [y0, y1, kind] of cols[id] |
   const key = q(y0) + '|' + q(y1) + '|' + kind;
   let g = groups.get(key); if (!g) groups.set(key, g = new Set()); g.add(id);
 }
+// f: ground held up (a solid from the base), l: a lid (a floor with room under it, a roof), s: a solid (a box collider), w: a wall, v: void
+const KIND = { floor: 'f', lid: 'l', solid: 's', wall: 'w', void: 'v' };
 const boxes = [];
 for (const [key, set] of groups) {
   const [y0, y1, kind] = key.split('|');
@@ -142,7 +127,7 @@ for (const [key, set] of groups) {
     let d = 1;
     grow: while (j0 + d < NZ) { for (let i = 0; i < w; i++) { const k = (j0 + d) * NX + i0 + i; if (!set.has(k) || used.has(k)) break grow; } d++; }
     for (let j = 0; j < d; j++) for (let i = 0; i < w; i++) used.add((j0 + j) * NX + i0 + i);
-    boxes.push([X0 + i0 * Q, X0 + (i0 + w) * Q, Z0 + j0 * Q, Z0 + (j0 + d) * Q, +y0, +y1, kind[0]]);
+    boxes.push([X0 + i0 * Q, X0 + (i0 + w) * Q, Z0 + j0 * Q, Z0 + (j0 + d) * Q, +y0, +y1, KIND[kind]]);
   }
 }
 const kinds = {}; for (const b of boxes) kinds[b[6]] = (kinds[b[6]] || 0) + 1;
