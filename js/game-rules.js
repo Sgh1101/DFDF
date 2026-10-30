@@ -8,8 +8,12 @@
     if ((actor.silenced || 0) > 0 && !unlimited) return false;
     return unlimited || (ability.def.ult ? (actor.ultCharge || 0) >= (actor.ultMax || 5) : !(ability.cd > 0) && ability.charges > 0);
   }
+  // The modes without sides (js/legacy/05-game-modes.js, ffa): placing is the result, never the team score. The server
+  // reads this same list for a report's draw, so a client cannot choose which modes count as free for all.
+  const FFA_MODES = ["dm", "knife", "gun", "zone", "range"];
+  const ffaMode = (mode) => FFA_MODES.includes(mode);
   function outcome(mode, score, rank) {
-    if (mode === "dm") return rank === 1 ? "win" : "loss";
+    if (ffaMode(mode)) return rank === 1 ? "win" : "loss";
     return score[0] === score[1] ? "draw" : score[0] > score[1] ? "win" : "loss";
   }
   // The skin a finisher is played in: the one the killer's gun wore (finisherSkin, when an event names one,
@@ -24,7 +28,7 @@
   const championsFinisher = (event) => finisher(event) && championsSkin(finisherSkin(event));
   // the Champions skin a player's finisher uses: the attackers' dragon pair or the defenders'
   const playerFinisherSkin = (team) => ("atk" === team ? "champions_atk" : "champions_def");
-  const rules = { validInput, abilityReady, outcome, finisher, finisherSkin, playerFinisherSkin, championsSkin, championsFinisher };
+  const rules = { validInput, abilityReady, outcome, ffaMode, FFA_MODES, finisher, finisherSkin, playerFinisherSkin, championsSkin, championsFinisher };
   if (typeof module === "object" && module.exports) module.exports = rules;
   else root.GAME_RULES = rules;
 })(typeof window === "object" ? window : globalThis);

@@ -43,7 +43,8 @@
     return v && v.id === nameOf(peer).toLowerCase() ? v : null;
   };
   // a ranked room reads the tier: an account still placing has its tier hidden and counts as Iron (what it always did)
-  const fromServer = (u) => (u && Number.isFinite(+u.level) && +u.level >= 1 ? { lv: Math.floor(+u.level), tr: u.placed && Number.isFinite(+u.t) ? u.t : 0 } : null);
+  // ms: the mastery level of each agent the account has played ({agentId: level}, none played is {}); pl: still placing
+  const fromServer = (u) => (u && Number.isFinite(+u.level) && +u.level >= 1 ? { lv: Math.floor(+u.level), tr: u.placed && Number.isFinite(+u.t) ? u.t : 0, ms: u.mast && "object" == typeof u.mast ? u.mast : {}, pl: !u.placed } : null);
   // what is SHOWN for an actor: mine, a guest's as the host handed it on, or what the server verified; never a claim
   const of = (a) => {
     if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return null;
@@ -60,6 +61,40 @@
     const v = verified(a.ctrl);
     if (v) return v.lv ? { lv: v.lv, tr: v.tr } : null;
     return PEER.get(a.ctrl) || null;
+  };
+
+  // the mastery level of the agent an actor plays, and whether its tier is still hidden (placement), for the pre-match screen:
+  // mine from my account, a guest's as the host handed it on or as the server verified it, never a claim; a bot or an account
+  // the server does not know has none. An agent the account never played is level 1.
+  const mlv = (map, id) => (window.MASTERY ? window.MASTERY.levelOf(map, id, 1) : null);
+  const agentId = (a) => (a && a.agent && (a.agent.id || a.agent.key)) || "";
+  const mastOf = (a) => {
+    if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return null;
+    if ("me" === a.ctrl) {
+      try {
+        const u = window.ACCOUNT && ACCOUNT.session() && ACCOUNT.session().user;
+        return u && u.mast && "object" == typeof u.mast && !(window.SERVER_CFG && SERVER_CFG.mastery && !1 === SERVER_CFG.mastery.on) ? mlv(u.mast, agentId(a)) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    if (a.__ml) return a.__ml;
+    const v = verified(a.ctrl);
+    return v && v.lv && v.ms ? mlv(v.ms, agentId(a)) : null;
+  };
+  const placingOf = (a) => {
+    if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return !1;
+    if ("me" === a.ctrl) {
+      try {
+        const u = ACCOUNT.session().user;
+        return !!(u && u.rank && u.rank.hidden);
+      } catch (e) {
+        return !1;
+      }
+    }
+    if (null != a.__pl) return !!a.__pl;
+    const v = verified(a.ctrl);
+    return !!(v && v.lv && v.pl);
   };
 
   // ── asking the server (host only) ──
@@ -81,7 +116,7 @@
         const id = nameOf(p).toLowerCase();
         if (!ids.some((x) => x.toLowerCase() === id) || !low[id]) continue;
         const f = fromServer(low[id]);
-        VER.set(p, { id, lv: f ? f.lv : null, tr: f ? f.tr : null });
+        VER.set(p, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1 });
       }
       ask.tries = 0;
       changed();
@@ -106,6 +141,10 @@
     try {
       room.started && refresh();
     } catch (e) {}
+    // the pre-match screen (js/legacy/114) draws what the server said as soon as it comes
+    try {
+      window.dispatchEvent(new CustomEvent("dfdf:levels"));
+    } catch (e) {}
     try {
       if ("host" !== NET.mode) return;
       if (!room.started) {
@@ -114,8 +153,8 @@
         sendEventAll(snap);
       } else {
         // a match under way: tell the guests what the server says about each of them
-        const list = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl && "me" !== a.ctrl).map((a) => ({ id: a.id, o: of(a) }));
-        sendEventAll({ t: "lvs", list: list.map((x) => ({ id: x.id, lv: x.o ? x.o.lv : 0, tr: x.o ? x.o.tr : null })) });
+        const list = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl && "me" !== a.ctrl).map((a) => ({ id: a.id, o: of(a), a }));
+        sendEventAll({ t: "lvs", list: list.map((x) => ({ id: x.id, lv: x.o ? x.o.lv : 0, tr: x.o ? x.o.tr : null, ml: x.o ? mastOf(x.a) || 0 : 0, pl: placingOf(x.a) ? 1 : 0 })) });
       }
     } catch (e) {}
   }
@@ -151,7 +190,7 @@
     s.textContent = text;
     return s;
   };
-  window.LV_CHIP = { own, of, peers: PEER, verified: VER, ask: verifyNow, refresh, forSkill, text: chipText, html: (a) => (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
+  window.LV_CHIP = { own, of, mast: mastOf, placing: placingOf, peers: PEER, verified: VER, ask: verifyNow, refresh, forSkill, text: chipText, html: (a) => (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
 
   // ── what travels ──
   const _sa = sendAction;
@@ -216,6 +255,10 @@
         const a = world.actors[i],
           o = a && of(a);
         o && ((m.lv = o.lv), null != o.tr && (m.tr = o.tr));
+        // the mastery level of the agent it plays, and a tier still hidden
+        const ml = o && mastOf(a);
+        ml && (m.ml = ml);
+        o && placingOf(a) && (m.pl = 1);
       });
     } catch (e) {}
     return list;
@@ -228,6 +271,7 @@
         const a = world.actors.find((x) => x.id === m.id),
           c = clean(m.lv, m.tr);
         a && c && ((a.__lv = c.lv), (a.__tr = c.tr));
+        a && ((a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0));
       }
     } catch (err) {}
     return r;
@@ -256,8 +300,11 @@
         for (const m of e.list.slice(0, 24)) {
           const a = m && world.actors.find((x) => x.id === m.id),
             c = a && clean(m.lv, m.tr);
-          a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null));
+          a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null), (a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0));
         }
+    } catch (err) {}
+    try {
+      e && "lvs" === e.t && window.dispatchEvent(new CustomEvent("dfdf:levels"));
     } catch (err) {}
     return r;
   };
@@ -282,7 +329,7 @@
         const id = nameOf(peer).toLowerCase();
         if (peer === NET.id || !id || !low[id]) continue;
         const f = fromServer(low[id]);
-        VER.set(peer, { id, lv: f ? f.lv : null, tr: f ? f.tr : null });
+        VER.set(peer, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1 });
       }
       changed();
     } catch (e) {}
