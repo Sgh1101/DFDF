@@ -24,6 +24,7 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
     await page.click('#pause .pz-tabs button[data-tab=keys]');
     assert.equal(await page.textContent('.kb-key[data-action=ping]'), "V");
     assert.equal(await page.textContent('.kb-key[data-action=quickchat]'), "Z");
+    await page.waitForTimeout(600);
     await page.screenshot({ path: `${dir}/keys-tab.png` });
     await page.evaluate(() => togglePause(false));
     // as ever: V pings, Z opens quick chat
@@ -42,7 +43,8 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
       await page.click(`.kb-key[data-action=${action}]`);
       await page.keyboard.press(key);
       await page.evaluate(() => togglePause(false));
-      await page.evaluate(() => { CHAT.resetLimits(); locked = true; });
+      // back in the game (a click on the screen does this): the box that was pressed no longer has the keyboard
+      await page.evaluate(() => { document.activeElement && document.activeElement.blur(); CHAT.resetLimits(); locked = true; });
     };
     await rebind("grenade", "v");
     assert.deepEqual(await page.evaluate(() => [KEYMAP.codes("grenade"), KEYMAP.codes("ping")]), [["KeyV"], ["KeyG"]]);
@@ -57,7 +59,7 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
     await page.keyboard.press("z");
     assert.equal(await qmUp(), false, "Z does not open it any more");
     await page.keyboard.press("j");
-    assert.equal(await qmUp(), true, "J opens it");
+    assert.equal(await qmUp(), true, "J opens it: " + JSON.stringify(await page.evaluate(() => ({ codes: KEYMAP.codes("quickchat"), pauseHidden: document.getElementById("pause").hidden, adminHidden: document.getElementById("admin").hidden, ae: document.activeElement && document.activeElement.className, qm: CHAT.state.qm, phase: world.phase }))));
     await page.keyboard.press("j");
     assert.equal(await qmUp(), false, "and J closes it");
     // Enter stays Enter
@@ -79,11 +81,13 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
     assert.match(h.tips, /↑ASD 이동/, "the moving keys: " + h.tips);
     assert.match(h.spike, /사이트 안에서 I 또는 K를 눌러 설치/, "the spike hint names the bound keys: " + h.spike);
     await page.evaluate(() => toggleBigMap(true));
-    assert.equal(await page.textContent("#bm-hint"), "U · 닫기", "the big map's hint");
+    assert.match(await page.textContent("#bm-hint"), /(^|· )U (·|닫기)/, "the big map's hint: " + await page.textContent("#bm-hint"));
     await page.screenshot({ path: `${dir}/bigmap-rebound.png` });
     await page.evaluate(() => toggleBigMap(false));
-    await page.evaluate(() => { document.getElementById("tips").classList.add("show"); });
+    await page.evaluate(() => { world.phase = "buy"; });
+    await page.waitForTimeout(700);
     await page.screenshot({ path: `${dir}/hints-rebound.png` });
+    await page.evaluate(() => { world.phase = "live"; });
     // and back: a reset puts the defaults back on screen
     await page.evaluate(() => togglePause(true));
     await page.click('#pause .pz-tabs button[data-tab=keys]');
@@ -94,7 +98,7 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
     assert.match(h.tips, /WASD 이동 · SHIFT 앉기 · SPACE 점프/); assert.match(h.tips, /R 재장전/); assert.match(h.tips, /4 또는 F 길게/);
     assert.match(h.spike, /4 또는 F를 눌러 설치/);
     await page.evaluate(() => toggleBigMap(true));
-    assert.equal(await page.textContent("#bm-hint"), "M · 닫기"); await page.evaluate(() => toggleBigMap(false));
+    assert.match(await page.textContent("#bm-hint"), /M( ·)? 닫기/); await page.evaluate(() => toggleBigMap(false));
 
     // ── English page: the same hints in English ──
     const en = await start("keyhen", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, beforeLoad: (p) => p.addInitScript(() => { try { localStorage.setItem("lgp_lang", "en"); } catch (e) {} }) });

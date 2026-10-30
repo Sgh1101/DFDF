@@ -854,7 +854,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
       }
       bmFit();
       const hint = $("bm-hint");
-      hint && on() && !ffa() && (hint.textContent = IS_TOUCH ? L("지도를 눌러 핑 · 바깥을 누르면 닫힘", "Tap the map to ping · tap outside to close") : L("지도를 눌러 핑 · M 닫기", "Click the map to ping · M to close"));
+      hint && on() && !ffa() && (hint.textContent = IS_TOUCH ? L("지도를 눌러 핑 · 바깥을 누르면 닫힘", "Tap the map to ping · tap outside to close") : L("지도를 눌러 핑 · " + KEYMAP.name("map") + " 닫기", "Click the map to ping · " + KEYMAP.name("map") + " to close"));
       bmp.style.display = on() && !ffa() ? "" : "none";
       // a mouse needs its cursor to click the map: let the lock go while it is open (it comes back when it closes)
       if (!IS_TOUCH && document.pointerLockElement && on() && !ffa()) {
