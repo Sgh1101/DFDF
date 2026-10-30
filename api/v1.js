@@ -478,6 +478,9 @@ async function saveUser(u, report) {
   else Object.defineProperty(u, SNAPSHOT, { value, writable: true });
 }
 const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
+// who a player is for owning things (orders, rooms): an account by its id, a guest by its device, never by a shown
+// name alone (a guest's name can read the same as an account's)
+const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:" + u.id.toLowerCase());
 
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
@@ -729,6 +732,8 @@ A.auth = async (q, b, req) => {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
     if (PROTO_ID.test(id)) throw fail(400, "쓸 수 없는 아이디입니다");
+    // a name a guest already goes by is taken too
+    if (await redis(["GET", guestNameKey(id)])) throw fail(409, "이미 쓰이고 있는 이름입니다. 다른 아이디를 쓰세요");
     u = { id, pass: hashPw(pw), created: now(), xp: 0, kills: 0, wins: 0, matches: 0 };
     created = !0;
     await redis(["ZADD", "users", String(now()), id.toLowerCase()]);
@@ -1065,7 +1070,7 @@ const orderTotal = (c, items, days) => {
 };
 const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.name, desc: x.desc, price: c.order.price[x.k] || 0, gold: x.gold || 0 })), legacy: ORDER_LEGACY, durations: ORDER_DUR.map((d) => ({ days: d.days, label: d.label, mult: c.order.dur[d.id] || 0 })) });
 const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
-const orderMe = (u) => "u:" + u.id.toLowerCase();
+const orderMe = ownerKey;
 const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
 // The books of the paid orders: one line for each thing that happened (order made, money confirmed and opened,
 // taken back, refunded, declined, cancelled), kept for good. `money` is what moved in (+) or out (-) in won.
@@ -1177,7 +1182,7 @@ A.order_create = async (q, b) => {
   const mine = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
   if (mine.filter((o) => "pending" === o.status).length >= 3) throw fail(409, "입금 확인을 기다리는 주문이 이미 3건 있습니다");
   const id = Array.from(crypto.randomBytes(6), (x) => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[x % 31]).join("");
-  const rec = { id, t: now(), by: u.id, items, days, total, depositor, status: "pending", note: "", reason: "" };
+  const rec = { id, t: now(), by: u.id, byKey: me, items, days, total, depositor, status: "pending", note: "", reason: "" };
   await pipe([
     ["SET", "ord:" + id, JSON.stringify(rec), "EX", String(400 * 86400)],
     ["LPUSH", "ord", id],
@@ -1206,7 +1211,8 @@ A.order_cancel = async (q, b) => {
     const raw = await redis(["GET", "ord:" + id]);
     if (!raw) throw fail(404, "없는 주문입니다");
     const o = JSON.parse(raw);
-    if (o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
+    // orders made before `byKey` was kept were all made by accounts (a guest cannot order)
+    if (o.byKey ? o.byKey !== orderMe(u) : u.guest || o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
     if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
     o.status = "cancelled";
     // the new status is written first: a failed ledger line can never let a retry act on the old one
@@ -2002,6 +2008,13 @@ A.ice = async () => {
 const ROOM_TTL = 70;
 const ROOM_NEW_MAX = 10;
 let roomsCache = null;
+// a room is its opener's by `hostKey`; a room written before it was kept (gone within ROOM_TTL * 4) goes by the
+// name, and a guest's name that an account also has is the account's
+async function roomMine(room, u) {
+  if (room.hostKey) return room.hostKey === ownerKey(u);
+  if (room.host !== u.id) return !1;
+  return !u.guest || !(await getJ(userKey(u.id)));
+}
 A.rooms = async () => {
   const c = await loadConfig();
   if (!c.game.roomListOpen) return { rooms: [] };
@@ -2021,7 +2034,7 @@ A.room_up = async (q, b, req) => {
   const code = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
   if (6 !== code.length) throw fail(400, "방 코드가 이상합니다");
   const prev = await getJ("room:" + code);
-  if (prev && prev.host !== u.id) throw fail(409, "다른 사람의 방입니다");
+  if (prev && !(await roomMine(prev, u))) throw fail(409, "다른 사람의 방입니다");
   // opening a new code writes a log line and a list entry; a room that is already open just beats its heart
   if (!prev && (await limited("roomnew:" + rlKey(u), ROOM_NEW_MAX, 600))) throw fail(429, "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요");
   const players = (Array.isArray(b.players) ? b.players : []).slice(0, 12).map((p) => String(p).slice(0, 20));
@@ -2038,6 +2051,7 @@ A.room_up = async (q, b, req) => {
     ranked: !!b.ranked && !u.guest,
     state: String(b.state || "lobby").slice(0, 10),
     host: u.id,
+    hostKey: ownerKey(u),
     ip: ipOf(req),
     created: (prev && prev.created) || now(),
     seen: now(),
@@ -2084,7 +2098,7 @@ A.room_down = async (q, b) => {
   if (!u) throw fail(401, "다시 로그인해 주세요");
   const code = String(b.code || "").toUpperCase().slice(0, 6);
   const prev = await getJ("room:" + code);
-  if (prev && prev.host === u.id) {
+  if (prev && (await roomMine(prev, u))) {
     await pipe([
       ["DEL", "room:" + code],
       ["ZREM", "rooms", code],
