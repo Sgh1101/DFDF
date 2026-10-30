@@ -29,7 +29,7 @@ a:hover{color:#ffe08a}
 @media(min-width:900px){.sh-nav{order:0;width:auto;flex:1 1 auto}.sh-play{margin-left:0}}
 @media(max-width:560px){.sh-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.sh-nav a{padding:10px 2px;font-size:13px}}
 /* article */
-main{flex:1;padding-top:34px;padding-bottom:56px}
+main.wrap{flex:1;padding-top:34px;padding-bottom:56px}
 .page{max-width:780px;margin:0 auto}
 .page.wide{max-width:1040px}
 .crumb{font-size:13px;color:var(--steel);margin-bottom:10px}
