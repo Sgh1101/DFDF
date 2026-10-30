@@ -72,6 +72,7 @@
     "import:ascent": "node scripts/import-ascent.js sources/maps/ascent-final2021.schematic",
     "test:network-recovery": "node scripts/browser-network-recovery.js",
     "test:net-lag": "node scripts/browser-net-lag.js",
+    "test:net-wave2": "node scripts/browser-net-wave2.js",
     "measure:net-lag": "node scripts/net-lag-harness.js",
     "test:reload": "node scripts/browser-reload.js",
     "test:knife": "node scripts/browser-knife-tricks.js",

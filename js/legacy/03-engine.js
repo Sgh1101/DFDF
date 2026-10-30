@@ -16320,21 +16320,15 @@ function applyActor(e, t, o) {
   const a = Q.unpos(t[1]),
     n = Q.unpos(t[2]),
     r = Q.unpos(t[3]);
-  (o
-    ? ((e.net = e.net || {}),
-      (e.net.px = e.pos.x),
-      (e.net.py = e.y),
-      (e.net.pz = e.pos.z),
-      (e.net.tx = a),
-      (e.net.ty = n),
-      (e.net.tz = r),
-      (e.net.pyaw = e.yaw),
-      (e.net.tyaw = Q.unang(t[4])),
-      (e.net.t = 0))
-    : ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4]))),
-    (e.pitch = Q.unang(t[5])),
-    (e.hp = t[6]),
-    (e.armor = t[7]));
+  if (o) {
+    const b = (e.net = e.net || {}).buf || (e.net.buf = []),
+      yaw = Q.unang(t[4]),
+      pitch = Q.unang(t[5]);
+    (b.push({ T: NET.clk ? NET.clk.stamp : performance.now(), x: a, y: n, z: r, yaw, pitch }),
+      b.length > 16 && b.shift(),
+      1 === b.length && ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = yaw), (e.pitch = pitch)));
+  } else ((e.pos.x = a), (e.y = n), (e.pos.z = r), (e.yaw = Q.unang(t[4])), (e.pitch = Q.unang(t[5])));
+  ((e.hp = t[6]), (e.armor = t[7]));
   const s = t[8];
   ((e.alive = !!(s & AF.ALIVE)),
     (e.crouch = !!(s & AF.CROUCH)),
@@ -16352,6 +16346,7 @@ function buildSnapshot(includeEffects = true) {
   return {
     t: "s",
     k: ++NET.tick,
+    ht: Math.round(performance.now()),
     ph: world.phase,
     rt: Math.round(10 * world.roundTime),
     sa: world.scoreAtk,
@@ -16375,8 +16370,20 @@ function buildSnapshot(includeEffects = true) {
   };
 }
 const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
+function netClockSample(ht) {
+  const now = performance.now(),
+    c = NET.clk || (NET.clk = { off: null, at: now, stamp: now });
+  if ("number" != typeof ht) return ((c.stamp = now), c);
+  const s = ht - now;
+  if (null == c.off || Math.abs(s - c.off) > 3e3) {
+    c.off = s;
+    for (const a of world.actors || []) a.net && (a.net.buf = []);
+  } else c.off = Math.max(s, c.off - (now - c.at) * 0.02);
+  return ((c.at = now), (c.stamp = ht), c);
+}
 function applySnapshot(e) {
-  ((world.phase = e.ph),
+  (netClockSample(e.ht),
+    (world.phase = e.ph),
     (world.roundTime = e.rt / 10),
     (world.scoreAtk = e.sa),
     (world.scoreDef = e.sd),
@@ -16632,17 +16639,60 @@ function followCamera(e, t) {
       (camera.rotation.y += 0.03 * Math.sin(3.3 * o) * t));
   }
 }
-const LERP_TIME = 0.05;
+// A remote body is drawn INTERP_MS in the past, on the line between the two host snapshots around that time (position, yaw the
+// short way round, pitch). When the newest snapshot is older than that it goes on at the speed of its last step for up to
+// EXTRAP_MS and then stands. A step of more than 2.5 m (a respawn, a teleporter) is not crossed: the body stays until the
+// later snapshot's time and then appears there.
+const INTERP_MS = 100,
+  EXTRAP_MS = 100;
 function interpRemote(e, t) {
-  const o = e.net;
-  if (!o) return;
-  o.t = Math.min(1, (o.t || 0) + t / 0.05);
-  const a = o.t;
-  ((e.pos.x = o.px + (o.tx - o.px) * a),
-    (e.y = o.py + (o.ty - o.py) * a),
-    (e.pos.z = o.pz + (o.tz - o.pz) * a));
-  const n = wrapYaw(o.tyaw - o.pyaw);
-  e.yaw = o.pyaw + n * a;
+  const o = e.net,
+    b = o && o.buf;
+  if (!b || !b.length) return;
+  const c = NET.clk,
+    rt = (c && null != c.off ? performance.now() + c.off : performance.now()) - INTERP_MS;
+  let i = b.length - 1;
+  while (i > 0 && b[i].T > rt) i--;
+  const A = b[i],
+    B = b[i + 1],
+    far = (p, q) => Math.hypot(q.x - p.x, q.z - p.z) > 2.5 || Math.abs(q.y - p.y) > 2.5;
+  let x = A.x,
+    y = A.y,
+    z = A.z,
+    yaw = A.yaw,
+    pitch = A.pitch,
+    vx = 0,
+    vz = 0;
+  if (B && rt >= A.T) {
+    const span = Math.max(1, B.T - A.T);
+    if (!far(A, B)) {
+      const k = Math.min(1, (rt - A.T) / span);
+      ((x = A.x + (B.x - A.x) * k),
+        (y = A.y + (B.y - A.y) * k),
+        (z = A.z + (B.z - A.z) * k),
+        (yaw = A.yaw + wrapYaw(B.yaw - A.yaw) * k),
+        (pitch = A.pitch + (B.pitch - A.pitch) * k),
+        (vx = ((B.x - A.x) / span) * 1e3),
+        (vz = ((B.z - A.z) / span) * 1e3));
+    }
+  } else if (!B && i > 0 && rt > A.T) {
+    const P = b[i - 1],
+      span = A.T - P.T;
+    if (span > 0 && span < 300 && !far(P, A)) {
+      const ms = Math.min(rt - A.T, EXTRAP_MS),
+        k = ms / span;
+      ((x = A.x + (A.x - P.x) * k),
+        (y = A.y + (A.y - P.y) * k),
+        (z = A.z + (A.z - P.z) * k),
+        (yaw = A.yaw + wrapYaw(A.yaw - P.yaw) * k),
+        rt - A.T < EXTRAP_MS && ((vx = ((A.x - P.x) / span) * 1e3), (vz = ((A.z - P.z) / span) * 1e3)));
+    }
+  }
+  ((e.pos.x = x), (e.y = y), (e.pos.z = z), (e.yaw = yaw), (e.pitch = pitch));
+  // the legs of a remote body walk by its velocity
+  e.vel && ((e.vel.x = vx), (e.vel.z = vz));
+  const keep = Math.max(0, i - 2);
+  keep > 0 && b.splice(0, keep);
 }
 function reconcileLocal(e, t) {
   const o = t[1] / 100,
@@ -18027,6 +18077,7 @@ function netShutdown() {
   NET.id = null;
   NET.lastSnap = NET.prevSnap = null;
   NET.lastK = null;
+  NET.clk = null;
   NET.latency = 0;
 }
 function peerCount() {
