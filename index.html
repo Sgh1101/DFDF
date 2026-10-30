@@ -285,6 +285,7 @@ const T = {
     about: "게임", privacy: "개인정보처리방침", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
     ranks: ["신병", "요원", "정예 요원", "베테랑", "에이스", "전설"],
     featWeek: " · 매주 바뀌는 이번 주 맵 1곳",
+    featEvent: " · 이벤트 맵 1곳",
     feat: ["<b>모드 11종</b> — 일반전·신속전·스파이크 돌격·팀 데스매치·데스매치·칼 대난투·총기 순환·감염·점령전·깃발 탈취·축소전", "<b>요원 28명</b> — 능력 112개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>전장 22곳</b> — 5대5 11곳 · 소규모 3대3 8곳 · 1대1 3곳{wk}. 2층이 있는 포구, 밤의 항구, 옥상이 이어진 도시", "<b>총 18종 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>총 스킨 뽑기</b> — 경기마다 골드, 스킨 30종 × 총 18종을 뽑기로. 등급이 높을수록 모션과 연출이 화려해집니다", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
   },
   en: {
@@ -302,6 +303,7 @@ const T = {
     about: "The game", privacy: "Privacy policy", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
     ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
     featWeek: ", plus a map of the week that changes every Monday",
+    featEvent: ", plus an event map",
     feat: ["<b>11 modes</b> — Standard, Swift, Spike Rush, Team Deathmatch, Deathmatch, Knife Fight, Gun Game, Infection, Conquest, Capture the Flag, Shrinking Zone", "<b>28 agents</b> — 112 abilities, no two alike", "<b>22 maps</b> — 11 for 5v5, 8 small 3v3, 3 duels{wk}: Pogu with real second floors, a harbor at night, a city of rooftops, a three-floor abandoned hospital maze", "<b>18 guns · grenades</b> — an RPG too, each with its own look and sound", "<b>Gun skin pulls</b> — gold after every match, 30 skins × 18 guns to pull; higher tiers add flourishes and effects", "<b>Play together</b> — rooms by server, make a room, invite codes", "<b>Mobile</b> — touch controls, installable app, phone-only server"],
   },
 };
@@ -526,7 +528,9 @@ $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
 $("#uid").onkeydown = (e) => { if (e.key === "Enter") $("#upw").focus(); };
 // the feature list; its map line also names the map of the week while the server has one (js/map-week.js)
-function drawFeat() { $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x.replace("{wk}", CFG && CFG.weekMap ? T[L].featWeek : "")}</li>`).join(""); }
+// the event map is named while the server announces it and its last day is not over (js/event-map.js)
+const eventOpen = () => !!(CFG && CFG.eventMap && CFG.eventMap.key && (!CFG.eventMap.until || Date.now() < CFG.eventMap.until));
+function drawFeat() { $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x.replace("{wk}", (CFG && CFG.weekMap ? T[L].featWeek : "") + (eventOpen() ? T[L].featEvent : ""))}</li>`).join(""); }
 // the announcement and the promo film come up in the middle once, right after signing in (js/notice-popup.js)
 function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.auto(); }
 (async () => {

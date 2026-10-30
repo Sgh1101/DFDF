@@ -23,6 +23,9 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
         maps: document.querySelectorAll("#sel-maps button:not(.lbm-rand)").length, chips: [...document.querySelectorAll("#sel-maps button")].map((b) => b.textContent), tabs,
         // the map of the week (js/map-week.js) is in the list on top of the pool while the server has one
         week: MAP_LIST.some((m) => m.key === window.WEEK_MAP_KEY) ? MAP_CAT(window.WEEK_MAP_KEY) : null,
+        // the event map (js/event-map.js) has a box of its own: not among the chips, not in the tabs
+        event: MAP_LIST.some((m) => m.key === window.EVENT_MAP_KEY) ? window.EVENT_MAP_KEY : null,
+        eventChip: !!document.querySelector("#sel-event .lb-map"),
       };
     });
     // the shop of a live match: weapons only (the knife is every player's own, armor and grenades are not guns)
@@ -39,6 +42,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
     assert.equal(game.distinctNames, game.abilities, "ability names are all different");
     assert.equal(game.distinctTypes, game.abilities, "no two abilities share a type (the copy says no two alike)");
     assert.equal(game.maps, game.tabs.all, "map chips = the all tab");
+    assert.equal(game.eventChip, !!game.event, "the event map is in its own box while it is on");
     assert.equal(game.tabs.full + game.tabs.small + game.tabs["1v1"], game.maps, "tabs add up to the maps");
     assert.ok(skins.perGun.every((x) => x === skins.perGun[0]), "every shop gun wears the same skins");
     // the homepage counts the pool: the map of the week comes off its tab and the total
@@ -62,6 +66,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
       assert.deepEqual(read(1, "abilities"), [truth.abilities], lang + " abilities");
       assert.deepEqual(read(2, "maps"), [truth.maps, truth.big, truth.small, truth.duel], lang + " maps and their split");
       assert.equal(/이번 주 맵|map of the week/.test(items[2]), !!truth.week, lang + " the map line names the map of the week while there is one: " + items[2]);
+      assert.equal(/이벤트 맵|event map/.test(items[2]), !!game.event, lang + " the map line names the event map while it is open: " + items[2]);
       assert.deepEqual(read(3, "guns"), [truth.guns], lang + " guns");
       assert.deepEqual(read(4, "skins"), [truth.skins, truth.guns], lang + " skins x guns");
       console.log(lang, "numbers match the game");

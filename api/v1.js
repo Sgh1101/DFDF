@@ -10,6 +10,7 @@ const ROSTER = require("../js/agent-roster.json");
 const GAME_RULES = require("../js/game-rules.js");
 const SETTINGS_SYNC = require("../js/settings-sync.js");
 const MAP_WEEK = require("../js/map-week.js");
+const EVENT_MAP = require("../js/event-map.js");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -91,6 +92,10 @@ const DEFAULT_CONFIG = {
     // the same for everyone. weekMap switches it; weekMapExclude: keys it never picks, comma separated
     weekMap: !0,
     weekMapExclude: "",
+    // the event map (사막 마을, js/event-map.js): its own box in the map lists while it is on, until the last day
+    // (YYYYMMDD in Korea, that day included; empty = no end)
+    eventMap: !0,
+    eventMapEnd: "20261130",
     // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
@@ -750,9 +755,11 @@ const weekMapOf = (c, t) => {
   const m = MAP_WEEK.choose(t, !1 !== c.game.weekMap, c.game.weekMapExclude);
   return m ? { key: m.key, week: m.week, until: m.until } : null;
 };
+// the event map for the time: { key, last, until } or null when it is switched off or its last day is over
+const eventMapOf = (c, t) => EVENT_MAP.choose(t, !1 !== c.game.eventMap, c.game.eventMapEnd);
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -2922,6 +2929,9 @@ function validateConfig(c) {
   };
   walk(DEFAULT_CONFIG, c);
   c.game.promoNotice = !!c.game.promoNotice;
+  c.game.eventMap = !!c.game.eventMap;
+  c.game.eventMapEnd = c.game.eventMapEnd == null ? "" : String(c.game.eventMapEnd).trim();
+  if (c.game.eventMapEnd && !EVENT_MAP.valid(c.game.eventMapEnd)) throw fail(400, "이벤트 맵의 마지막 날을 확인해 주세요 (예: 20261130, 비우면 끝나는 날 없음)");
   c.mastery.on = !!c.mastery.on;
   for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
   for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
