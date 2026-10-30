@@ -46,7 +46,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.evaluate(() => GUN_SKINS.sync());
     await page.waitForFunction(() => GUN_SKINS.owns("rifle", "laurel") && GUN_SKINS.owns("knife", "laurel"));
     await page.click("#sn-ok");
+    // gone from the screen, not only marked hidden (its own display:flex kept it drawn), and still gone after the 1 s redraw
+    const drawn = (id) => page.evaluate((id) => { const n = document.getElementById(id); return !!n && getComputedStyle(n).display !== "none" && n.getBoundingClientRect().height > 0; }, id);
     assert.ok(await page.evaluate(() => document.getElementById("ssn-note").hidden && localStorage.getItem("lgp_ssn_seen") === "1"));
+    assert.equal(await drawn("ssn-note"), false, "the note is off the screen after its button");
+    await page.waitForTimeout(1500);
+    assert.equal(await drawn("ssn-note"), false, "and stays off");
     await page.evaluate(() => GUN_SKINS.open("rifle", "gun"));
     await page.waitForSelector('#ar-skins .ar-sk[data-s="laurel"]');
     await page.click('#ar-skins .ar-sk[data-s="laurel"]');
@@ -65,6 +70,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.screenshot({ path: dir + "/season-home.png" });
     await page.click("#ssnEndOk");
     assert.ok(await page.evaluate(() => document.getElementById("ssnEnd").hidden && localStorage.getItem("lgp_ssn_seen") === "1"));
+    assert.equal(await drawn("ssnEnd"), false, "the homepage's note is off the screen after its button");
     // another account, without it: the armoury says how it is earned, and offers no wishlist
     const other = await f.page("noseason", { width: 1280, height: 800 });
     await other.evaluate(() => GUN_SKINS.open("smg", "gun"));
