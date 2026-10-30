@@ -642,7 +642,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
       g.gain.exponentialRampToValueAtTime(0.22, t + 0.015);
       g.gain.exponentialRampToValueAtTime(1e-4, t + 0.26);
       o.connect(g);
-      g.connect(GAME_AUDIO.output || ac.destination);
+      g.connect(GAME_AUDIO.output); // the effects bus, so the volume sliders reach it
       o.start(t);
       o.stop(t + 0.3);
     } catch (e) {}
