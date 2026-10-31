@@ -248,6 +248,17 @@ test("with clans switched off nothing about them works, and no tag is shown", as
   assert.equal((await h.api("clan_get", { id })).status, 200, "the clan was kept");
 });
 
+test("the owner's page still sees a clan that is switched off, with its members", async () => {
+  const h = harness(), o = await owner(h), cap = await acct(h, "cap");
+  const id = (await make(h, cap)).clan.id;
+  await setConfig(h, o, (c) => { c.clan.on = false; });
+  assert.equal((await h.api("clan_get", { id })).status, 403);
+  const r = await h.api("a_clan_get", { atoken: o.atoken, id });
+  assert.deepEqual(r.clan.members.map((m) => m.id), ["cap"]);
+  assert.equal((await h.api("a_clan_get", { id })).status, 401);
+  assert.equal((await h.api("a_clan_get", { atoken: o.atoken, id: "zz" })).status, 404);
+});
+
 test("the tag beside a name is the server's: levels and the ranked roster give it for an account that is on the clan's list, never for a claim", async () => {
   const h = harness(), cap = await acct(h, "cap"), a = await acct(h, "aa"), none = await acct(h, "plain");
   const id = (await make(h, cap)).clan.id;

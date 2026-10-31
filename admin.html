@@ -197,6 +197,7 @@ button.uname:hover{color:var(--gold);border:0}
       <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
       <button data-v="agents">요원</button>
+      <button data-v="clans">클랜</button>
       <button data-v="config">게임 설정</button>
     </nav>
     <span class="sp"></span>
@@ -967,6 +968,10 @@ const LABELS = {
   "gacha.botMaxTier": ["봇이 입는 최고 등급", "0 없음 · 1 일반 · 2 희귀 · 3 영웅 · 4 전설 (초월은 봇이 입지 않습니다) · 기본 4"],
   rank: ["티어", "경기마다 오르내리는 티어 점수(RR). 100마다 한 단계, 세 단계가 한 티어 (아이언 → 브론즈 → 실버 → 골드 → 플래티넘 → 다이아몬드 → 초월자 → 불멸 → 레디언트)"], "rank.win": ["승리 RR"], "rank.loss": ["패배 RR", "지면 이만큼 내려갑니다 (처치가 많으면 절반까지 덜 내려감)"], "rank.perKill": ["처치당 추가 RR"], "rank.maxKill": ["처치 보너스 최대"], "rank.maxPerDay": ["하루 최대 상승 RR", "0이면 한도 없음. 경기 결과는 게임이 보고하므로 꾸민 결과로 끝없이 올리지 못하게 합니다"], "rank.minHumans": ["RR 반영 최소 인원", "랭크전에 실제로 앉은 사람이 이 수보다 적으면 RR이 바뀌지 않습니다. 이탈 벌점도 같은 기준입니다"], "rank.leaveRR": ["이탈 추가 벌점 RR", "랭크전에서 도중에 나가면 패배 처리에 더해 이만큼 더 내려갑니다 (0이면 패배 처리만)"], "rank.leaveGraceS": ["재접속 인정 시간", "초. 연결이 끊겼다가 이 시간 안에 돌아오면 이탈이 아닙니다. 이 시간 이상 자리를 비웠거나 끝날 때 없으면 이탈입니다"], "rank.afkWarnS": ["자리 비움 경고", "초. 랭크전에서 이 시간 동안 조작이 없으면 화면에 경고를 띄웁니다 (0이면 검사 안 함, 일반 방은 검사하지 않습니다)"], "rank.afkLeaveS": ["경고 뒤 이탈 처리", "초. 경고 뒤 이 시간 안에 움직이지 않으면 봇에게 넘기고 이탈로 셉니다"], "rank.surrenderRound": ["항복 가능 라운드", "이 라운드부터 팀이 항복 투표를 열 수 있습니다 (0이면 항복 없음). 랭크전과 일반 팀 모드에 적용됩니다"], "rank.surrenderS": ["항복 가능 시간", "초. 라운드가 없는 팀 모드(팀 데스매치 등)는 경기 시작 뒤 이 시간부터 항복할 수 있습니다"], "rank.surrenderVoteS": ["항복 투표 시간", "초. 팀원이 투표할 수 있는 시간. 팀 사람의 과반이 찬성하면 그 팀의 패배로 끝납니다"], "rank.surrenderCoolS": ["항복 투표 대기", "초. 부결된 뒤 같은 팀이 다시 열기까지 기다리는 시간"], mission: ["미션", "일일 미션(한국 시간 자정에 새로)과 주간 미션(월요일에 새로). 숫자는 목표, 골드는 받기를 누르면 주는 보상. 목표를 0으로 하면 그 미션은 꺼집니다"], "mission.dPlay": ["일일 · 경기 수"], "mission.dPlayGold": ["일일 · 경기 보상"], "mission.dKill": ["일일 · 처치 수"], "mission.dKillGold": ["일일 · 처치 보상"], "mission.dWin": ["일일 · 승리 수"], "mission.dWinGold": ["일일 · 승리 보상"], "mission.wPlay": ["주간 · 경기 수"], "mission.wPlayGold": ["주간 · 경기 보상"], "mission.wKill": ["주간 · 처치 수"], "mission.wKillGold": ["주간 · 처치 보상"], "mission.wWin": ["주간 · 승리 수"], "mission.wWinGold": ["주간 · 승리 보상"],
 };
+Object.assign(LABELS, {
+  clan: ["클랜", "계정으로 로그인한 플레이어가 골드를 내고 클랜을 만들고, 태그를 이름 옆에 답니다. 클랜 목록은 위 '클랜' 메뉴에서 보고 지우거나 이름을 바꿉니다"],
+  "clan.on": ["클랜 켜기", "끄면 홈페이지의 클랜 칸, 게임 안의 태그, 클랜 순위가 모두 사라집니다 (클랜과 멤버 기록은 그대로 남습니다)"], "clan.cost": ["클랜 만드는 값 (골드)"], "clan.max": ["클랜 최대 인원", "2~50명"],
+});
 Object.assign(LABELS, { "transcendent": ["초월", "경기 완료 코인 700개로 구매하거나 0.00000000000000001% 고정 확률로 뽑습니다. 일반 등급 비율과 별도로 추첨합니다"] });
 Object.assign(LABELS, {
   mastery: ["요원 숙련도", "요원마다 1~10단계. 요원으로 치른 경기(경기 확인표가 있는 경기)마다 숙련도 경험치가 쌓이고, 단계가 오르면 골드를 줍니다. 요원 카드와 경기 시작 화면에 단계가 보입니다"],
@@ -1050,6 +1055,41 @@ VIEWS.config = async () => {
     if (!confirm("모든 설정을 게임이 처음 정한 값으로 되돌릴까요? 저장해 둔 기본값은 지워지지 않습니다.")) return;
     await call("a_config_reset", { to: "factory" }); toast("처음 값으로 되돌렸습니다"); VIEWS.config();
   });
+};
+// ── clans: search, see the members, rename, delete ──
+VIEWS.clans = async () => {
+  $("#main").innerHTML = `<div class="bar"><input id="cq" placeholder="클랜 이름·태그 검색"><button class="go" id="cgo">검색</button><span class="muted" id="ccount"></span></div><div id="cl"></div><div id="cm"></div>`;
+  let list = [];
+  const load = async () => {
+    const j = await call("a_clans", { q: $("#cq").value.trim() });
+    list = j.clans;
+    $("#ccount").textContent = `${j.total}개` + (j.total > list.length ? ` · 앞의 ${list.length}개만 보입니다` : "");
+    $("#cl").innerHTML = list.length ? `<table><tr><th>태그</th><th>이름</th><th>소개</th><th>인원</th><th>클랜장</th><th>만든 날</th><th></th></tr>${list.map((c) => `<tr data-id="${esc(c.id)}"><td><span class="tag gold">[${esc(c.tag)}]</span></td><td><b>${esc(c.name)}</b></td><td class="muted">${esc(c.desc)}</td><td>${c.n} / ${c.max}</td><td>${uname(c.owner)}</td><td>${when(c.at)}</td><td><button data-op="members">멤버</button><button data-op="rename">이름 변경</button><button data-op="delete" class="bad">삭제</button></td></tr>`).join("")}</table>` : `<p class="muted">클랜이 없습니다</p>`;
+  };
+  const members = async (id) => {
+    const j = await call("a_clan_get", { id }), c = j.clan;
+    $("#cm").innerHTML = `<div class="sec"><h3>[${esc(c.tag)}] ${esc(c.name)} · 멤버 ${c.n}/${c.max} · 경험치 합계 ${c.xp.toLocaleString()}</h3><div class="d">${esc(c.desc || "소개 없음")}</div><table><tr><th>이름</th><th>레벨</th><th>역할</th><th>가입</th></tr>${c.members.map((m) => `<tr><td>${uname(m.id)}</td><td>${m.level}</td><td>${m.role === "owner" ? '<span class="tag gold">클랜장</span>' : "멤버"}</td><td>${when(m.at)}</td></tr>`).join("")}</table></div>`;
+    $("#cm").scrollIntoView && $("#cm").scrollIntoView({ block: "nearest" });
+  };
+  $("#cgo").onclick = () => load().catch((e) => toast(e.message));
+  $("#cq").onkeydown = (e) => { if (e.key === "Enter") $("#cgo").click(); };
+  $("#cl").onclick = async (e) => {
+    const b = e.target.closest("button[data-op]"), tr = e.target.closest("tr[data-id]"); if (!b || !tr) return;
+    const id = tr.dataset.id, c = list.find((x) => x.id === id), op = b.dataset.op;
+    try {
+      if (op === "members") return await members(id);
+      if (op === "rename") {
+        const name = prompt("새 클랜 이름 (2~16자)", c.name); if (name === null) return;
+        const tag = prompt("새 태그 (2~4자)", c.tag); if (tag === null) return;
+        await call("a_clan_rename", { id, name, tag }); toast("바꿨습니다");
+      } else if (op === "delete") {
+        if (!confirm(`[${c.tag}] ${c.name} 클랜을 지울까요?\n멤버 ${c.n}명이 모두 클랜 없음이 되고, 이름과 태그는 다시 쓸 수 있게 됩니다.`)) return;
+        await call("a_clan_delete", { id }); toast("지웠습니다"); $("#cm").innerHTML = "";
+      }
+      await load();
+    } catch (err) { toast(err.message); }
+  };
+  await load();
 };
 // ── agents: switch each one on or off (an off agent leaves the picker, the bots and the random pick) ──
 VIEWS.agents = async () => {

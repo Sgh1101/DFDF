@@ -3262,6 +3262,12 @@ A.board = async (q, b) => {
 };
 
 // ── the owner's side of the clans ──
+// one clan with its members (the public clan_get is closed while clans are switched off)
+ADMIN.clan_get = async (q, b) => {
+  const { clan: cl } = await clanRead(clanId(b.id));
+  if (!cl) throw fail(404, "없는 클랜입니다");
+  return { clan: await clanView(cl, await loadConfig()) };
+};
 ADMIN.clans = async (q, b) => {
   const c = await loadConfig(), text = String(b.q == null ? "" : b.q).toLowerCase().replace(/[\s|]/g, "").slice(0, 16);
   const all = ((await redis(["ZRANGE", CLAN_INDEX, "0", "-1"])) || []).map((x) => x.split("|")).filter(([nk, tk]) => !text || nk.includes(text) || tk.includes(text));
