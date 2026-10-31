@@ -3,9 +3,9 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
   const f = await fixture();
   try {
     const page = await f.page("followup", { width: 852, height: 393 }, { hasTouch: true });
-    // the 22 maps of the pool, and the map of the week (js/map-week.js) on top while the server has one
-    const cat = await page.evaluate(() => Object.assign(GAME_CATALOG.counts(), { week: MAP_LIST.some((m) => m.key === window.WEEK_MAP_KEY) ? 1 : 0 }));
-    assert.deepEqual(cat, { agents: 28, abilities: 112, weapons: 19, maps: 22 + cat.week, modes: 11, skins: 607, week: cat.week });
+    // the 22 maps of the pool, and on top of them the map of the week (js/map-week.js) and the event map (js/event-map.js) while the server has them
+    const cat = await page.evaluate(() => Object.assign(GAME_CATALOG.counts(), { week: MAP_LIST.some((m) => m.key === window.WEEK_MAP_KEY) ? 1 : 0, event: MAP_LIST.some((m) => m.key === window.EVENT_MAP_KEY) ? 1 : 0 }));
+    assert.deepEqual(cat, { agents: 28, abilities: 112, weapons: 19, maps: 22 + cat.week + cat.event, modes: 11, skins: 607, week: cat.week, event: cat.event });
     const ch = await page.evaluate(() => { MULTI.paint(); return MULTI.ch(); });
     const rooms = [
       { code: "FULL01", name: "Full", n: 10, max: 10, state: "lobby", created: 1 },

@@ -155,6 +155,7 @@
     "test:ability-killers": "node scripts/browser-ability-killers.js",
     "test:colorblind": "node scripts/browser-colorblind.js",
     "test:map-week": "node scripts/browser-map-week.js",
+    "test:kour-map": "node scripts/browser-kour-map.js",
     "test:key-hints": "node scripts/browser-key-hints.js",
     "test:settings-sync": "node scripts/browser-settings-sync.js"
   },
