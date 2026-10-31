@@ -30,7 +30,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
         weekCandidates: window.MAP_WEEK ? MAP_WEEK.CANDIDATES.length : 0,
         modes: Object.entries(GAME_MODES).map(([key, m]) => ({ key, name: m.name, sub: m.sub, kills: m.kills, time: m.time, win: m.win, flags: Object.keys(m).filter((k) => m[k] === true) })),
         // the modes the room and the solo picker list, in their order
-        listed: [...document.querySelectorAll("#sel-modes button")].map((b) => b.textContent),
+        listed: [...document.querySelectorAll("#sel-modes button:not(#sel-comp)")].map((b) => b.textContent),
       };
     });
     // the picker lists modes by name: turn the names into keys

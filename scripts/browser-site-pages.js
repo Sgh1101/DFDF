@@ -69,7 +69,7 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
       agents: AGENTS.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]),
       maps: MAP_LIST.filter((m) => m.key !== window.WEEK_MAP_KEY && m.key !== window.EVENT_MAP_KEY).map((m) => [m.key, m.name, MAP_SIZE(m.key)]),
       event: window.EVENT_MAP_KEY && MAP_LIST.some((m) => m.key === window.EVENT_MAP_KEY) ? [window.EVENT_MAP_KEY, MAP_LIST.find((m) => m.key === window.EVENT_MAP_KEY).name] : null,
-      modes: Object.entries(GAME_MODES).map(([k, m]) => [k, m.name, m.sub]), listed: [...document.querySelectorAll("#sel-modes button")].map((b) => b.textContent),
+      modes: Object.entries(GAME_MODES).map(([k, m]) => [k, m.name, m.sub]), listed: [...document.querySelectorAll("#sel-modes button:not(#sel-comp)")].map((b) => b.textContent),
     }));
     assert.deepEqual(data.agents.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]), live.agents, "agents.html is made from the live roster: run scripts/dump-site-data.js");
     assert.deepEqual(data.maps.map((m) => [m.key, m.name, m.size]), live.maps, "the map pool of maps.html is the live pool");
