@@ -16,15 +16,17 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
     // the maps that join the list after boot (the block-terrain map) and the server's map of the week
     await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     const data = await page.evaluate(() => {
-      const week = window.WEEK_MAP_KEY || "";
+      const week = window.WEEK_MAP_KEY || "", ev = window.EVENT_MAP_KEY || "";
+      const info = (m) => { const b = MAPS[m.key].bounds; return { key: m.key, name: m.name, size: MAP_SIZE(m.key), cat: MAP_CAT(m.key), width: Math.round(b.maxX - b.minX), depth: Math.round(b.maxZ - b.minZ), sites: (MAPS[m.key].sites || []).map((s) => s.id) }; };
       const keep = (o, ks) => Object.fromEntries(ks.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
       const roles = [...new Set(AGENTS.map((a) => a.role))];
       return {
         generated: "scripts/dump-site-data.js",
         roles,
         agents: AGENTS.map((a) => ({ ...keep(a, ["id", "name", "role", "color", "accent", "quote", "desc"]), abilities: a.abilities.map((x) => ({ ...keep(x, ["key", "name", "desc", "charges", "cd", "ult", "counterplay"]) })) })),
-        // the permanent pool: the list without the map of the week
-        maps: MAP_LIST.filter((m) => m.key !== week).map((m) => { const b = MAPS[m.key].bounds; return { key: m.key, name: m.name, size: MAP_SIZE(m.key), cat: MAP_CAT(m.key), width: Math.round(b.maxX - b.minX), depth: Math.round(b.maxZ - b.minZ), sites: (MAPS[m.key].sites || []).map((s) => s.id) }; }),
+        // the permanent pool: the list without the map of the week and the event map
+        maps: MAP_LIST.filter((m) => m.key !== week && m.key !== ev).map(info),
+        eventMap: ev && MAP_LIST.some((m) => m.key === ev) ? info(MAP_LIST.find((m) => m.key === ev)) : null,
         weekCandidates: window.MAP_WEEK ? MAP_WEEK.CANDIDATES.length : 0,
         modes: Object.entries(GAME_MODES).map(([key, m]) => ({ key, name: m.name, sub: m.sub, kills: m.kills, time: m.time, win: m.win, flags: Object.keys(m).filter((k) => m[k] === true) })),
         // the modes the room and the solo picker list, in their order
@@ -52,7 +54,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
       }, { w, h });
       const save = (file, url) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, Buffer.from(url.split(",")[1], "base64")); };
       data.mapImages = [];
-      for (const m of data.maps) {
+      for (const m of data.eventMap ? [data.eventMap, ...data.maps] : data.maps) {
         await page.evaluate((key) => { room.mode = "std"; room.map = key; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
         await page.waitForTimeout(m.key === "ascent_trial" ? 12000 : 2500);
         const ok = await page.evaluate(() => CUR_MAP_KEY) === m.key;
