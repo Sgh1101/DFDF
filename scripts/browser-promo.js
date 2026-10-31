@@ -26,9 +26,9 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       const res = await route.fetch(), body = (await res.text()).replace(`video: "${FILM}"`, 'video: "PROMO_VIDEO_URL"');
       await route.fulfill({ response: res, body, contentType: "text/javascript" });
     });
-    // the homepage: still signed in (this tab), or back at the sign-in view when `fresh`
+    // the homepage: still signed in (this tab), or back at the sign-in view when `fresh` (a new visit without "keep me signed in")
     const home = async (page, { fresh = !1, lang = "ko" } = {}) => {
-      await page.evaluate(([l, fresh]) => { localStorage.setItem("lgp_lang", l); if (fresh) sessionStorage.removeItem("lgp_gate"); }, [lang, fresh]);
+      await page.evaluate(([l, fresh]) => { localStorage.setItem("lgp_lang", l); if (fresh) { sessionStorage.removeItem("lgp_gate"); localStorage.removeItem("lgp_keep"); } }, [lang, fresh]);
       await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
       await page.waitForSelector(fresh ? "#v-auth:not([hidden])" : "#v-dash:not([hidden])");
       await page.waitForTimeout(250);
