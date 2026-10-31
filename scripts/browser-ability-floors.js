@@ -13,7 +13,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    return {ground,zone:zone.y,mesh:zone.mesh.position.y,above,below,same:enemy.hp};
   }
   setQuality('mobile');
-  for(const key of [...new Set(MAP_LIST.map(m=>m.key))].filter(k=>k!=='ascent_trial')){
+  for(const key of [...new Set(MAP_LIST.map(m=>m.key))].filter(k=>k!=='ascent_trial'&&k!==window.EVENT_MAP_KEY)){
    room.map=key;loadMap(key);const slab=COLLIDERS.find(c=>!c.temp&&c.h>1&&c.maxX-c.minX>1&&c.maxZ-c.minZ>1&&!collideXZ((c.minX+c.maxX)/2,(c.minZ+c.maxZ)/2,c.h,PR));
    const x=slab?(slab.minX+slab.maxX)/2:MAP.attackSpawn.x,z=slab?(slab.minZ+slab.maxZ)/2:MAP.attackSpawn.z,y=slab?slab.h:0;
    out.maps.push({key,...check(x,z,y)});

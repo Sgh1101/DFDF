@@ -295,10 +295,18 @@
       week = String((window.SERVER_CFG && SERVER_CFG.weekMap && SERVER_CFG.weekMap.key) || "");
     } catch (e) {}
     window.WEEK_MAP_KEY = week;
-    const on = new Set(POOL.concat(more, week ? [week] : []));
+    // the event map (js/event-map.js) is in the list while the server announces it and its last day is not over; the
+    // pickers keep it in a box of its own
+    let event = "";
+    try {
+      const e = window.SERVER_CFG && SERVER_CFG.eventMap;
+      event = window.EVENT_MAP && EVENT_MAP.open(e, Date.now()) ? e.key : "";
+    } catch (e) {}
+    window.EVENT_MAP_KEY = event;
+    const on = new Set(POOL.concat(more, week ? [week] : [], event ? [event] : []));
     // maps added by later modules (the open field) join the same list
     const all = ALL.concat((window.MAP_EXTRA || []).filter((m) => !ALL.some((a) => a.key === m.key)));
-    const list = all.filter((m) => on.has(m.key) && MAPS[m.key]).sort((a, b) => (a.key === week ? -1 : POOL.indexOf(a.key) + 1 || 99) - (b.key === week ? -1 : POOL.indexOf(b.key) + 1 || 99));
+    const list = all.filter((m) => on.has(m.key) && MAPS[m.key]).sort((a, b) => (a.key === event ? -2 : a.key === week ? -1 : POOL.indexOf(a.key) + 1 || 99) - (b.key === event ? -2 : b.key === week ? -1 : POOL.indexOf(b.key) + 1 || 99));
     if (list.map((m) => m.key).join() === MAP_LIST.map((m) => m.key).join()) return;
     MAP_LIST.length = 0;
     list.forEach((m) => MAP_LIST.push(m));

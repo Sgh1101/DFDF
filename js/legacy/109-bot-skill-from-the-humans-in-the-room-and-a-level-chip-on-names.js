@@ -11,6 +11,9 @@
   // (a guest) has no level: its claim is dropped, it is left out of the average and has no chip. If the server cannot
   // be reached the claim still counts for the skill (as before) but is marked unverified and NO chip shows for it:
   // a chip only ever shows a number the server gave. Bots never have one.
+  // The clan tag beside a name travels the same way and is held to the same rule: the server's answer carries `clan` (the
+  // tag) for an account that is in a clan, the host hands it on with the level, and a tag is never taken from a claim
+  // (hello, a message from a guest). Mine is the server's too (js/legacy/124: CLAN_ME).
   if ("undefined" == typeof world || "undefined" == typeof room || "undefined" == typeof NET || "undefined" == typeof BOT_RT || "undefined" == typeof startRound) return;
 
   const $ = (id) => document.getElementById(id);
@@ -29,6 +32,8 @@
       return null;
     }
   };
+  // a clan tag as it may be shown: 2-4 letters, digits or Hangul, or nothing
+  const tagClean = (s) => (/^[A-Za-z0-9가-힣]{2,4}$/.test(String(s == null ? "" : s)) ? String(s) : "");
   // what the host heard in each guest's hello: a CLAIM
   const PEER = new Map();
   // what the server says about each guest's account, by peer: { id, lv (null: no account), tr, placed }
@@ -44,7 +49,7 @@
   };
   // a ranked room reads the tier: an account still placing has its tier hidden and counts as Iron (what it always did)
   // ms: the mastery level of each agent the account has played ({agentId: level}, none played is {}); pl: still placing
-  const fromServer = (u) => (u && Number.isFinite(+u.level) && +u.level >= 1 ? { lv: Math.floor(+u.level), tr: u.placed && Number.isFinite(+u.t) ? u.t : 0, ms: u.mast && "object" == typeof u.mast ? u.mast : {}, pl: !u.placed } : null);
+  const fromServer = (u) => (u && Number.isFinite(+u.level) && +u.level >= 1 ? { lv: Math.floor(+u.level), tr: u.placed && Number.isFinite(+u.t) ? u.t : 0, ms: u.mast && "object" == typeof u.mast ? u.mast : {}, pl: !u.placed, ct: tagClean(u.clan) } : null);
   // what is SHOWN for an actor: mine, a guest's as the host handed it on, or what the server verified; never a claim
   const of = (a) => {
     if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return null;
@@ -97,6 +102,16 @@
     return !!(v && v.lv && v.pl);
   };
 
+  // the clan tag of an actor: mine from my own account (CLAN_ME, what the server said), a guest's as the host handed it on or as the
+  // server verified it; a bot, an account the server does not know or one with no clan has none
+  const tagOf = (a) => {
+    if (!a || "ai" === a.ctrl || "dead" === a.ctrl) return "";
+    if ("me" === a.ctrl) return window.CLAN_ME ? tagClean(CLAN_ME.tag) : "";
+    if (null != a.__ct) return a.__ct;
+    const v = verified(a.ctrl);
+    return v && v.lv ? v.ct || "" : "";
+  };
+
   // ── asking the server (host only) ──
   const ask = { timer: 0, busy: false, tries: 0 };
   // the guests in the room that the server has not been asked about yet
@@ -116,7 +131,7 @@
         const id = nameOf(p).toLowerCase();
         if (!ids.some((x) => x.toLowerCase() === id) || !low[id]) continue;
         const f = fromServer(low[id]);
-        VER.set(p, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1 });
+        VER.set(p, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1, ct: f ? f.ct : "" });
       }
       ask.tries = 0;
       changed();
@@ -154,7 +169,7 @@
       } else {
         // a match under way: tell the guests what the server says about each of them
         const list = (world.actors || []).filter((a) => a.ctrl && "ai" !== a.ctrl && "dead" !== a.ctrl && "me" !== a.ctrl).map((a) => ({ id: a.id, o: of(a), a }));
-        sendEventAll({ t: "lvs", list: list.map((x) => ({ id: x.id, lv: x.o ? x.o.lv : 0, tr: x.o ? x.o.tr : null, ml: x.o ? mastOf(x.a) || 0 : 0, pl: placingOf(x.a) ? 1 : 0 })) });
+        sendEventAll({ t: "lvs", list: list.map((x) => ({ id: x.id, lv: x.o ? x.o.lv : 0, tr: x.o ? x.o.tr : null, ml: x.o ? mastOf(x.a) || 0 : 0, pl: placingOf(x.a) ? 1 : 0, ct: x.o ? tagOf(x.a) : "" })) });
       }
     } catch (e) {}
   }
@@ -178,7 +193,8 @@
   // ── the chip ──
   const css = document.createElement("style");
   css.textContent =
-    ".lv-chip{display:inline-block;margin-left:6px;padding:0 6px;border-radius:99px;border:1px solid rgba(255,200,73,.45);background:rgba(255,200,73,.1);color:#ffc849;font:700 10px/15px var(--f-display,system-ui);letter-spacing:.04em;vertical-align:middle;white-space:nowrap}";
+    ".lv-chip{display:inline-block;margin-left:6px;padding:0 6px;border-radius:99px;border:1px solid rgba(255,200,73,.45);background:rgba(255,200,73,.1);color:#ffc849;font:700 10px/15px var(--f-display,system-ui);letter-spacing:.04em;vertical-align:middle;white-space:nowrap}" +
+    ".clan-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:99px;border:1px solid rgba(34,211,238,.5);background:rgba(34,211,238,.1);color:#67e8f9;font:700 10px/15px var(--f-display,system-ui);letter-spacing:.04em;vertical-align:middle;white-space:nowrap}.pm-chips .clan-tag{margin-left:0}";
   document.head.appendChild(css);
   const chipText = (a) => {
     const i = of(a);
@@ -190,7 +206,18 @@
     s.textContent = text;
     return s;
   };
-  window.LV_CHIP = { own, of, mast: mastOf, placing: placingOf, peers: PEER, verified: VER, ask: verifyNow, refresh, forSkill, text: chipText, html: (a) => (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
+  // the tag as a chip: "[TAG]" (the text is only ever letters, digits and Hangul, but is made safe all the same)
+  const tagText = (a) => {
+    const t = tagOf(a);
+    return t ? "[" + t + "]" : "";
+  };
+  const tagChipEl = (text) => {
+    const s = document.createElement("span");
+    s.className = "clan-tag";
+    s.textContent = text;
+    return s;
+  };
+  window.LV_CHIP = { own, of, mast: mastOf, placing: placingOf, peers: PEER, verified: VER, ask: verifyNow, refresh, forSkill, text: chipText, tag: tagOf, tagText, tagEl: tagChipEl, html: (a) => (tagText(a) ? `<span class="clan-tag">${tagText(a)}</span>` : "") + (chipText(a) ? `<span class="lv-chip">${chipText(a)}</span>` : "") };
 
   // ── what travels ──
   const _sa = sendAction;
@@ -235,6 +262,11 @@
     const v = verified(p);
     return v && v.lv ? { lv: v.lv, tr: v.tr } : null;
   };
+  const tagOfPeer = (p) => {
+    if (p === NET.id) return window.CLAN_ME ? tagClean(CLAN_ME.tag) : "";
+    const v = verified(p);
+    return v && v.lv ? v.ct || "" : "";
+  };
   const _ls = lobbySnapshot;
   lobbySnapshot = function () {
     const s = _ls.apply(this, arguments);
@@ -243,6 +275,8 @@
         for (const m of s[t] || []) {
           const i = m && m.peer && infoOfPeer(m.peer);
           i && ((m.lv = i.lv), null != i.tr && (m.tr = i.tr));
+          const ct = i && m.peer && tagOfPeer(m.peer);
+          ct && (m.ct = ct);
         }
     } catch (e) {}
     return s;
@@ -255,6 +289,8 @@
         const a = world.actors[i],
           o = a && of(a);
         o && ((m.lv = o.lv), null != o.tr && (m.tr = o.tr));
+        const ct = o && tagOf(a);
+        ct && (m.ct = ct);
         // the mastery level of the agent it plays, and a tier still hidden
         const ml = o && mastOf(a);
         ml && (m.ml = ml);
@@ -271,7 +307,7 @@
         const a = world.actors.find((x) => x.id === m.id),
           c = clean(m.lv, m.tr);
         a && c && ((a.__lv = c.lv), (a.__tr = c.tr));
-        a && ((a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0));
+        a && ((a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0), (a.__ct = tagClean(m.ct)));
       }
     } catch (err) {}
     return r;
@@ -282,6 +318,8 @@
       if (e && "ctrl" === e.t && e.ctrl && "ai" !== e.ctrl) {
         const i = infoOfPeer(e.ctrl);
         i && ((e.lv = i.lv), null != i.tr && (e.tr = i.tr));
+        const ct = i && tagOfPeer(e.ctrl);
+        ct && (e.ct = ct);
       }
     } catch (err) {}
     return _sea.apply(this, arguments);
@@ -293,14 +331,14 @@
       if (e && "ctrl" === e.t) {
         const a = world.actors.find((x) => x.id === e.id),
           c = clean(e.lv, e.tr);
-        a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null));
+        a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null), (a.__ct = c ? tagClean(e.ct) : ""));
       }
       // the host has heard from the server: the numbers of the guests in a match under way
       if (e && "lvs" === e.t && Array.isArray(e.list))
         for (const m of e.list.slice(0, 24)) {
           const a = m && world.actors.find((x) => x.id === m.id),
             c = a && clean(m.lv, m.tr);
-          a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null), (a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0));
+          a && ((a.__lv = c ? c.lv : 0), (a.__tr = c ? c.tr : null), (a.__ml = whole(m.ml, 1, 10) || 0), (a.__pl = m.pl ? 1 : 0), (a.__ct = c ? tagClean(m.ct) : ""));
         }
     } catch (err) {}
     try {
@@ -329,7 +367,7 @@
         const id = nameOf(peer).toLowerCase();
         if (peer === NET.id || !id || !low[id]) continue;
         const f = fromServer(low[id]);
-        VER.set(peer, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1 });
+        VER.set(peer, { id, lv: f ? f.lv : null, tr: f ? f.tr : null, ms: f ? f.ms : null, pl: f ? f.pl : !1, ct: f ? f.ct : "" });
       }
       changed();
     } catch (e) {}
@@ -344,6 +382,7 @@
         const box = $(id);
         (e[t] || []).forEach((m, i) => {
           const nm = m && m.lv && box && box.children[i] && box.children[i].querySelector(".lb-nm");
+          nm && !nm.querySelector(".clan-tag") && tagClean(m.ct) && nm.appendChild(tagChipEl("[" + tagClean(m.ct) + "]"));
           nm && !nm.querySelector(".lv-chip") && nm.appendChild(chipEl("Lv " + m.lv));
         });
       }

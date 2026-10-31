@@ -10,6 +10,7 @@ const ROSTER = require("../js/agent-roster.json");
 const GAME_RULES = require("../js/game-rules.js");
 const SETTINGS_SYNC = require("../js/settings-sync.js");
 const MAP_WEEK = require("../js/map-week.js");
+const EVENT_MAP = require("../js/event-map.js");
 const { AsyncLocalStorage } = require("async_hooks");
 const requestState = new AsyncLocalStorage();
 const SNAPSHOT = Symbol("storedUser");
@@ -91,12 +92,18 @@ const DEFAULT_CONFIG = {
     // the same for everyone. weekMap switches it; weekMapExclude: keys it never picks, comma separated
     weekMap: !0,
     weekMapExclude: "",
+    // the event map (사막 마을, js/event-map.js): its own box in the map lists while it is on, until the last day
+    // (YYYYMMDD in Korea, that day included; empty = no end)
+    eventMap: !0,
+    eventMapEnd: "20261130",
     // agents the owner switched off (ids, comma separated): they leave the picker, the bots and the random pick
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
     chat: !0,
     // the e-mail address the contact page (contact.html) shows; empty = none shown. Set by the owner, never in the code
     contactEmail: "",
+    // emotes (T): the wheel, the touch button and the bodies that play them; off: the button is gone and every host drops the messages
+    emotes: !0,
   },
   cheat: {
     refillSec: 5,
@@ -154,9 +161,17 @@ const DEFAULT_CONFIG = {
   // surrenderS seconds in the modes without rounds): surrenderVoteS seconds to vote, then surrenderCoolS
   // before the next try; surrenderRound 0 = no surrender.
   rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3, leaveRR: 8, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
+  // the AI competitive match in solo (a rating of its own, u.ai, on the same tier scale; the real rank, seasons and the
+  // leaderboard never move for it). A solo match with a valid ticket, std mode, a 5v5 map, played to 13 rounds counts: a win
+  // adds win + perKill a kill (up to maxKill), a loss takes loss, less half the kill bonus (never under half of loss). A day's
+  // gain has a ceiling, as the result is what the game reports (0 = none). on: switches the whole thing
+  aiComp: { on: !0, win: 18, loss: 10, perKill: 1, maxKill: 8, maxPerDay: 150 },
   // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
   // its tier (1 common … 4 legendary); on switches the whole thing
   cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
+  // clans: a clan costs `cost` gold to make and holds `max` members at most (2 to 50); on switches the whole thing
+  // (the homepage section, the tags beside names in a game and the clan board)
+  clan: { on: !0, cost: 1000, max: 50 },
   // paid cheats, by bank transfer: a player picks cheats and a length, gets an order number and the
   // account to pay (set here, never in the repository), and the owner opens them in the admin page
   // once the money has arrived. price is for 7 days; dur multiplies it by length (d0 = permanent).
@@ -446,6 +461,10 @@ function rankInit(u) {
 }
 // what the account shows: the tier while placing is hidden
 const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankOf(0), { hidden: !0 }) : rankOf(u.rr));
+// ── the AI competitive rating (u.ai = {rr, played, w, best}): the tier scale of the real rank, a number of its own ──
+const aiOf = (u) => (isObj(u.ai) ? u.ai : { rr: 0, played: 0, w: 0, best: 0 });
+const aiView = (u) => { if (u.guest) return null; const a = aiOf(u), rr = Math.max(0, Math.round(+a.rr) || 0); return Object.assign(rankOf(rr), { played: a.played | 0, w: a.w | 0, best: Math.max(rr, Math.round(+a.best) || 0) }); };
+const AIC = { target: 13, players: 10, minMs: 150 * 1000 };
 // ── mastery of each agent (u.mast[agentId] = {xp, m: matches, w: wins, k: kills}) ──
 const MAST_MAX = 10;
 // the owner's numbers, as the last loadConfig() read them (publicUser has no config to hand)
@@ -507,7 +526,7 @@ function achAward(u, win, mode, agent) {
 }
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), ai: aiView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -776,15 +795,18 @@ function trimPicks(u) {
 // ── public actions ──
 const A = {};
 // the rank settings a game needs to run leaving, AFK and surrender (not the RR numbers)
+const publicAiComp = (A) => ({ on: !!A.on, win: Math.max(0, Math.round(+A.win) || 0), loss: Math.max(0, Math.round(+A.loss) || 0), perKill: Math.max(0, Math.round(+A.perKill) || 0), maxKill: Math.max(0, Math.round(+A.maxKill) || 0), maxPerDay: Math.max(0, Math.round(+A.maxPerDay) || 0) });
 const publicRank = (R) => { const o = {}; for (const k of ["minHumans", "leaveGraceS", "afkWarnS", "afkLeaveS", "surrenderRound", "surrenderS", "surrenderVoteS", "surrenderCoolS"]) o[k] = Math.max(0, Math.round(+R[k]) || 0); return o; };
 // the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
 const weekMapOf = (c, t) => {
   const m = MAP_WEEK.choose(t, !1 !== c.game.weekMap, c.game.weekMapExclude);
   return m ? { key: m.key, week: m.week, until: m.until } : null;
 };
+// the event map for the time: { key, last, until } or null when it is switched off or its last day is over
+const eventMapOf = (c, t) => EVENT_MAP.choose(t, !1 !== c.game.eventMap, c.game.eventMapEnd);
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, aiComp: publicAiComp(c.aiComp), rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -1011,7 +1033,7 @@ A.skin_check = async (q, b) => {
 // small things the game keeps per account: the touch-button layout (part →
 // [x, y, size]); the newer of two devices wins, as with the skins. And the player's settings (sensitivity, crosshair,
 // volumes, keys ...: js/settings-sync.js), each one with its own time so the newest of each wins
-const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
+const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tb-emote", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
@@ -1828,7 +1850,7 @@ async function matchTrust(u, ticket) {
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
   if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
-  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, ms, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
 // ── ranked match attestation ──
 // RR and MMR are never taken from what a player reports about himself. The host of a ranked
@@ -1935,6 +1957,7 @@ A.ranked_start = async (q, b) => {
   if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
   const per = (await loadConfig()).xp.perLevel, lv = Object.create(null);
   for (const x of ok.values()) ((mmr[x.id] = mmrOf(x)), (lv[x.id] = lvInfo(x, per)));
+  await clanTagsInto([...ok.values()].map((x) => [x, lv[x.id]]), await loadConfig());
   const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
   // a team with no human takes the other's average (bots are the same strength)
   const avgA = avg(a) ?? avg(bb), avgB = avg(bb) ?? avg(a);
@@ -2072,6 +2095,7 @@ A.levels = async (q, b) => {
   const users = Object.create(null);
   for (const id of ids) users[id] = lvInfo(null);
   valid.forEach((id, i) => (users[id] = lvInfo(recs[i], per)));
+  await clanTagsInto(valid.map((id, i) => [recs[i], users[id]]), await loadConfig());
   return { users };
 };
 // the season's top accounts by RR: only placed accounts that played ranked this season
@@ -2144,6 +2168,16 @@ function masteryAward(u, c, name, win, kills, left) {
   const lv = mastLevel(r.xp), up = lv - before;
   const gold = up > 0 ? Math.max(0, Math.min(up * Math.max(0, +M.gold || 0), Math.max(0, +M.maxGold || 0), left)) : 0;
   return { id, gain: Math.floor(gain), lv, before, up, gold };
+}
+// The AI competitive match counts for the AI rating when: the client reports it as one (match.aic), it is a solo match (no
+// ranked ticket, no roster of humans), standard mode on a 5v5 map (ten in the match), played to the end (one side at 13
+// rounds, the other under it, and the report's win is that side's) and long enough for that many rounds. Guests have no rating.
+function aiCompVerdict(u, c, trust, b, rkv, win, quit) {
+  const A = c.aiComp, m = b.match;
+  if (!A || !A.on || !isObj(m) || m.aic !== 1) return null;
+  const s = Array.isArray(m.s) ? [Math.round(+m.s[0]), Math.round(+m.s[1])] : [NaN, NaN], top = Math.max(s[0], s[1]);
+  const why = u.guest ? "guest" : trust.ranked || rkv || b.humans ? "not_solo" : quit ? "left" : "std" !== m.mode ? "mode" : m.n !== AIC.players ? "size" : !(top === AIC.target && Math.min(s[0], s[1]) >= 0 && Math.min(s[0], s[1]) < AIC.target) ? "unfinished" : trust.ms < AIC.minMs ? "too_short" : win !== s[0] > s[1] ? "mismatch" : "";
+  return { ok: !why, why };
 }
 A.progress = async (q, b) => {
   const c = await loadConfig(),
@@ -2248,10 +2282,25 @@ A.progress = async (q, b) => {
     u.rmDone = [rkv.m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
     isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
   }
+  // the AI competitive rating: only for a solo match the client reports as one and the server finds whole (see aiCompVerdict);
+  // it reads nothing the real rank reads and writes none of it
+  const aiV = aiCompVerdict(u, c, trust, b, rkv, win, quit), aiBefore = aiV ? aiView(u) : null;
+  let aiD = 0, aiRaw = 0;
+  if (aiV && aiV.ok) {
+    const a = aiOf(u), a0 = Math.max(0, Math.round(+a.rr) || 0), A = c.aiComp, acap = Math.max(0, +A.maxPerDay || 0);
+    (isObj(u.aiDay) && u.aiDay.d === day) || (u.aiDay = { d: day, n: 0 });
+    aiD = aiRaw = rrDelta(A, win, 0.5, kills);
+    aiD > 0 && acap > 0 && (aiD = Math.min(aiD, Math.max(0, acap - (u.aiDay.n || 0))));
+    const rr1 = Math.max(0, a0 + aiD);
+    aiD = rr1 - a0;
+    aiD > 0 && (u.aiDay.n = (u.aiDay.n || 0) + aiD);
+    u.ai = { rr: rr1, played: (a.played | 0) + 1, w: (a.w | 0) + (win ? 1 : 0), best: Math.max(rr1, Math.round(+a.best) || 0) };
+  }
   u.xp = (u.xp || 0) + gain + fwXp;
   u.xpDay.n = (u.xpDay.n || 0) + gain + fwXp;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
+  m && aiV && aiV.ok && (m.ac = 1);
   m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
@@ -2261,7 +2310,7 @@ A.progress = async (q, b) => {
   const ach = achAward(u, win, mode, agent);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach, ai: aiV ? { counted: !!aiV.ok, why: aiV.why || "", rr: aiD, before: aiBefore, after: aiView(u), capped: !!aiV.ok && aiD < aiRaw } : null };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   // settled: this match no longer waits to be judged as a leave
   trust.ranked && (await redis(["GET", rmOpenKey(u.id)])) === trust.m && (await redis(["DEL", rmOpenKey(u.id)]));
@@ -2269,8 +2318,10 @@ A.progress = async (q, b) => {
   if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
     try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
   }
+  // the all-time boards (kills, XP, wins, matches played) and the clan's XP
+  await boardsAfterMatch(u, gain + fwXp);
   // the account's own log gets the hidden MMR too: it is read on the owner page only
-  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
+  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${aiV ? " · AI경쟁전" + (aiV.ok ? " " + (aiD >= 0 ? "+" : "") + aiD : " 미반영(" + aiV.why + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ai: aiV && aiV.ok ? [aiBefore.rr, u.ai.rr] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
@@ -2737,6 +2788,7 @@ ADMIN.user_profile = async (q, b) => {
     permActive: !!activePerm(u), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
+    ai: aiView(u),
     season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,
     seasonLog: Array.isArray(u.ssnLog) ? u.ssnLog.slice(0, 12) : [],
     owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
@@ -2977,7 +3029,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000], "aiComp.win": [0, 1000], "aiComp.loss": [0, 1000], "aiComp.perKill": [0, 100], "aiComp.maxKill": [0, 1000], "aiComp.maxPerDay": [0, 100000] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -2994,8 +3046,13 @@ function validateConfig(c) {
   c.game.promoNotice = !!c.game.promoNotice;
   c.game.contactEmail = String(c.game.contactEmail == null ? "" : c.game.contactEmail).trim();
   if (c.game.contactEmail && (c.game.contactEmail.length > 80 || !/^[^\s@<>"'&]+@[^\s@<>"'&]+\.[^\s@<>"'&]+$/.test(c.game.contactEmail))) throw fail(400, "문의 이메일 형식을 확인해 주세요");
+  c.game.eventMap = !!c.game.eventMap;
+  c.game.eventMapEnd = c.game.eventMapEnd == null ? "" : String(c.game.eventMapEnd).trim();
+  if (c.game.eventMapEnd && !EVENT_MAP.valid(c.game.eventMapEnd)) throw fail(400, "이벤트 맵의 마지막 날을 확인해 주세요 (예: 20261130, 비우면 끝나는 날 없음)");
+  c.clan.on = !!c.clan.on;
+  if (c.clan.max < 2 || c.clan.max > 50) throw fail(400, "설정 범위를 확인해 주세요: clan.max");
   c.mastery.on = !!c.mastery.on;
-  for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
+  for (const k of ["lvReward", "firstWin", "mission2", "ach", "aiComp"]) c[k].on = !!c[k].on;
   for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
     const [lv, id] = part.split(":");
     if (!/^\d{1,3}$/.test(lv) || +lv < 2 || (id !== undefined && !COS_BY[id.trim()])) throw fail(400, "레벨 보상 목록을 확인해 주세요 (예: 5:scout,10:neoncity): " + part);
@@ -3010,6 +3067,400 @@ function validateConfig(c) {
   const slots = Object.values(c.shop.mix).reduce((a, b) => a + b, 0);
   if (slots < 1 || slots > 40) throw fail(400, "상점 칸 수(등급별 개수의 합)는 1~40개여야 합니다");
 }
+
+// ── clans ──
+// A clan is `clan:<id>` = { id, name, tag, desc, owner, members: [{ id, at }] (oldest first), at }. The unique name and tag are
+// reserved by `cname:<key>` / `ctag:<key>` (the clan's id; the key is the text in lower case, a name's spaces left out), and the
+// sorted set `clans` lists every clan as "<name key>|<tag key>|<id>" (score 0) for the search. An account holds its clan's id in
+// `u.clan`. Every change that touches the clan and an account together (or the reservations, the index and the clan board) goes
+// through casMulti: ONE script that checks that the keys it read are still as read and only then writes them all, so two
+// parallel joins into the last seat cannot both get in and a name cannot be taken twice. A request that lost the race is run
+// again from fresh data (retryUser, as for the account record). u.clan is believed only while the clan lists the account.
+const WORD_FILTER = require("../js/word-filter.js");
+const CLAN_SEAT_MAX = 50, CLAN_DESC_MAX = 60, CLAN_INDEX = "clans";
+const BOARDS = { kills: "lb:all:kills", level: "lb:all:xp", wins: "lb:all:wins", matches: "lb:all:matches", clan: "lb:all:clan" };
+const MULTI_CAS = `-- multi-cas
+local m = tonumber(ARGV[1])
+for i = 1, m do
+  if (redis.call('GET', KEYS[i]) or '') ~= ARGV[i + 1] then return 0 end
+end
+for _, op in ipairs(cjson.decode(ARGV[m + 2])) do
+  local cmd = {op[1], KEYS[op[2]]}
+  for j = 3, #op do cmd[#cmd + 1] = op[j] end
+  redis.call(unpack(cmd))
+end
+return 1`;
+// guards: [[key, the value read (null: not there)]]; ops: [[command, key, ...args]]. true when all were written.
+async function casMulti(guards, ops) {
+  const keys = guards.map((g) => g[0]);
+  const wire = ops.map((o) => {
+    let at = keys.indexOf(o[1]);
+    at < 0 && (at = keys.push(o[1]) - 1);
+    return [o[0], at + 1, ...o.slice(2).map(String)];
+  });
+  return +(await redis(["EVAL", MULTI_CAS, String(keys.length), ...keys, String(guards.length), ...guards.map((g) => (g[1] == null ? "" : g[1])), JSON.stringify(wire)])) === 1;
+}
+const retryAgain = () => Object.assign(fail(409, "다른 요청과 겹쳤습니다. 다시 시도해 주세요"), { retryUser: true });
+const clanOn = (c) => { if (!c.clan.on) throw fail(403, "클랜은 지금 쓸 수 없습니다"); };
+const clanId = (v) => (/^[0-9a-f]{12}$/.test(String(v || "")) ? String(v) : "");
+const cKey = (id) => "clan:" + id, cNameKey = (k) => "cname:" + k, cTagKey = (k) => "ctag:" + k;
+const nameKeyOf = (n) => String(n).toLowerCase().replace(/ /g, ""), tagKeyOf = (t) => String(t).toLowerCase();
+const clanIdx = (cl) => nameKeyOf(cl.name) + "|" + tagKeyOf(cl.tag) + "|" + cl.id;
+const CLAN_JUNK = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff<>&"]/g;
+const cleanClanName = (v) => String(v == null ? "" : v).replace(CLAN_JUNK, "").replace(/\s+/g, " ").trim();
+const cleanClanDesc = (v) => String(v == null ? "" : v).replace(CLAN_JUNK, " ").replace(/\s+/g, " ").trim();
+// the name and tag a clan is made with (or renamed to): shape, then the swear filter the chat uses
+// (the owner, renaming, is trusted with the words)
+function checkClanText(name, tag, trusted) {
+  if (name !== undefined && (name.length < 2 || name.length > 16 || !/^[A-Za-z0-9가-힣]+(?: [A-Za-z0-9가-힣]+)*$/.test(name))) throw fail(400, "클랜 이름은 2~16자 (한글·영문·숫자, 낱말 사이 띄어쓰기 하나)");
+  if (tag !== undefined && !/^[A-Za-z0-9가-힣]{2,4}$/.test(tag)) throw fail(400, "클랜 태그는 2~4자 (한글·영문·숫자)");
+  if (!trusted && ((name !== undefined && (WORD_FILTER.has(name) || WORD_FILTER.has(name.replace(/ /g, "")))) || (tag !== undefined && WORD_FILTER.has(tag)))) throw fail(400, "쓸 수 없는 말이 들어 있습니다");
+}
+function checkClanDesc(desc) {
+  if (desc.length > CLAN_DESC_MAX) throw fail(400, `클랜 소개는 ${CLAN_DESC_MAX}자까지입니다`);
+  if (WORD_FILTER.has(desc)) throw fail(400, "쓸 수 없는 말이 들어 있습니다");
+}
+const userJson = (u) => JSON.stringify(Object.assign({}, u, { _s: undefined }));
+async function clanRead(id) {
+  if (!id) return { clan: null, raw: null };
+  const raw = await redis(["GET", cKey(id)]);
+  return { clan: raw ? JSON.parse(raw) : null, raw: raw || null };
+}
+const inClan = (cl, id) => !!cl && cl.members.some((m) => String(m.id).toLowerCase() === String(id).toLowerCase());
+// the clan an account really belongs to (its u.clan counts only while the clan still lists it)
+async function clanOfUser(u) {
+  const { clan, raw } = await clanRead(clanId(u.clan));
+  return inClan(clan, u.id) ? { clan, raw } : null;
+}
+function clanSeats(c) { return Math.max(2, Math.min(CLAN_SEAT_MAX, Math.floor(+c.clan.max) || CLAN_SEAT_MAX)); }
+// the clan with its members' levels (read from the accounts) and its XP; the clan board's number is set right while at it
+async function clanView(cl, c) {
+  const recs = (await pipe(cl.members.map((m) => ["GET", userKey(m.id)]))).map((x) => (x ? JSON.parse(x) : null));
+  const members = cl.members.map((m, i) => {
+    const r = recs[i];
+    return { id: r ? r.id : m.id, level: r ? levelOf(r.xp || 0, c.xp.perLevel).level : 1, xp: r ? r.xp || 0 : 0, role: String(m.id).toLowerCase() === String(cl.owner).toLowerCase() ? "owner" : "member", at: m.at };
+  });
+  const xp = members.reduce((s, m) => s + m.xp, 0);
+  try { await redis(["ZADD", BOARDS.clan, String(xp), cl.id]); } catch (e) {}
+  return { id: cl.id, name: cl.name, tag: cl.tag, desc: cl.desc || "", owner: cl.owner, n: members.length, max: clanSeats(c), xp, at: cl.at, members };
+}
+const clanBrief = (cl, c) => ({ id: cl.id, name: cl.name, tag: cl.tag, desc: cl.desc || "", n: cl.members.length, max: clanSeats(c) });
+const clanPublicCfg = (c) => ({ on: !!c.clan.on, cost: Math.max(0, Math.floor(+c.clan.cost) || 0), max: clanSeats(c) });
+const outOfClan = (u) => { delete u.clan; };
+
+// my clan (null: none), and the numbers the homepage needs
+A.clan_mine = async (q, b) => {
+  const c = await loadConfig(), u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  const cfg = clanPublicCfg(c);
+  if (!cfg.on || u.guest) return { clan: null, cfg };
+  const m = await clanOfUser(u);
+  return { clan: m ? await clanView(m.clan, c) : null, cfg };
+};
+A.clan_get = async (q, b) => {
+  const c = await loadConfig();
+  clanOn(c);
+  if (await limited("clanq:" + (requestState.getStore()?.get("requestIp") || "-"), 120, 60)) throw fail(429, "너무 자주 보냈습니다");
+  const { clan } = await clanRead(clanId(b.id));
+  if (!clan) throw fail(404, "없는 클랜입니다");
+  return { clan: await clanView(clan, c) };
+};
+// by name or tag (a piece of either, any case); no text: the clans with the most XP
+A.clan_search = async (q, b) => {
+  const c = await loadConfig();
+  clanOn(c);
+  if (await limited("clanq:" + (requestState.getStore()?.get("requestIp") || "-"), 120, 60)) throw fail(429, "너무 자주 보냈습니다");
+  const text = String(b.q == null ? "" : b.q).toLowerCase().replace(/[\s|]/g, "").slice(0, 16);
+  let ids;
+  if (!text) ids = (await redis(["ZRANGE", BOARDS.clan, "0", "19", "REV"])) || [];
+  else {
+    const hits = ((await redis(["ZRANGE", CLAN_INDEX, "0", "-1"])) || []).map((x) => x.split("|")).filter(([nk, tk]) => nk.includes(text) || tk.includes(text));
+    // a tag that is exactly the text first, then names and tags that start with it, then the rest by name
+    const rank = ([nk, tk]) => (tk === text ? 0 : nk === text ? 1 : tk.startsWith(text) || nk.startsWith(text) ? 2 : 3);
+    ids = hits.sort((p, r) => rank(p) - rank(r) || (p[0] < r[0] ? -1 : p[0] > r[0] ? 1 : 0)).slice(0, 20).map((x) => x[2]);
+  }
+  const recs = ids.length ? (await pipe(ids.map((id) => ["GET", cKey(id)]))).map((x) => (x ? JSON.parse(x) : null)) : [];
+  return { clans: recs.filter(Boolean).map((cl) => clanBrief(cl, c)), cfg: clanPublicCfg(c) };
+};
+A.clan_create = async (q, b) => {
+  const c = await loadConfig();
+  clanOn(c);
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요");
+  const name = cleanClanName(b.name), tag = cleanClanName(b.tag), desc = cleanClanDesc(b.desc);
+  checkClanText(name, tag);
+  checkClanDesc(desc);
+  // a typo does not count: only a try that got as far as the name being looked up
+  if (await limited("clanmk:" + u.id, 10, 3600)) throw fail(429, "너무 자주 보냈습니다");
+  if (await clanOfUser(u)) throw fail(409, "이미 클랜에 들어 있습니다");
+  ensureWallet(u, c);
+  const cost = Math.max(0, Math.floor(+c.clan.cost) || 0);
+  if (u.gold < cost) throw fail(402, `골드가 부족합니다 (${cost.toLocaleString()} 필요)`);
+  const cl = { id: crypto.randomBytes(6).toString("hex"), name, tag, desc, owner: u.id, members: [{ id: u.id, at: now() }], at: now() };
+  u.gold -= cost;
+  u.clan = cl.id;
+  const ok = await casMulti(
+    [[userKey(u.id), u[SNAPSHOT]], [cKey(cl.id), null], [cNameKey(nameKeyOf(name)), null], [cTagKey(tagKeyOf(tag)), null]],
+    [["SET", userKey(u.id), userJson(u)], ["SET", cKey(cl.id), JSON.stringify(cl)], ["SET", cNameKey(nameKeyOf(name)), cl.id], ["SET", cTagKey(tagKeyOf(tag)), cl.id], ["ZADD", CLAN_INDEX, "0", clanIdx(cl)], ["ZADD", BOARDS.clan, String(u.xp || 0), cl.id]]
+  );
+  if (!ok) {
+    const [n, t] = await pipe([["GET", cNameKey(nameKeyOf(name))], ["GET", cTagKey(tagKeyOf(tag))]]);
+    if (n) throw fail(409, "이미 있는 클랜 이름입니다");
+    if (t) throw fail(409, "이미 있는 클랜 태그입니다");
+    throw retryAgain();
+  }
+  await ulog(u.id, "clan", `클랜 만들기 [${tag}] ${name}`, { dg: -cost, gold: u.gold });
+  return { clan: await clanView(cl, c), gold: u.gold };
+};
+A.clan_join = async (q, b) => {
+  const c = await loadConfig();
+  clanOn(c);
+  const u = await who(b.token);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요");
+  if (await limited("clanjn:" + u.id, 10, 600)) throw fail(429, "너무 자주 보냈습니다");
+  if (await clanOfUser(u)) throw fail(409, "이미 클랜에 들어 있습니다");
+  const { clan: cl, raw } = await clanRead(clanId(b.id));
+  if (!cl) throw fail(404, "없는 클랜입니다");
+  if (cl.members.length >= clanSeats(c)) throw fail(409, "클랜이 가득 찼습니다");
+  const next = Object.assign({}, cl, { members: cl.members.concat({ id: u.id, at: now() }) });
+  u.clan = cl.id;
+  const ok = await casMulti([[cKey(cl.id), raw], [userKey(u.id), u[SNAPSHOT]]], [["SET", cKey(cl.id), JSON.stringify(next)], ["SET", userKey(u.id), userJson(u)], ["ZINCRBY", BOARDS.clan, String(u.xp || 0), cl.id]]);
+  if (!ok) throw retryAgain();
+  await ulog(u.id, "clan", `클랜 가입 [${cl.tag}] ${cl.name}`, { clan: cl.id });
+  return { clan: await clanView(next, c) };
+};
+// the commands that take `id` out of a clan (read as `cl`, `raw`): the clan goes with its last member, and the
+// oldest member takes over when the owner goes. `rec`: the account's record, which loses its u.clan (null: gone)
+function clanDrop(cl, raw, id, rec, xp = rec ? rec.xp || 0 : 0) {
+  const rest = cl.members.filter((m) => String(m.id).toLowerCase() !== String(id).toLowerCase());
+  const guards = [[cKey(cl.id), raw]], ops = [];
+  if (rec) { guards.push([userKey(rec.id), rec[SNAPSHOT]]); outOfClan(rec); ops.push(["SET", userKey(rec.id), userJson(rec)]); }
+  if (!rest.length) ops.push(["DEL", cKey(cl.id)], ["DEL", cNameKey(nameKeyOf(cl.name))], ["DEL", cTagKey(tagKeyOf(cl.tag))], ["ZREM", CLAN_INDEX, clanIdx(cl)], ["ZREM", BOARDS.clan, cl.id]);
+  else {
+    const owner = String(cl.owner).toLowerCase() === String(id).toLowerCase() ? rest[0].id : cl.owner;
+    ops.push(["SET", cKey(cl.id), JSON.stringify(Object.assign({}, cl, { owner, members: rest }))], ["ZINCRBY", BOARDS.clan, String(-xp), cl.id]);
+  }
+  return { guards, ops, rest };
+}
+A.clan_leave = async (q, b) => {
+  const c = await loadConfig(), u = await who(b.token);
+  clanOn(c);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요");
+  if (await limited("clanlv:" + u.id, 10, 600)) throw fail(429, "너무 자주 보냈습니다");
+  const m = await clanOfUser(u);
+  if (!m) {
+    // a pointer to a clan that is gone or no longer lists the account: just cleared
+    if (u.clan) { outOfClan(u); await saveUser(u); return { clan: null }; }
+    throw fail(409, "클랜에 들어 있지 않습니다");
+  }
+  const d = clanDrop(m.clan, m.raw, u.id, u);
+  if (!(await casMulti(d.guards, d.ops))) throw retryAgain();
+  await ulog(u.id, "clan", `클랜 탈퇴 [${m.clan.tag}] ${m.clan.name}`, { clan: m.clan.id });
+  return { clan: null };
+};
+A.clan_kick = async (q, b) => {
+  const c = await loadConfig(), u = await who(b.token);
+  clanOn(c);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요");
+  if (await limited("clanop:" + u.id, 30, 600)) throw fail(429, "너무 자주 보냈습니다");
+  const m = await clanOfUser(u);
+  if (!m) throw fail(409, "클랜에 들어 있지 않습니다");
+  if (String(m.clan.owner).toLowerCase() !== u.id.toLowerCase()) throw fail(403, "클랜장만 할 수 있습니다");
+  const target = cleanId(b.id);
+  if (target.toLowerCase() === u.id.toLowerCase()) throw fail(400, "자기 자신은 내보낼 수 없습니다");
+  if (!inClan(m.clan, target)) throw fail(404, "그 사람은 이 클랜에 없습니다");
+  const rec = await getJ(userKey(target));
+  // an account that is gone (deleted) is only taken off the list
+  const d = clanDrop(m.clan, m.raw, target, rec && rec.clan === m.clan.id ? rec : null);
+  rec || d.guards.push([userKey(target), null]);
+  if (!(await casMulti(d.guards, d.ops))) throw retryAgain();
+  await ulog(u.id, "clan", `클랜원 내보냄 ${target}`, { clan: m.clan.id });
+  rec && (await ulog(rec.id, "clan", `클랜에서 내보내짐 [${m.clan.tag}] ${m.clan.name}`, { clan: m.clan.id }));
+  return { clan: await clanView(Object.assign({}, m.clan, { members: d.rest }), c) };
+};
+A.clan_edit = async (q, b) => {
+  const c = await loadConfig(), u = await who(b.token);
+  clanOn(c);
+  if (!u) throw fail(401, "다시 로그인해 주세요");
+  if (u.guest) throw fail(403, "게스트는 클랜을 쓸 수 없습니다. 계정을 만들어 주세요");
+  if (await limited("clanop:" + u.id, 30, 600)) throw fail(429, "너무 자주 보냈습니다");
+  const m = await clanOfUser(u);
+  if (!m) throw fail(409, "클랜에 들어 있지 않습니다");
+  if (String(m.clan.owner).toLowerCase() !== u.id.toLowerCase()) throw fail(403, "클랜장만 할 수 있습니다");
+  const desc = cleanClanDesc(b.desc);
+  checkClanDesc(desc);
+  const next = Object.assign({}, m.clan, { desc });
+  if (!(await casMulti([[cKey(m.clan.id), m.raw]], [["SET", cKey(m.clan.id), JSON.stringify(next)]]))) throw retryAgain();
+  return { clan: await clanView(next, c) };
+};
+
+// the tags beside names in a game: [[account record, the answer about it]] gets `clan` (the tag) on each answer whose account
+// is in a clan that lists it. Only the server's data: a client never sends a tag.
+async function clanTagsInto(pairs, c) {
+  if (!c.clan.on) return;
+  const ids = [...new Set(pairs.map(([r]) => r && !r.guest && clanId(r.clan)).filter(Boolean))];
+  if (!ids.length) return;
+  const got = (await pipe(ids.map((id) => ["GET", cKey(id)]))).map((x) => (x ? JSON.parse(x) : null));
+  const by = new Map(ids.map((id, i) => [id, got[i]]));
+  for (const [r, out] of pairs) {
+    const cl = r && !r.guest ? by.get(clanId(r.clan)) : null;
+    cl && inClan(cl, r.id) && (out.clan = cl.tag);
+  }
+}
+
+// ── the all-time boards ──
+// Sorted sets with the account (lower case) as the member: kills, XP (the level), wins and matches played, written by a match
+// with a valid ticket (A.progress: boardsAfterMatch) as the account's own totals, so an account from before the boards
+// is on them with everything it has the first time it finishes a match. A guest, a banned account and one the owner
+// deleted are left out (the owner page takes them off; the list also checks). The clan board is ZINCRBY by the XP its members
+// earn, plus or minus the XP of one who joins or leaves, and is set right whenever the clan is looked at. The clan board counts the
+// sum of the members' XP and not their wins: a day's XP has a ceiling for each account (xp.maxPerDay), so a clan grows with
+// how many play and how much, and one account cannot lift it past what it could earn in a day.
+async function boardsAfterMatch(u, xpGain) {
+  if (u.guest) return;
+  const id = u.id.toLowerCase(), cmds = [["ZADD", BOARDS.kills, String(u.kills | 0), id], ["ZADD", BOARDS.level, String(u.xp || 0), id], ["ZADD", BOARDS.wins, String(u.wins | 0), id], ["ZADD", BOARDS.matches, String(u.matches | 0), id]];
+  clanId(u.clan) && xpGain > 0 && cmds.push(["ZINCRBY", BOARDS.clan, String(xpGain), u.clan]);
+  try { await pipe(cmds); } catch (e) {}
+}
+const BOARD_MAX = 100;
+const boardCache = new Map();
+const banned = (x) => !!(x.ban && (!x.ban.until || x.ban.until > now()));
+async function boardTop(kind, n, c) {
+  const hit = boardCache.get(kind);
+  if (hit && hit.until > now() && hit.size >= n) return hit.rows.slice(0, n);
+  const flat = (await redis(["ZRANGE", BOARDS[kind], "0", String(n * 2 - 1), "REV", "WITHSCORES"])) || [], ids = [], score = [];
+  for (let i = 0; i < flat.length; i += 2) { ids.push(flat[i]); score.push(+flat[i + 1]); }
+  let rows;
+  if ("clan" === kind) {
+    const recs = ids.length ? (await pipe(ids.map((id) => ["GET", cKey(id)]))).map((x) => (x ? JSON.parse(x) : null)) : [];
+    const gone = ids.filter((id, i) => !recs[i]);
+    if (gone.length) try { await pipe(gone.map((id) => ["ZREM", BOARDS.clan, id])); } catch (e) {}
+    rows = recs.map((cl, i) => (cl ? { id: cl.id, name: cl.name, tag: cl.tag, n: cl.members.length, v: score[i] } : null)).filter(Boolean);
+  } else {
+    const recs = ids.length ? (await pipe(ids.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null)) : [];
+    rows = [];
+    const pairs = [];
+    recs.forEach((x, i) => {
+      if (!x || x.guest || banned(x)) return;
+      const row = { name: x.id, v: score[i] };
+      "level" === kind && (row.lv = levelOf(score[i], c.xp.perLevel).level);
+      rows.push(row);
+      pairs.push([x, row]);
+    });
+    await clanTagsInto(pairs, c);
+  }
+  rows = rows.slice(0, n).map((r, i) => Object.assign({ pos: i + 1 }, r));
+  boardCache.set(kind, { rows, size: n, until: now() + 10000 });
+  return rows;
+}
+// where the signed-in account stands on the board, whether or not it is in the top list: { pos (null: not listed yet), v }
+async function boardMe(kind, token, c) {
+  let u;
+  try { u = await who(token); } catch (e) { return null; }
+  if (!u || u.guest) return null;
+  const mem = "clan" === kind ? ((await clanOfUser(u)) || {}).clan : null;
+  if ("clan" === kind && !mem) return null;
+  const member = "clan" === kind ? mem.id : u.id.toLowerCase();
+  const [rank, sc] = await pipe([["ZREVRANK", BOARDS[kind], member], ["ZSCORE", BOARDS[kind], member]]);
+  const own = { kills: u.kills | 0, level: u.xp || 0, wins: u.wins | 0, matches: u.matches | 0 }[kind];
+  const out = { name: "clan" === kind ? mem.name : u.id, pos: rank == null ? null : rank + 1, v: sc == null ? own : +sc };
+  "clan" === kind ? (out.tag = mem.tag) : "level" === kind && (out.lv = levelOf(out.v, c.xp.perLevel).level);
+  return out;
+}
+A.board = async (q, b) => {
+  const kind = Object.hasOwn(BOARDS, b.kind) ? b.kind : "", c = await loadConfig();
+  if (!kind) throw fail(400, "순위표를 고르세요");
+  if (await limited("board:" + (requestState.getStore()?.get("requestIp") || "-"), 60, 60)) throw fail(429, "너무 자주 보냈습니다");
+  const n = Math.max(1, Math.min(BOARD_MAX, Math.round(+b.n) || 50));
+  if ("clan" === kind && !c.clan.on) return { kind, rows: [], me: null, off: true };
+  const rows = await boardTop(kind, n, c);
+  return { kind, rows, me: b.token ? await boardMe(kind, b.token, c) : null };
+};
+
+// ── the owner's side of the clans ──
+// one clan with its members (the public clan_get is closed while clans are switched off)
+ADMIN.clan_get = async (q, b) => {
+  const { clan: cl } = await clanRead(clanId(b.id));
+  if (!cl) throw fail(404, "없는 클랜입니다");
+  return { clan: await clanView(cl, await loadConfig()) };
+};
+ADMIN.clans = async (q, b) => {
+  const c = await loadConfig(), text = String(b.q == null ? "" : b.q).toLowerCase().replace(/[\s|]/g, "").slice(0, 16);
+  const all = ((await redis(["ZRANGE", CLAN_INDEX, "0", "-1"])) || []).map((x) => x.split("|")).filter(([nk, tk]) => !text || nk.includes(text) || tk.includes(text));
+  const page = all.slice((b.page | 0) * 50, (b.page | 0) * 50 + 50);
+  const recs = page.length ? (await pipe(page.map((x) => ["GET", cKey(x[2])]))).map((x) => (x ? JSON.parse(x) : null)) : [];
+  return { total: all.length, clans: recs.filter(Boolean).map((cl) => Object.assign(clanBrief(cl, c), { owner: cl.owner, at: cl.at })) };
+};
+// take the pointer off an account that was in the clan (the clan is gone); one that cannot be reached is cleared the next time it is read
+async function clanUnlink(id, clan) {
+  for (let i = 0; i < 4; i++) {
+    const r = await getJ(userKey(id));
+    if (!r || r.clan !== clan) return;
+    outOfClan(r);
+    try { await saveUser(r); return; } catch (e) { if (!e.retryUser) return; }
+  }
+}
+ADMIN.clan_delete = async (q, b) => {
+  const { clan: cl, raw } = await clanRead(clanId(b.id));
+  if (!cl) throw fail(404, "없는 클랜입니다");
+  const ok = await casMulti([[cKey(cl.id), raw]], [["DEL", cKey(cl.id)], ["DEL", cNameKey(nameKeyOf(cl.name))], ["DEL", cTagKey(tagKeyOf(cl.tag))], ["ZREM", CLAN_INDEX, clanIdx(cl)], ["ZREM", BOARDS.clan, cl.id]]);
+  if (!ok) throw retryAgain();
+  for (const m of cl.members) await clanUnlink(m.id, cl.id);
+  await log("admin", `클랜 삭제: [${cl.tag}] ${cl.name}`);
+  return { ok: !0 };
+};
+// a new name and/or tag (the shape is checked, the swear filter is not: the owner decides); each stays unique
+ADMIN.clan_rename = async (q, b) => {
+  const { clan: cl, raw } = await clanRead(clanId(b.id));
+  if (!cl) throw fail(404, "없는 클랜입니다");
+  const name = b.name == null || "" === String(b.name).trim() ? cl.name : cleanClanName(b.name), tag = b.tag == null || "" === String(b.tag).trim() ? cl.tag : cleanClanName(b.tag);
+  checkClanText(name === cl.name ? undefined : name, tag === cl.tag ? undefined : tag, true);
+  const next = Object.assign({}, cl, { name, tag }), guards = [[cKey(cl.id), raw]], ops = [["SET", cKey(cl.id), JSON.stringify(next)], ["ZREM", CLAN_INDEX, clanIdx(cl)], ["ZADD", CLAN_INDEX, "0", clanIdx(next)]];
+  if (nameKeyOf(name) !== nameKeyOf(cl.name)) { guards.push([cNameKey(nameKeyOf(name)), null]); ops.push(["DEL", cNameKey(nameKeyOf(cl.name))], ["SET", cNameKey(nameKeyOf(name)), cl.id]); }
+  if (tagKeyOf(tag) !== tagKeyOf(cl.tag)) { guards.push([cTagKey(tagKeyOf(tag)), null]); ops.push(["DEL", cTagKey(tagKeyOf(cl.tag))], ["SET", cTagKey(tagKeyOf(tag)), cl.id]); }
+  if (!(await casMulti(guards, ops))) {
+    const [n, t] = await pipe([["GET", cNameKey(nameKeyOf(name))], ["GET", cTagKey(tagKeyOf(tag))]]);
+    if (n && n !== cl.id) throw fail(409, "이미 있는 클랜 이름입니다");
+    if (t && t !== cl.id) throw fail(409, "이미 있는 클랜 태그입니다");
+    throw retryAgain();
+  }
+  await log("admin", `클랜 이름 변경: [${cl.tag}] ${cl.name} → [${tag}] ${name}`);
+  return { clan: clanBrief(next, await loadConfig()) };
+};
+// an account the owner bans, deletes or sets the XP of: the boards follow (and a deleted account leaves its clan)
+const userSetBase = ADMIN.user_set;
+ADMIN.user_set = async (q, b, req) => {
+  const id = cleanId(b.id), before = ["ban", "delete", "xp", "level"].includes(b.op) ? await getJ(userKey(id)) : null;
+  const out = await userSetBase(q, b, req);
+  if (!before || before.guest) return out;
+  const low = id.toLowerCase();
+  try {
+    if ("ban" === b.op || "delete" === b.op) await pipe(["kills", "level", "wins", "matches"].map((k) => ["ZREM", BOARDS[k], low]));
+    if ("delete" === b.op && clanId(before.clan)) {
+      const { clan: cl, raw } = await clanRead(before.clan);
+      if (inClan(cl, before.id)) { const d = clanDrop(cl, raw, before.id, null, before.xp || 0); await casMulti(d.guards, d.ops); }
+    } else if ("xp" === b.op || "level" === b.op) {
+      const now_ = await getJ(userKey(id));
+      if (now_ && !banned(now_)) {
+        const cmds = [["ZADD", BOARDS.level, String(now_.xp || 0), low]];
+        clanId(now_.clan) && (now_.xp || 0) !== (before.xp || 0) && cmds.push(["ZINCRBY", BOARDS.clan, String((now_.xp || 0) - (before.xp || 0)), now_.clan]);
+        await pipe(cmds);
+      }
+    }
+  } catch (e) {}
+  return out;
+};
+// the public config tells the homepage whether clans are on and what they cost
+const configBase = A.config;
+A.config = async (q, b, req) => {
+  const out = await configBase(q, b, req);
+  out.config.clan = clanPublicCfg(await loadConfig());
+  return out;
+};
 
 module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipOf(req)]]), async () => {
   const requestId = crypto.randomUUID();

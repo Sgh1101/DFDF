@@ -192,6 +192,9 @@
     cat = sessionStorage.getItem("lgp_mapcat") || "";
   } catch (e) {}
   const inCat = (k) => !cat || catOf(k) === cat;
+  // the event map (EVENT_MAP_KEY) has a box of its own in the pickers: it is not counted in the tabs, and a tab never moves the choice to it
+  const EV = () => window.EVENT_MAP_KEY || "";
+  const poolList = () => MAP_LIST.filter((m) => m.key !== EV());
   const badge = (k) => (1 === sizeOf(k) ? "1v1" : sizeOf(k) < FULL ? `${sizeOf(k)}v${sizeOf(k)}` : "");
   function tabsFor(box, onChange) {
     if (!box) return;
@@ -211,7 +214,7 @@
       });
     }
     t._onChange = onChange; // the latest lobby state, not the first one
-    t.innerHTML = CATS.map(([k, n]) => `<button class="${k === cat ? "on" : ""}" data-cat="${k}">${n}<em>${k ? MAP_LIST.filter((m) => catOf(m.key) === k).length : MAP_LIST.length}</em></button>`).join("");
+    t.innerHTML = CATS.map(([k, n]) => `<button class="${k === cat ? "on" : ""}" data-cat="${k}">${n}<em>${k ? poolList().filter((m) => catOf(m.key) === k).length : poolList().length}</em></button>`).join("");
   }
   // chips are drawn in MAP_LIST order (the random chip, if any, first)
   function filterChips(box, lobby) {
@@ -230,8 +233,8 @@
   const _ps = paintSelMaps;
   paintSelMaps = function () {
     // a map outside the chosen category: take the first one inside it
-    if (!inCat(room.map)) {
-      const first = MAP_LIST.find((m) => inCat(m.key));
+    if (!inCat(room.map) && room.map !== EV()) {
+      const first = poolList().find((m) => inCat(m.key));
       first && (room.map = first.key);
     }
     const r = _ps.apply(this, arguments);
@@ -258,8 +261,8 @@
       paintMaps(e, host);
       // the host moves to the first map of the new category
       const cur = (e && e.map) || room.map;
-      if (host && !inCat(cur)) {
-        const first = MAP_LIST.find((m) => inCat(m.key) && 2 * sizeOf(m.key) >= humanCount());
+      if (host && !inCat(cur) && cur !== EV()) {
+        const first = poolList().find((m) => inCat(m.key) && 2 * sizeOf(m.key) >= humanCount());
         first && "function" == typeof requestOpt && requestOpt("map", first.key);
       }
     });

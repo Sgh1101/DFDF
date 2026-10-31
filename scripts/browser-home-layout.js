@@ -8,7 +8,8 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
     // while the agent-select map filter counts live. All three must agree with MAP_LIST after boot and after any later change.
     const mapCounts = () => page.evaluate(() => {
       const num = (text) => Number((/맵 (\d+)종/.exec(text) || [])[1]), tabs = document.querySelector("#sel-maps").previousElementSibling, all = tabs && tabs.querySelector('button[data-cat=""] em');
-      return { list: MAP_LIST.length, footer: num(document.querySelector(".title-foot").textContent), play: num(document.querySelector("#go-play small").textContent), filter: all ? Number(all.textContent) : null };
+      // (the event map, while it is open, sits in a box of its own above the filter: the filter's count leaves it out)
+      return { list: MAP_LIST.length, footer: num(document.querySelector(".title-foot").textContent), play: num(document.querySelector("#go-play small").textContent), filter: all ? Number(all.textContent) : null, event: window.EVENT_MAP_KEY && MAP_LIST.some((m) => m.key === window.EVENT_MAP_KEY) ? 1 : 0 };
     });
     await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"));
     const booted = await mapCounts();
@@ -60,7 +61,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
     // layout checks, because returning from it re-lays out the account chips for a moment).
     await page.locator("#go-play").click(); await page.locator("#s-select").waitFor({ state: "visible" });
     const opened = await mapCounts();
-    assert.deepEqual(opened, { list: booted.list, footer: booted.list, play: booted.list, filter: booted.list }, "home footer, solo button and select filter all match MAP_LIST");
+    assert.deepEqual({ ...opened, filter: opened.filter + opened.event }, { list: booted.list, footer: booted.list, play: booted.list, filter: booted.list, event: opened.event }, "home footer, solo button and select filter (plus the event map's own box) all match MAP_LIST");
     await page.locator("#sel-back").click(); await page.locator("#s-title").waitFor({ state: "visible" });
     await page.evaluate(() => { MAPS.zz_count = { ...MAPS.glacier, key: "zz_count", name: "count-check" }; (window.MAP_EXTRA ||= []).push({ key: "zz_count", name: "count-check" }); POGU.pool.push("zz_count"); POGU.setPool(); });
     const added = await mapCounts();
