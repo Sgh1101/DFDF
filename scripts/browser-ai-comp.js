@@ -27,7 +27,8 @@ const chipState = (page) => page.evaluate(() => {
     rect: { l: r.left, t: r.top, r: r.right, b: r.bottom }, vw: innerWidth, vh: innerHeight, aic: AI_COMP.on,
     others: [...document.querySelectorAll("#sel-modes .lb-map")].filter((x) => x !== b).map((x) => ({ t: x.textContent, on: x.classList.contains("on") })),
     maps: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x) => !x.hidden).length,
-    nonFull: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x, i) => !x.hidden && "full" !== MAP_CAT(MAP_LIST[i].key)).length,
+    // the map buttons follow MAP_LIST, less the event map, whose button sits in a box of its own (js/legacy/121)
+    nonFull: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x, i) => !x.hidden && "full" !== MAP_CAT(MAP_LIST.filter((m) => m.key !== window.EVENT_MAP_KEY)[i].key)).length,
     tabs: getComputedStyle(document.querySelector("#sel-maps").previousElementSibling).display, sub: document.getElementById("sel-mode-sub").textContent, mode: room.mode, map: room.map, full: MAP_CAT(room.map),
     label: (document.querySelector("#sel-pick span") || {}).textContent || "" };
 });
@@ -186,6 +187,8 @@ const chipState = (page) => page.evaluate(() => {
     await phone.waitForFunction(() => !document.getElementById("s-select").hidden, null, { timeout: 30000 });
     await sleep(600);
     await openSheet(phone);
+    // the sheet scrolls (with the event map's box above the maps, the mode row starts below its fold)
+    await phone.evaluate(() => document.getElementById("sel-comp").scrollIntoView({ block: "nearest" })); await sleep(300);
     let p = await chipState(phone);
     assert.ok(!p.hidden && !p.disabled && p.rect.l >= 0 && p.rect.r <= p.vw && p.rect.t >= 0 && p.rect.b <= p.vh && p.text === "경쟁전아이언 1", "the chip fits the phone sheet: " + JSON.stringify(p));
     await phone.tap("#sel-comp"); await sleep(700);
