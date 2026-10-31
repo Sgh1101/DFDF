@@ -1,8 +1,8 @@
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), crypto = require("node:crypto");
-const { schedule } = require("../js/phantom-audio");
-const base = "assets/champions-phantom/2026-0.1.0/audio/";
+const { schedule, render, recipe: checkRecipe } = require("../js/phantom-audio");
+const base = "assets/champions-phantom/dfdf-1/audio/";
 const recipe = JSON.parse(fs.readFileSync(base + "kill-sequences.json"));
-test("actual kill hook plays original Phantom ladders on scout and excludes rifle and abilities", () => {
+test("actual kill hook plays the Phantom kill ladder on scout and excludes rifle and abilities", () => {
   const vm = require("node:vm"), source = fs.readFileSync("js/phantom-audio.js", "utf8"), actor = {}, played = [];
   let generic = 0;
   const ctx = { SFX: { kill() { generic++; return "generic"; } }, world: { round: 1 }, counts: new WeakMap(),
@@ -21,26 +21,40 @@ test("actual kill hook plays original Phantom ladders on scout and excludes rifl
   ctx.world.round++; ctx.KILL_EVENT = { gun: "scout", skin: "champions_def", kind: "gun" }; ctx.SFX.kill();
   assert.equal(played.at(-1), 1);
 });
-test("all five original kill arrangements reference byte-verified note-block recordings", () => {
+test("all five kill cues use DFDF's synthesized instruments, climb with the kill count and fit the 2.625 s window", () => {
   const manifest = JSON.parse(fs.readFileSync(base + "samples.json"));
-  assert.deepEqual(Object.values(recipe.profiles).map(p => p.events.length), [10, 10, 12, 12, 63]);
+  assert.deepEqual(Object.keys(recipe.profiles), ["kill_1", "kill_2", "kill_3", "kill_4", "kill_5"]);
+  assert.equal(manifest.synthesized, true);
   assert.equal(Object.keys(manifest.samples).length, 9);
-  for (const meta of Object.values(manifest.samples)) {
-    const raw = fs.readFileSync(base + meta.file);
-    assert.equal(raw.subarray(0, 4).toString(), "OggS");
-    assert.equal(raw.length, meta.bytes);
-    for (const alg of ["sha1", "sha256"]) assert.equal(crypto.createHash(alg).update(raw).digest("hex"), meta[alg]);
-  }
+  for (const name of fs.readdirSync(base)) assert.match(name, /\.json$/, "no recorded audio is bundled");
+  const lengths = Object.values(recipe.profiles).map(p => p.events.length);
+  assert.ok(lengths[4] > 3 * lengths[0], "the fifth kill is the long fanfare");
+  const top = Object.values(recipe.profiles).slice(0, 4).map(p => Math.max(...p.events.filter(e => e.sound === "flute").map(e => e.pitch)));
+  assert.deepEqual(top, top.slice().sort((x, y) => x - y), "each kill cue reaches higher than the last");
   for (const p of Object.values(recipe.profiles)) for (const e of p.events) {
-    assert.ok(manifest.samples[e.sound]); assert.ok(e.at >= 0 && e.at <= 2.625); assert.ok(e.volume > 0 && Number.isFinite(e.pitch));
+    assert.ok(manifest.samples[e.sound]); assert.ok(e.at >= 0 && e.at <= 2.625); assert.ok(e.volume > 0 && e.pitch >= 0.5 && e.pitch <= 2);
   }
 });
+test("instrument synthesis is deterministic, audible, finite and rejects unsafe recipes", () => {
+  const manifest = JSON.parse(fs.readFileSync(base + "samples.json"));
+  for (const [name, meta] of Object.entries(manifest.samples)) {
+    const a = render(meta, 22050), b = render(meta, 22050);
+    assert.equal(a.length, Math.ceil(meta.duration * 22050), name);
+    assert.deepEqual(a, b, name + " renders the same samples every time");
+    let peak = 0, energy = 0; for (const v of a) { assert.ok(Number.isFinite(v)); peak = Math.max(peak, Math.abs(v)); energy += v * v; }
+    assert.ok(peak > 0.5 && peak <= 0.9001, name + " peak " + peak); assert.ok(Math.sqrt(energy / a.length) > 0.01, name + " is audible");
+    assert.ok(Math.abs(a[a.length - 1]) < 0.05, name + " ends without a click");
+  }
+  assert.throws(() => checkRecipe({ type: "eval", duration: 1 }), /type/);
+  assert.throws(() => checkRecipe({ type: "kick", duration: 60 }), /duration/);
+  assert.throws(() => checkRecipe({ type: "fm", duration: 1, base: "1e9" }), /value/);
+});
 
-test("original inspect and finisher songs preserve the source tables, loop bounds and duration cutoff", () => {
+test("inspect and finisher songs keep their loop bounds and the finisher duration cutoff", () => {
   const music = JSON.parse(fs.readFileSync(base + "music-sequences.json")), manifest = JSON.parse(fs.readFileSync(base + "samples.json"));
-  assert.equal(music.sourceClassSha256, recipe.sourceClassSha256);
-  assert.equal(music.sourceJarSha256, recipe.sourceJarSha256);
-  assert.deepEqual(Object.values(music.profiles).map(p => p.events.length), [104, 305]);
+  assert.equal(music.generator, recipe.generator);
+  assert.deepEqual(Object.keys(music.profiles), ["inspect", "finisher_music"]);
+  assert.ok(music.profiles.inspect.events.every(e => e.at < 10.2) && music.profiles.finisher_music.events.every(e => e.at < 19.2));
   assert.ok(Math.abs(music.profiles.inspect.loopStart - .6) < .00001);
   assert.ok(Math.abs(music.profiles.inspect.loopEnd - 10.2) < .00001);
   for (const p of Object.values(music.profiles)) for (const e of p.events) assert.ok(manifest.samples[e.sound]);
