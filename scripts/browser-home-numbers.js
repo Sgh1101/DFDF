@@ -18,7 +18,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
       return {
         agents: document.querySelectorAll("#sel-grid .acard").length, agentList: AGENTS.length,
         abilities: AGENTS.reduce((n, a) => n + a.abilities.length, 0), distinctNames: new Set(names).size, distinctTypes: new Set(types).size,
-        modes: document.querySelectorAll("#sel-modes button").length,
+        modes: document.querySelectorAll("#sel-modes button:not(#sel-comp)").length,
         // every chip but the random one is a map the room can pick
         maps: document.querySelectorAll("#sel-maps button:not(.lbm-rand)").length, chips: [...document.querySelectorAll("#sel-maps button")].map((b) => b.textContent), tabs,
         // the map of the week (js/map-week.js) is in the list on top of the pool while the server has one
