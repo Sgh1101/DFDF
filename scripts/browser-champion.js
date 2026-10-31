@@ -23,7 +23,6 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // behind it and a fin under it (1.37 times the built guns' height: a fish), followed a box that counted the pack's flat scope
     // overlay quads (the operator's: 3.3 m of armour on a 1.9 m gun), and the pattern, drawn from the pack's small atlas,
     // came out in scraps.
-    await page.waitForFunction(() => window.VALORANT_PACK && VALORANT_PACK.status === "ready", null, { timeout: 120000 });
     const fit = await page.evaluate(() => {
       const T = THREE, skin = GUN_SKINS.list.find((s) => s.id === "champion"), res = {};
       const body = (root) => {

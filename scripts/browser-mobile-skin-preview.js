@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  const p=await f.page('mobilepreview',{width:852,height:393},{isMobile:true,hasTouch:true,deviceScaleFactor:2},{bootTimeout:120000});
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'preview-owner'});
  for(const skin of ['champions_atk','champions_def'])await f.h.api('a_user_set',{atoken:owner.atoken,id:'mobilepreview',op:'grant',item:'scout|'+skin});
- await p.evaluate(()=>GUN_SKINS.sync());await p.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded());
+ await p.evaluate(()=>GUN_SKINS.sync());await p.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded());
  await p.locator('#go-armory').click();await p.locator('#ar-tabs [data-tab="gun"]').click();
  await p.locator('#ar-guns .ar-gun').filter({hasText:/^팬텀/}).click();
  async function check(label,minHeight=110,broadside=true){
@@ -39,7 +39,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   }
  }
  await p.setViewportSize({width:568,height:320});
- for(const name of ['오퍼레이터','아웃로','전투 나이프']){
+ for(const name of ['독수리','송골매','전투 나이프']){
   await p.locator('#ar-guns .ar-gun').filter({hasText:name}).click();
   await p.locator('#ar-skins [data-s="default"]').click();
   await check('small phone '+name);

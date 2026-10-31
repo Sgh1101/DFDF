@@ -11,7 +11,7 @@ const ROUNDS = 40, WARM = 12, MAX_TEMPLATES = 40, SLACK_GEOMETRIES = 200;
     await page.evaluate(() => {
       // which uploaded geometries are alive (marked as a gun model's when a gun builder made them), and which were freed
       // (a freed one drawn again is uploaded again)
-      const live = new Set(), GUN = /bedrock-rig|valorant-pack|legacy-gun-models|58-gun-skins|champions-phantom|phantom-|GUN_BUILD|GunBuilder|buildProcWeapon|bakeDeep|buildFor|skinMat/;
+      const live = new Set(), GUN = /bedrock-rig|weapon-identity|legacy-gun-models|58-gun-skins|champions-phantom|phantom-|GUN_BUILD|GunBuilder|buildProcWeapon|bakeDeep|buildFor|skinMat/;
       const BG = THREE.BufferGeometry.prototype, setAttribute = BG.setAttribute, add = BG.addEventListener, dispose = BG.dispose;
       window.__freed = new WeakSet(); window.__reuploaded = 0;
       BG.setAttribute = function () { if (this.userData.__gun === undefined) this.userData.__gun = GUN.test(new Error().stack || ""); return setAttribute.apply(this, arguments); };

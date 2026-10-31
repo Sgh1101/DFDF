@@ -15,8 +15,11 @@ self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {}));
   self.skipWaiting();
 });
+// files the game no longer has (a third-party weapon pack and a block-terrain map): taken out of the asset cache
+const REMOVED = /^\/assets\/(valorant-packs|maps\/ascent)\/|^\/assets\/(ui\/ascent-preview|site\/maps\/ascent_trial)/;
+const purge = () => caches.open(ASSETS).then((c) => c.keys().then((rs) => Promise.all(rs.filter((r) => REMOVED.test(new URL(r.url).pathname)).map((r) => c.delete(r))))).catch(() => {});
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(purge).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", (e) => {
   const req = e.request;
