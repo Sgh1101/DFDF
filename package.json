@@ -43,6 +43,7 @@
     "test:peer-throttle": "node scripts/browser-peer-throttle.js",
     "test:guest-messages": "node scripts/browser-guest-messages.js",
     "test:chat": "node scripts/browser-chat.js",
+    "test:ragdoll-emotes": "node scripts/browser-ragdoll-emotes.js",
     "test:host-silent": "node scripts/browser-host-silent.js",
     "test:cheat-panel": "node scripts/browser-cheat-panel.js",
     "test:ranked": "node scripts/browser-ranked.js",
