@@ -29,6 +29,7 @@
     A("map", "other", "큰 지도", "Big map", ["KeyM"]),
     A("ping", "other", "핑 찍기", "Ping", ["KeyV"]),
     A("quickchat", "other", "빠른 채팅", "Quick chat", ["KeyZ"]),
+    A("emote", "other", "이모트", "Emote", ["KeyT"]),
   ];
   const BY_ID = {};
   for (const a of ACTIONS) BY_ID[a.id] = a;
