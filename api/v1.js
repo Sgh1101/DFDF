@@ -296,6 +296,8 @@ async function log(type, msg, extra) {
     await pipe(cmds);
   } catch (e) {}
 }
+// wrong passwords one account takes in 15 minutes before it stops taking any (A.auth)
+const AUTH_FAIL_MAX = 10;
 // a little brake on guessing passwords
 async function limited(key, max, sec) {
   const memo = requestState.getStore();
@@ -818,12 +820,17 @@ A.auth = async (q, b, req) => {
     return { token: sign({ k: "p", id, o: 1, v: u.sessionVersion, pv: 2, exp: now() + 30 * 864e5 }), atoken: sign({ k: "admin", pv: 2, exp: now() + 12 * 36e5 }), user: publicUser(u, c.xp.perLevel), created, hist: histOf(u) };
   }
   if (u) {
+    // wrong passwords count against the account as well as the IP: guesses spread over many addresses stop too
+    const failKey = "rl:authfail:" + id.toLowerCase();
+    if (+(await redis(["GET", failKey])) >= AUTH_FAIL_MAX) throw fail(429, "이 아이디는 비밀번호를 너무 많이 틀렸습니다. 15분 뒤에 다시 시도하세요");
     if (!checkPw(pw, u.pass)) {
+      await limited("authfail:" + id.toLowerCase(), AUTH_FAIL_MAX, 900);
       await log("auth", "비밀번호 틀림: " + id, { ip });
       await ulog(u.id, "loginfail", "비밀번호 틀림", { ip, dev: String(b.device || "").slice(0, 64) });
       // the same sign-in box also signs up: a taken name must say so, not just "wrong password"
       throw fail(401, "이미 있는 아이디입니다. 내 계정이면 비밀번호를 확인하고, 새로 가입하려면 다른 아이디를 쓰세요");
     }
+    await redis(["DEL", failKey]);
   } else {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
@@ -2282,19 +2289,24 @@ const TURN_URLS = String(process.env.TURN_URLS || "")
     .filter((u) => /^turns?:/.test(u)),
   FIXED_ICE = TURN_URLS.length ? [{ urls: TURN_URLS, username: process.env.TURN_USERNAME || "", credential: process.env.TURN_CREDENTIAL || "" }] : [];
 let iceCache = null;
-A.ice = async () => {
+// The relay (TURN) credentials are billed traffic: only a signed-in player (an account or a guest) gets them, a few times per
+// address, and one credential lives 6 hours (the game asks again every 2 hours).
+const ICE_TTL = 6 * 3600;
+A.ice = async (q, b, req) => {
+  if (!(await who(b.token))) throw fail(401, "다시 로그인해 주세요");
+  if (await limited("ice:" + ipOf(req), 30, 600)) throw fail(429, "잠시 후 다시 시도하세요");
   if (!TURN_ID || !TURN_TOKEN) return { iceServers: FIXED_ICE, relay: FIXED_ICE.length > 0 };
   if (iceCache && iceCache.until > now()) return { iceServers: iceCache.list, relay: !0 };
   const base = "https://rtc.live.cloudflare.com/v1/turn/keys/" + TURN_ID + "/credentials/";
   const hdr = { Authorization: "Bearer " + TURN_TOKEN, "Content-Type": "application/json" };
   let list = null;
   try {
-    const r = await fetchTimed(base + "generate-ice-servers", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+    const r = await fetchTimed(base + "generate-ice-servers", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: ICE_TTL }) });
     if (r.ok) list = (await r.json()).iceServers;
   } catch (e) {}
   if (!list)
     try {
-      const r = await fetchTimed(base + "generate", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: 86400 }) });
+      const r = await fetchTimed(base + "generate", { method: "POST", headers: hdr, body: JSON.stringify({ ttl: ICE_TTL }) });
       if (r.ok) {
         const j = await r.json();
         list = j.iceServers ? [].concat(j.iceServers) : null;
@@ -3036,7 +3048,10 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
       const action = new URL(req.url, 'http://localhost').searchParams.get('a') || '';
       console.warn(JSON.stringify({kind:'api-error',requestId,status:res.statusCode,action:/^[a-z_]{1,40}$/.test(action)?action:'invalid'}));
     }
-    res.end(JSON.stringify({ ok: !1, error: e.message || String(e), ban: e.ban || undefined, retryable: e.retryUser || undefined }));
+    // fail() gives a status and words meant for the player; anything else (a Redis or code error) keeps its text in the log only
+    const ours = "number" == typeof e.code;
+    ours || console.warn(JSON.stringify({ kind: "api-exception", requestId, message: String((e && e.message) || e).slice(0, 300) }));
+    res.end(JSON.stringify({ ok: !1, error: ours ? e.message || String(e) : "서버 오류가 났습니다. 잠시 후 다시 시도해 주세요", ban: e.ban || undefined, retryable: e.retryUser || undefined }));
   }
 });
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;

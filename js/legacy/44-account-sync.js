@@ -400,15 +400,19 @@
   }
 
   // ── relay servers (TURN) for networks that cannot connect directly ──
+  // (signed-in players only; a credential lives 6 hours on the server, so it is asked for again every 2 hours)
   let ICE = [];
-  const iceReady = online
-    ? api("ice")
-        .then((j) => {
-          ICE = (j.iceServers || []).filter((x) => x && x.urls);
-          window.NET_RELAY = !!j.relay;
-        })
-        .catch(() => {})
-    : Promise.resolve();
+  const askIce = () =>
+    token()
+      ? api("ice", { token: token() })
+          .then((j) => {
+            ICE = (j.iceServers || []).filter((x) => x && x.urls);
+            window.NET_RELAY = !!j.relay;
+          })
+          .catch(() => {})
+      : Promise.resolve();
+  const iceReady = online ? askIce() : Promise.resolve();
+  online && setInterval(askIce, 2 * 36e5);
   const _po = peerOpts;
   peerOpts = function () {
     const o = _po.apply(this, arguments);

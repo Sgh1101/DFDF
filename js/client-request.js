@@ -6,7 +6,7 @@
   "서버 응답을 읽을 수 없습니다": "Could not read the server's reply", "요청 시간이 초과되었습니다. 다시 시도해 주세요": "The request timed out. Please try again",
   "다른 요청과 겹쳤습니다. 다시 시도해 주세요": "Another request overlapped. Please try again", "이미 처리된 경기입니다": "This match was already processed",
   "아이디는 2~16자 (한글·영문·숫자·_)": "ID must be 2-16 characters (Korean, English, digits, _)", "비밀번호는 4~64자": "Password must be 4-64 characters",
-  "잠시 후 다시 시도하세요": "Please try again in a moment", "너무 많이 시도했습니다. 15분 뒤에 다시": "Too many attempts. Try again in 15 minutes",
+  "잠시 후 다시 시도하세요": "Please try again in a moment", "이 아이디는 비밀번호를 너무 많이 틀렸습니다. 15분 뒤에 다시 시도하세요": "Too many wrong passwords for this ID. Try again in 15 minutes", "서버 오류가 났습니다. 잠시 후 다시 시도해 주세요": "Something went wrong on the server. Please try again shortly", "너무 많이 시도했습니다. 15분 뒤에 다시": "Too many attempts. Try again in 15 minutes",
   "이미 있는 아이디입니다. 내 계정이면 비밀번호를 확인하고, 새로 가입하려면 다른 아이디를 쓰세요": "That ID already exists. If it is your account, check the password; to sign up, use a different ID",
   "지금은 새 가입을 받지 않습니다": "New sign-ups are closed right now", "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다": "IDs that start with Guest or Player cannot be used", "쓸 수 없는 아이디입니다": "That ID cannot be used",
   "이용이 제한된 계정입니다": "This account is restricted", "지금은 게스트 입장이 막혀 있습니다": "Guest entry is closed right now", "기기 정보가 없습니다": "Device information is missing",
