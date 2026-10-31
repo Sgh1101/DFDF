@@ -95,6 +95,8 @@ const DEFAULT_CONFIG = {
     disabledAgents: "",
     // chat, quick chat and pings in rooms and matches (off: the buttons are gone and every host drops the messages)
     chat: !0,
+    // emotes (T): the wheel, the touch button and the bodies that play them; off: the button is gone and every host drops the messages
+    emotes: !0,
   },
   cheat: {
     refillSec: 5,
@@ -972,7 +974,7 @@ A.skin_check = async (q, b) => {
 // small things the game keeps per account: the touch-button layout (part →
 // [x, y, size]); the newer of two devices wins, as with the skins. And the player's settings (sensitivity, crosshair,
 // volumes, keys ...: js/settings-sync.js), each one with its own time so the newest of each wins
-const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
+const TOUCH_PARTS = ["tb-fire", "tb-fire2", "tb-ads", "tb-jump", "tb-crouch", "tb-rel", "tb-use", "tb-nade", "tb-chat", "tb-ping", "tb-emote", "tab-0", "tab-1", "tab-2", "tab-3", "mb-util", "mini"];
 A.prefs = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
