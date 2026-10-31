@@ -414,7 +414,9 @@
   const css = document.createElement("style");
   css.textContent = `#emo-wheel{position:fixed;left:50%;top:50%;width:0;height:0;z-index:63;pointer-events:none}
 #emo-wheel[hidden]{display:none}
-#emo-wheel .emo-hub{position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:112px;text-align:center;font:700 12px/1.35 'Noto Sans KR',system-ui,sans-serif;color:#cfd8e6;text-shadow:0 1px 6px #000}
+#emo-wheel::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 50%,rgba(6,9,14,.62) 0,rgba(6,9,14,.5) 150px,rgba(6,9,14,.22) 100%);pointer-events:none}
+body.touching #emo-wheel::before{background:rgba(6,9,14,.7)}
+#emo-wheel .emo-hub{position:absolute;left:0;top:0;transform:translate(-50%,18px);width:112px;text-align:center;font:700 12px/1.35 'Noto Sans KR',system-ui,sans-serif;color:#cfd8e6;text-shadow:0 1px 6px #000}
 #emo-wheel .emo-hub small{display:block;margin-top:3px;font-weight:500;font-size:10px;color:#8a97ab}
 #emo-wheel .emo-b{position:absolute;left:0;top:0;width:96px;height:48px;margin:-24px 0 0 -48px;transform:rotate(var(--a)) translateY(-112px) rotate(calc(-1*var(--a)));pointer-events:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:rgba(14,19,27,.86);color:#e8edf4;font:700 12.5px/1.1 'Noto Sans KR',system-ui,sans-serif;backdrop-filter:blur(6px);cursor:pointer;touch-action:manipulation}
 #emo-wheel .emo-b kbd{font:700 9.5px/1 system-ui;color:#8a97ab}

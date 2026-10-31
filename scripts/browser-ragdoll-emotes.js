@@ -27,9 +27,13 @@ fs.mkdirSync("test-results", { recursive: true });
     }, mode);
     await page.waitForTimeout(900);
   };
+  // Headless Chromium sometimes grants pointer lock without a gesture and drops it again; the game then opens the pause
+  // menu, as it does when a player presses Esc, and an emote (rightly) does not start under it. The pages here never take
+  // the lock (the test sets \`locked\` itself), and each step starts with the pause menu shut (hidden directly: togglePause(false) toggles, it does not close).
+  const noLock = async (p) => { await p.evaluate(() => { for (const C of [Element, HTMLCanvasElement]) C.prototype.requestPointerLock = function () { return Promise.resolve(); }; }); return p; };
   try {
     if (run("solo")) {
-      const page = await f.page("rde1", { width: 1000, height: 600 }, {}, { quality: "perf" });
+      const page = await noLock(await f.page("rde1", { width: 1000, height: 600 }, {}, { quality: "perf" }));
       await solo(page);
       const base = f.errors.length;
       // ── a bot killed by a shot ──
@@ -202,10 +206,10 @@ fs.mkdirSync("test-results", { recursive: true });
       // ── emotes: the key, the wheel, the camera, what ends it, what stops it starting ──
       await page.evaluate(() => { const st = SETTINGS.quality; room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; world.roundTime = 99999; ADMIN.freezeAI = true; locked = true; for (const a of world.actors) { a.fireCd = 99999; a.invuln = 999; } });
       await page.waitForTimeout(900);
-      await page.evaluate(() => { const me = myActor(); for (const a of world.actors) if (a !== me) a.pos.set(70 + Math.random() * 5, 0, 70); me.pos.set(0, 0, 0); me.y = 0; me.yaw = 0; me.pitch = 0; });
+      await page.evaluate(() => { document.getElementById("pause").hidden = true; const me = myActor(); for (const a of world.actors) if (a !== me) a.pos.set(70 + Math.random() * 5, 0, 70); me.pos.set(0, 0, 0); me.y = 0; me.yaw = 0; me.pitch = 0; });
       const E = (fn, ...a) => page.evaluate(fn, ...a);
       const emoState = () => E(() => { const m = myActor(); return { me: !!EMOTE.state.me, i: EMOTE.state.me ? EMOTE.state.me.i : -1, body: !!m._emo, bodyI: m._emo ? m._emo.i : -1, why: EMOTE.state.why, wheel: !document.getElementById("emo-wheel").hidden, k: EMOTE.state.k }; });
-      const calm = () => E(() => { EMOTE.cancel("test"); EMOTE.resetLimits(); const m = myActor(); m._emo = null; EMOTE.state.me = null; EMOTE.state.k = 0; EMOTE.state.cd = 0; for (const k of ["w", "a", "s", "d", "space", "fire", "ads", "r"]) keys[k] = false; m.alive = true; m.hp = 100; m.armor = 0; m.vy = 0; m.y = 0; m.onGround = true; m.ads = false; m.reloading = 0; m.planting = 0; m.defusing = 0; m.invuln = 999; world.phase = "live"; closeShop(); EMOTE.wheelClose(); });
+      const calm = () => E(() => { document.getElementById("pause").hidden = true; EMOTE.cancel("test"); EMOTE.resetLimits(); const m = myActor(); m._emo = null; EMOTE.state.me = null; EMOTE.state.k = 0; EMOTE.state.cd = 0; for (const k of ["w", "a", "s", "d", "space", "fire", "ads", "r"]) keys[k] = false; m.alive = true; m.hp = 100; m.armor = 0; m.vy = 0; m.y = 0; m.onGround = true; m.ads = false; m.reloading = 0; m.planting = 0; m.defusing = 0; m.invuln = 999; world.phase = "live"; closeShop(); EMOTE.wheelClose(); });
       assert.deepEqual(await E(() => [EMOTE.on(), KEYMAP.codes("emote"), EMOTE.chosen()]), [true, ["KeyT"], 0], "the emote action is on T and the first emote is chosen");
       // the key: a tap plays the chosen emote
       await page.keyboard.press("KeyT");
@@ -400,7 +404,7 @@ fs.mkdirSync("test-results", { recursive: true });
       try {
         const quiet = async (p) => { await p.evaluate(() => { window.__render = render; render = () => {}; titleCam = () => {}; }); return p; };
         const prep = (page) => page.evaluate(async (port) => { await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port, path: "/", secure: false, config: { iceServers: [] } }); }, PORT);
-        const host = await quiet(await f.page("rdeH", { width: 852, height: 393 }, {}, { quality: "perf" })), guest = await quiet(await f.page("rdeG", { width: 852, height: 393 }, {}, { quality: "perf" }));
+        const host = await noLock(await quiet(await f.page("rdeH", { width: 852, height: 393 }, {}, { quality: "perf" }))), guest = await noLock(await quiet(await f.page("rdeG", { width: 852, height: 393 }, {}, { quality: "perf" })));
         const base = f.errors.length;
         await prep(host); await prep(guest);
         const code = await host.evaluate(async () => { await createRoom(); return NET.room; });
@@ -517,7 +521,7 @@ fs.mkdirSync("test-results", { recursive: true });
 
     if (run("touch")) {
       // ── a phone: the button is in the layout editor, taps play, a long press and two taps open the list ──
-      const phone = await f.page("rdeP", { width: 740, height: 360 }, { hasTouch: true, isMobile: true }, { quality: "mobile" });
+      const phone = await noLock(await f.page("rdeP", { width: 740, height: 360 }, { hasTouch: true, isMobile: true }, { quality: "mobile" }));
       const base = f.errors.length;
       await phone.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; world.roundTime = 99999; ADMIN.freezeAI = true; document.body.classList.add("touching"); for (const a of world.actors) { a.fireCd = 99999; a.invuln = 999; } locked = true; });
       await phone.waitForTimeout(1200);
@@ -541,16 +545,28 @@ fs.mkdirSync("test-results", { recursive: true });
       await phone.waitForTimeout(500);
       // a tap plays the chosen emote
       await phone.evaluate(() => { EMOTE.resetLimits(); EMOTE.state.cd = 0; });
+      // (a tap is handled when the page gets to it, and frames are slow in this browser: each check waits for its state)
+      const settle = (fn, arg) => phone.waitForFunction(fn, arg, { timeout: 3000 }).then(() => !0, () => !1);
       await phone.tap("#tb-emote");
+      await settle(() => !!EMOTE.state.me);
       let st = await phone.evaluate(() => ({ me: EMOTE.state.me ? EMOTE.state.me.i : -1, wheel: !document.getElementById("emo-wheel").hidden }));
       assert.deepEqual(st, { me: 0, wheel: false }, "a tap plays the first emote");
       await phone.waitForTimeout(900); await shot(phone, "touch-emote");
-      // a tap while it plays stops it
+      // a tap while it plays stops it (the wave lasts 3 s and a screenshot here can take most of that: if it has ended, it is
+      // started again, so the tap below meets a playing emote)
+      await phone.evaluate(() => { if (!EMOTE.state.me) { EMOTE.resetLimits(); EMOTE.state.cd = 0; EMOTE.play(EMOTE.chosen()); } EMOTE.state.why = ""; });
+      assert.ok(await phone.evaluate(() => !!EMOTE.state.me), "an emote is playing before the tap");
       await phone.tap("#tb-emote");
-      assert.equal(await phone.evaluate(() => !EMOTE.state.me), true, "a tap while it plays stops it");
+      // stopped by the tap ("key"), not run out
+      assert.equal(await settle(() => !EMOTE.state.me && EMOTE.state.why === "key"), true, "a tap while it plays stops it: " + JSON.stringify(await phone.evaluate(() => ({ me: !!EMOTE.state.me, why: EMOTE.state.why }))));
       // two taps: the list, and a tap on one plays it
       await phone.evaluate(() => { EMOTE.resetLimits(); EMOTE.state.cd = 0; window.__t = 0; });
-      await phone.tap("#tb-emote"); await phone.waitForTimeout(80); await phone.evaluate(() => EMOTE.cancel("test")); await phone.tap("#tb-emote");
+      await phone.evaluate(() => {
+        const e = document.getElementById("tb-emote"), r = e.getBoundingClientRect(), t = new Touch({ identifier: 2, target: e, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+        const tap = () => { for (const type of ["touchstart", "touchend"]) e.dispatchEvent(new TouchEvent(type, { touches: type === "touchstart" ? [t] : [], targetTouches: type === "touchstart" ? [t] : [], changedTouches: [t], bubbles: true, cancelable: true })); };
+        tap(); EMOTE.cancel("test"); tap();
+      });
+      await settle(() => !document.getElementById("emo-wheel").hidden);
       st = await phone.evaluate(() => ({ wheel: !document.getElementById("emo-wheel").hidden }));
       assert.ok(st.wheel, "two quick taps open the list");
       const items = await phone.evaluate(() => [...document.querySelectorAll("#emo-wheel .emo-b")].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom), b.textContent]; }));
@@ -559,6 +575,7 @@ fs.mkdirSync("test-results", { recursive: true });
       for (const [a, b, c, e] of items) assert.ok(c - a >= 44 && e - b >= 40, "big enough to tap: " + [c - a, e - b]);
       await shot(phone, "touch-wheel");
       await phone.tap('#emo-wheel .emo-b[data-i="2"]');
+      await settle(() => !!EMOTE.state.me && document.getElementById("emo-wheel").hidden);
       st = await phone.evaluate(() => ({ me: EMOTE.state.me ? EMOTE.state.me.i : -1, wheel: !document.getElementById("emo-wheel").hidden }));
       assert.deepEqual(st, { me: 2, wheel: false }, "a tap on the third plays the salute and closes the list");
       // a long press opens the list too
