@@ -177,23 +177,6 @@ const HELPERS = () => {
       assert.ok(w.walked < w.calls, key + ": the queries do not loop over the colliders: " + JSON.stringify(w));
       await page.context().close();
     }
-    // ── 마크X발로: 44k colliders, its own box rules ──
-    {
-      const page = await f.page("equivascent", { width: 1280, height: 720 }, {}, { bootTimeout: 120000 });
-      await page.evaluate(HELPERS);
-      await page.waitForFunction(() => VALORANT_PACK.status === "ready");
-      await page.locator("#go-play").click();
-      if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click();
-      await page.locator("#sel-maps button").filter({ hasText: /^마크X발로$/ }).click();
-      await page.waitForFunction(() => ASCENT_TRIAL.status === "ready");
-      await page.locator("#sel-go").click({ timeout: 120000 });
-      await page.waitForFunction(() => ASCENT_TRIAL.active && !!myActor(), null, { timeout: 120000 });
-      check(await page.evaluate(([n]) => __round(n, "ascent"), [Math.floor(N / 3)]));
-      for (const r of await mutate(page, "ascent", Math.floor(N / 6))) check(r);
-      const w = await page.evaluate(WALK); console.log("ascent walked", JSON.stringify(w));
-      assert.ok(w.walked < w.calls, "ascent: the queries do not loop over the colliders: " + JSON.stringify(w));
-      await page.context().close();
-    }
     assert.deepEqual(f.errors, []);
     fs.writeFileSync("test-results/collide-equiv.json", JSON.stringify(results, null, 2));
     console.log("collide-equiv: the hashed queries agree with the plain loops on every map, with colliders added, moved and removed, and during running matches");

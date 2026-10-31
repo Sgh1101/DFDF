@@ -4,13 +4,13 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
   fs.mkdirSync(shots, { recursive: true });
   try {
     const page = await f.page("homelayout", { width: 1440, height: 900 });
-    // Map counts: the home footer and the solo button are counted once at load, but the map list grows afterwards (the Ascent trial map),
+    // Map counts: the home footer and the solo button are counted once at load, but the map list grows afterwards (the map of the week from the server),
     // while the agent-select map filter counts live. All three must agree with MAP_LIST after boot and after any later change.
     const mapCounts = () => page.evaluate(() => {
       const num = (text) => Number((/맵 (\d+)종/.exec(text) || [])[1]), tabs = document.querySelector("#sel-maps").previousElementSibling, all = tabs && tabs.querySelector('button[data-cat=""] em');
       return { list: MAP_LIST.length, footer: num(document.querySelector(".title-foot").textContent), play: num(document.querySelector("#go-play small").textContent), filter: all ? Number(all.textContent) : null };
     });
-    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"));
+    await page.waitForFunction(() => window.SERVER_CFG && window.WEEK_MAP_KEY !== undefined);
     const booted = await mapCounts();
     assert.ok(booted.list > 0, "map list is empty");
     assert.deepEqual([booted.footer, booted.play], [booted.list, booted.list], "home footer and solo button match MAP_LIST after boot");

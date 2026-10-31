@@ -39,13 +39,13 @@ test('actual ultra to mobile transition clears expensive state and releases reta
  const source=engine.slice(engine.indexOf('function applyGfx('),engine.indexOf('function rebuildActorModels()'));
  const sizes=[],ratios=[],c={GFX:{...C.presets.ultra},DYNRES:{scale:.9,cool:0},POST:{ok:true,w:2560,h:1440},sun:{shadow:{map:{dispose(){c.shadowDisposed++;}}}},shadowDisposed:0,
   matchMedia:()=>({matches:false}),navigator:{userAgent:'desktop'},devicePixelRatio:2,innerWidth:1280,innerHeight:720,
-  renderer:{setPixelRatio:v=>ratios.push(v),setSize(){},shadowMap:{}},world:{actors:[]},MAPS:{ascent_trial:{graphicsStatic:true}},CUR_MAP_KEY:'ascent_trial',loadMap(){c.mapLoads++;},mapLoads:0,
+  renderer:{setPixelRatio:v=>ratios.push(v),setSize(){},shadowMap:{}},world:{actors:[]},MAPS:{static_map:{graphicsStatic:true}},CUR_MAP_KEY:'static_map',loadMap(){c.mapLoads++;},mapLoads:0,
   window:{},scene:{traverse(){}},setShadowRes(){},rebuildActorModels(){c.rebuilds++;},rebuilds:0,updateGfxLabel(){},shadowRefresh(){c.refreshes++;},refreshes:0,blur:null,document:{body:{classList:{toggle(n,v){assert.equal(n,'gfx-blur');c.blur=v;}}}}};
  for(const key of ['rt','hA','hB','qA','qB'])c.POST[key]={setSize:(w,h)=>sizes.push([key,w,h])};
  vm.createContext(c);vm.runInContext(source,c);c.applyGfx(C.presets.mobile,false);
  assert.equal(c.GFX.msaa,0);assert.equal(c.GFX.shadowEvery,2);assert.equal(c.GFX.post,false);assert.equal(c.GFX.bloom,0);
  assert.equal(c.shadowDisposed,1);assert.equal(c.sun.shadow.map,null);assert.equal(sizes.length,5);assert.ok(sizes.every(s=>s[1]===4&&s[2]===4));
- assert.equal(c.POST.w,0);assert.equal(c.mapLoads,0,'Ascent collision/nav is not rebuilt for lamp counts');assert.equal(c.rebuilds,1);assert.deepEqual(ratios,[1]);
+ assert.equal(c.POST.w,0);assert.equal(c.mapLoads,0,'a static-graphics map is not rebuilt for lamp counts');assert.equal(c.rebuilds,1);assert.deepEqual(ratios,[1]);
  assert.equal(c.blur,false,'the glass blur behind the HUD goes with the mobile preset');assert.equal(c.refreshes,1,'a preset change redraws the shadow map at once');
  c.CUR_MAP_KEY='garden';c.MAPS.garden={};c.applyGfx(C.presets.visual,false);assert.equal(c.mapLoads,1,'regular maps rebuild their mode-specific lamps');
  assert.equal(c.blur,true);c.applyGfx(C.presets.perf,false);assert.equal(c.blur,false);c.applyGfx(C.presets.ultra,false);assert.equal(c.blur,true);

@@ -108,12 +108,6 @@
 #s-title .home-guide>summary::-webkit-details-marker{display:none}
 #s-title .home-guide>summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin-right:2px;flex:none}
 #s-title .home-guide[open]>summary::before{transform:rotate(45deg)}
-/* on a landscape phone the trial map card stood as large as 혼자 하기 next to it; it steps back to a smaller card */
-@media(orientation:landscape) and (max-height:480px){
-  #s-title #go-mark-valo{align-self:start;min-height:0!important;padding:8px 14px!important;font-size:13px!important;gap:10px}
-  #s-title #go-mark-valo img{width:48px;height:27px}
-}
-
 /* On a laptop most of the home and select text was 9-12px; the smallest labels (agent roles, ability notes,
    the news panel, the select hint) come up to 11-12px. Letters on keys and counts stay small on purpose. */
 @media(min-width:1024px){

@@ -16,9 +16,9 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
 
     // the English page
     const en = await f.page("mapnamesen", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, beforeLoad: (p) => p.addInitScript(() => { try { localStorage.setItem("lgp_lang", "en"); } catch (e) {} }) });
-    await en.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"), null, { timeout: 60000 });
+    await en.waitForFunction(() => window.SERVER_CFG && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     const maps = await en.evaluate(() => MAP_LIST.map((m) => [m.key, m.name]));
-    check(maps.length >= 22, "setup: the map list has " + maps.length + " maps");
+    check(maps.length >= 21, "setup: the map list has " + maps.length + " maps");
     await en.click("#go-play");
     await en.waitForFunction(() => document.querySelectorAll("#sel-maps button").length > 0);
     await en.waitForTimeout(500);

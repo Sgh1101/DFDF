@@ -56,7 +56,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  // Actual cached preview resources, after repeated open/close (warm-up excluded).
  await p.evaluate(()=>{world.phase='menu';document.getElementById('s-title').hidden=false;document.getElementById('hud').hidden=true;});
  await p.setViewportSize({width:852,height:393});const memory=[];
- await p.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
+ await p.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
  for(let i=0;i<5;i++){await p.locator('#go-armory').click();await p.waitForFunction(()=>GUN_SKINS._pv()?.r&&GUN_SKINS._pv()?.obj);const frame=await p.evaluate(()=>GUN_SKINS._pv().r.info.render.frame);await p.waitForFunction(n=>GUN_SKINS._pv().r.info.render.frame>=n+3,frame);memory.push(await p.evaluate(()=>({...GUN_SKINS._pv().r.info.memory})));await p.locator('#ar-close').click();}
  // The first two opens are warm-up: the voxel bodies' geometry reaches its steady level by the third open (CI: 23,23,118,118,118).
  assert.ok(memory[4].geometries<=memory[2].geometries+5,JSON.stringify(memory));assert.ok(memory[4].textures<=memory[2].textures+2,JSON.stringify(memory));
@@ -68,6 +68,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const definitions=await p.evaluate(()=>AGENTS.map(a=>({id:a.id,name:a.name,abilities:a.abilities.map(d=>({key:d.key,type:d.type,name:d.name,desc:d.desc,ult:!!d.ult,counterplay:d.counterplay||''}))})));
  fs.writeFileSync(path.join(dir,'ability-definitions.json'),JSON.stringify(definitions,null,2));
  fs.writeFileSync(path.join(dir,'measurements.json'),JSON.stringify({range,model,memory,budget,death,diagnostics:before.r},null,2));
- await p.locator('#go-mark-valo').click();await p.waitForFunction(()=>room.map==='ascent_trial');assert.equal(await p.evaluate(()=>room.map),'ascent_trial');
- assert.deepEqual(f.errors,[]);console.log('Diagnostics privacy/focus, 568x320 guide, reward-free training, six explicit anchors, bounded preview resources and direct map entry passed');
+ assert.equal(await p.locator('#go-mark-valo').count(),0,'the removed block-terrain map has no home entry');assert.ok(await p.evaluate(()=>!MAP_LIST.some(m=>m.key==='ascent_trial')));
+ assert.deepEqual(f.errors,[]);console.log('Diagnostics privacy/focus, 568x320 guide, reward-free training, six explicit anchors, bounded preview resources and no removed map entry passed');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

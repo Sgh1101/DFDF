@@ -64,7 +64,7 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
 
     // ── the data pages against the live game ──
     const game = await f.page("sitepages", { width: 1280, height: 800 }, {}, { bootTimeout: 120000 });
-    await game.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    await game.waitForFunction(() => window.SERVER_CFG && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     const live = await game.evaluate(() => ({
       agents: AGENTS.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]),
       maps: MAP_LIST.filter((m) => m.key !== window.WEEK_MAP_KEY).map((m) => [m.key, m.name, MAP_SIZE(m.key)]),
