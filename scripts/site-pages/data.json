@@ -1116,7 +1116,7 @@
   },
   {
    "id": "neon_agent",
-   "name": "네온",
+   "name": "전광",
    "role": "타격대",
    "color": "#41cfff",
    "accent": "#f7ef69",
@@ -1411,18 +1411,6 @@
     "A",
     "B"
    ]
-  },
-  {
-   "key": "ascent_trial",
-   "name": "마크X발로",
-   "size": 5,
-   "cat": "full",
-   "width": 288,
-   "depth": 171,
-   "sites": [
-    "A",
-    "B"
-   ]
   }
  ],
  "weekCandidates": 36,
@@ -1594,8 +1582,7 @@
   "s06",
   "d01",
   "d03",
-  "d04",
-  "ascent_trial"
+  "d04"
  ],
  "agentImages": [
   "hwaryeong",

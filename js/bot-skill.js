@@ -1,17 +1,17 @@
 (function (root) {
   "use strict";
   // How hard the bots are, as ONE number: skill, a multiple of the old "normal" bot. 1.00 is exactly the old normal.
-  //  · a ranked room reads the average tier of its human players: Iron 0.60 ... Radiant 1.20 (nine steps)
+  //  · a ranked room reads the average tier of its human players: 구리 (lowest) 0.60 ... 왕좌 (top) 1.20 (nine steps)
   //  · any other room reads their average account level: Lv1 0.60 ... Lv50+ 1.00 (never above the old normal)
   // Below 1.00 every number is the old normal's scaled by the skill (what a bot can do x skill, what it gets wrong
   // / skill), so 0.60 is a bot with 60% of normal's reach, turn speed, damage and headshots and 1/0.6 of its aim error.
   // Above 1.00 the numbers walk in a straight line from normal to the old hard preset, which sits at SKILL_MAX (1.20).
-  // Nothing goes past hard (turn 9, error 0.26, spread 0.072: the ceiling of what the game ever had), so a Radiant
+  // Nothing goes past hard (turn 9, error 0.26, spread 0.072: the ceiling of what the game ever had), so a 왕좌 (top tier)
   // bot is the old hard bot and never an aimbot; skill above 1.20 is clamped.
   // Pure functions only, so node tests can load this file; the game wraps diffTune() around tune() once per round.
-  const SKILL_MIN = 0.6, // Lv1 and Iron
+  const SKILL_MIN = 0.6, // Lv1 and the lowest tier (구리)
     SKILL_NORMAL = 1, // the old normal; Lv50+
-    SKILL_MAX = 1.2; // the old hard; Radiant
+    SKILL_MAX = 1.2; // the old hard; the top tier (왕좌)
   const TIERS = 9; // iron, bronze, silver, gold, platinum, diamond, ascendant, immortal, radiant (api/v1.js RANKS)
   // account level -> skill, straight lines between these points, flat past the last
   const LEVEL_POINTS = [
