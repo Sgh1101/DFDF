@@ -180,7 +180,7 @@
       g.setAttribute('position', new T.BufferAttribute(b.pos, 3));g.setAttribute('normal', new T.BufferAttribute(b.nor, 3));g.setAttribute('uv', new T.BufferAttribute(b.uv, 2));
       g.computeBoundingSphere();
       const m = mats.get(b.mid), mesh = new T.Mesh(g, m);
-      mesh.castShadow = !m.transparent && !m.isMeshBasicMaterial;mesh.receiveShadow = !m.isMeshBasicMaterial;mesh.userData.kour = true;mesh.matrixAutoUpdate = false;mesh.updateMatrix();
+      mesh.castShadow = !m.transparent && !m.isMeshBasicMaterial;mesh.receiveShadow = !m.isMeshBasicMaterial;mesh.userData.kour = true;mesh.userData.mapDetail = 1;mesh.matrixAutoUpdate = false;mesh.updateMatrix();   // mapDetail: the engine's ghost scan (js/legacy/11) leaves it alone, the boxes are made from the source
       scene.add(mesh);S.meshes.push(mesh);tris += b.pos.length / 9;
     }
     renderChunk = chunkSize;
