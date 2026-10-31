@@ -93,6 +93,7 @@
     "test:train": "node scripts/browser-train.js",
     "test:agents4": "node scripts/browser-agents4.js",
     "test:season": "node scripts/browser-season.js",
+    "test:clans": "node scripts/browser-clans.js",
     "test:prematch": "node scripts/browser-prematch.js",
     "test:mastery": "node scripts/browser-mastery.js",
     "test:progression": "node scripts/browser-progression.js",

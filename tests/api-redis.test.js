@@ -58,3 +58,46 @@ test("actual Redis: the per-order lock lets one of two parallel grants through a
   assert.equal((await set("refund")).status, 409);
   assert.equal(command(["GET", "ordlock:" + order.id]), "someone-else", "a stranger's lock is left alone");
 });
+test("actual Redis: parallel joins into the last free seats of a clan let exactly the free seats in, and a name is taken once", { skip: !process.env.DFDF_REDIS_TEST_PORT && (!process.env.DFDF_REDIS_CLI || !process.env.DFDF_REDIS_SOCKET) }, async (t) => {
+  const prefix = 'dfdf-test-' + require('node:crypto').randomUUID() + ':';
+  const raw = cmd => process.env.DFDF_REDIS_TEST_PORT ? JSON.parse(execFileSync(process.execPath, [require.resolve('../scripts/redis-test-client'), JSON.stringify(cmd)], {encoding:'utf8'})) : JSON.parse(execFileSync(process.env.DFDF_REDIS_CLI, ["--json", "-s", process.env.DFDF_REDIS_SOCKET, ...cmd.map(String)], { encoding: "utf8" }));
+  const command = cmd => {const c=cmd.slice();if(c[0]==='EVAL'){for(let i=3;i<3+Number(c[2]);i++)if(c[i])c[i]=prefix+c[i];}else if(c[0]==='MGET'){for(let i=1;i<c.length;i++)c[i]=prefix+c[i];}else if(c[1])c[1]=prefix+c[1];return raw(c);};
+  t.after(()=>{const keys=raw(['KEYS',prefix+'*']);if(keys.length)raw(['DEL',...keys]);});
+  const h = harness({ redisCommand: command });
+  let n = 0;
+  const account = async (id) => { const r = await h.api("auth", { id, pw: "password", device: "dev-" + id }, { "x-forwarded-for": "10.5.0." + n++ }); assert.equal(r.status, 200); return r; };
+  const user = (id) => JSON.parse(command(["GET", "user:" + id]));
+  const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "redis-owner-device" });
+  const c = JSON.parse(JSON.stringify(h.config)); c.clan.max = 4; c.clan.cost = 0;
+  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).status, 200);
+  const cap = await account("capt" + Math.random().toString(36).slice(2, 7));
+  const made = await h.api("clan_create", { token: cap.token, name: "Redis Club", tag: "RDS", desc: "" });
+  assert.equal(made.status, 200, JSON.stringify(made));
+  // the name is taken once even when two accounts ask for it at the same moment
+  const two = [await account("rival" + Math.random().toString(36).slice(2, 6)), await account("rivel" + Math.random().toString(36).slice(2, 6))];
+  const names = await Promise.all(two.map((p) => h.api("clan_create", { token: p.token, name: "Fresh Name", tag: "FRN", desc: "" })));
+  assert.deepEqual(names.map((x) => x.status).sort(), [200, 409]);
+  // three seats are free (4 at most, the owner has one); two accounts ask for the last seat after the other seats are taken
+  const joiners = [];
+  for (let i = 0; i < 6; i++) joiners.push(await account("join" + i + Math.random().toString(36).slice(2, 6)));
+  const first = await Promise.all(joiners.slice(0, 2).map((p) => h.api("clan_join", { token: p.token, id: made.clan.id })));
+  assert.deepEqual(first.map((x) => x.status), [200, 200]);
+  const last = await Promise.all(joiners.slice(2, 4).map((p) => h.api("clan_join", { token: p.token, id: made.clan.id })));
+  assert.deepEqual(last.map((x) => x.status).sort(), [200, 409], "two for the last seat: one gets it");
+  assert.match(last.find((x) => x.status === 409).error, /가득 찼습니다/);
+  // more at once than there are seats left: none left over
+  const rest = await Promise.all(joiners.slice(4).map((p) => h.api("clan_join", { token: p.token, id: made.clan.id })));
+  assert.deepEqual(rest.map((x) => x.status), [409, 409]);
+  const clan = JSON.parse(command(["GET", "clan:" + made.clan.id]));
+  assert.equal(clan.members.length, 4);
+  const onIt = joiners.map((p) => user(p.user.id)).filter((u) => u.clan === made.clan.id).length;
+  assert.equal(onIt, 3, "the clan lists three joiners and exactly those three carry its id");
+  assert.equal(new Set(clan.members.map((m) => m.id)).size, 4, "nobody twice");
+  // leaving and joining at once: the seat is not lost or doubled
+  const leaver = joiners.find((p) => user(p.user.id).clan === made.clan.id);
+  const swap = await Promise.all([h.api("clan_leave", { token: leaver.token }), h.api("clan_join", { token: joiners[5].token, id: made.clan.id })]);
+  const after = JSON.parse(command(["GET", "clan:" + made.clan.id]));
+  assert.equal(after.members.length, swap[1].status === 200 ? 4 : 3);
+  assert.equal(after.members.length, new Set(after.members.map((m) => m.id)).size);
+  for (const m of after.members) assert.equal(user(m.id.toLowerCase()).clan, made.clan.id);
+});
