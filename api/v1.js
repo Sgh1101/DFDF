@@ -159,6 +159,11 @@ const DEFAULT_CONFIG = {
   // surrenderS seconds in the modes without rounds): surrenderVoteS seconds to vote, then surrenderCoolS
   // before the next try; surrenderRound 0 = no surrender.
   rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3, leaveRR: 8, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
+  // the AI competitive match in solo (a rating of its own, u.ai, on the same tier scale; the real rank, seasons and the
+  // leaderboard never move for it). A solo match with a valid ticket, std mode, a 5v5 map, played to 13 rounds counts: a win
+  // adds win + perKill a kill (up to maxKill), a loss takes loss, less half the kill bonus (never under half of loss). A day's
+  // gain has a ceiling, as the result is what the game reports (0 = none). on: switches the whole thing
+  aiComp: { on: !0, win: 18, loss: 10, perKill: 1, maxKill: 8, maxPerDay: 150 },
   // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
   // its tier (1 common … 4 legendary); on switches the whole thing
   cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
@@ -449,6 +454,10 @@ function rankInit(u) {
 }
 // what the account shows: the tier while placing is hidden
 const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankOf(0), { hidden: !0 }) : rankOf(u.rr));
+// ── the AI competitive rating (u.ai = {rr, played, w, best}): the tier scale of the real rank, a number of its own ──
+const aiOf = (u) => (isObj(u.ai) ? u.ai : { rr: 0, played: 0, w: 0, best: 0 });
+const aiView = (u) => { if (u.guest) return null; const a = aiOf(u), rr = Math.max(0, Math.round(+a.rr) || 0); return Object.assign(rankOf(rr), { played: a.played | 0, w: a.w | 0, best: Math.max(rr, Math.round(+a.best) || 0) }); };
+const AIC = { target: 13, players: 10, minMs: 150 * 1000 };
 // ── mastery of each agent (u.mast[agentId] = {xp, m: matches, w: wins, k: kills}) ──
 const MAST_MAX = 10;
 // the owner's numbers, as the last loadConfig() read them (publicUser has no config to hand)
@@ -510,7 +519,7 @@ function achAward(u, win, mode, agent) {
 }
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), ai: aiView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -779,6 +788,7 @@ function trimPicks(u) {
 // ── public actions ──
 const A = {};
 // the rank settings a game needs to run leaving, AFK and surrender (not the RR numbers)
+const publicAiComp = (A) => ({ on: !!A.on, win: Math.max(0, Math.round(+A.win) || 0), loss: Math.max(0, Math.round(+A.loss) || 0), perKill: Math.max(0, Math.round(+A.perKill) || 0), maxKill: Math.max(0, Math.round(+A.maxKill) || 0), maxPerDay: Math.max(0, Math.round(+A.maxPerDay) || 0) });
 const publicRank = (R) => { const o = {}; for (const k of ["minHumans", "leaveGraceS", "afkWarnS", "afkLeaveS", "surrenderRound", "surrenderS", "surrenderVoteS", "surrenderCoolS"]) o[k] = Math.max(0, Math.round(+R[k]) || 0); return o; };
 // the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
 const weekMapOf = (c, t) => {
@@ -789,7 +799,7 @@ const weekMapOf = (c, t) => {
 const eventMapOf = (c, t) => EVENT_MAP.choose(t, !1 !== c.game.eventMap, c.game.eventMapEnd);
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
+  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, aiComp: publicAiComp(c.aiComp), rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -1828,7 +1838,7 @@ async function matchTrust(u, ticket) {
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
   if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
-  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, ms, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
 // ── ranked match attestation ──
 // RR and MMR are never taken from what a player reports about himself. The host of a ranked
@@ -2145,6 +2155,16 @@ function masteryAward(u, c, name, win, kills, left) {
   const gold = up > 0 ? Math.max(0, Math.min(up * Math.max(0, +M.gold || 0), Math.max(0, +M.maxGold || 0), left)) : 0;
   return { id, gain: Math.floor(gain), lv, before, up, gold };
 }
+// The AI competitive match counts for the AI rating when: the client reports it as one (match.aic), it is a solo match (no
+// ranked ticket, no roster of humans), standard mode on a 5v5 map (ten in the match), played to the end (one side at 13
+// rounds, the other under it, and the report's win is that side's) and long enough for that many rounds. Guests have no rating.
+function aiCompVerdict(u, c, trust, b, rkv, win, quit) {
+  const A = c.aiComp, m = b.match;
+  if (!A || !A.on || !isObj(m) || m.aic !== 1) return null;
+  const s = Array.isArray(m.s) ? [Math.round(+m.s[0]), Math.round(+m.s[1])] : [NaN, NaN], top = Math.max(s[0], s[1]);
+  const why = u.guest ? "guest" : trust.ranked || rkv || b.humans ? "not_solo" : quit ? "left" : "std" !== m.mode ? "mode" : m.n !== AIC.players ? "size" : !(top === AIC.target && Math.min(s[0], s[1]) >= 0 && Math.min(s[0], s[1]) < AIC.target) ? "unfinished" : trust.ms < AIC.minMs ? "too_short" : win !== s[0] > s[1] ? "mismatch" : "";
+  return { ok: !why, why };
+}
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -2248,10 +2268,25 @@ A.progress = async (q, b) => {
     u.rmDone = [rkv.m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
     isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
   }
+  // the AI competitive rating: only for a solo match the client reports as one and the server finds whole (see aiCompVerdict);
+  // it reads nothing the real rank reads and writes none of it
+  const aiV = aiCompVerdict(u, c, trust, b, rkv, win, quit), aiBefore = aiV ? aiView(u) : null;
+  let aiD = 0, aiRaw = 0;
+  if (aiV && aiV.ok) {
+    const a = aiOf(u), a0 = Math.max(0, Math.round(+a.rr) || 0), A = c.aiComp, acap = Math.max(0, +A.maxPerDay || 0);
+    (isObj(u.aiDay) && u.aiDay.d === day) || (u.aiDay = { d: day, n: 0 });
+    aiD = aiRaw = rrDelta(A, win, 0.5, kills);
+    aiD > 0 && acap > 0 && (aiD = Math.min(aiD, Math.max(0, acap - (u.aiDay.n || 0))));
+    const rr1 = Math.max(0, a0 + aiD);
+    aiD = rr1 - a0;
+    aiD > 0 && (u.aiDay.n = (u.aiDay.n || 0) + aiD);
+    u.ai = { rr: rr1, played: (a.played | 0) + 1, w: (a.w | 0) + (win ? 1 : 0), best: Math.max(rr1, Math.round(+a.best) || 0) };
+  }
   u.xp = (u.xp || 0) + gain + fwXp;
   u.xpDay.n = (u.xpDay.n || 0) + gain + fwXp;
   const m = cleanMatch(b.match, win, kills);
   m && trust.ranked && (m.rk = 1);
+  m && aiV && aiV.ok && (m.ac = 1);
   m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
@@ -2261,7 +2296,7 @@ A.progress = async (q, b) => {
   const ach = achAward(u, win, mode, agent);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach };
+  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach, ai: aiV ? { counted: !!aiV.ok, why: aiV.why || "", rr: aiD, before: aiBefore, after: aiView(u), capped: !!aiV.ok && aiD < aiRaw } : null };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
   // settled: this match no longer waits to be judged as a leave
   trust.ranked && (await redis(["GET", rmOpenKey(u.id)])) === trust.m && (await redis(["DEL", rmOpenKey(u.id)]));
@@ -2270,7 +2305,7 @@ A.progress = async (q, b) => {
     try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
   }
   // the account's own log gets the hidden MMR too: it is read on the owner page only
-  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
+  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${aiV ? " · AI경쟁전" + (aiV.ok ? " " + (aiD >= 0 ? "+" : "") + aiD : " 미반영(" + aiV.why + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ai: aiV && aiV.ok ? [aiBefore.rr, u.ai.rr] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
   p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
@@ -2732,6 +2767,7 @@ ADMIN.user_profile = async (q, b) => {
     permActive: !!activePerm(u), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
+    ai: aiView(u),
     season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,
     seasonLog: Array.isArray(u.ssnLog) ? u.ssnLog.slice(0, 12) : [],
     owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
@@ -2972,7 +3008,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000], "aiComp.win": [0, 1000], "aiComp.loss": [0, 1000], "aiComp.perKill": [0, 100], "aiComp.maxKill": [0, 1000], "aiComp.maxPerDay": [0, 100000] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -2993,7 +3029,7 @@ function validateConfig(c) {
   c.game.eventMapEnd = c.game.eventMapEnd == null ? "" : String(c.game.eventMapEnd).trim();
   if (c.game.eventMapEnd && !EVENT_MAP.valid(c.game.eventMapEnd)) throw fail(400, "이벤트 맵의 마지막 날을 확인해 주세요 (예: 20261130, 비우면 끝나는 날 없음)");
   c.mastery.on = !!c.mastery.on;
-  for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
+  for (const k of ["lvReward", "firstWin", "mission2", "ach", "aiComp"]) c[k].on = !!c[k].on;
   for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
     const [lv, id] = part.split(":");
     if (!/^\d{1,3}$/.test(lv) || +lv < 2 || (id !== undefined && !COS_BY[id.trim()])) throw fail(400, "레벨 보상 목록을 확인해 주세요 (예: 5:scout,10:neoncity): " + part);

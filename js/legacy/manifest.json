@@ -126,5 +126,6 @@
   "js/legacy/118-the-map-of-the-week-joins-the-list-for-seven-days.js",
   "js/legacy/119-ranked-leaving-away-from-the-keyboard-and-surrender-in-the-host-s-room.js",
   "js/legacy/120-progression-rewards-first-win-level-gold-and-achievements-on-the-result.js",
-  "js/legacy/121-the-event-map-has-a-box-of-its-own-in-the-map-lists.js"
+  "js/legacy/121-the-event-map-has-a-box-of-its-own-in-the-map-lists.js",
+  "js/legacy/122-ai-competitive-solo-play-with-an-ai-rating-of-its-own.js"
 ]

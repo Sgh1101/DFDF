@@ -18,7 +18,8 @@
 
   // the maps for 5 v 5 (the ranked ones), as the pool lists them
   const MAP_KEYS = ["pogu", "garden", "market", "glacier", "neon", "dunes", "jungle"];
-  const RANKED = (window.RANKED = { on: () => !!room.ranked, locked: !1, MIN_HUMANS: 3 });
+  // ai: a solo AI competitive match is under way (js/legacy/122): the same lock, with no room behind it
+  const RANKED = (window.RANKED = { on: () => !!room.ranked, locked: !1, ai: !1, MIN_HUMANS: 3 });
   room.ranked = !1;
 
   // ── what the lock holds off ──
@@ -211,15 +212,18 @@
   }
   // the lock follows the room: on in a ranked room, off when it is left
   function sync() {
-    const on = !!room.ranked && "solo" !== NET.mode;
+    const on = (!!room.ranked && "solo" !== NET.mode) || (!!RANKED.ai && "solo" === NET.mode);
     on || (room.ranked && "solo" === NET.mode && (room.ranked = !1));
     on || (ownerKey = "");
     on && verifyOwner();
     lockAdmin(on ? (RANKED.isOperator() ? 1 : 2) : 0);
     on && clean();
     document.body.classList.toggle("ranked", !!on);
+    const bd = $("rk-badge");
+    bd && (bd.textContent = RANKED.ai ? L("AI 경쟁전", "AI COMPETITIVE") : L("랭크전", "RANKED"));
     mark();
   }
+  RANKED.sync = sync;
   const _sd = netShutdown;
   netShutdown = function () {
     const r = _sd.apply(this, arguments);
