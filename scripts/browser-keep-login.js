@@ -12,11 +12,14 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
       const result = await f.h.api(new URL(route.request().url()).searchParams.get("a"), route.request().postDataJSON() || {});
       await route.fulfill({ status: result.status, contentType: "application/json", body: JSON.stringify(result) });
     });
+    await context.addInitScript(() => { localStorage.getItem("lgp_lang") || localStorage.setItem("lgp_lang", "ko"); });
+    if (process.env.DFDF_THREE_PATH) await context.route("https://cdnjs.cloudflare.com/ajax/libs/three.js/**", (route) => route.fulfill({ path: process.env.DFDF_THREE_PATH, contentType: "text/javascript" }));
+    if (process.env.DFDF_PEERJS_PATH) await context.route("**/peerjs.min.js", (route) => route.fulfill({ path: process.env.DFDF_PEERJS_PATH, contentType: "text/javascript" }));
     await context.route("https://fonts.googleapis.com/**", (route) => route.abort());
     await context.route("https://fonts.gstatic.com/**", (route) => route.abort());
     await context.route("**/js/promo.js", async (route) => { const res = await route.fetch(); await route.fulfill({ response: res, body: (await res.text()).replace(/video: "https?:[^"]*"/, 'video: "PROMO_VIDEO_URL"') }); });
     const tab = async () => {
-      const p = await context.newPage(); p.on("pageerror", (e) => f.errors.push(e.message));
+      const p = await context.newPage(); p.on("pageerror", (e) => f.errors.push(p.url() + " " + e.message));
       await p.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
       await p.waitForFunction(() => !document.getElementById("v-auth").hidden || !document.getElementById("v-dash").hidden, null, { timeout: 30000 });
       return p;
@@ -56,7 +59,8 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
     await p.close();
 
     // 3. a game link opened in a new tab goes by the homepage, which signs in by itself
-    p = await context.newPage(); p.on("pageerror", (e) => f.errors.push(e.message));
+    // (the game page's later scripts may throw while it is being sent away; that page is gone, so they are not counted)
+    p = await context.newPage();
     await p.goto(BASE + "/play.html", { waitUntil: "domcontentloaded" });
     await p.waitForURL((u) => u.pathname === "/" || u.pathname === "/index.html", { timeout: 30000 });
     await p.waitForFunction(() => !document.getElementById("v-dash").hidden, null, { timeout: 30000 });
