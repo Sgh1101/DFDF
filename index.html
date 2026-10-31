@@ -42,6 +42,7 @@ background:linear-gradient(170deg,#fff 0%,#8fa4c0 55%,#2d3a4d 100%);-webkit-back
 .hero p{color:var(--steel);font-size:14.5px;line-height:1.8;max-width:48ch;margin:16px auto 0}
 .box{background:linear-gradient(160deg,var(--panel2),var(--panel) 62%);border:1px solid var(--line);border-radius:20px;padding:20px}
 .auth{max-width:380px;margin:0 auto 40px}
+.keep{display:flex;align-items:center;gap:8px;min-height:36px;margin:2px 0 8px;color:var(--steel);font-size:13px;cursor:pointer}.keep input{width:18px;height:18px;margin:0;accent-color:var(--gold)}
 .auth h3{font-size:16px;margin-bottom:4px}.auth .d{color:var(--steel);font-size:12px;margin-bottom:14px;line-height:1.6}
 .in{width:100%;background:#0d121a;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:15px}
 .in:focus{outline:none;border-color:var(--gold)}
@@ -227,6 +228,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
       <div class="d" data-t="signinDesc"></div>
       <input class="in" id="uid" autocomplete="username" maxlength="16">
       <input class="in" id="upw" type="password" autocomplete="current-password" maxlength="64">
+      <label class="keep"><input type="checkbox" id="keep" checked><span data-t="keep"></span></label>
       <button class="btn go w" id="doAuth" data-t="signinBtn"></button>
       <div class="or" data-t="or"></div>
       <button class="btn w" id="doGuest" data-t="guestBtn"></button>
@@ -301,7 +303,7 @@ const T = {
   ko: {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
-    idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", or: "또는", guestBtn: "게스트로 시작",
+    idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", keep: "이 기기에서 로그인 유지", or: "또는", guestBtn: "게스트로 시작",
     order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", aiTier: "AI 경쟁전", aiNone: "아직 기록이 없습니다 · 혼자 하기에서 경쟁전을 해 보세요", aiRec: (p, w, b) => `${p}판 ${w}승 · 최고 ${b}`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
     lvrTitle: "레벨 보상", achTitle: "업적", fwName: "오늘의 첫 승리 보너스", fwReady: "오늘 받을 수 있음", fwDone: "오늘 받음", lvEach: (g) => `레벨이 오를 때마다 🪙 ${g}`, lvReached: "달성", lvGap: (n) => `${n}레벨 남음`, achDone: "달성",
     mastTitle: "요원 숙련도", mastEmpty: "아직 숙련도가 없습니다. 요원으로 한 판 하면 그 요원의 숙련도가 쌓입니다", mastMore: (n) => `전체 보기 (${n}명)`, mastLess: "접기", mastRec: (m, w) => `${m}경기 · ${w}승`, mastMax: "최고 단계", roles: {},
@@ -319,7 +321,7 @@ const T = {
   en: {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
-    idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", or: "or", guestBtn: "Play as guest",
+    idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", keep: "Keep me signed in on this device", or: "or", guestBtn: "Play as guest",
     order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", aiTier: "AI Competitive", aiNone: "No matches yet · try Competitive in solo play", aiRec: (p, w, b) => `${p} played · ${w} won · best ${b}`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
     lvrTitle: "Level rewards", achTitle: "Achievements", fwName: "First win of the day", fwReady: "Available today", fwDone: "Taken today", lvEach: (g) => `Every level gained pays 🪙 ${g}`, lvReached: "Reached", lvGap: (n) => `${n} level${n > 1 ? "s" : ""} to go`, achDone: "Done",
     mastTitle: "Agent mastery", mastEmpty: "No mastery yet. Play a match with an agent and it builds up for that agent", mastMore: (n) => `Show all (${n} agents)`, mastLess: "Show less", mastRec: (m, w) => `${m} matches · ${w} wins`, mastMax: "Max level", roles: { 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" },
@@ -374,9 +376,12 @@ async function api(a, b) {
   if (!j.ok) throw Object.assign(new Error(j.error || "error"), { status: r.status, ban: j.ban });
   return j;
 }
-function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); sessionStorage.removeItem("lgp_gate"); } }
-// a sign-in from an earlier visit does not count: each visit logs in again (this tab keeps it)
+function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist); S = sess; if (sess) { localStorage.setItem("lgp_session", JSON.stringify(sess)); localStorage.setItem("lgp_name", sess.user.id); } else { localStorage.removeItem("lgp_session"); localStorage.removeItem("lgp_keep"); sessionStorage.removeItem("lgp_gate"); } }
+// a sign-in from an earlier visit counts only when "keep me signed in" was ticked for that sign-in (lgp_keep holds its
+// token); the saved session is then checked with the server again (me), which brings fresh owner powers. Otherwise
+// each visit logs in again (this tab keeps it).
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
+const kept = () => { try { return !!(S && S.token) && localStorage.getItem("lgp_keep") === S.token; } catch (e) { return !1; } };
 function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = $("#lvr").hidden = $("#ach").hidden = $("#clan").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
 function drawNotices() {
   const n = [];
@@ -550,7 +555,7 @@ async function auth(guest) {
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
     save({ token: j.token, user: j.user, atoken: j.atoken || "", hist: j.hist || [] });
-    try { sessionStorage.setItem("lgp_gate", j.token); } catch (e) {}
+    try { sessionStorage.setItem("lgp_gate", j.token); $("#keep").checked ? localStorage.setItem("lgp_keep", j.token) : localStorage.removeItem("lgp_keep"); } catch (e) {}
     enter();
   } catch (e) {
     if (e.ban) return showBan(e.ban);
@@ -578,13 +583,13 @@ function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.
   window.NOTICE && NOTICE.configure(CFG.game);
   drawNotices(); drawFeat();
   const offlineGuest = (() => { try { return !!S && !S.token && sessionStorage.getItem("lgp_gate") === "offline"; } catch (e) { return !1; } })();
-  if (S && S.token && !gatePassed()) {
+  if (S && S.token && !gatePassed() && !kept()) {
     // ask again; the last id is filled in
     view("auth");
     try { $("#uid").value = S.user && !S.user.guest ? S.user.id : localStorage.getItem("lgp_name") || ""; $("#uid").value && $("#upw").focus(); } catch (e) {}
   } else if (S && S.token) {
-    try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; S.hist = j.hist || S.hist || []; save(S); enter(); }
-    catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else enter(); }
+    try { const j = await api("me", { token: S.token }); S.user = j.user; S.atoken = j.atoken || ""; S.hist = j.hist || S.hist || []; save(S); try { sessionStorage.setItem("lgp_gate", S.token); } catch (x) {} enter(); }
+    catch (e) { if (e.ban) showBan(e.ban); else if (e.status === 401) { save(null); view("auth"); } else if (gatePassed()) enter(); else view("auth"); }
   } else if (offlineGuest) enter();
   else view("auth");
   paintLang();
