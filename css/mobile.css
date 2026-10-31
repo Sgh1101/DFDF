@@ -5,7 +5,7 @@
   #s-title .tt-left{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,520px);grid-template-rows:auto auto minmax(0,1fr);column-gap:22px;max-width:720px;width:100%;align-items:center}
   #s-title .tt-left :is(.title-mark,.title-sub){grid-column:1}
   #s-title .title-sub{max-width:160px;font-size:10px;letter-spacing:.14em;line-height:1.6}
-  #s-title .title-desc,#s-title .title-foot{display:none}
+  #s-title .title-desc,#s-title .title-foot,#s-title .title-help{display:none}
   #s-title .tt-menu{display:grid;grid-column:2;grid-row:1/4;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;max-width:520px;max-height:none;overflow:visible;margin:0!important;align-content:center;padding:3px}
   #s-title #go-play{order:0}
   #s-title #go-multi{order:1}
@@ -35,7 +35,7 @@
   #s-title .tt-left{display:flex;gap:12px;width:100%;max-width:420px;margin:auto}
   #s-title .title-mark{font-size:64px}
   #s-title .title-sub{margin-top:5px;font-size:10px}
-  #s-title .title-desc,#s-title .title-foot{display:none}
+  #s-title .title-desc,#s-title .title-foot,#s-title .title-help{display:none}
   #s-title .tt-menu{max-height:none}
   #home-account :is(#acct-chip,#rank-chip,#gold-chip,#mis-chip){font-size:10px!important;max-width:115px;min-height:32px;padding:5px 7px!important}
 }
