@@ -426,10 +426,11 @@ body.touching #emo-wheel .emo-b{width:92px;height:44px;margin:-22px 0 0 -46px;tr
 body.emoting #cross,body.emoting #crosshair{opacity:0!important}
 body.emo-off #tb-emote,body.emo-off #emo-wheel{display:none!important}
 .emo-tb{position:absolute;width:calc(46px*var(--mbs,1));height:calc(46px*var(--mbs,1));border-radius:50%;pointer-events:auto;display:grid;place-items:center;background:rgba(14,19,27,.62);border:1.5px solid rgba(255,255,255,.22);color:#e8edf4;font:700 calc(10.5px*var(--mbs,1))/1 'Noto Sans KR',system-ui,sans-serif;backdrop-filter:blur(6px);touch-action:none;padding:0}
-/* beside chat and ping; on narrow phones (568x320) the left fire button reaches this row, so it goes up beside the minimap */
+/* beside chat and ping; on narrow phones (568x320) the left fire button reaches this row and the layout editor's bar covers the
+   top left beside the minimap, so it goes under the menu button at the top right */
 #tb-emote{border-color:rgba(138,226,255,.65);color:#bdeeff;background:rgba(80,190,255,.14);left:calc(114px + env(safe-area-inset-left));top:106px}
 #tb-emote.on{background:rgba(80,190,255,.4)}
-@media (max-width:640px){#tb-emote{top:8px;left:calc(108px + env(safe-area-inset-left))}}`;
+@media (max-width:640px){#tb-emote{left:auto;right:calc(10px + env(safe-area-inset-right));top:58px}}`;
   document.head.appendChild(css);
   const root = document.createElement("div");
   root.id = "emo-wheel";

@@ -30,6 +30,14 @@ fs.mkdirSync("test-results", { recursive: true });
   // Headless Chromium sometimes grants pointer lock without a gesture and drops it again; the game then opens the pause
   // menu, as it does when a player presses Esc, and an emote (rightly) does not start under it. The pages here never take
   // the lock (the test sets \`locked\` itself), and each step starts with the pause menu shut (hidden directly: togglePause(false) toggles, it does not close).
+  // The owner's emote switch goes on the test server as well as into the page: the game reads its settings from the server
+  // again every 3 minutes, and a refresh in the middle of a step would otherwise turn the switch back on.
+  let ownerToken = "";
+  const serverEmotes = async (on) => {
+    ownerToken ||= (await f.h.api("auth", { id: "owner", pw: "owner-password", device: "browser-owner-device" })).atoken;
+    const c = JSON.parse(JSON.stringify(f.h.config)); c.game.emotes = on;
+    assert.equal((await f.h.api("a_config_set", { atoken: ownerToken, config: c })).status, 200, "the owner's emote switch on the server");
+  };
   const noLock = async (p) => { await p.evaluate(() => { for (const C of [Element, HTMLCanvasElement]) C.prototype.requestPointerLock = function () { return Promise.resolve(); }; }); return p; };
   try {
     if (run("solo")) {
@@ -322,11 +330,12 @@ fs.mkdirSync("test-results", { recursive: true });
       const cancels = [
         ["move", () => { keys.w = true; }], ["jump", () => { keys.space = true; }], ["fire", () => { keys.fire = true; }], ["aim", () => { keys.ads = true; }],
         ["ability", () => { useAbility(0); }], ["switch", () => { switchSlot("primary" === myActor().slot ? "secondary" : "secondary"); }], ["reload", () => { startReload(); }],
-        ["damage", () => { const me = myActor(); me.invuln = 0; dealDamage(me, 5, false, world.actors.find((a) => a.team !== me.team)); }],
+        // (what makes dealDamage do nothing is put right first: invulnerable, god mode, a round that ended, a dead body)
+        ["damage", () => { const me = myActor(); me.invuln = 0; ADMIN.god = false; world.phase = "live"; me.alive = true; window.__dmg = [me.hp]; dealDamage(me, 5, false, world.actors.find((a) => a.team !== me.team)); window.__dmg.push(me.hp, me.invuln, !!ADMIN.god, world.phase); }],
       ];
       for (const [why, act] of cancels) {
         await calm(); await E(() => { const me = myActor(); me.vel.set(0, 0, 0); me.vy = 0; me.y = 0; me.onGround = true; });
-        const r = await E(([why, act]) => { EMOTE.resetLimits(); const ok = EMOTE.play(1); const before = !!EMOTE.state.me; (0, eval)("(" + act + ")")(); for (let i = 0; i < 3; i++) step(1 / 60); const m = myActor(); return { ok, before, after: !!EMOTE.state.me, why: EMOTE.state.why, sent: EMOTE.stats.cancelled }; }, [why, act.toString()]);
+        const r = await E(([why, act]) => { EMOTE.resetLimits(); const ok = EMOTE.play(1); const before = !!EMOTE.state.me; (0, eval)("(" + act + ")")(); for (let i = 0; i < 3; i++) step(1 / 60); const m = myActor(); return { ok, before, after: !!EMOTE.state.me, why: EMOTE.state.why, sent: EMOTE.stats.cancelled, hp: m.hp, dmg: why === "damage" ? window.__dmg : undefined }; }, [why, act.toString()]);
         assert.ok(r.ok && r.before && !r.after && r.why === why, `${why} ends it: ${JSON.stringify(r)}`);
       }
       // the real keys, too: W moves, Space jumps, R reloads, Q is an ability, 2 is the sidearm
@@ -473,6 +482,7 @@ fs.mkdirSync("test-results", { recursive: true });
         assert.equal(await seen(host, ids.guest), -1, "a guest that is planting cannot emote on the host");
         await host.evaluate(() => { const g = world.actors.find((a) => a.ctrl && "me" !== a.ctrl && !isAI(a)); g.planting = 0; EMOTE.resetLimits(); });
         // the owner's switch: the host drops it, a guest that has it switched off plays nothing
+        await serverEmotes(false);
         await host.evaluate(() => { SERVER_CFG.game = Object.assign({}, SERVER_CFG.game, { emotes: false }); EMOTE.sync(); });
         const s4 = await stats(host);
         await guest.evaluate(() => NET.up.event.send({ t: "emote", e: 4 }));
@@ -481,6 +491,7 @@ fs.mkdirSync("test-results", { recursive: true });
         assert.equal((await stats(host)).relayed, s4.relayed);
         assert.equal(await host.evaluate(() => { EMOTE.play(0); return !!myActor()._emo; }), false, "and plays none of its own");
         assert.equal(await host.evaluate(() => getComputedStyle(document.getElementById("tb-emote")).display), "none", "the touch button is gone");
+        await serverEmotes(true);
         await host.evaluate(() => { SERVER_CFG.game = Object.assign({}, SERVER_CFG.game, { emotes: true }); EMOTE.sync(); EMOTE.resetLimits(); });
         console.log("emotes online: the host passes on two of six at once, drops what is malformed, a stop with nothing to stop, a planting body and the switched-off case");
 
@@ -556,7 +567,12 @@ fs.mkdirSync("test-results", { recursive: true });
       // started again, so the tap below meets a playing emote)
       await phone.evaluate(() => { if (!EMOTE.state.me) { EMOTE.resetLimits(); EMOTE.state.cd = 0; EMOTE.play(EMOTE.chosen()); } EMOTE.state.why = ""; });
       assert.ok(await phone.evaluate(() => !!EMOTE.state.me), "an emote is playing before the tap");
-      await phone.tap("#tb-emote");
+      // (the tap is sent from inside the page: held past 450 ms it is a long press, which opens the list, and a slow frame
+      // between a real touchstart and touchend can make it one)
+      await phone.evaluate(() => {
+        const e = document.getElementById("tb-emote"), r = e.getBoundingClientRect(), t = new Touch({ identifier: 3, target: e, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+        for (const type of ["touchstart", "touchend"]) e.dispatchEvent(new TouchEvent(type, { touches: type === "touchstart" ? [t] : [], targetTouches: type === "touchstart" ? [t] : [], changedTouches: [t], bubbles: true, cancelable: true }));
+      });
       // stopped by the tap ("key"), not run out
       assert.equal(await settle(() => !EMOTE.state.me && EMOTE.state.why === "key"), true, "a tap while it plays stops it: " + JSON.stringify(await phone.evaluate(() => ({ me: !!EMOTE.state.me, why: EMOTE.state.why }))));
       // two taps: the list, and a tap on one plays it
@@ -593,8 +609,10 @@ fs.mkdirSync("test-results", { recursive: true });
       await phone.tap("#tb-jump");
       assert.equal(await phone.evaluate(() => !EMOTE.state.me), true, "a tap on a touch control ends it");
       // the owner's switch hides the button
+      await serverEmotes(false);
       await phone.evaluate(() => { SERVER_CFG.game = Object.assign({}, SERVER_CFG.game, { emotes: false }); EMOTE.sync(); });
       assert.equal(await phone.evaluate(() => getComputedStyle(document.getElementById("tb-emote")).display), "none", "the button goes with the switch");
+      await serverEmotes(true);
       console.log("phone: the button is on the screen and in the layout editor; a tap plays, a long press and two taps open a list that fits 740x360");
       assert.deepEqual(f.errors.slice(base), [], "no page error in the touch part");
     }
