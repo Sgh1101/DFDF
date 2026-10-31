@@ -39,6 +39,7 @@
     "test:home-layout": "node scripts/browser-home-layout.js",
     "test:home-numbers": "node scripts/browser-home-numbers.js",
     "test:relay-ask": "node scripts/browser-relay-ask.js",
+    "test:keep-login": "node scripts/browser-keep-login.js",
     "test:site-pages": "node scripts/browser-site-pages.js",
     "build:site-pages": "node scripts/build-site-pages.js",
     "dump:site-data": "node scripts/dump-site-data.js",
