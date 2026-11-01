@@ -36,24 +36,58 @@ test("admin mode lends every cheat only while it lasts: the account's own cheats
   assert.equal((await h.api("me", { token: q.token })).user.perm, null);
 });
 
-test("a paid order opened during admin mode is the account's own cheat: it stays after the admin mode and does not widen it", async () => {
-  const h = harness(), owner = await login(h, "owner"), p = await login(h, "carol");
-  const A = owner.atoken, c = JSON.parse(JSON.stringify(h.config));
-  c.order.on = true; c.order.bank = "bank 1"; c.order.price = Object.assign({}, c.order.price, { radar: 1000 });
-  assert.equal((await h.api("a_config_set", { atoken: A, config: c })).status, 200);
-  await h.api("a_user_set", { atoken: A, id: "carol", op: "admin", days: 2 });
-  const ord = await h.api("order_create", { token: p.token, items: ["radar"], days: 30, depositor: "x" });
-  assert.equal(ord.status, 200);
-  assert.equal((await h.api("a_order_set", { atoken: A, id: ord.order.id, op: "grant" })).status, 200);
-  h.advance(3 * DAY);
+// A perm left by the old paid sales: the same shape, but nobody stamped it as the owner's grant.
+const legacyPerm = (h, id, extra) => h.db.set("user:" + id, JSON.stringify({ ...h.user(id), perm: { on: true, radar: true, wall: true, cheat: false, god: false, oneShot: false, infAmmo: false, noRecoil: false, speed: 1.5, fastFire: 1, buff: 0, until: 0, ...extra } }));
+
+test("cheats the owner grants from the admin page are stamped and work", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h, "bobby");
+  assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "bobby", op: "perm", perm: { on: true, radar: true, speed: 1.5 }, days: 30 })).status, 200);
+  assert.equal(h.user("bobby").perm.src, "admin", "the grant carries the stamp");
   const perm = await seenByHost(h, p.token);
-  assert.equal(perm.radar, true, "the paid radar is there");
-  for (const k of FULL.filter((k) => k !== "radar")) assert.equal(perm[k], false, k + " was not paid for");
-  assert.ok(Math.abs(perm.until - (h.now() + 27 * DAY)) < 5000, "radar still runs about 27 more days");
-  // taking the order back switches it off
-  const A2 = (await login(h, "owner")).atoken;
-  assert.equal((await h.api("a_order_set", { atoken: A2, id: ord.order.id, op: "revoke", reason: "t" })).status, 200);
+  assert.equal(perm.radar, true);
+  assert.equal(perm.speed, 1.5);
+  assert.equal((await h.api("me", { token: p.token })).user.perm.radar, true);
+});
+
+test("cheats with no admin stamp (the old purchases) are off, but stay stored", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h, "bobby");
+  legacyPerm(h, "bobby");
+  assert.equal(await seenByHost(h, p.token), null, "the host is told nothing");
+  const me = (await h.api("me", { token: p.token })).user;
+  assert.equal(me.perm, null);
+  assert.equal(h.user("bobby").perm.radar, true, "the stored data is untouched");
+  const row = await h.api("a_user_profile", { atoken: owner.atoken, id: "bobby" });
+  assert.equal(row.status, 200);
+  assert.equal(row.profile.acct.permActive, false);
+  assert.equal(row.profile.acct.permLegacy, true, "the owner page can say why");
+  // a perm that never had the stamp stays off however it is dated
+  legacyPerm(h, "bobby", { until: h.now() + 30 * DAY });
   assert.equal(await seenByHost(h, p.token), null);
+});
+
+test("saving the permission again from the admin page turns the old cheats back on", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h, "bobby");
+  legacyPerm(h, "bobby");
+  assert.equal(await seenByHost(h, p.token), null);
+  assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "bobby", op: "perm", perm: h.user("bobby").perm, days: 0 })).status, 200);
+  assert.equal(h.user("bobby").perm.src, "admin");
+  const perm = await seenByHost(h, p.token);
+  assert.ok(perm && perm.radar && perm.wall && perm.speed === 1.5, "the saved cheats work again");
+});
+
+test("admin mode lends its full set to an account with old cheats and gives the old data back untouched", async () => {
+  const h = harness(), owner = await login(h, "owner"), p = await login(h, "bobby");
+  legacyPerm(h, "bobby");
+  const old = JSON.parse(JSON.stringify(h.user("bobby").perm));
+  await h.api("a_user_set", { atoken: owner.atoken, id: "bobby", op: "admin", days: 1 });
+  const lent = await seenByHost(h, p.token);
+  for (const k of FULL) assert.equal(lent[k], true, k + " while admin");
+  h.advance(2 * DAY);
+  assert.equal(await seenByHost(h, p.token), null, "the old cheats stay off after admin mode");
+  // the owner page reads the account back (the revert is applied as the account is read)
+  const acct = (await h.api("a_user_profile", { atoken: (await login(h, "owner")).atoken, id: "bobby" })).profile.acct;
+  assert.deepEqual(acct.perm, old, "and were kept as they were");
+  assert.equal(acct.permActive, false);
 });
 
 test("cheats the owner page sets during admin mode are the account's own: they stay when admin mode ends", async () => {

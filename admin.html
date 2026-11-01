@@ -157,7 +157,7 @@ button.uname:hover{color:var(--gold);border:0}
 
 /* the feedback box */
 #osum a{color:var(--gold)}
-#fbBadge:not(:empty),#odBadge:not(:empty){display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:#ff3b4e;color:#fff;font-size:11px;font-weight:700;line-height:18px}
+#fbBadge:not(:empty){display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:#ff3b4e;color:#fff;font-size:11px;font-weight:700;line-height:18px}
 .fbc{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
 .fbc.new{border-color:#5c4b1f;box-shadow:0 0 0 1px rgba(255,200,73,.15)}
 .fbc>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 14px}
@@ -192,8 +192,6 @@ button.uname:hover{color:var(--gold);border:0}
       <button data-v="users">가입자</button>
       <button data-v="rooms">서버·방</button>
       <button data-v="bans">차단</button>
-      <button data-v="orders">구매 주문<span id="odBadge"></span></button>
-      <button data-v="ledger">장부</button>
       <button data-v="feedback">문의함<span id="fbBadge"></span></button>
       <button data-v="logs">서버 로그</button>
       <button data-v="agents">요원</button>
@@ -233,7 +231,7 @@ function logout() { clearInterval(timer); clearInterval(badgeTimer); badgeTimer 
 $("#go").onclick = login; $("#pw").onkeydown = (e) => { if (e.key === "Enter") login(); }; $("#out").onclick = logout;
 let view = "dash", timer = null, badgeTimer = null;
 $("#nav").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; view = b.dataset.v; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x === b)); show(); };
-function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); fbBadge(); odBadge(); clearInterval(badgeTimer); badgeTimer = setInterval(() => { fbBadge(); odBadge(); }, 60000); }
+function start() { $("#login").hidden = !0; $("#app").hidden = !1; show(); fbBadge(); clearInterval(badgeTimer); badgeTimer = setInterval(() => { fbBadge(); }, 60000); }
 function show() { clearInterval(timer); VIEWS[view]().catch((e) => ($("#main").innerHTML = `<p class="err">${esc(e.message)}</p>`)); }
 const days = (msg) => { const v = prompt(msg + "\n며칠? (0 = 영구)", "0"); return v === null ? null : Math.max(0, +v || 0); };
 // ── cheats opened for one account, item by item ──
@@ -243,6 +241,8 @@ const permParts = (p) => [...PERM_NAMES.filter(([k]) => p[k]).map(([k]) => SHORT
 function permTag(u) {
   const p = u.permSet;
   if (!p || !p.on) return "";
+  // cheats left from the old paid sales carry no admin stamp: stored, but off until the owner saves the permission again
+  if (p.src !== "admin") return ` <span class="tag red" title="예전 구매로 남은 권한입니다. 운영자가 권한을 저장하면 다시 켜집니다">권한 꺼짐 (예전 구매)</span>`;
   const gone = p.until && p.until < Date.now();
   const what = permParts(p).join(" · ") || "아무것도 안 엶";
   return ` <span class="tag ${gone ? "" : "blue"}" title="${esc(what)}">권한${gone ? " 만료" : p.until ? " ~" + when(p.until) : ""}</span><div class="muted">${esc(what)}</div>`;
@@ -466,11 +466,11 @@ function nameCells(root) {
 }
 new MutationObserver(() => nameCells($("#main"))).observe($("#main"), { childList: !0, subtree: !0 });
 const PF_KIND = { join: ["가입", "gold"], login: ["로그인", "green"], guest: ["게스트", "green"], loginfail: ["로그인 실패", "red"], blocked: ["차단됨", "red"], gacha: ["뽑기", "gold"], shop: ["상점", "blue"], cos: ["꾸미기", "blue"], wish: ["찜", ""], equip: ["스킨 장착", ""], mission: ["미션", "green"], match: ["경기", "blue"], level: ["레벨", "gold"], rank: ["티어", "gold"], order: ["주문", "gold"], feedback: ["문의", ""], admin: ["운영", "red"], room: ["방", ""] };
-const PF_TABS = [["info", "정보"], ["conn", "접속 기록"], ["shop", "뽑기·상점"], ["match", "경기·랭크"], ["order", "주문"], ["all", "전체 로그"]];
+const PF_TABS = [["info", "정보"], ["conn", "접속 기록"], ["shop", "뽑기·상점"], ["match", "경기·랭크"], ["all", "전체 로그"]];
 const PF_SRC = { g: "서버 로그에서 가져옴", h: "계정에 남은 기록에서 가져옴" };
 const pfNum = (n) => (+n || 0).toLocaleString("ko-KR");
 const pfSgn = (n) => (n > 0 ? "+" : "") + pfNum(n);
-// a gold balance below nothing is a debt (a revoked order took back gold already spent)
+// a gold balance below nothing is a debt (the owner can set gold or take it back)
 const goldTxt = (n) => ((+n || 0) < 0 ? `<span style="color:var(--red)">🪙 ${pfNum(n)} <b>빚</b></span>` : "🪙 " + pfNum(n));
 const pfChip = (g, s, r) => `<span class="tag" style="color:${TIER_C[r] || "var(--steel)"};border-color:${TIER_C[r] || "var(--line)"}">${esc(SKIN_KO[s] || s)} <span class="muted">${esc(GUN_KO[g] || g)}</span></span>`;
 const pfArrow = (a) => (Array.isArray(a) ? a.map(pfNum).join(" → ") : String(a));
@@ -545,11 +545,6 @@ function pfMatch(p) {
     ${hist.length ? `<div class="pf-scroll"><table><tr><th>시각</th><th>결과</th><th>모드·맵</th><th>요원</th><th>K/D/A</th><th>피해</th><th>XP</th><th>골드</th><th>TP</th></tr>${rows}</table></div>` : '<p class="muted">경기 기록이 없습니다.</p>'}
     <h4 style="color:var(--steel)">경기·티어·레벨 기록</h4>${pfRows(p.log.filter((e) => ["match", "rank", "level"].includes(e.k)), p)}`;
 }
-function pfOrder(p) {
-  const st = (s) => (typeof OD_ST !== "undefined" && OD_ST[s]) || [s, ""];
-  const rows = p.orders.map((o) => `<tr><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${(o.items || []).map((k) => `<span class="tag blue">${esc(p.itemNames[k] || k)}</span>`).join(" ")}</td><td>${o.days ? o.days + "일" : "영구"}</td><td>${pfNum(o.total)}원</td><td><span class="tag ${st(o.status)[1]}">${esc(st(o.status)[0])}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}</td></tr>`).join("");
-  return `${p.orders.length ? `<div class="pf-scroll"><table><tr><th>주문번호</th><th>시각</th><th>내용</th><th>기간</th><th>금액</th><th>상태</th></tr>${rows}</table></div>` : '<p class="muted">주문이 없습니다.</p>'}<h4 style="color:var(--steel)">주문 기록</h4>${pfRows(p.log.filter((e) => e.k === "order"), p)}`;
-}
 // the log as CSV (opens in Excel: UTF-8 with a mark; cells that start like a formula are quoted off)
 function pfCsv(p, list) {
   const cell = (v) => { v = String(v == null ? "" : v); /^[=+\-@\t\r]/.test(v) && (v = "'" + v); return '"' + v.replace(/"/g, '""') + '"'; };
@@ -590,7 +585,6 @@ async function openProfile(id, tab) {
       ${pfRows(p.log.filter((e) => connKinds.includes(e.k)), p)}</div>
     <div class="pf-body" data-p="shop" ${tab === "shop" ? "" : "hidden"}>${pfShop(p)}</div>
     <div class="pf-body" data-p="match" ${tab === "match" ? "" : "hidden"}>${pfMatch(p)}</div>
-    <div class="pf-body" data-p="order" ${tab === "order" ? "" : "hidden"}>${pfOrder(p)}</div>
     <div class="pf-body" data-p="all" ${tab === "all" ? "" : "hidden"}>
       <div class="bar"><select id="pf-k"><option value="">모든 종류 (${p.log.length})</option>${Object.keys(kinds).map((k) => `<option value="${esc(k)}">${esc((PF_KIND[k] || [k])[0])} (${kinds[k]})</option>`).join("")}</select><input id="pf-q" placeholder="검색 (내용·IP·스킨 이름…)" style="flex:1;min-width:160px"><span class="muted" id="pf-n"></span><button id="pf-csv" class="gold">CSV로 내보내기</button></div>
       <div id="pf-list"></div></div>`;
@@ -803,54 +797,6 @@ VIEWS.bans = async () => {
 };
 
 
-// ── paid cheats: orders waiting for the money, to open by hand once it has arrived ──
-const OD_ST = { pending: ["입금 대기", "gold"], granted: ["열어 줌", "green"], rejected: ["거절", "red"], cancelled: ["취소", ""], refunded: ["환불", "red"], revoked: ["회수", "red"] };
-async function odBadge() { try { const j = await call("a_orders", { limit: 1 }); const e = $("#odBadge"); e && (e.textContent = j.counts.pending ? String(j.counts.pending) : ""); return j.counts; } catch (e) {} }
-VIEWS.orders = async () => {
-  $("#main").innerHTML = `<div id="osum" class="fbx"></div><div class="bar"><select id="os"><option value="">모든 상태</option>${Object.entries(OD_ST).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><input id="oq" placeholder="검색 (주문번호·계정·입금자)"><button id="or">새로고침</button></div><div id="ol"><p class="muted">불러오는 중…</p></div>`;
-  const load = async () => {
-    const j = await call("a_orders", { status: $("#os").value, q: $("#oq").value });
-    $("#odBadge").textContent = j.counts.pending ? String(j.counts.pending) : "";
-    $("#osum").innerHTML = `<span class="tag ${j.on ? "green" : "red"}">${j.on ? "판매 중" : "판매 꺼짐"}</span>${j.bank ? "" : `<span class="tag red">입금 계좌 없음</span>`}<span class="tag gold">입금 대기 ${j.counts.pending}</span><span class="tag">열어 준 금액 합계 ${j.counts.sum.toLocaleString()}원</span><span class="muted">판매 열기·계좌·가격은 <a href="#" id="ocfg">게임 설정 → order</a></span>`;
-    $("#ocfg").onclick = (e) => { e.preventDefault(); view = "config"; [...$("#nav").children].forEach((x) => x.classList.toggle("on", x.dataset.v === "config")); show(); };
-    const nm = (k) => j.names[k] || k, dur = (d) => (d ? d + "일" : "영구");
-    $("#ol").innerHTML = j.orders.length ? `<table><tr><th>주문번호</th><th>시각</th><th>계정</th><th>내용</th><th>기간</th><th>금액</th><th>입금자</th><th>상태</th><th></th></tr>${j.orders.map((o) => { const st = OD_ST[o.status] || OD_ST.pending; return `<tr data-id="${esc(o.id)}"><td><b>${esc(o.id)}</b></td><td>${when(o.t)}</td><td>${esc(o.by)}</td><td>${o.items.map((k) => `<span class="tag blue">${esc(nm(k))}</span>`).join(" ")}</td><td>${dur(o.days)}</td><td><b>${o.total.toLocaleString()}원</b></td><td>${esc(o.depositor)}</td><td><span class="tag ${st[1]}">${st[0]}</span>${o.reason ? `<div class="muted">${esc(o.reason)}</div>` : ""}${o.note ? `<div class="muted">📝 ${esc(o.note)}</div>` : ""}</td><td>${o.status === "pending" ? `<button data-op="grant" class="gold">입금 확인 · 열어주기</button> <button data-op="reject" class="red">거절</button>` : o.status === "granted" ? `<button data-op="revoke" class="red">회수</button> <button data-op="refund" class="red">환불</button>` : o.status === "revoked" ? `<button data-op="refund" class="red">환불</button>` : ""} <button data-op="note">메모</button></td></tr>`; }).join("")}</table>` : `<p class="muted">주문이 없습니다.</p>`;
-  };
-  $("#or").onclick = load; $("#os").onchange = load; $("#oq").onkeydown = (e) => { if (e.key === "Enter") load(); };
-  $("#ol").onclick = async (e) => {
-    const b = e.target.closest("button"), tr = e.target.closest("tr[data-id]"); if (!b || !tr) return;
-    const id = tr.dataset.id, op = b.dataset.op;
-    if (op === "grant") { if (!confirm(`주문 ${id}: 입금을 확인하셨나요?\n확인을 누르면 그 계정에 바로 치트가 열립니다.`)) return; await call("a_order_set", { id, op: "grant" }); toast("열어 줬습니다"); }
-    else if (op === "reject") { const r = prompt("거절 사유 (보낸 사람에게 보입니다)", "입금이 확인되지 않았습니다"); if (r === null) return; await call("a_order_set", { id, op: "reject", reason: r }); toast("거절했습니다"); }
-    else if (op === "revoke") { if (!confirm(`주문 ${id}: 이 주문으로 열린 치트(골드가 있으면 그 골드도)만 회수합니다.\n입금 기록은 장부에 그대로 남고, 돈은 돌려주지 않습니다.`)) return; const r = prompt("회수 사유 (장부에 남습니다)", ""); if (r === null) return; await call("a_order_set", { id, op: "revoke", reason: r }); toast("회수했습니다"); }
-    else if (op === "refund") { const rv = confirm(`주문 ${id}: 환불 처리합니다.\n이 계정의 치트도 함께 끌까요? (확인=끔, 취소=그대로 둠)`); const r = prompt("환불 사유", "환불"); if (r === null) return; await call("a_order_set", { id, op: "refund", revoke: rv, reason: r }); toast("환불 처리했습니다"); }
-    else if (op === "note") { const n = prompt("운영자 메모 (보낸 사람에겐 안 보임)", ""); if (n === null) return; await call("a_order_set", { id, op: "note", note: n }); toast("저장했습니다"); }
-    await load(); odBadge();
-  };
-  await load();
-};
-// ── the books: every money event of the paid orders (order made, money confirmed, taken back, refunded, declined) ──
-const LG_KIND = { order: ["주문 접수", "gold"], paid: ["입금 확인", "green"], revoke: ["회수", "red"], refund: ["환불", "red"], reject: ["거절", "red"], cancel: ["취소", ""] };
-VIEWS.ledger = async () => {
-  $("#main").innerHTML = `<div id="lsum" class="fbx"></div><div class="bar"><select id="lk"><option value="">모든 기록</option>${Object.entries(LG_KIND).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select><select id="lp"><option value="">전체 기간</option><option value="today">오늘</option><option value="month">이번 달</option><option value="last">지난 달</option></select><input id="lq" placeholder="검색 (주문번호·계정·입금자)"><button id="lr">새로고침</button><button id="lx" class="gold">CSV 내려받기</button></div><div id="ll"></div>`;
-  let last = [];
-  const range = () => { const d = new Date(), y = d.getFullYear(), m = d.getMonth(), v = $("#lp").value; return v === "today" ? { from: new Date(y, m, d.getDate()).getTime(), to: 0 } : v === "month" ? { from: new Date(y, m, 1).getTime(), to: 0 } : v === "last" ? { from: new Date(y, m - 1, 1).getTime(), to: new Date(y, m, 1).getTime() } : { from: 0, to: 0 }; };
-  const won = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toLocaleString() + "원";
-  const load = async () => {
-    const j = await call("a_ledger", Object.assign({ kind: $("#lk").value, q: $("#lq").value }, range()));
-    last = j.rows;
-    const t = j.totals, nm = (k) => j.names[k] || k, dur = (d) => (d ? d + "일" : "영구");
-    $("#lsum").innerHTML = `<span class="tag green">입금 확인 ${t.paid.toLocaleString()}원 (${t.paidCount}건)</span><span class="tag red">환불 ${t.refund.toLocaleString()}원 (${t.refunded}건)</span><span class="tag gold"><b>순매출 ${t.net.toLocaleString()}원</b></span><span class="tag">주문 접수 ${t.orders}건</span><span class="tag red">회수 ${t.revoked}건</span><span class="tag">거절 ${t.rejected}건</span>`;
-    $("#ll").innerHTML = j.rows.length ? `<table><tr><th>시각</th><th>종류</th><th>주문번호</th><th>계정</th><th>내용</th><th>기간</th><th>입금자</th><th>금액</th><th>사유</th></tr>${j.rows.map((r) => { const k = LG_KIND[r.kind] || [r.kind, ""]; return `<tr><td>${when(r.t)}</td><td><span class="tag ${k[1]}">${k[0]}</span></td><td><b>${esc(r.id)}</b></td><td>${esc(r.user)}</td><td>${(r.items || []).map((x) => `<span class="tag blue">${esc(nm(x))}</span>`).join(" ")}</td><td>${dur(r.days)}</td><td>${esc(r.depositor || "")}</td><td><b style="color:${r.money > 0 ? "var(--green)" : r.money < 0 ? "#ff9aa5" : "var(--dim)"}">${r.money ? won(r.money) : "-"}</b></td><td class="muted">${esc(r.reason || "")}</td></tr>`; }).join("")}</table>${j.total > j.rows.length ? `<p class="muted">최근 ${j.rows.length}건만 보여 줍니다 (조건에 맞는 기록 ${j.total}건)</p>` : ""}` : `<p class="muted">기록이 없습니다.</p>`;
-  };
-  $("#lr").onclick = load; $("#lk").onchange = load; $("#lp").onchange = load; $("#lq").onkeydown = (e) => { if (e.key === "Enter") load(); };
-  $("#lx").onclick = () => {
-    const q = (v) => { const num = "number" == typeof v; v = String(v == null ? "" : v); !num && /^[=+\-@\t\r]/.test(v) && (v = "'" + v); return '"' + v.replace(/"/g, '""') + '"'; };
-    const csv = ["시각,종류,주문번호,계정,내용,기간,입금자,금액,사유", ...last.map((r) => [new Date(r.t).toLocaleString("ko-KR"), (LG_KIND[r.kind] || [r.kind])[0], r.id, r.user, (r.items || []).join(" "), r.days ? r.days + "일" : "영구", r.depositor, r.money || 0, r.reason].map(q).join(","))].join("\r\n");
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })); a.download = "ledger-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
-  await load();
-};
 // ── the feedback box: what players sent (bugs, agent ideas, reports, suggestions, questions) ──
 const FB_ST = { new: ["새 문의", "gold"], read: ["확인함", "blue"], doing: ["처리 중", "blue"], done: ["완료", "green"], no: ["보류", "red"] };
 const FB_KIND = { bug: ["🐞", "버그"], agent: ["🧑‍🎤", "요원 제안"], report: ["🚩", "사용자 신고"], idea: ["💡", "추가했으면 하는 점 (제안)"], review: ["⭐", "후기"], ask: ["❓", "문의"], other: ["💬", "기타"] };
@@ -940,15 +886,6 @@ const LABELS = {
   "game.contactEmail": ["문의 이메일", "문의 페이지(contact.html)에 보이는 이메일 주소입니다. 비워 두면 아무것도 보이지 않습니다"],
   "game.emotes": ["이모트", "켜면 경기 중 이모트(손 흔들기·환호·경례·춤·웃음·앉기)를 쓸 수 있습니다. 끄면 버튼이 사라지고 방장도 메시지를 받지 않습니다"],
   "game.chat": ["채팅과 핑", "켜면 방 대기실과 경기에서 채팅(전체·팀)·빠른 말하기·핑을 쓸 수 있습니다. 끄면 버튼이 사라지고 방장도 메시지를 받지 않습니다"],
-  order: ["치트 판매 (계좌이체)", "플레이어가 원하는 치트를 골라 주문하고, 입금을 확인한 뒤 운영자가 '구매 주문'에서 열어 줍니다. 입금 계좌는 여기에만 적고 저장소에는 올리지 마세요"],
-  "order.on": ["판매 열기", "켜면 홈페이지와 게임 메뉴에 '치트 구매'가 나타납니다. 계좌를 먼저 적으세요"],
-  "order.bank": ["입금 계좌 (은행 + 계좌번호)", "예: 국민 123456-78-901234"],
-  "order.holder": ["예금주"],
-  "order.note": ["입금 안내 문구", "주문 직후 화면에 그대로 보입니다"],
-  "order.price": ["치트별 가격 (7일, 원)", "기간별 가격은 아래 배수를 곱해 100원 단위로 반올림합니다"],
-  "order.price.radar": ["레이더"], "order.price.wall": ["벽 투시"], "order.price.cheat": ["치트 모드"], "order.price.god": ["무적"], "order.price.oneShot": ["한 방 처치"], "order.price.infAmmo": ["탄약 무한"], "order.price.noRecoil": ["반동 없음"], "order.price.speed": ["이동 속도 ×1.5"], "order.price.fastFire": ["연사 ×2"], "order.price.buff": ["능력 재충전 10초"],
-  "order.dur": ["기간 배수", "7일 가격에 곱합니다"],
-  "order.dur.d1": ["1일"], "order.dur.d7": ["7일"], "order.dur.d30": ["30일"], "order.dur.d0": ["영구"],
   cheat: ["치트", "치트 모드를 켠 계정의 능력 충전 규칙입니다. 운영자는 이 값과 상관없이 바로 찹니다"],
   "cheat.refillSec": ["치트 모드 능력 충전 간격(초)", "0이면 쓰자마자 바로 참"],
   "cheat.ultInfinite": ["치트 모드 궁극기 무한"],

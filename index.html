@@ -240,7 +240,6 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 <script src="./js/feedback.js"></script>
 <script src="./js/promo.js"></script>
 <script src="./js/notice-popup.js"></script>
-<script src="./js/order.js"></script>
 <script src="./js/cosmetics.js"></script>
 <script src="./js/agent-mastery.js"></script>
 <script src="./js/progression-text.js"></script>
@@ -262,7 +261,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
       <button class="tb ic" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="mainMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-1.7-1L15 3.6h-4l-.4 2.4a7.5 7.5 0 0 0-1.7 1l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.7 1.7 1l.4 2.4h4l.4-2.4c.6-.3 1.2-.6 1.7-1l2.3.9 2-3.4z"/></svg></button>
       <div class="dm right" id="mainMenu" hidden>
         <div class="dm-sec" id="dmGame" hidden><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meChampionCoins" href="./play.html#champion-shop"></a><a id="meCos" href="./play.html#cos"></a><a id="meBoard" href="./play.html#ranks"></a></div>
-        <div class="dm-sec"><button id="fbOpen" data-t="feedback" type="button"></button><button id="orderOpen" data-t="order" type="button" hidden></button><button id="lang" type="button">English</button></div>
+        <div class="dm-sec"><button id="fbOpen" data-t="feedback" type="button"></button><button id="lang" type="button">English</button></div>
         <div class="dm-sec" id="dmOut" hidden><button id="logout" data-t="logout" type="button"></button></div>
       </div>
     </div>
@@ -364,7 +363,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", keep: "이 기기에서 로그인 유지", or: "또는", guestBtn: "게스트로 시작",
-    order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", guide: "가이드", menu: "메뉴", records: "내 기록", recBack: "돌아가기", recLink: "내 전투 기록", tabStats: "전적", tabMast: "숙련도", tabRew: "보상 · 업적", tabClan: "클랜", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["구리", "청동", "은빛", "금빛", "백금", "비취", "홍옥", "금강", "왕좌"], rrNext: (a) => `다음 단계까지 ${100 - a} TP · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `왕좌 · ${a} TP`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", aiTier: "AI 경쟁전", aiNone: "아직 기록이 없습니다 · 혼자 하기에서 경쟁전을 해 보세요", aiRec: (p, w, b) => `${p}판 ${w}승 · 최고 ${b}`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · TP은 ${after}부터 다시`, seasonOk: "확인",
+    feedback: "문의 · 제안", logout: "로그아웃", guide: "가이드", menu: "메뉴", records: "내 기록", recBack: "돌아가기", recLink: "내 전투 기록", tabStats: "전적", tabMast: "숙련도", tabRew: "보상 · 업적", tabClan: "클랜", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["구리", "청동", "은빛", "금빛", "백금", "비취", "홍옥", "금강", "왕좌"], rrNext: (a) => `다음 단계까지 ${100 - a} TP · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `왕좌 · ${a} TP`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", aiTier: "AI 경쟁전", aiNone: "아직 기록이 없습니다 · 혼자 하기에서 경쟁전을 해 보세요", aiRec: (p, w, b) => `${p}판 ${w}승 · 최고 ${b}`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · TP은 ${after}부터 다시`, seasonOk: "확인",
     lvrTitle: "레벨 보상", achTitle: "업적", fwName: "오늘의 첫 승리 보너스", fwReady: "오늘 받을 수 있음", fwDone: "오늘 받음", lvEach: (g) => `레벨이 오를 때마다 🪙 ${g}`, lvReached: "달성", lvGap: (n) => `${n}레벨 남음`, achDone: "달성",
     mastTitle: "요원 숙련도", mastEmpty: "아직 숙련도가 없습니다. 요원으로 한 판 하면 그 요원의 숙련도가 쌓입니다", mastMore: (n) => `전체 보기 (${n}명)`, mastLess: "접기", mastRec: (m, w) => `${m}경기 · ${w}승`, mastMax: "최고 단계", roles: {},
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
@@ -382,7 +381,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", keep: "Keep me signed in on this device", or: "or", guestBtn: "Play as guest",
-    order: "Buy cheats", feedback: "Feedback", logout: "Sign out", guide: "Guides", menu: "Menu", records: "My records", recBack: "Back", recLink: "My battle record", tabStats: "Stats", tabMast: "Mastery", tabRew: "Rewards", tabClan: "Clan", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Copper", "Bronze", "Silver", "Gold", "Platinum", "Jade", "Ruby", "Adamant", "Throne"], rrNext: (a) => `${100 - a} TP to the next division · wins raise it, losses take a little`, rrTop: (a) => `Throne · ${a} TP`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", aiTier: "AI Competitive", aiNone: "No matches yet · try Competitive in solo play", aiRec: (p, w, b) => `${p} played · ${w} won · best ${b}`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · TP starts again from ${after}`, seasonOk: "OK",
+    feedback: "Feedback", logout: "Sign out", guide: "Guides", menu: "Menu", records: "My records", recBack: "Back", recLink: "My battle record", tabStats: "Stats", tabMast: "Mastery", tabRew: "Rewards", tabClan: "Clan", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Copper", "Bronze", "Silver", "Gold", "Platinum", "Jade", "Ruby", "Adamant", "Throne"], rrNext: (a) => `${100 - a} TP to the next division · wins raise it, losses take a little`, rrTop: (a) => `Throne · ${a} TP`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", aiTier: "AI Competitive", aiNone: "No matches yet · try Competitive in solo play", aiRec: (p, w, b) => `${p} played · ${w} won · best ${b}`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · TP starts again from ${after}`, seasonOk: "OK",
     lvrTitle: "Level rewards", achTitle: "Achievements", fwName: "First win of the day", fwReady: "Available today", fwDone: "Taken today", lvEach: (g) => `Every level gained pays 🪙 ${g}`, lvReached: "Reached", lvGap: (n) => `${n} level${n > 1 ? "s" : ""} to go`, achDone: "Done",
     mastTitle: "Agent mastery", mastEmpty: "No mastery yet. Play a match with an agent and it builds up for that agent", mastMore: (n) => `Show all (${n} agents)`, mastLess: "Show less", mastRec: (m, w) => `${m} matches · ${w} wins`, mastMax: "Max level", roles: { 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" },
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
@@ -421,9 +420,6 @@ function paintLang() {
   CFG && (drawMe(), drawNotices());
 }
 $("#fbOpen").onclick = () => FEEDBACK.open();
-$("#orderOpen").onclick = () => ORDERS.open();
-// the shop shows only once the owner has opened it
-ORDERS.isOn().then((on) => ($("#orderOpen").hidden = !on));
 $("#lang").onclick = () => { L = L === "ko" ? "en" : "ko"; localStorage.setItem("lgp_lang", L); paintLang(); };
 
 // a password typed with the Korean keyboard on counts as the keys pressed (한글 = gksrmf)
@@ -645,7 +641,7 @@ for (const [btn, menu] of MENUS)
     $(btn).setAttribute("aria-expanded", open ? "true" : "false");
     menuShade();
   };
-// an item hands the focus to its menu's button before it runs, so a window it opens (feedback, orders) gives the focus
+// an item hands the focus to its menu's button before it runs, so a window it opens (feedback) gives the focus
 // back to a button that is still on the screen
 document.addEventListener("click", (e) => { const item = e.target.closest(".dm a, .dm button"); item && item.closest(".dd").querySelector(".tb").focus({ preventScroll: !0 }); }, !0);
 // a click outside closes them, and so does a click on one of their items (after the item has done its work)
