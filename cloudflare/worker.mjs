@@ -4,8 +4,10 @@
 // the same ones from this file.
 import api from "../api/v1.js";
 import release from "../api/release.js";
+import { CSP } from "./csp.mjs";
 
-const SITE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" };
+// (CSP: [header name, policy] from scripts/build-csp.js, the same policy _headers gives the static files)
+const SITE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", [CSP[0]]: CSP[1] };
 const ADMIN = { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "no-store", "X-Frame-Options": "DENY" };
 const PAGES = { "/": ["/index.html", SITE], "/admin": ["/admin.html", { ...SITE, ...ADMIN }] };
 const APIS = { "/api/v1": api, "/api/release": release };

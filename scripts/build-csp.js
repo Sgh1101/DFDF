@@ -1,13 +1,20 @@
-// Content-Security-Policy for the site, written into vercel.json (the header every page and API answer gets).
-//   node scripts/build-csp.js          rewrite vercel.json
-//   node scripts/build-csp.js --check  fail when vercel.json is not what the pages call for (tests/csp.test.js)
+// Content-Security-Policy for the site, written to every place a page is served from:
+//   vercel.json            the header every page and API answer gets on Vercel
+//   _headers               the static files on Cloudflare (wrangler.jsonc)
+//   cloudflare/csp.mjs     the header cloudflare/worker.mjs puts on what it answers itself (/, /admin, the API)
+//   node scripts/build-csp.js          rewrite them
+//   node scripts/build-csp.js --check  fail when any of them is not what the pages call for (tests/csp.test.js)
+// Two stages, one switch (MODE below): "report-only" sends Content-Security-Policy-Report-Only, which blocks nothing and
+// only logs what would have been blocked (the browser console shows it); "enforce" sends Content-Security-Policy.
 // Scripts: the site's own files (the legacy modules are loaded from ./js), cdnjs (three.js, PeerJS), and the inline ones
 // by hash: every <script> block without a src in the pages, and the two onerror="…" handlers play.html puts on its tags
 // ('unsafe-hashes'). Change an inline script, run this again; the test fails until you do.
-// Ads are not in the policy yet: when AdSense code is added, collect the hosts it needs with a Content-Security-Policy-Report-Only
-// header (the pages show them in the console) and add them to AD below, not by guessing.
+// Ads are not in the policy yet: when AdSense code is added, collect the hosts it needs while in report-only mode (the
+// pages show them in the console) and add them to AD below, not by guessing; then switch to "enforce".
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const root = path.resolve(__dirname, "..");
+const MODE = "report-only"; // "report-only" first, "enforce" when the pages have run under it with nothing reported
+const HEADER = MODE === "enforce" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
 const AD = { script: [], connect: [], img: [], frame: [] };
 const sha = (text) => "'sha256-" + crypto.createHash("sha256").update(text, "utf8").digest("base64") + "'";
 
@@ -52,19 +59,27 @@ function render(config) {
   return "{\n" + [...rest, `  "headers": ${lines(config.headers)}`].join(",\n") + "\n}\n";
 }
 
+// every file the policy goes into, with the text it must have
 function build() {
-  const file = path.join(root, "vercel.json"), config = JSON.parse(fs.readFileSync(file, "utf8"));
-  const rule = { source: "/(.*)", headers: [{ key: "Content-Security-Policy", value: policy() }] };
-  const at = config.headers.findIndex((r) => r.headers.some((h) => h.key === "Content-Security-Policy"));
+  const value = policy(), out = [];
+  const vercel = path.join(root, "vercel.json"), config = JSON.parse(fs.readFileSync(vercel, "utf8"));
+  const rule = { source: "/(.*)", headers: [{ key: HEADER, value }] };
+  const at = config.headers.findIndex((r) => r.headers.some((h) => /^Content-Security-Policy/.test(h.key)));
   at < 0 ? config.headers.splice(1, 0, rule) : (config.headers[at] = rule);
-  return { file, text: render(config) };
+  out.push({ file: vercel, text: render(config) });
+  // _headers: the line sits in the "/*" rule, after Referrer-Policy
+  const headers = path.join(root, "_headers"), old = fs.readFileSync(headers, "utf8"), line = `  ${HEADER}: ${value}`;
+  out.push({ file: headers, text: /^  Content-Security-Policy(-Report-Only)?: .*$/m.test(old) ? old.replace(/^  Content-Security-Policy(-Report-Only)?: .*$/m, () => line) : old.replace(/^(  Referrer-Policy: .*)$/m, (m) => m + "\n" + line) });
+  out.push({ file: path.join(root, "cloudflare", "csp.mjs"), text: `// Written by scripts/build-csp.js: the header the Worker puts on what it answers itself.\nexport const CSP = ${JSON.stringify([HEADER, value])};\n` });
+  return out;
 }
 
 if (require.main === module) {
-  const { file, text } = build();
+  const files = build();
   if (process.argv.includes("--check")) {
-    if (fs.readFileSync(file, "utf8") !== text) { console.error("vercel.json's Content-Security-Policy is out of date: run  node scripts/build-csp.js"); process.exit(1); }
-    console.log("csp: vercel.json is up to date");
-  } else { fs.writeFileSync(file, text); console.log("csp: vercel.json written"); }
+    const stale = files.filter(({ file, text }) => !fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text);
+    if (stale.length) { console.error("Content-Security-Policy is out of date in " + stale.map((f) => path.relative(root, f.file)).join(", ") + ": run  node scripts/build-csp.js"); process.exit(1); }
+    console.log("csp: " + files.map((f) => path.relative(root, f.file)).join(", ") + " are up to date");
+  } else { for (const { file, text } of files) fs.writeFileSync(file, text); console.log("csp (" + MODE + "): written to " + files.map((f) => path.relative(root, f.file)).join(", ")); }
 }
-module.exports = { policy, inlineHashes, build };
+module.exports = { policy, inlineHashes, build, HEADER, MODE };

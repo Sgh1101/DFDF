@@ -4,13 +4,24 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { policy, inlineHashes, build } = require("../scripts/build-csp");
+const { policy, inlineHashes, build, HEADER, MODE } = require("../scripts/build-csp");
 
 const root = path.join(__dirname, "..");
 
-test("vercel.json carries the policy the pages call for", () => {
-  const { file, text } = build();
-  assert.equal(fs.readFileSync(file, "utf8"), text, "run: node scripts/build-csp.js");
+test("vercel.json, _headers and the Worker's header file carry the policy the pages call for", () => {
+  const files = build();
+  assert.deepEqual(files.map((f) => path.relative(root, f.file)), ["vercel.json", "_headers", path.join("cloudflare", "csp.mjs")]);
+  for (const { file, text } of files) assert.equal(fs.readFileSync(file, "utf8"), text, path.relative(root, file) + " is out of date: run node scripts/build-csp.js");
+});
+
+test("the stage: report-only sends the Report-Only header, enforce the real one", () => {
+  assert.ok(MODE === "report-only" || MODE === "enforce", MODE);
+  assert.equal(HEADER, MODE === "enforce" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only");
+  // the same header name and value in all three places, and only that one (never both stages at once)
+  const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8")).headers.flatMap((r) => r.headers).filter((h) => /^Content-Security-Policy/.test(h.key));
+  assert.deepEqual(vercel, [{ key: HEADER, value: policy() }]);
+  const lines = fs.readFileSync(path.join(root, "_headers"), "utf8").split("\n").filter((l) => /^\s+Content-Security-Policy/.test(l));
+  assert.deepEqual(lines, ["  " + HEADER + ": " + policy()]);
 });
 
 test("the policy: scripts by hash, no inline-script allowance, nothing framed, objects off", () => {

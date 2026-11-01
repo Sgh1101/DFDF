@@ -41,6 +41,12 @@ test("/ is the home page and /admin the owner's page, each with its headers", as
   assert.equal((await call("/api/nothing")).status, 404);
 });
 
+test("what the Worker answers itself carries the Content-Security-Policy of the stage (/, /admin, the API, an unknown path)", async () => {
+  const { CSP } = await import("../cloudflare/csp.mjs"), { HEADER, policy } = require("../scripts/build-csp");
+  assert.deepEqual(CSP, [HEADER, policy()]);
+  for (const res of [await call("/"), await call("/admin"), await call("/api/v1?a=config"), await call("/api/release"), await call("/missing.html"), await call("/api/nothing")]) assert.equal(res.headers.get(HEADER), policy());
+});
+
 test("the API runs in the Worker: the config, a guest, a new account and the owner", async () => {
   const config = await call("/api/v1?a=config");
   assert.equal(config.status, 200);
