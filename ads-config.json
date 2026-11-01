@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "publisherId": "",
+  "siteApproved": false,
+  "audience": "unreviewed",
+  "cmpReady": false,
+  "rightsReviewed": false,
+  "format": "display",
+  "candidatePages": ["/guide.html", "/controls.html", "/modes.html", "/maps.html", "/agents.html", "/patch-notes.html"]
+}

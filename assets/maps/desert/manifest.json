@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "name": "사막 마을",
+  "provenance": {
+    "author": "DFDF",
+    "generator": "scripts/build-original-maps.js",
+    "revision": "original-1",
+    "externalMapInput": false
+  },
+  "layout": {
+    "bounds": {
+      "minX": -54,
+      "maxX": 54,
+      "minZ": -68,
+      "maxZ": 68
+    },
+    "spawns": {
+      "atk": [
+        [
+          -8,
+          58,
+          0
+        ],
+        [
+          -4,
+          58,
+          0
+        ],
+        [
+          0,
+          58,
+          0
+        ],
+        [
+          4,
+          58,
+          0
+        ],
+        [
+          8,
+          58,
+          0
+        ]
+      ],
+      "def": [
+        [
+          -8,
+          -58,
+          0
+        ],
+        [
+          -4,
+          -58,
+          0
+        ],
+        [
+          0,
+          -58,
+          0
+        ],
+        [
+          4,
+          -58,
+          0
+        ],
+        [
+          8,
+          -58,
+          0
+        ]
+      ]
+    },
+    "sites": [
+      [
+        "A",
+        -34,
+        -30,
+        0,
+        6
+      ],
+      [
+        "B",
+        32,
+        -6,
+        3,
+        5
+      ]
+    ],
+    "nodes": {
+      "mid": [
+        0,
+        0,
+        0
+      ],
+      "west": [
+        -36,
+        22,
+        0
+      ],
+      "east": [
+        36,
+        22,
+        0
+      ],
+      "westS": [
+        -34,
+        -12,
+        0
+      ],
+      "plazaW": [
+        -18,
+        -32,
+        0
+      ],
+      "plazaE": [
+        18,
+        -32,
+        0
+      ],
+      "lane": [
+        0,
+        32,
+        0
+      ],
+      "pitE": [
+        34,
+        -40,
+        0
+      ],
+      "eastS": [
+        36,
+        40,
+        0
+      ]
+    }
+  },
+  "files": [
+    {
+      "file": "scene.json.gz",
+      "bytes": 1853,
+      "sha256": "99061adcac68078d1364515827a04989c4c1f18aae35e550530595292a9e309a"
+    },
+    {
+      "file": "collision.json",
+      "bytes": 3871,
+      "sha256": "8345142c2b06401b972a3f98f14921d180988babad35eba7b69408bc637efafb"
+    }
+  ]
+}

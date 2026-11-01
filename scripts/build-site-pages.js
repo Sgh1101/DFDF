@@ -6,8 +6,8 @@ const fs = require("node:fs"), path = require("node:path");
 const { page, ORIGIN } = require("./site-pages/layout");
 const root = path.resolve(__dirname, ".."), dir = path.join(__dirname, "site-pages");
 // the order here is the order in sitemap.xml
-const PAGES = ["guide", "controls", "modes", "maps", "agents", "patch-notes", "about", "contact", "privacy"];
-const HOME_LASTMOD = "2026-10-31";
+const PAGES = ["guide", "controls", "modes", "maps", "agents", "patch-notes", "about", "contact", "privacy", "terms", "credits"];
+const HOME_LASTMOD = "2026-11-01";
 function data() {
   const f = path.join(dir, "data.json");
   return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null;
@@ -31,7 +31,7 @@ if (require.main === module) {
   let stale = 0;
   for (const [name, text] of Object.entries(files)) {
     const f = path.join(root, name), cur = fs.existsSync(f) ? fs.readFileSync(f, "utf8") : null;
-    if (cur === text) continue;
+    if (cur !== null && cur.replace(/\r\n/g, "\n") === text) continue;
     if (check) { stale++; console.error("out of date:", name); } else { fs.writeFileSync(f, text); console.log("wrote", name); }
   }
   if (check && stale) process.exit(1);

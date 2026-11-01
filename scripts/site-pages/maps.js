@@ -25,8 +25,8 @@ const TEXT = {
   d01: ["서리 낀 결투장", "서리가 낀 하얀 푸른 줄무늬 벽의 1대1 결투장입니다. 가운데에 구조물이 하나 있고 양옆에 큰 블록이 있어서 돌아가는 길이 두 갈래입니다.", "1대1에서는 발소리가 가장 큰 정보입니다. 방향이 들리니 귀를 열어 두세요."],
   d03: ["분홍 네온의 링", "분홍빛 네온 벽으로 둘러싸인 1대1 결투장입니다. 가운데에 아치형 엄폐물이 세 개 있고 양옆에 큰 블록이 있습니다. 멀리 도시의 불빛이 비칩니다.", "아치 사이로 시야가 겹칩니다. 한 곳에서 쏘고 바로 자리를 옮기세요."],
   d04: ["달빛 마당", "모래색 바닥에 가로로 넓은 1대1 마당입니다. 가운데에 돌 단상이 있고 지붕이 어두운 전각 네 채가 대각선으로 놓여 있습니다.", "가로로 넓어 측면에서 돌아 들어가기 쉽습니다. 단상을 차지하면 양쪽이 보입니다."],
-  desert_town: ["사암 벽돌의 사막 마을", "사암 벽돌 벽과 아치문, 모래 바닥으로 이루어진 사막 마을입니다. 높은 벽 사이로 좁은 골목이 이어지고 높낮이가 있습니다. 공격 팀은 높은 곳의 출발 지점에서 내려와 사이트 A와 B로 향하고, 수비 팀은 낮은 곳에서 출발합니다.", "수비 팀이 사이트에 훨씬 먼저 닿습니다. 공격 팀은 이미 자리 잡은 수비를 상대하게 되므로 연막과 정찰 능력으로 길을 열고 들어가세요."],
-  ascent_trial: ["블록으로 쌓은 섬 마을", "블록으로 쌓은 지형 위에 만든 큰 5대5 맵입니다. 하늘에 떠 있는 섬 위로 시계탑과 돔 지붕 유적, 붉은 기와지붕 건물이 이어지고, 좁은 골목과 광장, 옥상이 엮여 있습니다. 지형 파일이 크기 때문에 이 맵을 처음 고르면 불러오는 시간이 조금 걸립니다.", "지형이 불규칙해서 높낮이를 이용한 자리가 많습니다. 처음에는 혼자 하기로 길을 익히세요."],
+  desert_town: ["자체 제작 사막 안뜰", "이 게임이 직접 만든 사막 마을입니다. 세 갈래 진입로와 두 사이트, 낮은 나무 엄폐물, 통과할 수 있는 집과 높은 갤러리·연결 다리가 있습니다. 양 팀은 서로 반대쪽 마당에서 출발합니다. 외부 게임의 지형이나 텍스처를 불러오지 않습니다.", "B 거점은 갤러리 위에 있습니다. 계단으로 오르는 동안 위쪽 시야와 다리 아래 통로를 함께 확인하세요."],
+  ascent_trial: ["자체 제작 블록 섬", "직접 설계한 섬 위에 벽돌집과 색 지붕, 돌길, 두 사이트 마당이 놓인 5대5 맵입니다. 중앙에는 한 단 높은 광장과 낮은 돌다리가 있어 위아래로 교차합니다. 블록 재질과 지형 모두 이 프로젝트의 생성 코드에서 만듭니다.", "중앙 광장을 넘는 길과 양쪽 집 사이 우회로를 익히세요. 다리 아래에서도 머리 위를 확인하세요."],
 };
 module.exports = (d) => {
   const has = new Set(d.mapImages || []);
@@ -34,7 +34,7 @@ module.exports = (d) => {
   const card = (m) => {
     const t = TEXT[m.key] || ["", "", ""], [kn, kc] = KIND[m.cat] || ["", ""];
     return `<section class="map" id="map-${esc(m.key)}">
-${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp" alt="${attr(m.name)} 맵을 위에서 본 모습" width="960" height="540" loading="lazy">` : ""}
+${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp${['ascent_trial','desert_town'].includes(m.key)?'?v=original-1':''}" alt="${attr(m.name)} 맵을 위에서 본 모습" width="960" height="540" loading="lazy">` : ""}
 <div class="body"><h3>${esc(m.name)}</h3>
 <p class="facts"><span class="tag ${kc}">${esc(kn)}</span><span class="tag">${m.width}×${m.depth}m</span><span class="tag">사이트 ${esc(m.sites.join(" · "))}</span>${t[0] ? `<span class="tag gold">${esc(t[0])}</span>` : ""}</p>
 <p>${esc(t[1])}</p>${t[2] ? `<p><b>팁</b> ${esc(t[2])}</p>` : ""}</div>
@@ -42,7 +42,7 @@ ${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp" alt="${attr
   };
   const group = (c, title, intro) => `<h2 id="cat-${c}">${title} ${cat(c)}곳</h2><p>${intro}</p><div class="maps">${d.maps.filter((m) => m.cat === c).map(card).join("\n")}</div>`;
   return {
-    file: "maps.html", nav: "maps", lastmod: "2026-10-31", wide: true,
+    file: "maps.html", nav: "maps", lastmod: "2026-11-01", wide: true,
     title: `맵 ${d.maps.length}곳`,
     description: `13의 맵 ${d.maps.length}곳을 크기별(5대5, 소규모 3대3, 1대1)로 소개합니다. 각 맵의 구조와 특징, 공략 팁, 매주 바뀌는 이번 주 맵 규칙까지.`,
     h1: `맵 ${d.maps.length}곳`,

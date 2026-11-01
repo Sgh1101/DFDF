@@ -1,5 +1,5 @@
 (function (root) {
-  // The event map: 사막 마을 (Desert Town, the Kour.io map7). Unlike the map of the week it is one fixed map; it is open while
+  // The event map: 사막 마을 (the original DFDF courtyard). Unlike the map of the week it is one fixed map; it is open while
   // the owner's switch is on and until a last day (YYYYMMDD, Korea time, that day included; empty = no end). The server
   // announces it in the public config (eventMap) and the page checks the same day itself, so it goes by itself after that day.
   const KST = 9 * 36e5, DAY = 864e5, KEY = "desert_town";

@@ -1,0 +1,2 @@
+# Asset manifests verify exact bytes; Git must not rewrite JSON/text bytes on Windows.
+assets/** -text

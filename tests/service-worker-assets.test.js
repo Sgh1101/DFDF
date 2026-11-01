@@ -9,3 +9,11 @@ test('asset manifests use the network while immutable images continue to reuse t
   assert.equal(await get('/assets/champions-phantom/dfdf-1/textures/item/phantom_attacker.png'),'old cached bytes');
   assert.equal(calls.network.length,2);assert.equal(calls.cache.length,1);
 });
+
+test('activation retires the entire legacy asset cache, including unversioned imported terrain',async()=>{
+ const handlers=new Map(),removed=[];let pending;
+ const context={URL,location:{origin:'https://game.example'},self:{addEventListener:(k,f)=>handlers.set(k,f),clients:{claim:async()=>{}}},caches:{keys:async()=>['13-v2','13-assets-v1','13-v3-original-maps','13-assets-v2-original-maps'],delete:async k=>{removed.push(k);},open:async()=>({keys:async()=>[],delete:async()=>{}})}};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../sw.js'),'utf8'),context);
+ handlers.get('activate')({waitUntil:p=>{pending=p;}});await pending;
+ assert.deepEqual(removed.sort(),['13-assets-v1','13-v2']);
+});

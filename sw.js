@@ -2,10 +2,10 @@
 // update reaches the app at once. Without a connection the game cannot run
 // (the 3D engine and multiplayer live online), so pages show a friendly
 // "connect and retry" screen instead of a broken one; icons stay cached.
-const CACHE = "13-v2";
+const CACHE = "13-v3-original-maps";
 // photo materials and skies never change under the same name: kept after the
 // first download so a phone does not fetch them again every match
-const ASSETS = "13-assets-v1";
+const ASSETS = "13-assets-v2-original-maps";
 const SHELL = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const OFFLINE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13</title>
 <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0d12;color:#e8edf4;font-family:sans-serif;text-align:center">
@@ -16,7 +16,7 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 // files the game no longer has (a third-party weapon pack, the block map's old textures): taken out of the asset cache
-const REMOVED = /^\/assets\/valorant-packs\/|^\/assets\/maps\/ascent\/(vanilla\/|vanilla-)|^\/assets\/maps\/ascent\/.*[?&]v=(vanilla2|mobile1)(&|$)|^\/assets\/ui\/ascent-preview-v1|^\/assets\/site\/maps\/ascent_trial\.webp$/;
+const REMOVED = /^\/assets\/valorant-packs\/|^\/assets\/maps\/kour\/|^\/assets\/maps\/ascent\/(vanilla\/|vanilla-)|^\/assets\/maps\/ascent\/.*[?&]v=(vanilla2|mobile1|mobile2|blocks1)(&|$)|^\/assets\/ui\/ascent-preview-v[12]|^\/assets\/site\/maps\/(ascent_trial|desert_town)\.webp($|[?](?!v=original-1))/;
 const purge = () => caches.open(ASSETS).then((c) => c.keys().then((rs) => Promise.all(rs.filter((r) => { const u = new URL(r.url); return REMOVED.test(u.pathname + u.search); }).map((r) => c.delete(r))))).catch(() => {});
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(purge).then(() => self.clients.claim()));

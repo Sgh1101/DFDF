@@ -8,6 +8,7 @@
 const fs = require("node:fs"), path = require("node:path");
 const { fixture } = require("./browser-fixture");
 const root = path.resolve(__dirname, ".."), images = !process.argv.includes("--no-images");
+const selectedImages = process.argv.find(s=>s.startsWith('--maps='))?.slice(7).split(',').filter(Boolean);
 const dataFile = path.join(__dirname, "site-pages", "data.json");
 (async () => {
   const f = await fixture();
@@ -15,6 +16,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
     const page = await f.page("sitedump", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, quality: "visual" });
     // the maps that join the list after boot (the block-terrain map) and the server's map of the week
     await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    await page.evaluate(async()=>{if(!await ASCENT_TRIAL.ensure())throw Error('Island package unavailable');});
     const data = await page.evaluate(() => {
       const week = window.WEEK_MAP_KEY || "", ev = window.EVENT_MAP_KEY || "";
       const info = (m) => { const b = MAPS[m.key].bounds; return { key: m.key, name: m.name, size: MAP_SIZE(m.key), cat: MAP_CAT(m.key), width: Math.round(b.maxX - b.minX), depth: Math.round(b.maxZ - b.minZ), sites: (MAPS[m.key].sites || []).map((s) => s.id) }; };
@@ -53,17 +55,19 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
         } finally { fog && (void 0 !== fog.density ? (fog.density = f0.d) : ((fog.near = f0.n), (fog.far = f0.f))); vm && (vm.visible = vmOn); }
       }, { w, h });
       const save = (file, url) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, Buffer.from(url.split(",")[1], "base64")); };
-      data.mapImages = [];
+      const kept = selectedImages && fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile,'utf8')) : null;
+      data.mapImages = kept ? (kept.mapImages||[]).filter(k=>!selectedImages.includes(k)&&fs.existsSync(path.join(root,'assets/site/maps',k+'.webp'))) : [];
       for (const m of data.eventMap ? [data.eventMap, ...data.maps] : data.maps) {
-        await page.evaluate((key) => { room.mode = "std"; room.map = key; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
-        await page.waitForTimeout(m.key === "ascent_trial" ? 12000 : 2500);
+        if(selectedImages&&!selectedImages.includes(m.key))continue;
+        await page.evaluate(async(key) => { if(key==='ascent_trial')await ASCENT_TRIAL.ensure();if(key==='desert_town')await KOUR_MAP.ensure();room.mode = "std"; room.map = key; await startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
+        await page.waitForFunction(key=>CUR_MAP_KEY===key&&!!myActor(),m.key,{timeout:120000});
         const ok = await page.evaluate(() => CUR_MAP_KEY) === m.key;
         if (!ok) { console.log("no picture for", m.key); continue; }
         save(path.join(root, "assets/site/maps", m.key + ".webp"), await shot(960, 540));
         data.mapImages.push(m.key); console.log("map picture", m.key);
       }
-      data.agentImages = [];
-      for (const a of data.agents) {
+      data.agentImages = kept ? (kept.agentImages||[]) : [];
+      for (const a of selectedImages ? [] : data.agents) {
         const url = await page.evaluate((id) => { const ag = AGENTS.find((x) => x.id === id), src = agentPortrait(ag, 300, 380), c = document.createElement("canvas"), img = new Image(); return new Promise((res) => { img.onload = () => { c.width = 300; c.height = 380; c.getContext("2d").drawImage(img, 0, 0, 300, 380); res(c.toDataURL("image/webp", 0.8)); }; img.onerror = () => res(""); img.src = src; }); }, a.id);
         if (!url) { console.log("no portrait for", a.id); continue; }
         save(path.join(root, "assets/site/agents", a.id + ".webp"), url); data.agentImages.push(a.id);

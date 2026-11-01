@@ -309,7 +309,7 @@
     if(renderAssets.has(profile))return renderAssets.get(profile);
     if(assetLoads.has(profile))return assetLoads.get(profile);
     const promise=(async()=>{
-      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version=profile==='mobile'?'mobile2':'blocks1';
+      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version='original-1';
       const mr=profile==='mobile'?await fetch(base+'manifest.json?v='+version):null;
       if(mr&&!mr.ok)throw Error('휴대폰용 맵 목록을 불러오지 못했어');
       const meta=mr?await mr.json():S.meta;
@@ -356,15 +356,15 @@
     try {
       // Full-quality files keep their existing URLs; the separate mobile pack
       // is fetched only for mobile, and never replaces cached original assets.
-      const mr=await fetch('./assets/maps/ascent/manifest.json?v=blocks1');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
+      const mr=await fetch('./assets/maps/ascent/manifest.json?v=original-1');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
       const meta=S.meta=await mr.json();
       await loadAsset(profileFor(SETTINGS.quality));
       MAPS[KEY]={graphicsStatic:true,
         key:KEY,name:'하늘섬 마을',size:5,theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
-        attackSpawn:sourcePoint(95,193),defendSpawn:sourcePoint(175,55),
-        sites:[{id:'A',label:'A 거점',...sourcePoint(220,177),r:6},{id:'B',label:'B 거점',...sourcePoint(105,70),r:6}],
-        nodes:{atk:sourcePoint(95,193),mid:sourcePoint(180,125),A:sourcePoint(220,177),B:sourcePoint(105,70),def:sourcePoint(175,55)},walls:[],
+        attackSpawn:sourcePoint(...meta.layout.attackSpawn),defendSpawn:sourcePoint(...meta.layout.defendSpawn),
+        sites:meta.layout.sites.map(([id,x,z])=>({id,label:id+' 거점',...sourcePoint(x,z),r:6})),
+        nodes:Object.fromEntries(Object.entries(meta.layout.nodes).map(([k,p])=>[k,sourcePoint(...p)])),walls:[],
       };
       S.status='ready';start.disabled=false;
       msg.textContent='하늘섬 마을 준비 완료 · 블록 재질은 이 게임에서 직접 그린 것입니다.';

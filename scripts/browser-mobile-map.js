@@ -23,12 +23,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   });
   await p.screenshot({path:'test-results/mobile-map/'+name+'.png'});return value;
  }
- const first=await capture('mobile');assert.equal(first.profile,'mobile');assert.equal(first.width,852);assert.equal(first.height,393);assert.equal(first.ratio,1);assert.equal(first.quads,166330);
+ const first=await capture('mobile');assert.equal(first.profile,'mobile');assert.equal(first.width,852);assert.equal(first.height,393);assert.equal(first.ratio,1);assert.equal(first.quads,require('../assets/maps/ascent/mobile/manifest.json').quads);
  assert.ok(requests.some(x=>x.includes('/mobile/geometry.bin')));
  assert.ok(!requests.some(x=>/\/ascent\/geometry.bin/.test(x)),'a phone never downloads the heavy original mesh before choosing another mode');
  async function settings(){if(!await p.locator('#pause').isVisible())await p.locator('#tb-menu').tap();await p.locator('#pause [data-tab="gfx"]').click();}
  async function mode(key){await settings();await p.locator('#st-quality [data-quality="'+key+'"]').click();await p.waitForFunction(()=>ASCENT_TRIAL.graphicsStatus==='ready');await p.locator('#pz-resume').click();}
- await mode('perf');const original=await capture('original');assert.equal(original.profile,'original');assert.equal(original.quads,302566);
+ await mode('perf');const original=await capture('original');assert.equal(original.profile,'original');assert.equal(original.quads,require('../assets/maps/ascent/manifest.json').quads);
  assert.ok(first.triangles<original.triangles*.75,'same camera submits substantially fewer triangles');
  assert.ok(first.meshes<original.meshes*.6,'batch the mobile map into fewer spatial draws');
  assert.ok(first.calls<original.calls,'total scene draw calls fall as well as triangle counts');

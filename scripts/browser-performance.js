@@ -49,7 +49,7 @@ const {fixture} = require('./browser-fixture');
    });
    results[label]=result;console.log(label,JSON.stringify(result));
    fs.writeFileSync('test-results/performance.json',JSON.stringify(results,null,2));
-   assert.equal(result.colliders,44380);assert.equal(result.textures,239);
+   assert.equal(result.colliders,require('../assets/maps/ascent/manifest.json').colliders);assert.equal(result.textures,239);
    if(label==='after'){
     assert.ok(result.rects.mini<100,JSON.stringify(result));assert.equal(result.rects.terrain,0,'warm terrain stays cached');
     assert.equal(result.pixelDifferences,0,'all source wall pixels match the original draw');

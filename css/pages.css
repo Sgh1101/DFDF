@@ -5,6 +5,10 @@
 --fd:'Jua',system-ui,sans-serif;--fb:'Gowun Dodum','Noto Sans KR',system-ui,sans-serif;color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+.privacy-check{display:flex;gap:12px;align-items:flex-start;padding:12px 0;cursor:pointer}
+.privacy-check input{width:22px;height:22px;flex:0 0 22px;margin-top:3px;accent-color:var(--gold)}
+#privacyChoices .row{display:flex;flex-wrap:wrap;gap:10px}
+#privacyChoices button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 body{background:var(--void);background-image:radial-gradient(ellipse 90% 40% at 50% 0%,#17202f 0%,transparent 65%);background-repeat:no-repeat;color:var(--text);font-family:var(--fb);font-size:16px;line-height:1.85;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--gold);text-underline-offset:3px}
 a:hover{color:#ffe08a}

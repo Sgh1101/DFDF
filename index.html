@@ -350,7 +350,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
     <nav class="ilinks" aria-label="Game guides"><a href="./guide.html">Guide</a><a href="./controls.html">Controls</a><a href="./modes.html">Modes</a><a href="./maps.html">Maps</a><a href="./agents.html">Agents</a></nav>
   </section>
   <footer>
-    <nav class="fnav" aria-label="사이트 메뉴"><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a><a href="./about.html" data-t="pgAbout"></a><a href="./contact.html" data-t="pgContact"></a><a href="./privacy.html" data-t="privacy"></a></nav>
+    <nav class="fnav" aria-label="사이트 메뉴"><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a><a href="./about.html" data-t="pgAbout"></a><a href="./contact.html" data-t="pgContact"></a><a href="./terms.html" data-t="pgTerms">이용규칙</a><a href="./credits.html" data-t="pgCredits">제작·출처</a><a href="./privacy.html" data-t="privacy"></a><a href="./privacy.html#choices" data-t="pgPrivacyChoices">개인정보 설정</a></nav>
     13
   </footer>
 </div>
@@ -371,7 +371,7 @@ const T = {
     enter: "게임 들어가기", enterHint: "혼자 하기 · 같이 하기는 게임 안에서 고릅니다", joinInvite: "방 참가하기", invited: "초대받은 방", skipInvite: "초대는 두고 그냥 들어가기",
     banned: "이용이 제한되었습니다", until: "까지", forever: "영구", reason: "사유",
     offline: "지금은 계정 서버에 연결할 수 없습니다. 게스트로 들어가면 혼자 하기와 코드 참가는 그대로 됩니다.",
-    about: "게임", privacy: "개인정보처리방침", pgGuide: "게임 소개", pgControls: "조작법", pgModes: "모드", pgMaps: "맵", pgAgents: "요원", pgPatch: "패치노트", pgAbout: "소개", pgContact: "문의", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
+    about: "게임", privacy: "개인정보처리방침", pgGuide: "게임 소개", pgControls: "조작법", pgModes: "모드", pgMaps: "맵", pgAgents: "요원", pgPatch: "패치노트", pgAbout: "소개", pgContact: "문의", pgTerms: "이용규칙", pgCredits: "제작·출처", pgPrivacyChoices: "개인정보 설정", guestTag: "게스트", lvNext: (a, b) => `다음 레벨까지 ${b - a} XP`,
     ranks: ["신병", "요원", "정예 요원", "베테랑", "에이스", "전설"],
     featWeek: " · 매주 바뀌는 이번 주 맵 1곳",
     featEvent: " · 이벤트 맵 1곳",
@@ -389,7 +389,7 @@ const T = {
     enter: "Enter the game", enterHint: "Choose solo or multiplayer inside the game", joinInvite: "Join the room", invited: "Invited to room", skipInvite: "Ignore the invite and just enter",
     banned: "Your access is restricted", until: "until", forever: "permanently", reason: "Reason",
     offline: "The account server is not reachable right now. As a guest, solo play and joining by code still work.",
-    about: "The game", privacy: "Privacy policy", pgGuide: "Guide", pgControls: "Controls", pgModes: "Modes", pgMaps: "Maps", pgAgents: "Agents", pgPatch: "Patch notes", pgAbout: "About", pgContact: "Contact", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
+    about: "The game", privacy: "Privacy policy", pgGuide: "Guide", pgControls: "Controls", pgModes: "Modes", pgMaps: "Maps", pgAgents: "Agents", pgPatch: "Patch notes", pgAbout: "About", pgContact: "Contact", pgTerms: "Rules", pgCredits: "Credits", pgPrivacyChoices: "Privacy settings", guestTag: "Guest", lvNext: (a, b) => `${b - a} XP to next level`,
     ranks: ["Recruit", "Agent", "Elite", "Veteran", "Ace", "Legend"],
     featWeek: ", plus a map of the week that changes every Monday",
     featEvent: ", plus an event map",

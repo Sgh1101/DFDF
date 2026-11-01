@@ -18,7 +18,7 @@ const attr = (s) => esc(s).replace(/'/g, "&#39;");
 function page(p) {
   const url = `${ORIGIN}/${p.file}`, full = `${p.title} | 13`;
   const nav = NAV.map(([f, label, key]) => `<a href="./${f}"${p.nav === key ? ' aria-current="page"' : ""}>${label}</a>`).join("");
-  const links = NAV.concat([["privacy.html", "개인정보처리방침", "privacy"]]).map(([f, label]) => `<a href="./${f}">${label}</a>`).join("");
+  const links = NAV.concat([["terms.html", "이용규칙", "terms"], ["credits.html", "제작·출처", "credits"], ["privacy.html", "개인정보처리방침", "privacy"], ["privacy.html#choices", "개인정보 설정", "choices"]]).map(([f, label]) => `<a href="./${f}">${label}</a>`).join("");
   return `<!doctype html>
 <!-- written by scripts/build-site-pages.js: change the page in scripts/site-pages/, not here -->
 <html lang="ko">
