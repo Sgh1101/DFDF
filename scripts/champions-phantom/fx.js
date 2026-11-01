@@ -134,7 +134,7 @@ function gunArt() {
     const f = x / 8 - 22.75, height = c === side ? 5 - y / 8 : 0;
     const green = Math.round(step(noise(x, y, 9) * 0.7 + noise(x, y, 4) * 0.3, 7) * 255);
     // Flame tongues licking up the upper receiver (f -9.6..13).
-    const tongue = Math.sin(f * 1.3) * 0.5 + Math.sin(f * 0.47 + 1) * 0.6, crest = 2.8 + tongue;
+    const tongue = Math.sin(f * 1.3) * 0.5 + Math.sin(f * 0.47 + 1) * 0.6 + Math.sin(f * 3.1 + 2) * 0.35, crest = 2.6 + tongue;
     let red = 0;
     if (f > -9.6 && f < 13 && (c === top || (height > 1.25 && height < crest))) red = height > crest - 0.8 || c === top && noise(x, y, 5) > 0.6 ? 255 : noise(x, y, 6) > 0.45 ? 128 : 40;
     const blue = c === side && Math.abs(Math.sin(f * 0.9 + height * 1.7)) > 0.97 && f > -14 && f < 16 ? 200 : 0;
