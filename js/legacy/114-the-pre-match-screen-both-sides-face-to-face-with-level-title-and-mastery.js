@@ -71,6 +71,7 @@
       name: nameOf(a),
       agent: a.agent,
       lv: info ? info.lv : 0,
+      tag: info && window.LV_CHIP && LV_CHIP.tagText ? LV_CHIP.tagText(a) : "",
       tr: info && null != info.tr ? info.tr : null,
       placing: !!(info && window.LV_CHIP && LV_CHIP.placing && LV_CHIP.placing(a)),
       mast: !bot && window.LV_CHIP && LV_CHIP.mast ? LV_CHIP.mast(a) : null,
@@ -82,7 +83,7 @@
       MT = window.MASTERY,
       R = window.RANK;
     const chips = [];
-    c.bot ? chips.push(`<span class="pm-ai">AI</span>`) : c.lv ? chips.push(`<span class="lv-chip">Lv ${c.lv}</span>`) : 0;
+    c.bot ? chips.push(`<span class="pm-ai">AI</span>`) : c.lv ? chips.push(...(c.tag ? [`<span class="clan-tag">${esc(c.tag)}</span>`] : []), `<span class="lv-chip">Lv ${c.lv}</span>`) : 0;
     if (room.ranked && !c.bot && c.lv && R) chips.push(c.placing ? `<span class="pm-rk" style="--rc:#8a8f98">${R.badge(-1, 0, 15)}<i>${L("배치 중", "Placing")}</i></span>` : c.tr != null ? `<span class="pm-rk" style="--rc:${R.colors[c.tr] || "#8a8f98"}">${R.badge(c.tr, 0, 15)}<i>${esc(R.names[c.tr] || "")}</i></span>` : "");
     const style = `--ac:${esc(ag.color || "#ffc849")};--i:${i}`;
     return `<div class="pm-card ${side}${c.me ? " me" : ""}${c.bot ? " bot" : ""}${anim ? "" : " still"}" style="${style}" data-id="${esc(c.id)}">

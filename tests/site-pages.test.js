@@ -65,6 +65,15 @@ test("maps.html has every map of the pool with its size, and a picture", () => {
   assert.deepEqual([by("full"), by("small"), by("1v1")], [11, 8, 3], "the pool is 11 + 8 + 3");
 });
 
+test("maps.html shows the event map in its own section, outside the pool", () => {
+  if (!data.eventMap) return;
+  const html = read("maps.html"), ev = html.indexOf('<h2 id="event">'), week = html.indexOf('<h2 id="week">');
+  assert.ok(ev > 0 && week > ev, "an event section before the map of the week");
+  assert.ok(!data.maps.some((m) => m.key === data.eventMap.key), "not counted in the pool");
+  assert.ok(html.slice(ev, week).includes(`id="map-${data.eventMap.key}"`) && html.slice(ev, week).includes(data.eventMap.name), "its card");
+  assert.ok(fs.existsSync(path.join(root, "assets/site/maps", data.eventMap.key + ".webp")), "its picture");
+});
+
 test("modes.html has every mode of the game's list, with its rule line and the keys match the game's source", () => {
   const page = text(read("modes.html"));
   const src = read("js/legacy/05-game-modes.js"), keys = [...src.matchAll(/^\s{4}(\w+): \{ name: "/gm)].map((m) => m[1]);

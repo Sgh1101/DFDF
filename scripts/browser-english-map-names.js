@@ -27,7 +27,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const chips = await en.evaluate(() => [...document.querySelectorAll("#sel-maps .lb-map")].map((b) => b.textContent.trim()));
     check(chips.length >= maps.length && chips.every((t) => !/[가-힣]/.test(t)), "every map chip is English (" + chips.length + " chips): " + chips.filter((t) => /[가-힣]/.test(t)).join(" | "));
     for (const [key, name] of maps) {
-      await en.evaluate((key) => { titleCam = () => {}; render = () => {}; netShutdown(); clearActors(); room.mode = "std"; room.map = key; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live"; }, key);
+      await en.evaluate(async (key) => { if (window.KOUR_MAP && key === KOUR_MAP.key) await KOUR_MAP.ensure(); titleCam = () => {}; render = () => {}; netShutdown(); clearActors(); room.mode = "std"; room.map = key; await startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = "live"; }, key);
       await en.waitForTimeout(400);
       const hits = await scan(en, [name]);
       check(!hits.length, "English page, match on " + key + " still shows " + name + ": " + hits.join(" | "));

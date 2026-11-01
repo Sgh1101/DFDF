@@ -11,7 +11,7 @@
   pick.innerHTML = "<span></span><i aria-hidden=\"true\">▾</i>";
   back.after(pick);
   const label = (root) => {
-    const on = document.querySelector(root + " .lb-map.on");
+    const on = document.querySelector(root + " .lb-map.on") || ("#sel-maps" === root ? document.querySelector("#sel-event .lb-map.on") : null);
     if (!on) return "";
     const t = [...on.childNodes].find((n) => 3 === n.nodeType && n.textContent.trim());
     return (t ? t.textContent : on.textContent).trim();
@@ -25,7 +25,7 @@
   };
   pick.onclick = (e) => { e.stopPropagation(); set(!foot.classList.contains("pick-open")); };
   // choosing a map or a mode closes the sheet (the category filter stays open)
-  mid.addEventListener("click", (e) => { const c = e.target.closest && e.target.closest("#sel-maps .lb-map, #sel-modes .lb-map"); c && setTimeout(() => { refresh(); set(false); }, 0); });
+  mid.addEventListener("click", (e) => { const c = e.target.closest && e.target.closest("#sel-maps .lb-map, #sel-event .lb-map, #sel-modes .lb-map"); c && setTimeout(() => { refresh(); set(false); }, 0); });
   document.addEventListener("click", (e) => { foot.classList.contains("pick-open") && !foot.contains(e.target) && set(false); });
   document.addEventListener("keydown", (e) => { "Escape" === e.key && foot.classList.contains("pick-open") && (set(false), pick.focus()); });
   // leaving the screen (back, start, or anything else) closes the sheet

@@ -19,6 +19,14 @@ function harness(options = {}) {
       case "ZADD": z.set(args[1], +args[0]); return 1;
       case "ZREM": return +z.delete(args[0]);
       case "ZCARD": return z.size;
+      case "ZINCRBY": { const n = (z.get(args[1]) || 0) + +args[0]; z.set(args[1], n); return String(n); }
+      case "ZSCORE": return z.has(args[0]) ? String(z.get(args[0])) : null;
+      case "ZREVRANK": case "ZRANK": {
+        if (!z.has(args[0])) return null;
+        const rows = [...z].sort((p, q) => p[1] - q[1] || (p[0] < q[0] ? -1 : 1));
+        if (op === "ZREVRANK") rows.reverse();
+        return rows.findIndex(([m]) => m === args[0]);
+      }
       case "ZREMRANGEBYSCORE": { let n = 0; for (const [m, sc] of z) if (sc >= (args[0] === "-inf" ? -Infinity : +args[0]) && sc <= +args[1]) { z.delete(m); n++; } return n; }
       case "ZRANGE": {
         const rows = [...z].sort((p, q) => p[1] - q[1] || (p[0] < q[0] ? -1 : 1));
@@ -31,7 +39,7 @@ function harness(options = {}) {
   function command(cmd) {
     if (options.redisCommand) return options.redisCommand(cmd);
     const [op, key, ...args] = cmd;
-    if (/^(lb:|rooms$)/.test(key) && ["ZADD", "ZREM", "ZCARD", "ZRANGE", "ZREMRANGEBYSCORE"].includes(op)) return zcommand(op, key, args);
+    if (/^(lb:|rooms$|clans$)/.test(key) && ["ZADD", "ZREM", "ZCARD", "ZRANGE", "ZREMRANGEBYSCORE", "ZINCRBY", "ZSCORE", "ZREVRANK", "ZRANK"].includes(op)) return zcommand(op, key, args);
     if (/^lb:/.test(key) && op === "EXPIRE") return 1;
     switch (op) {
       case "GET": return get(key);
@@ -62,6 +70,13 @@ function harness(options = {}) {
       }
       case "DEL": { const had = db.delete(key); expires.delete(key); return +had; }
       case "EVAL": {
+        // the clans' compare-and-set over several keys (api/v1.js MULTI_CAS): the keys it read must still be as read, then every command runs
+        if (key.includes("-- multi-cas")) {
+          const nk = +args[0], keys = args.slice(1, 1 + nk), argv = args.slice(1 + nk), m = +argv[0];
+          for (let i = 0; i < m; i++) if ((get(keys[i]) ?? "") !== argv[i + 1]) return 0;
+          for (const o of JSON.parse(argv[m + 1])) command([o[0], keys[o[1] - 1], ...o.slice(2)]);
+          return 1;
+        }
         // the per-order lock release: delete the key only while it still holds our nonce
         if (args[0] === "1" && key.includes("redis.call('GET', KEYS[1]) == ARGV[1]")) { const [lockKey, nonce] = args.slice(1); return get(lockKey) === nonce ? command(["DEL", lockKey]) : 0; }
         if (commitFailure) { commitFailure = false; throw new Error("commit unavailable"); }

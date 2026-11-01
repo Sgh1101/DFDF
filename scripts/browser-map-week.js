@@ -11,7 +11,8 @@ const dir = process.env.SHOT_DIR || "test-results/map-week";
   try {
     const owner = await f.h.api("auth", { id: "owner", pw: "owner-password", device: "browser-owner-device" });
     const setGame = async (g) => { const c = JSON.parse(JSON.stringify(f.h.config)); Object.assign(c.game, g); const r = await f.h.api("a_config_set", { atoken: owner.atoken, config: c }); assert.equal(r.status, 200); };
-    const info = (page) => page.evaluate(() => ({ week: window.SERVER_CFG && SERVER_CFG.weekMap, key: window.WEEK_MAP_KEY, list: MAP_LIST.map((m) => m.key), pool: POGU.pool.slice() }));
+    // (the list without the event map: while one is open it comes first, in a box of its own above the list)
+    const info = (page) => page.evaluate(() => ({ week: window.SERVER_CFG && SERVER_CFG.weekMap, key: window.WEEK_MAP_KEY, list: MAP_LIST.map((m) => m.key).filter((k) => k !== window.EVENT_MAP_KEY), pool: POGU.pool.slice() }));
     const open = async (name, vp, ctx) => {
       const page = await f.page(name, vp, ctx);
       await page.waitForFunction(() => window.SERVER_CFG && "weekMap" in SERVER_CFG, null, { timeout: 30000 });

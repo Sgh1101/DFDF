@@ -67,11 +67,13 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
     await game.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     const live = await game.evaluate(() => ({
       agents: AGENTS.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]),
-      maps: MAP_LIST.filter((m) => m.key !== window.WEEK_MAP_KEY).map((m) => [m.key, m.name, MAP_SIZE(m.key)]),
-      modes: Object.entries(GAME_MODES).map(([k, m]) => [k, m.name, m.sub]), listed: [...document.querySelectorAll("#sel-modes button")].map((b) => b.textContent),
+      maps: MAP_LIST.filter((m) => m.key !== window.WEEK_MAP_KEY && m.key !== window.EVENT_MAP_KEY).map((m) => [m.key, m.name, MAP_SIZE(m.key)]),
+      event: window.EVENT_MAP_KEY && MAP_LIST.some((m) => m.key === window.EVENT_MAP_KEY) ? [window.EVENT_MAP_KEY, MAP_LIST.find((m) => m.key === window.EVENT_MAP_KEY).name] : null,
+      modes: Object.entries(GAME_MODES).map(([k, m]) => [k, m.name, m.sub]), listed: [...document.querySelectorAll("#sel-modes button:not(#sel-comp)")].map((b) => b.textContent),
     }));
     assert.deepEqual(data.agents.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]), live.agents, "agents.html is made from the live roster: run scripts/dump-site-data.js");
     assert.deepEqual(data.maps.map((m) => [m.key, m.name, m.size]), live.maps, "the map pool of maps.html is the live pool");
+    assert.deepEqual(data.eventMap ? [data.eventMap.key, data.eventMap.name] : null, live.event, "the event map of maps.html is the live one");
     assert.deepEqual(data.modes.map((m) => [m.key, m.name, m.sub]), live.modes, "modes.html lists the live GAME_MODES");
     assert.deepEqual(data.listed.map((k) => data.modes.find((m) => m.key === k).name), live.listed, "the room's mode buttons");
     await game.close();

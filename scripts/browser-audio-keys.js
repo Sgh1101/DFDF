@@ -120,7 +120,7 @@ const START = () => { titleCam = () => {}; room.mode = "std"; room.map = "field"
     // ── key settings ──
     await page.click("#pause .pz-tabs button[data-tab=keys]");
     const labels = await page.evaluate(() => [...document.querySelectorAll('#pause [data-pane="keys"] .kb-key')].map((b) => b.dataset.action + "=" + b.textContent));
-    check(labels.length === 24 && labels.includes("forward=W") && labels.includes("crouch=Shift (L) / Shift (R)"), "every action has a box showing its key: " + labels.join(" "));
+    check(labels.length === 25 && labels.includes("forward=W") && labels.includes("crouch=Shift (L) / Shift (R)") && labels.includes("emote=T"), "every action has a box showing its key: " + labels.join(" "));
     await page.waitForTimeout(900);
     await page.screenshot({ path: "test-results/audio-keys-keys.png" });
     // Forward -> I, with the keyboard the way a player does it
@@ -159,7 +159,7 @@ const START = () => { titleCam = () => {}; room.mode = "std"; room.map = "field"
     check((await page.textContent('#pause .kb-key[data-action="forward"]')) === "I", "the key settings show the saved key after a reload");
     await page.click("#kb-reset");
     const reset = await page.evaluate(() => ({ codes: KEYMAP.ACTIONS.map((a) => KEYMAP.codes(a.id).join("+")).join(), binds: JSON.parse(localStorage.getItem("lgp_set")).binds, box: document.querySelector('[data-action="forward"]').textContent }));
-    check(reset.codes === "KeyW,KeyS,KeyA,KeyD,Space,ShiftLeft+ShiftRight,KeyR,Digit1+Numpad1,Digit2+Numpad2,Digit3+Numpad3,KeyG,KeyY,KeyQ,KeyE,KeyC,KeyX,KeyF,Digit4+Numpad4,KeyB,Tab,KeyN,KeyM,KeyV,KeyZ" && JSON.stringify(reset.binds) === "{}" && reset.box === "W", "the reset button brings every key back and saves: " + JSON.stringify(reset));
+    check(reset.codes === "KeyW,KeyS,KeyA,KeyD,Space,ShiftLeft+ShiftRight,KeyR,Digit1+Numpad1,Digit2+Numpad2,Digit3+Numpad3,KeyG,KeyY,KeyQ,KeyE,KeyC,KeyX,KeyF,Digit4+Numpad4,KeyB,Tab,KeyN,KeyM,KeyV,KeyZ,KeyT" && JSON.stringify(reset.binds) === "{}" && reset.box === "W", "the reset button brings every key back and saves: " + JSON.stringify(reset));
     // a damaged saved value does not break the keys
     await page.evaluate(() => { localStorage.setItem("lgp_set", JSON.stringify({ binds: { forward: "x", jump: [5], reload: ["Escape"] } })); });
     await page.reload({ waitUntil: "domcontentloaded" });

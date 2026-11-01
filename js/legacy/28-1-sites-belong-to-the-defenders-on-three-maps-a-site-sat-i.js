@@ -159,10 +159,12 @@
     g.clearRect(0, 0, cv.width, cv.height);
     g.fillStyle = "#0d1118";
     g.fillRect(ox, oz, bw * S, bh * S);
-    for (const c of COLLIDERS) {
-      g.fillStyle = c.h > STEP_H ? "#3a4658" : "#26303e";
-      g.fillRect(X(c.minX), Z(c.minZ), (c.maxX - c.minX) * S, (c.maxZ - c.minZ) * S);
-    }
+    // a map that paints its own layout (the event map: its ground is one big box) says so and is done
+    if (!(window.MAP_WALLS_PAINT && MAP_WALLS_PAINT(g, X, Z, S)))
+      for (const c of COLLIDERS) {
+        g.fillStyle = c.h > STEP_H ? "#3a4658" : "#26303e";
+        g.fillRect(X(c.minX), Z(c.minZ), (c.maxX - c.minX) * S, (c.maxZ - c.minZ) * S);
+      }
     // high ground: decks you can stand on, and their stairs
     for (const w of MAP.walls || []) {
       if (!w.deck && !w.stair) continue;

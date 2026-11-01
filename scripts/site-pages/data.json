@@ -1425,6 +1425,18 @@
    ]
   }
  ],
+ "eventMap": {
+  "key": "desert_town",
+  "name": "사막 마을",
+  "size": 5,
+  "cat": "full",
+  "width": 163,
+  "depth": 149,
+  "sites": [
+   "A",
+   "B"
+  ]
+ },
  "weekCandidates": 36,
  "modes": [
   {
@@ -1574,6 +1586,7 @@
   "zone"
  ],
  "mapImages": [
+  "desert_town",
   "pogu",
   "field",
   "garden",
