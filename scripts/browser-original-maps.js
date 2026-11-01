@@ -3,11 +3,12 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=require('./browser-fixture');
 (async()=>{const f=await fixture(),results=[];fs.mkdirSync('test-results/original-maps',{recursive:true});try{
  const p=await f.page('originalmaptest',{width:1280,height:720},{},{quality:'perf',bootTimeout:120000});
+ assert.deepEqual(await p.evaluate(()=>({desert:!!MAPS.desert_town,loader:!!window.KOUR_MAP,event:!!document.getElementById('sel-event')})),{desert:false,loader:false,event:false},'Claude removal remains in effect');
  assert.equal(await p.evaluate(()=>performance.getEntriesByType('resource').filter(r=>/\/assets\/maps\/(ascent|desert|kour)\//.test(r.name)).length),0,'ordinary entry does not load either map');
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();
  await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
- for(const [key,global] of [['ascent_trial','ASCENT_TRIAL'],['desert_town','KOUR_MAP']]){
+ for(const [key,global] of [['ascent_trial','ASCENT_TRIAL']]){
   await p.evaluate(async({key,global})=>{await window[global].ensure();room.map=key;room.mode='std';await startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;},{key,global});
   await p.waitForFunction(({key,global})=>CUR_MAP_KEY===key&&window[global].nav&&Number.isFinite(myActor()?.y),{key,global},{timeout:120000});
   const data=await p.evaluate(({key,global})=>{
@@ -37,10 +38,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   const refs=await p.evaluate(({global})=>{const s=window[global];window.originalRefs={actor:myActor(),nav:s.nav,colliders:COLLIDERS.slice()};return {loads:s.loads};},{global});
   await p.evaluate(async()=>{for(const q of ['perf','mobile']){setQuality(q);if(ASCENT_TRIAL.active)await ASCENT_TRIAL.graphicsReady;}});
   assert.ok(await p.evaluate(({global,loads})=>{const s=window[global];return s.loads===loads&&s.nav===originalRefs.nav&&myActor()===originalRefs.actor&&COLLIDERS.length===originalRefs.colliders.length&&COLLIDERS.every((c,i)=>c===originalRefs.colliders[i]);},{global,loads:refs.loads}),'graphics switch keeps gameplay objects');
-  if(key==='desert_town')assert.equal(await p.evaluate(()=>scene.children.filter(m=>m.geometry?.type==='RingGeometry'&&MAP.sites.some(s=>Math.hypot(m.position.x-s.x,m.position.z-s.z)<.1)).length),2,'graphics switches preserve both objective markers');
   await p.screenshot({path:'test-results/original-maps/'+key+'.png'});
  }
- const cleanup=await p.evaluate(()=>{loadMap('glacier');return {ascent:ASCENT_TRIAL.active,desert:KOUR_MAP.active,meshes:ASCENT_TRIAL.meshes.length+KOUR_MAP.meshes.length,boxes:COLLIDERS.filter(c=>c.ascent||c.kour).length,floor:floor.visible};});
- assert.deepEqual(cleanup,{ascent:false,desert:false,meshes:0,boxes:0,floor:true});assert.deepEqual(f.errors,[]);
- console.log('Original maps: lazy loading, both-team objective physics, bullet/body walls, graphics stability and cleanup passed');
+ const cleanup=await p.evaluate(()=>{loadMap('glacier');return {ascent:ASCENT_TRIAL.active,meshes:ASCENT_TRIAL.meshes.length,boxes:COLLIDERS.filter(c=>c.ascent||c.kour).length,floor:floor.visible};});
+ assert.deepEqual(cleanup,{ascent:false,meshes:0,boxes:0,floor:true});assert.deepEqual(f.errors,[]);
+ console.log('Original island: lazy loading, both-team objective physics, bullet/body walls, graphics stability and cleanup passed');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

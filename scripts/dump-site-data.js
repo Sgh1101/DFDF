@@ -18,7 +18,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
     await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     await page.evaluate(async()=>{if(!await ASCENT_TRIAL.ensure())throw Error('Island package unavailable');});
     const data = await page.evaluate(() => {
-      const week = window.WEEK_MAP_KEY || "", ev = window.EVENT_MAP_KEY || "";
+      const week = window.WEEK_MAP_KEY || "";
       const info = (m) => { const b = MAPS[m.key].bounds; return { key: m.key, name: m.name, size: MAP_SIZE(m.key), cat: MAP_CAT(m.key), width: Math.round(b.maxX - b.minX), depth: Math.round(b.maxZ - b.minZ), sites: (MAPS[m.key].sites || []).map((s) => s.id) }; };
       const keep = (o, ks) => Object.fromEntries(ks.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
       const roles = [...new Set(AGENTS.map((a) => a.role))];
@@ -26,9 +26,8 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
         generated: "scripts/dump-site-data.js",
         roles,
         agents: AGENTS.map((a) => ({ ...keep(a, ["id", "name", "role", "color", "accent", "quote", "desc"]), abilities: a.abilities.map((x) => ({ ...keep(x, ["key", "name", "desc", "charges", "cd", "ult", "counterplay"]) })) })),
-        // the permanent pool: the list without the map of the week and the event map
-        maps: MAP_LIST.filter((m) => m.key !== week && m.key !== ev).map(info),
-        eventMap: ev && MAP_LIST.some((m) => m.key === ev) ? info(MAP_LIST.find((m) => m.key === ev)) : null,
+        // the permanent pool: the list without the map of the week
+        maps: MAP_LIST.filter((m) => m.key !== week).map(info),
         weekCandidates: window.MAP_WEEK ? MAP_WEEK.CANDIDATES.length : 0,
         modes: Object.entries(GAME_MODES).map(([key, m]) => ({ key, name: m.name, sub: m.sub, kills: m.kills, time: m.time, win: m.win, flags: Object.keys(m).filter((k) => m[k] === true) })),
         // the modes the room and the solo picker list, in their order
@@ -57,9 +56,9 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
       const save = (file, url) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, Buffer.from(url.split(",")[1], "base64")); };
       const kept = selectedImages && fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile,'utf8')) : null;
       data.mapImages = kept ? (kept.mapImages||[]).filter(k=>!selectedImages.includes(k)&&fs.existsSync(path.join(root,'assets/site/maps',k+'.webp'))) : [];
-      for (const m of data.eventMap ? [data.eventMap, ...data.maps] : data.maps) {
+      for (const m of data.maps) {
         if(selectedImages&&!selectedImages.includes(m.key))continue;
-        await page.evaluate(async(key) => { if(key==='ascent_trial')await ASCENT_TRIAL.ensure();if(key==='desert_town')await KOUR_MAP.ensure();room.mode = "std"; room.map = key; await startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
+        await page.evaluate(async(key) => { if(key==='ascent_trial')await ASCENT_TRIAL.ensure();room.mode = "std"; room.map = key; await startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
         await page.waitForFunction(key=>CUR_MAP_KEY===key&&!!myActor(),m.key,{timeout:120000});
         const ok = await page.evaluate(() => CUR_MAP_KEY) === m.key;
         if (!ok) { console.log("no picture for", m.key); continue; }

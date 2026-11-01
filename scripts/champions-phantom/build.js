@@ -65,6 +65,7 @@ function main() {
     "textures, recordings or arrangements are included.",
     "",
   ].join("\n")));
+  if (!process.env.CHAMPIONS_OUT) require("./sync-wave").sync(); // keep the kill-coat palettes in js/ matching the painted colours
   console.log(`Champions Phantom ${VERSION}: ${files.length} visual files, gun ${model.cubes.length} cubes @ ${model.density} texels/unit`);
 }
 main();

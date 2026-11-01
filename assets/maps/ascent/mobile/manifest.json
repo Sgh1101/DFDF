@@ -38,7 +38,7 @@
   },
   "textures": "palette.json",
   "atlas": "atlas.png",
-  "atlasSha256": "f40ead66c76262bc21958dfff2db41979d513df2b958233d96d434635a37c681",
+  "atlasSha256": "d25494a49b652a4c9baf7bf4c61c074e76e41b0ed8fd10f0ce16439598f3ffc3",
   "provenance": {
     "author": "DFDF",
     "generator": "scripts/build-original-maps.js",

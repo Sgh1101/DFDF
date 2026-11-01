@@ -37,3 +37,8 @@ atlas.save(dest/'atlas.png')
 palette={'version':1,'profile':'mobile','sourceAtlasSha256':source['atlasSha256'],'atlas':'atlas.png','atlasSha256':hashlib.sha256((dest/'atlas.png').read_bytes()).hexdigest(),'width':atlas.width,'height':atlas.height,'tiles':tiles}
 (dest/'palette.json').write_text(json.dumps(palette,separators=(',',':'))+'\n',encoding='utf8')
 print('Mobile atlas:',atlas.size,'original:',original.size,'opaque patterns 8x8; all cutouts/glass unchanged')
+# the pack's manifest names the atlas it uses: keep its hash in step
+mm=dest/'manifest.json'
+if mm.exists():
+    m=json.loads(mm.read_text(encoding='utf8'));m['atlasSha256']=palette['atlasSha256'];m['textures']='palette.json'
+    mm.write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf8')

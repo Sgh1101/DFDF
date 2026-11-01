@@ -22,7 +22,7 @@ function fxTextures() {
   const out = {};
   out.white = sprite(4, 4, () => [white, 1]);
   out.glow = sprite(32, 32, (x, y) => { const r = Math.hypot(x, y); return [shade(1 - r), (1 - r) ** 1.6]; });
-  out.ember = sprite(8, 8, (x, y) => { const r = Math.hypot(x, y); return [white, 1.15 - r * 1.1]; }, 3);
+  out.ember = sprite(8, 8, (x, y) => { const e = Math.max(Math.abs(x), Math.abs(y)); return [white, e > 0.8 ? 0.4 : e > 0.55 ? 0.75 : 1]; }, 4); // soft-edged square
   out.diamond = sprite(8, 8, (x, y) => [white, Math.abs(x) + Math.abs(y) < 0.95 ? 1 : 0], 1);
   out.ray = sprite(16, 64, (x, y) => [shade(1 - Math.abs(x)), (1 - Math.abs(x) ** 1.4) * (1 - Math.abs(y) ** 4)]);
   out.ring = sprite(64, 64, (x, y) => { const d = Math.abs(Math.hypot(x, y) - 0.72); return [shade(1 - d * 6), 1 - d / 0.2]; });
@@ -46,14 +46,22 @@ function fxTextures() {
   }, 1);
   out.ribbon_red = ribbon([255, 120, 64], [40, 6, 8]);
   out.ribbon_white = ribbon([255, 250, 236], [120, 96, 70]);
-  // Night sky with a scatter of small stars; tiles 10x5 on the dome.
+  // Night sky: a few large soft squares, plus-shaped bright stars and a scatter of small points; tiles 10x5 on the dome.
   const sky = new Canvas(128, 128), r = rng(2026);
   sky.rect(0, 0, 128, 128, [0, 0, 0]);
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 22; i++) { // big, soft squares: flat grey with a slightly dimmer rim
+    const x = Math.floor(r() * 122), y = Math.floor(r() * 122), size = 3 + Math.floor(r() * 3), b = 95 + Math.floor(r() * 60);
+    for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) {
+      const edge = Math.min(dx, dy, size - 1 - dx, size - 1 - dy), k = edge === 0 ? 0.8 : 1;
+      sky.set(x + dx, y + dy, [b * k, b * k, b * k + 6]);
+    }
+  }
+  for (let i = 0; i < 44; i++) {
     const x = Math.floor(r() * 128), y = Math.floor(r() * 128), b = 150 + Math.floor(r() * 105);
     sky.set(x, y, [b, b, Math.min(255, b + 20)]);
-    if (r() < 0.18) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) sky.set(x + dx, y + dy, [b * 0.55, b * 0.55, b * 0.6]);
+    if (r() < 0.3) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) sky.set(x + dx, y + dy, [b * 0.55, b * 0.55, b * 0.6]);
   }
+  for (let i = 0; i < 110; i++) { const b = 60 + Math.floor(r() * 90); sky.set(Math.floor(r() * 128), Math.floor(r() * 128), [b, b, b + 12]); }
   out.sky_stars = sky;
   return out;
 }
@@ -66,11 +74,16 @@ function frame(level) {
       const side = Math.floor(t / r), k = t % r;
       if (gap && Math.abs(k - r / 2) < gap) continue;
       const [x, y] = [[64 - r + k, 64 - k], [64 + k, 64 - r + k], [64 + r - k, 64 + k], [64 - k, 64 + r - k]][side];
-      c.set(x, y, color); c.set(x, y + 1, color);
+      c.set(x, y, color); c.set(x, y + 1, color); c.set(x + 1, y, color);
     }
   };
   diamond(40, pale, level >= 2 ? 0 : 12);
-  if (level >= 2) diamond(34, grey, 9);
+  if (level >= 2) {
+    diamond(34, grey, 9);
+    for (const [x, y] of [[64, 24], [64, 104], [24, 64], [104, 64]]) c.rect(x - 2, y - 2, 4, 4, pale);
+    for (const s of [-1, 1]) for (let i = 0; i < 6; i++) { c.set(64 + s * (8 + i), 36 - i, grey); c.set(64 + s * (8 + i), 92 + i, grey); }
+  }
+  if (level >= 3) for (const s of [-1, 1]) for (let i = 0; i < 4; i++) { c.rect(64 + s * (28 + i * 2) - 1, 44 + i * 4, 2, 2, gold); c.rect(64 + s * (28 + i * 2) - 1, 80 - i * 4, 2, 2, gold); }
   if (level >= 3) for (const s of [-1, 1]) { // side wings
     for (let i = 0; i < 12; i++) { c.set(64 + s * (44 + i), 64 - i, gold); c.set(64 + s * (44 + i), 64 + i, gold); }
     c.rect(64 + s * 50 - 1, 63, 3, 3, pale);
@@ -121,7 +134,7 @@ function gunArt() {
     const f = x / 8 - 22.75, height = c === side ? 5 - y / 8 : 0;
     const green = Math.round(step(noise(x, y, 9) * 0.7 + noise(x, y, 4) * 0.3, 7) * 255);
     // Flame tongues licking up the upper receiver (f -9.6..13).
-    const tongue = Math.sin(f * 1.3) * 0.5 + Math.sin(f * 0.47 + 1) * 0.6, crest = 2.8 + tongue;
+    const tongue = Math.sin(f * 1.3) * 0.5 + Math.sin(f * 0.47 + 1) * 0.6 + Math.sin(f * 3.1 + 2) * 0.35, crest = 2.6 + tongue;
     let red = 0;
     if (f > -9.6 && f < 13 && (c === top || (height > 1.25 && height < crest))) red = height > crest - 0.8 || c === top && noise(x, y, 5) > 0.6 ? 255 : noise(x, y, 6) > 0.45 ? 128 : 40;
     const blue = c === side && Math.abs(Math.sin(f * 0.9 + height * 1.7)) > 0.97 && f > -14 && f < 16 ? 200 : 0;

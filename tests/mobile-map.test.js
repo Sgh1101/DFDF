@@ -28,6 +28,7 @@ test('separate mobile pack keeps every collision byte, source reference and tran
  assert.deepEqual(cutouts(mobile),cutouts(source),'never cancel glass/foliage/grilles even when they share a plane');
  assert.deepEqual(optimize(source,palette),mobile,'rebuild is deterministic');
  const original=JSON.parse(fs.readFileSync(root+'blocks-palette.json'));
+ assert.equal(palette.sourceAtlasSha256,original.atlasSha256,'the phone atlas is built from the current flat-colour atlas');
  assert.equal(palette.tiles.length,239);assert.ok(palette.width*palette.height<original.width*original.height*.5);
  for(const t of palette.tiles)assert.equal(t.size,t.opaque?8:16,'all cutout/glass pixels retain full source resolution');
  assert.equal(sha(fs.readFileSync(root+'mobile/atlas.png')),manifest.atlasSha256);
