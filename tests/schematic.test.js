@@ -48,7 +48,7 @@ test('shipped map binary matches its provenance manifest and bounded record layo
   const lo=b.readUInt16LE(p+a*2),hi=b.readUInt16LE(p+(a+3)*2);assert.ok(lo<hi&&hi<=m.dimensions[a]*16);
  }
 });
-test('하늘섬 마을 uses its own painted block textures and separate block-state materials',()=>{
+test('하늘섬 마을 uses its own flat-colour block textures and separate block-state materials',()=>{
  const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),p=JSON.parse(fs.readFileSync(path.join(dir,m.textures))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
  assert.equal(m.name,'하늘섬 마을');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
  assert.equal(p.source,'scripts/paint-block-textures.py');assert.equal(p.originalFiles,undefined);
@@ -56,4 +56,31 @@ test('하늘섬 마을 uses its own painted block textures and separate block-st
  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,m.atlas))).digest('hex'),m.atlasSha256);
  assert.notEqual(p.palette['1:0'].tiles[0],p.palette['1:1'].tiles[0],'stone and granite keep distinct tiles');
  const used=new Set();for(let i=0;i<m.quads;i++){const tile=b.readUInt16LE(16+i*24+21);assert.ok(tile<p.tiles.length);used.add(tile);}assert.ok(used.size>60);
+});
+
+// a minimal PNG reader (8-bit RGBA, any scanline filter) so the atlases can be inspected without a dependency
+function readPng(file){
+ const zlib=require('node:zlib'),b=fs.readFileSync(file);let p=8,w=0,h=0;const idat=[];
+ while(p<b.length){const n=b.readUInt32BE(p),t=b.toString('latin1',p+4,p+8);if(t==='IHDR'){w=b.readUInt32BE(p+8);h=b.readUInt32BE(p+12);assert.equal(b[p+16],8);assert.equal(b[p+17],6,'RGBA');}if(t==='IDAT')idat.push(b.subarray(p+8,p+8+n));p+=12+n;}
+ const raw=zlib.inflateSync(Buffer.concat(idat)),stride=w*4,px=Buffer.alloc(h*stride);
+ for(let y=0;y<h;y++){const f=raw[y*(stride+1)];for(let x=0;x<stride;x++){
+  const v=raw[y*(stride+1)+1+x],a=x>=4?px[y*stride+x-4]:0,u=y?px[(y-1)*stride+x]:0,c=x>=4&&y?px[(y-1)*stride+x-4]:0;
+  const pa=Math.abs(u-c),pb=Math.abs(a-c),pc=Math.abs(a+u-2*c),pr=pa<=pb&&pa<=pc?a:pb<=pc?u:c;
+  px[y*stride+x]=(v+(f===0?0:f===1?a:f===2?u:f===3?(a+u)>>1:pr))&255;}}
+ return{w,h,px};
+}
+test('every block tile is one flat colour and keeps its kind (solid, cut-out, glass)',()=>{
+ const dir=path.join(__dirname,'../assets/maps/ascent'),p=JSON.parse(fs.readFileSync(path.join(dir,'blocks-palette.json'))),mp=JSON.parse(fs.readFileSync(path.join(dir,'mobile/palette.json')));
+ const flat=(img,x,y,size)=>{const seen=new Set();let min=255,max=0,hole=false,solid=true;
+  for(let j=0;j<size;j++)for(let i=0;i<size;i++){const k=((y+j)*img.w+x+i)*4,a=img.px[k+3];min=Math.min(min,a);max=Math.max(max,a);if(a===0)hole=true;if(a<255)solid=false;if(a>0)seen.add(img.px[k]+','+img.px[k+1]+','+img.px[k+2]);}
+  return{colours:seen.size,alphas:new Set(Array.from({length:size*size},(_,n)=>img.px[((y+((n/size)|0))*img.w+x+n%size)*4+3])),hole,solid};};
+ const big=readPng(path.join(dir,'blocks-atlas.png')),small=readPng(path.join(dir,'mobile/atlas.png'));
+ p.tiles.forEach((t,i)=>{
+  const m=mp.tiles[i],a=flat(big,(i%p.columns)*p.cell+p.padding,Math.floor(i/p.columns)*p.cell+p.padding,16),b=flat(small,m.x+m.padding,m.y+m.padding,m.size);
+  for(const f of [a,b]){assert.equal(f.colours,1,t.name+' is one flat colour');
+   if(m.opaque)assert.ok(f.solid,t.name+' stays fully solid');
+   else if(/_stained_glass$/.test(t.name))assert.deepEqual([...f.alphas],[118],t.name+' is one translucent tint');
+   else assert.ok(f.hole&&f.alphas.size===2,t.name+' keeps a cut-out silhouette');}
+  assert.equal(t.transparent,/_stained_glass$/.test(t.name),t.name);
+ });
 });
