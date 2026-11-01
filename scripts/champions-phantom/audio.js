@@ -104,7 +104,8 @@ function finisher() {
     }
     out.push(ev(t0, "chime", up(chord[2], 2), 0.3), ev(t0 + 2 * beat + e, "chime", up(chord[1], 2), 0.22));
     if (bar % 2 === 0) out.push(ev(t0, "harp", up(chord[0], 1), 0.28), ev(t0 + beat, "harp", up(chord[1], 1), 0.24));
-    if (bar >= 4) hook.forEach((n, i) => i % 2 === bar % 2 && out.push(ev(t0 + i * e, "flute", n, 0.26)));
+    if (bar === 0) ["D4", "F4", "A4", "D5", "F5", "A5", "D5", "F5"].forEach((n, i) => out.push(ev(t0 + 0.9 + i * 0.15, "harp", n, 0.14 + i * 0.02))); // rising run into the first flash
+    if (bar >= 1) hook.forEach((n, i) => i % 2 === bar % 2 && out.push(ev(t0 + i * e, "flute", n, 0.26)));
   });
   return { loopStart: 0, loopEnd: 19.2, events: sorted(out) };
 }
