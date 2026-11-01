@@ -15,7 +15,7 @@
   // Rasterize the native model's UV quads once, just as the original atlas builder does.
   function bake(geo,baseImage,maskImage,sideImage,topImage,attacker){
     const T=root.THREE,base=pixels(baseImage),mask=pixels(maskImage),side=pixels(sideImage),top=pixels(topImage),out=new Uint8Array(base.w*base.h*4),anchors=Array.from({length:128},()=>[-99,0]);
-    const palettes=attacker?[[918536,1574668,2361874,3345945,4724003,6561328],[6963218,9330204,11828778,13934140,15515224,16571528],[723726,1250071,1776417,2368556,3158074,4079178],[16725584,16747676]]:[[7828332,9802122,11644325,13157563,14539215,15789283],[6963218,9330204,11828778,13934140,15515224,16571528],[723726,1250071,1776417,2368556,3158074,4079178],[16773816,16766834]];
+    const palettes=attacker?[[1705484,2755092,3936288,5380140,7086648,9055816],[6963218,9330204,11828778,13934140,15515224,16571528],[921106,1513244,2105383,2894901,3816006,4868696],[16725584,16747676]]:[[7828332,9802122,11644325,13157563,14539215,15789283],[6963218,9330204,11828778,13934140,15515224,16571528],[921106,1513244,2105383,2894901,3816006,4868696],[16773816,16766834]];
     const rig=root.GECKO_FINISHER_RIG.build(geo,new T.MeshBasicMaterial());rig.updateMatrixWorld(true);
     rig.traverse(m=>{if(!m.isMesh)return;const p=m.geometry.attributes.position,u=m.geometry.attributes.uv,n=m.geometry.attributes.normal;
       for(let k=0;k<p.count;k+=6){
