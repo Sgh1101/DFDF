@@ -4,7 +4,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
 //     locks the mode to standard, shows only the 5v5 maps and hides the category tabs; choosing another mode lets go; it is
 //     off in practice, for an account with no rating (a guest) and when the owner switched it off;
 //  B. the match: the fixed rules (standard, 13 rounds, ten fighters on a 5v5 map), the admin switches, cheats and the owner's
-//     claim held shut by the ranked lock, the bots' skill following a seeded AI rating (Iron 0.60 ... Radiant 1.20) and a
+//     claim held shut by the ranked lock, the bots' skill following a seeded AI rating (Copper 0.60 ... Throne 1.20) and a
 //     normal match after it back on the humans' level; the lock goes when the match ends and when the player leaves;
 //  C. a match played to its end: the report reaches the server as an AI competitive match, the AI rating moves and the real
 //     rank, MMR and placement do not, the result screen has the tile (on a phone too), a normal solo match leaves the rating alone;
@@ -27,8 +27,8 @@ const chipState = (page) => page.evaluate(() => {
     rect: { l: r.left, t: r.top, r: r.right, b: r.bottom }, vw: innerWidth, vh: innerHeight, aic: AI_COMP.on,
     others: [...document.querySelectorAll("#sel-modes .lb-map")].filter((x) => x !== b).map((x) => ({ t: x.textContent, on: x.classList.contains("on") })),
     maps: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x) => !x.hidden).length,
-    // the map buttons follow MAP_LIST, less the event map, whose button sits in a box of its own (js/legacy/121)
-    nonFull: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x, i) => !x.hidden && "full" !== MAP_CAT(MAP_LIST.filter((m) => m.key !== window.EVENT_MAP_KEY)[i].key)).length,
+    // the map buttons follow MAP_LIST
+    nonFull: [...document.querySelectorAll("#sel-maps .lb-map:not(.lbm-rand)")].filter((x, i) => !x.hidden && "full" !== MAP_CAT(MAP_LIST[i].key)).length,
     tabs: getComputedStyle(document.querySelector("#sel-maps").previousElementSibling).display, sub: document.getElementById("sel-mode-sub").textContent, mode: room.mode, map: room.map, full: MAP_CAT(room.map),
     label: (document.querySelector("#sel-pick span") || {}).textContent || "" };
 });
@@ -47,7 +47,7 @@ const chipState = (page) => page.evaluate(() => {
     await openSelect(page); await openSheet(page);
     let c = await chipState(page);
     assert.ok(c.first && !c.on && !c.disabled && !c.hidden, "the chip is first among the modes, off, usable: " + JSON.stringify(c));
-    assert.equal(c.text, "경쟁전골드 3", "it says the AI tier: " + c.text);
+    assert.equal(c.text, "경쟁전금빛 3", "it says the AI tier: " + c.text);
     assert.ok(c.others.find((x) => x.t === "일반전").on, "standard is the picked mode before");
     assert.ok(c.nonFull > 0, "all the maps are offered before (some are not 5v5)");
     const maps0 = c.maps;
@@ -123,7 +123,7 @@ const chipState = (page) => page.evaluate(() => {
       rr === 1190 && assert.deepEqual(await cheats(), { god: false, ammo: false, run: true, freeze: false, pgod: false, owner: false }, "admin, cheats and the owner's claim are shut");
       rr === 0 && (await page.screenshot({ path: dir + "/aic-match.png" }));
     }
-    assert.deepEqual(skills.map((s) => s.skill), [0.6, 0.8975, 1.2], "Iron 0.60, Gold 3 0.8975, Radiant 1.20");
+    assert.deepEqual(skills.map((s) => s.skill), [0.6, 0.8975, 1.2], "Copper 0.60, Gold 3 0.8975, Throne 1.20");
     assert.ok(skills[0].tune.dmg < skills[1].tune.dmg && skills[1].tune.dmg < skills[2].tune.dmg && skills[0].tune.err > skills[1].tune.err && skills[1].tune.err > skills[2].tune.err, "stronger bots as the rating rises: damage up, aim error down");
     // leaving the match lets go of the lock
     await page.evaluate(() => { world.phase = "menu"; show("s-title"); });
@@ -170,7 +170,7 @@ const chipState = (page) => page.evaluate(() => {
     const ai = f.h.user("aicsolo").ai;
     assert.deepEqual([ai.rr, ai.played, ai.w, ai.best], [1212, 13, 8, 1450], "the server moved the AI rating by its numbers");
     assert.equal(real(f, "aicsolo"), real0, "RR, MMR, placement, season: untouched");
-    assert.match(ended.tile, /^\+22 AI 경쟁전 · 플래티넘 1$/, ended.tile);
+    assert.match(ended.tile, /^\+22 AI 경쟁전 · 백금 1$/, ended.tile);
     assert.equal(JSON.stringify(await f.h.api("leaderboard", {})).includes("aicsolo"), false, "not on the leaderboard");
     await page.screenshot({ path: dir + "/aic-over.png" });
     // a new match clears the tile
@@ -190,7 +190,7 @@ const chipState = (page) => page.evaluate(() => {
     // the sheet scrolls (with the event map's box above the maps, the mode row starts below its fold)
     await phone.evaluate(() => document.getElementById("sel-comp").scrollIntoView({ block: "nearest" })); await sleep(300);
     let p = await chipState(phone);
-    assert.ok(!p.hidden && !p.disabled && p.rect.l >= 0 && p.rect.r <= p.vw && p.rect.t >= 0 && p.rect.b <= p.vh && p.text === "경쟁전아이언 1", "the chip fits the phone sheet: " + JSON.stringify(p));
+    assert.ok(!p.hidden && !p.disabled && p.rect.l >= 0 && p.rect.r <= p.vw && p.rect.t >= 0 && p.rect.b <= p.vh && p.text === "경쟁전구리 1", "the chip fits the phone sheet: " + JSON.stringify(p));
     await phone.tap("#sel-comp"); await sleep(700);
     p = await chipState(phone);
     assert.ok(p.on && p.nonFull === 0 && p.tabs === "none" && /경쟁전/.test(p.label), "chosen with a tap: " + JSON.stringify({ on: p.on, nonFull: p.nonFull, tabs: p.tabs, label: p.label }));
@@ -200,7 +200,7 @@ const chipState = (page) => page.evaluate(() => {
     await sleep(300);
     await phone.evaluate(() => document.getElementById("sel-go").click());
     await phone.waitForFunction(() => "buy" === world.phase && AI_COMP.live, null, { timeout: 60000 });
-    assert.equal(await phone.evaluate(() => BOT_RT.skill), 0.6, "a new account (Iron 1) meets the weakest bots");
+    assert.equal(await phone.evaluate(() => BOT_RT.skill), 0.6, "a new account (Copper 1) meets the weakest bots");
     f.h.advance(400000);
     await phone.evaluate(() => { const me = myActor(); me.kills = 3; world[me.team === "atk" ? "scoreAtk" : "scoreDef"] = 13; world[me.team === "atk" ? "scoreDef" : "scoreAtk"] = 9; gameOver(); });
     await phone.waitForSelector("#ov-aic:not([hidden])", { timeout: 40000 });
@@ -210,7 +210,7 @@ const chipState = (page) => page.evaluate(() => {
       const tops = tiles.map((e) => Math.round(e.getBoundingClientRect().top)), mvp = document.querySelector("#s-over .ovb-mvp"), btn = document.getElementById("ov-again").getBoundingClientRect();
       return { n: tiles.length, rows: new Set(tops).size, tile: document.getElementById("ov-aic").innerText.replace(/\s+/g, " ").trim(), in: mine.left >= 0 && mine.right <= innerWidth && mine.bottom <= innerHeight, noScroll: document.documentElement.scrollWidth <= innerWidth, mvpTop: mvp ? mvp.getBoundingClientRect().top : 0, lastTile: Math.max(...tiles.map((e) => e.getBoundingClientRect().bottom)), btnTop: btn.top };
     });
-    assert.equal(t.tile, "+21 AI 경쟁전 · 아이언 1", t.tile);
+    assert.equal(t.tile, "+21 AI 경쟁전 · 구리 1", t.tile);
     assert.ok(t.in && t.noScroll, "the tile fits the phone: " + JSON.stringify(t));
     assert.ok(t.rows <= 2 && t.n >= 8, "the tiles of a first win (rewards and all) wrap to at most two compact rows at 740x360: " + JSON.stringify(t));
     assert.ok(t.lastTile <= t.mvpTop + 1, "the tiles stay above the MVP card: " + JSON.stringify(t));
@@ -229,7 +229,7 @@ const chipState = (page) => page.evaluate(() => {
         await pg.waitForFunction(() => document.getElementById("meAi") && !document.getElementById("meAi").hidden && document.getElementById("meAiT").textContent, null, { timeout: 30000 });
         await sleep(400);
         const h = await pg.evaluate(() => ({ n: document.getElementById("meAiN").textContent, t: document.getElementById("meAiT").textContent, rank: document.getElementById("meTierN").textContent, svg: document.querySelector("#meAiB svg") && document.querySelector("#meAiB svg").getBoundingClientRect().width, vis: document.getElementById("meAi").getBoundingClientRect().width > 0, over: document.documentElement.scrollWidth <= innerWidth }));
-        const want = name === "desk" ? (lang === "ko" ? ["플래티넘 1", "AI 경쟁전 · 13판 8승 · 최고 플래티넘 3"] : ["Platinum 1", "AI Competitive · 13 played · 8 won · best Platinum 3"]) : (lang === "ko" ? ["아이언 1", "AI 경쟁전 · 1판 1승 · 최고 아이언 1"] : ["Iron 1", "AI Competitive · 1 played · 1 won · best Iron 1"]);
+        const want = name === "desk" ? (lang === "ko" ? ["백금 1", "AI 경쟁전 · 13판 8승 · 최고 백금 3"] : ["Platinum 1", "AI Competitive · 13 played · 8 won · best Platinum 3"]) : (lang === "ko" ? ["구리 1", "AI 경쟁전 · 1판 1승 · 최고 구리 1"] : ["Copper 1", "AI Competitive · 1 played · 1 won · best Copper 1"]);
         assert.deepEqual([h.n, h.t], want, `${name} ${lang}: ` + JSON.stringify(h));
         assert.ok(h.vis && h.svg > 20 && h.over, `${name} ${lang} fits: ` + JSON.stringify(h));
         assert.ok(!/배치|Placing|RR/.test(h.n + h.t), "the AI line is not the real rank's text");
