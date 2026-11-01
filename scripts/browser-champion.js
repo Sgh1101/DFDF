@@ -57,7 +57,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       assert.ok(r.kitH <= 1, key + " shell is " + r.kitH + " times as tall as the gun");
       if (r.imported) assert.ok(r.flow >= 0.8, key + " pattern spans only " + r.flow + " of the gun's length (atlas scraps)");
     }
-    assert.ok(Object.values(fit).filter((r) => r.imported).length >= 9, "the imported guns were checked");
+    // the third-party weapon pack is gone: every gun is one of the game's own builds
+    assert.ok(Object.keys(fit).length >= 18 && Object.values(fit).every((r) => !r.imported), "every gun checked, none imported");
     // the armoury draws it
     await page.evaluate(() => GUN_SKINS.open("rifle", "gun"));
     await page.waitForSelector('#ar-skins .ar-sk[data-s="champion"]');
