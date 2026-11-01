@@ -56,7 +56,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  // Actual cached preview resources, after repeated open/close (warm-up excluded).
  await p.evaluate(()=>{world.phase='menu';document.getElementById('s-title').hidden=false;document.getElementById('hud').hidden=true;});
  await p.setViewportSize({width:852,height:393});const memory=[];
- await p.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
+ await p.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
  for(let i=0;i<5;i++){await p.locator('#go-armory').click();await p.waitForFunction(()=>GUN_SKINS._pv()?.r&&GUN_SKINS._pv()?.obj);const frame=await p.evaluate(()=>GUN_SKINS._pv().r.info.render.frame);await p.waitForFunction(n=>GUN_SKINS._pv().r.info.render.frame>=n+3,frame);memory.push(await p.evaluate(()=>({...GUN_SKINS._pv().r.info.memory})));await p.locator('#ar-close').click();}
  // The first two opens are warm-up: the voxel bodies' geometry reaches its steady level by the third open (CI: 23,23,118,118,118).
  assert.ok(memory[4].geometries<=memory[2].geometries+5,JSON.stringify(memory));assert.ok(memory[4].textures<=memory[2].textures+2,JSON.stringify(memory));

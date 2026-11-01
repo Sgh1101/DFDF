@@ -12,7 +12,6 @@ const {fixture} = require('./browser-fixture');
      await page.route('**/js/legacy/03-engine.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_ENGINE,contentType:'text/javascript'}));
      if(process.env.DFDF_PERF_BASELINE_HOSPITAL)await page.route('**/js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_HOSPITAL,contentType:'text/javascript'}));
     } : undefined});
-   await p.waitForFunction(() => VALORANT_PACK.status === 'ready');
    await p.locator('#go-play').click();
    if (await p.locator('#sel-pick').isVisible()) await p.locator('#sel-pick').click();
    await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();

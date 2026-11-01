@@ -27,7 +27,6 @@ const STEPS = Number(process.env.DFDF_FIGHT_STEPS) || 600, QUALITY = process.env
           await patch("**/js/legacy/18-gun-effects.js", "function groundAt(x, z, y) {", "function groundAt(x, z, y) { (window.__Q || (window.__Q = {})).casingGroundOwn = ((window.__Q || {}).casingGroundOwn | 0) + 1;");
         },
       });
-      await page.waitForFunction(() => VALORANT_PACK.status === "ready");
       if (map === "ascent") {
         await page.locator("#go-play").click();
         if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click();
