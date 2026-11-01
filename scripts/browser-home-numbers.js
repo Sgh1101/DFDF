@@ -8,8 +8,8 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
   const f = await fixture();
   try {
     const page = await f.page("homenumbers", { width: 1440, height: 900 }, {}, { bootTimeout: 120000 });
-    // maps added after boot (the map of the week, from the server's config) are in the room's list by the time the tab counts include them
-    await page.waitForFunction(() => window.SERVER_CFG && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    // maps added after boot (the Ascent trial map) are in the room's list by the time the tab counts include them
+    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"), null, { timeout: 60000 });
     await page.click("#go-play");
     await page.waitForFunction(() => document.querySelectorAll("#sel-grid .acard").length > 0 && document.querySelectorAll("#sel-maps button").length > 0);
     const game = await page.evaluate(() => {

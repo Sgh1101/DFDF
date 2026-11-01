@@ -52,7 +52,7 @@
     title.querySelector(".title-foot").textContent = L(`요원 ${data.agents}명 · 무기 ${data.weapons}종 · 맵 ${n}종 · 스킨 ${skins}종`, `${data.agents} agents · ${data.weapons} weapons · ${n} maps · ${skins} skins`);
     paintRecent();
   }
-  // the map list also changes after this script loads (the map of the week, the owner's extra maps): count it again
+  // the map list also changes after this script loads (the Ascent trial map, the owner's extra maps): count it again
   counts(); addEventListener("server-config", counts); addEventListener("maps-changed", counts);
   const news = title.querySelector(".tt-news");
   const newsLabel = document.createElement("div"), newsList = document.createElement("ul");

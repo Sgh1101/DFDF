@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict'), fs = require('node:fs');
 const {fixture} = require('./browser-fixture');
-// Explored the normal map picker and the live HUD on 빙하 관측소 (the most colliders of the 5v5 maps) before authoring checks.
+// Explored the normal map picker and live Ascent HUD before authoring checks.
 // Times are synchronous CPU step costs under headless SwiftShader, not GPU FPS.
 (async () => {
  const f = await fixture(), results = {};
@@ -12,11 +12,13 @@ const {fixture} = require('./browser-fixture');
      await page.route('**/js/legacy/03-engine.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_ENGINE,contentType:'text/javascript'}));
      if(process.env.DFDF_PERF_BASELINE_HOSPITAL)await page.route('**/js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_HOSPITAL,contentType:'text/javascript'}));
     } : undefined});
+   await p.waitForFunction(() => VALORANT_PACK.status === 'ready');
    await p.locator('#go-play').click();
    if (await p.locator('#sel-pick').isVisible()) await p.locator('#sel-pick').click();
-   await p.locator('#sel-maps button').filter({hasText:/^빙하 관측소$/}).click();
+   await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
+   await p.waitForFunction(() => ASCENT_TRIAL.status === 'ready');
    await p.locator('#sel-go').click({timeout:120000});
-   await p.waitForFunction(() => CUR_MAP_KEY === 'glacier' && !!myActor(), null, {timeout:120000});
+   await p.waitForFunction(() => ASCENT_TRIAL.active && !!myActor(), null, {timeout:120000});
    const result = await p.evaluate(() => {
     requestAnimationFrame = () => 0; closeShop(); world.phase = 'live'; world.roundTime = 999;
     for (const a of world.actors) { a.invuln=999; a.fireCd=999; }
@@ -26,7 +28,7 @@ const {fixture} = require('./browser-fixture');
     const times=[];
     for (let i=0;i<120;i++) {world.phase='live';world.roundTime=999;const start=performance.now();step(.016);times.push(performance.now()-start);}
     times.sort((a,b)=>a-b);
-    const result={colliders:COLLIDERS.length,medianMs:times[60],p95Ms:times[114],totalMs:times.reduce((a,b)=>a+b,0)};
+    const result={colliders:COLLIDERS.length,textures:ASCENT_TRIAL.textureCount,medianMs:times[60],p95Ms:times[114],totalMs:times.reduce((a,b)=>a+b,0)};
     drawMini();drawTac(); // step() no longer draws the maps (the frame does, on a clock): warm both terrain images here
     const fill=CanvasRenderingContext2D.prototype.fillRect, counts={mini:0,terrain:0};
     CanvasRenderingContext2D.prototype.fillRect=function(){if(this.canvas===mini)counts.mini++;else if(this.canvas!==tac)counts.terrain++;return fill.apply(this,arguments);};
@@ -48,13 +50,13 @@ const {fixture} = require('./browser-fixture');
    });
    results[label]=result;console.log(label,JSON.stringify(result));
    fs.writeFileSync('test-results/performance.json',JSON.stringify(results,null,2));
-   assert.ok(result.colliders>100,'a real map is loaded');
+   assert.equal(result.colliders,44380);assert.equal(result.textures,239);
    if(label==='after'){
     assert.ok(result.rects.mini<100,JSON.stringify(result));assert.equal(result.rects.terrain,0,'warm terrain stays cached');
     assert.equal(result.pixelDifferences,0,'all source wall pixels match the original draw');
     assert.ok(result.liveMarkerChanged,'dropped spike marker keeps moving');assert.ok(result.markerRevisionStable,'moving markers do not rebuild terrain');
     await p.screenshot({path:'test-results/perf-after.png'});
-   }else assert.ok(result.rects.mini>30*100);
+   }else assert.ok(result.rects.mini>30*44000);
    await p.context().close();
   }
   assert.deepEqual(f.errors,[]);fs.writeFileSync('test-results/performance.json',JSON.stringify(results,null,2));

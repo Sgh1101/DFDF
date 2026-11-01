@@ -9,12 +9,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const page = await f.page("bld", { width: 1280, height: 720 });
     // the pool's maps; the map of the week (one of the switched-off maps, checked by test:map-week) is left out
     const maps = await page.evaluate(() => MAP_LIST.map((m) => m.key).filter((k) => k !== window.WEEK_MAP_KEY));
-    // Hospital has its own geometry/stair suite;
+    // Hospital and the imported Ascent have their own geometry/stair suites;
     // they do not use BUILDINGS.plan's procedural houses and towers.
-    const skip = ["field", "d01", "d03", "d04", "hospital"];
+    const skip = ["field", "d01", "d03", "d04", "hospital", "ascent_trial"];
     const want = maps.filter((k) => !skip.includes(k));
-    assert.equal(maps.length, 21, "current map catalog includes Hospital");
-    assert.ok(maps.includes("hospital") && !maps.includes("ascent_trial"));
+    assert.equal(maps.length, 22, "current map catalog includes Hospital and Ascent");
+    assert.ok(maps.includes("hospital") && maps.includes("ascent_trial"));
     const res = [];
     for (const key of want) {
       const r = await page.evaluate((key) => {

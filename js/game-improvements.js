@@ -85,6 +85,9 @@
       if(world.phase==='live')for(const a of world.actors||[])if(a.alive&&isAI(a)){const b=bots.get(a.id);if(b){b.still=Math.hypot(a.pos.x-b.x,a.pos.z-b.z)<.1?b.still+elapsed:0;if(b.still>=10&&!b.warned){events.add('bot-stall',{mode:room.mode,map:CUR_MAP_KEY});b.warned=true;}if(!b.still)b.warned=false;}bots.set(a.id,{x:a.pos.x,z:a.pos.z,still:b?.still||0,warned:b?.warned||false});}
       if(!diag.hidden)paintReport();
     }return r;};
+  // A visible direct entry; the selected map still loads lazily via ASCENT_TRIAL.
+  const mapEntry=button('go-mark-valo','마크X발로 · '+L('원본 맵','Original map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
+  const thumb=document.createElement('img');thumb.src='./assets/ui/ascent-preview-v1.png';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title='Minecraft 기본 텍스처 · 5대5 · A/B 거점';
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){
     // the sentence as the row's label like every other setting, the two buttons side by side under it

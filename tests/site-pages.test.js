@@ -53,8 +53,7 @@ test("agents.html names every agent and each of its four abilities (the game's r
 
 test("maps.html has every map of the pool with its size, and a picture", () => {
   const page = text(read("maps.html"));
-  assert.equal(data.maps.length, 21, "the permanent pool is 21 maps");
-  assert.ok(!data.maps.some((m) => m.key === "ascent_trial"), "the removed block-terrain map is gone");
+  assert.equal(data.maps.length, 22, "the permanent pool is 22 maps");
   for (const m of data.maps) {
     assert.ok(page.includes(m.name), "map " + m.name);
     assert.ok(page.includes(`${m.width}×${m.depth}m`), m.name + " footprint");
@@ -63,7 +62,7 @@ test("maps.html has every map of the pool with its size, and a picture", () => {
     assert.ok(page.includes({ full: "5대5", small: "소규모 3대3", "1v1": "1대1" }[m.cat]), m.name + " size class");
   }
   const by = (c) => data.maps.filter((m) => m.cat === c).length;
-  assert.deepEqual([by("full"), by("small"), by("1v1")], [10, 8, 3], "the pool is 10 + 8 + 3");
+  assert.deepEqual([by("full"), by("small"), by("1v1")], [11, 8, 3], "the pool is 11 + 8 + 3");
 });
 
 test("modes.html has every mode of the game's list, with its rule line and the keys match the game's source", () => {

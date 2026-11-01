@@ -13,8 +13,8 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
   const f = await fixture();
   try {
     const page = await f.page("sitedump", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, quality: "visual" });
-    // the server's map of the week joins the list after boot
-    await page.waitForFunction(() => window.SERVER_CFG && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    // the maps that join the list after boot (the block-terrain map) and the server's map of the week
+    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     const data = await page.evaluate(() => {
       const week = window.WEEK_MAP_KEY || "";
       const keep = (o, ks) => Object.fromEntries(ks.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
@@ -54,7 +54,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
       data.mapImages = [];
       for (const m of data.maps) {
         await page.evaluate((key) => { room.mode = "std"; room.map = key; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; }, m.key);
-        await page.waitForTimeout(2500);
+        await page.waitForTimeout(m.key === "ascent_trial" ? 12000 : 2500);
         const ok = await page.evaluate(() => CUR_MAP_KEY) === m.key;
         if (!ok) { console.log("no picture for", m.key); continue; }
         save(path.join(root, "assets/site/maps", m.key + ".webp"), await shot(960, 540));
@@ -66,8 +66,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
         if (!url) { console.log("no portrait for", a.id); continue; }
         save(path.join(root, "assets/site/agents", a.id + ".webp"), url); data.agentImages.push(a.id);
       }
-    } else if (fs.existsSync(dataFile)) { const old = JSON.parse(fs.readFileSync(dataFile, "utf8")); // the pictures kept are those of maps and agents the game still has
-      data.mapImages = (old.mapImages || []).filter((k) => data.maps.some((m) => m.key === k)); data.agentImages = (old.agentImages || []).filter((id) => data.agents.some((x) => x.id === id)); }
+    } else if (fs.existsSync(dataFile)) { const old = JSON.parse(fs.readFileSync(dataFile, "utf8")); data.mapImages = old.mapImages; data.agentImages = old.agentImages; }
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 1) + "\n");
     console.log("wrote", path.relative(root, dataFile), data.agents.length, "agents", data.maps.length, "maps", data.modes.length, "modes; listed:", data.listed.join(","));
   } finally { await f.browser.close(); }
