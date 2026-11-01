@@ -87,7 +87,7 @@
     }return r;};
   // A visible direct entry; the selected map still loads lazily via ASCENT_TRIAL.
   const mapEntry=button('go-mark-valo','하늘섬 마을 · '+L('블록 맵','Block map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
-  const thumb=document.createElement('img');thumb.src='./assets/ui/ascent-preview-v2.webp';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title=L('블록으로 쌓은 하늘섬 · 5대5 · A/B 거점','A floating island of blocks · 5v5 · sites A/B');
+  const thumb=document.createElement('img');thumb.src='./assets/ui/ascent-preview-v3.webp';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title=L('블록으로 쌓은 하늘섬 · 5대5 · A/B 거점','A floating island of blocks · 5v5 · sites A/B');
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){
     // the sentence as the row's label like every other setting, the two buttons side by side under it

@@ -51,7 +51,7 @@ function body(rig, points, n, radius, opts) {
   for (let i = 0; i < n; i++) {
     const t = (i + 0.5) / n, p = curve.getPointAt(t), tan = curve.getTangentAt(t), r = radius(t);
     const name = rig.bone(`seg_${String(i).padStart(2, "0")}`, "root", p, frame(tan));
-    const half = step / 2 + 0.06;
+    const half = step / 2 + 0.1;
     rig.box(name, [-half, half], [-r * 0.82, r], [-r, r], "scale");
     rig.box(name, [-half * 0.86, half * 0.86], [-r * 1.02, -r * 0.62], [-r * 0.74, r * 0.74], "belly");
     if (opts.fin(i, t)) rig.box(name, [-half * 0.5, half * 0.3], [r * 0.95, r + opts.finHeight * r], [-0.05, 0.05], "fin");
@@ -124,10 +124,10 @@ function arm(rig, seg, s, tag) {
 }
 
 function dragon() {
-  const rig = new Rig("geometry.dfdf_champions_dragon", [512, 256]);
+  const rig = new Rig("geometry.dfdf_champions_dragon", [512, 512]);
   const eyes = EYES.dragon, neckEnd = [-4.45, 6.75, 0.5];
   const path = [[3.2, 1.0, -4.4], [5.0, 1.15, -2.0], [5.1, 1.3, 1.4], [3.2, 1.5, 3.9], [0.2, 1.7, 4.7], [-2.8, 2.0, 3.9], [-4.6, 2.6, 1.9], [-5.25, 3.7, 0.1], [-5.1, 5.1, -0.35], [-4.85, 6.25, 0.1], neckEnd];
-  const { segs } = body(rig, path, 23, (t) => 0.2 + 0.42 * Math.min(1, t * 1.6), { fin: (i) => i % 1 === 0, finHeight: 0.55, flank: true });
+  const { segs } = body(rig, path, 23, (t) => 0.34 + 0.3 * Math.min(1, t * 1.6), { fin: (i) => i % 1 === 0, finHeight: 0.55, flank: true });
   dragonHead(rig, eyes);
   for (const [k, i] of [[0, 15], [1, 7]]) for (const [s, tag] of [[1, "r"], [-1, "l"]]) arm(rig, segs[i], s, tag);
   return rig.model;
@@ -185,14 +185,14 @@ function serpentHead(rig, eyes, variant) {
 function serpent(variant) {
   const rig = new Rig("geometry.dfdf_champions_serpent_" + variant, [512, 512]);
   const path = [[-1.6, 12.15, 4.3], [-3.9, 12.3, 2.3], [-4.35, 12.5, -0.7], [-2.6, 12.7, -3.4], [0.4, 12.85, -4.1], [2.6, 12.95, -2.6], [2.45, 12.95, -0.55], [3.6, 13.3, 0.9], [5.5, 13.9, 0.0], [5.6, 14.6, 0.6], [5.0, 14.92, 1.1]];
-  body(rig, path, variant === "cream" ? 41 : 36, (t) => 0.16 + 0.42 * Math.min(1, t * 1.4), { fin: (i) => i % 2 === 0, finHeight: variant === "cream" ? 0.25 : 0.45, flank: false });
+  body(rig, path, variant === "cream" ? 41 : 36, (t) => 0.36 + 0.4 * Math.min(1, t * 1.2), { fin: (i) => i % 2 === 0, finHeight: variant === "cream" ? 0.25 : 0.45, flank: false });
   serpentHead(rig, EYES.serpent, variant);
   return rig.model;
 }
 
 // ── texture painting ──
 const PAL = {
-  dragon_black: { scale: [0x140405, 0x24070a, 0x3a0b10, 0x561217, 0x721b20], belly: [0x5e5a5c, 0x7c787a, 0x9c989a, 0xbcb8b8, 0xd6d2cf], fin: [0x16080a, 0x2a0c10, 0x441318, 0x5c1a20, 0x7a242a], flank: [0x2a0a0e, 0x46121a, 0x6a1c24, 0x8e2a30, 0xb03a3e], horn: [0x3c1416, 0x5a2022, 0x7a3030, 0x9c4440, 0xbc5a52], mane: [0x2a0c0e, 0x481416, 0x6a1e20, 0x8e2c2c, 0xb03e3c] },
+  dragon_black: { scale: [0x2a0709, 0x4a0c10, 0x701418, 0x962024, 0xb83234], belly: [0x5e5a5c, 0x7c787a, 0x9c989a, 0xbcb8b8, 0xd6d2cf], fin: [0x16080a, 0x2a0c10, 0x441318, 0x5c1a20, 0x7a242a], flank: [0x2a0a0e, 0x46121a, 0x6a1c24, 0x8e2a30, 0xb03a3e], horn: [0x3c1416, 0x5a2022, 0x7a3030, 0x9c4440, 0xbc5a52], mane: [0x2a0c0e, 0x481416, 0x6a1e20, 0x8e2c2c, 0xb03e3c] },
   dragon_white: { scale: [0x6e5a3e, 0x9c8562, 0xbfa880, 0xd8c6a0, 0xece0c4], belly: [0x8a8070, 0xb2a894, 0xd2c8b4, 0xe8e0d0, 0xf6f2e8], fin: [0x6a5c48, 0x8e7e64, 0xb0a084, 0xcfc0a4, 0xe6dac0], flank: [0x5a3a1e, 0x7a5028, 0x9a6a36, 0xb98648, 0xd2a262], horn: [0x8c8a90, 0xaeacb2, 0xcac8ce, 0xe0dee4, 0xf4f2f8], mane: [0x7e7c84, 0xa2a0a8, 0xc2c0c8, 0xdcdae2, 0xf0eef4] },
   serpent_cream: { scale: [0x8c7450, 0xb49a70, 0xd2bc90, 0xe6d4aa, 0xf4e8c8], belly: [0x9e9078, 0xc4b89e, 0xe0d6be, 0xf0e8d6, 0xfaf6ec], fin: [0xa8a296, 0xc8c2b4, 0xe0dace, 0xf0ece2, 0xfcfaf4], plate: [0xa08a64, 0xc2aa80, 0xdcc69c, 0xece0c0, 0xf8f0dc], fan: [0xaaa49a, 0xcac4b8, 0xe2ddd2, 0xf2eee6, 0xfefcf8], mark: [0x3a2010, 0x52301a, 0x6c4024, 0x84522e, 0x9c6438] },
   serpent_red: { scale: [0x4a0a0a, 0x6c1210, 0x8e1c16, 0xac281e, 0xc8382a], belly: [0x3a1a18, 0x5a2a26, 0x7a3c36, 0x9a5048, 0xb8665c], fin: [0x200606, 0x380a0a, 0x521010, 0x6e1814, 0x8a221c], plate: [0x5a0e0c, 0x7c1814, 0x9c241c, 0xba3024, 0xd4422e], fan: [0x2a0808, 0x440c0c, 0x641412, 0x841c18, 0xa42820], mark: [0x0a0404, 0x140606, 0x200808, 0x2c0a0a, 0x380c0c] },

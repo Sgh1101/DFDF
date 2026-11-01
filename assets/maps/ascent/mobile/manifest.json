@@ -182,7 +182,7 @@
   },
   "textures": "palette.json",
   "atlas": "atlas.png",
-  "atlasSha256": "f40ead66c76262bc21958dfff2db41979d513df2b958233d96d434635a37c681",
+  "atlasSha256": "d25494a49b652a4c9baf7bf4c61c074e76e41b0ed8fd10f0ce16439598f3ffc3",
   "sourceFile": "ascent-final2021.schematic",
   "sourceSha256": "b987d994b5aa01e0b614b5e7d92a4b8f41f7cf6ecab1daddd5ba3fc4cf1b9c28",
   "geometrySha256": "8e60a007eb910dbc0bcee5a18d4e8c3a51ad97b7cdc6d3a6d5287cff4887810e",
