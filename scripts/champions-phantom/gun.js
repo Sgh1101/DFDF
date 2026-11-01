@@ -93,21 +93,21 @@ function build() {
   box("magazine", 4.0, 9.0, -12.25, -11.75, 0.9, "dark");
 
   // ── handguard: long angular guard with vents and a gold zig-zag ──
-  box("handguard", 14.25, 26.5, -3.0, 2.75, 1.45, "body");
-  box("handguard", 14.25, 26.5, 2.75, 3.25, 1.2, "shell");
-  box("handguard", 15.0, 26.0, -3.5, -3.0, 1.1, "dark");
-  for (let x = 16.5; x < 25; x += 2) box("handguard", x, x + 1, -1.75, -0.25, 1.5, "dark");
-  box("handguard", 26.5, 28.5, -2.5, 2.25, 1.35, "dark");
-  box("handguard", 26.75, 27.25, -2.6, 2.35, 1.4, "trim");
-  box("handguard", 28.5, 29.0, -2.0, 1.75, 1.2, "dark");
-  box("handguard", 14.5, 16.0, 3.25, 3.75, 0.6, "trim");
+  box("handguard", 14.25, 24.0, -2.5, 2.25, 1.4, "body");
+  box("handguard", 14.25, 24.0, 2.25, 2.75, 1.15, "shell");
+  box("handguard", 15.0, 23.5, -3.0, -2.5, 1.05, "dark");
+  for (let x = 16.5; x < 23; x += 2) box("handguard", x, x + 1, -1.5, -0.25, 1.45, "dark");
+  box("handguard", 24.0, 25.5, -2.0, 1.75, 1.3, "dark");
+  box("handguard", 24.25, 24.75, -2.1, 1.85, 1.35, "trim");
+  box("handguard", 25.5, 26.0, -1.5, 1.25, 1.15, "dark");
+  box("handguard", 14.5, 16.0, 2.75, 3.25, 0.6, "trim");
 
   // ── barrel: long shroud with silver bands at the muzzle ──
-  box("barrel", 29.0, 37.5, -1.5, 1.25, 1.2, "body");
-  box("barrel", 37.5, 41.25, -1.625, 1.375, 1.3, "shell");
-  for (let x = 37.75; x < 41; x += 1.25) box("barrel", x, x + 0.5, -1.75, 1.5, 1.35, "trim");
-  box("barrel", 40.75, 41.3, -0.75, 0.5, 0.65, "dark");
-  box("barrel", 29.25, 37.25, 1.25, 1.5, 0.6, "trim");
+  box("barrel", 26.0, 36.5, -1.25, 1.0, 1.0, "body");
+  box("barrel", 36.5, 41.25, -1.375, 1.125, 1.1, "shell");
+  for (let x = 36.75; x < 41; x += 1.25) box("barrel", x, x + 0.5, -1.5, 1.25, 1.15, "trim");
+  box("barrel", 40.75, 41.3, -0.625, 0.375, 0.55, "dark");
+  box("barrel", 26.5, 36.25, 1.0, 1.2, 0.5, "trim");
 
   // ── charging handle: a gold knob on the right ──
   box("charge_handle", 16.5, 19.0, 2.0, 2.875, 0.5, "trim", 1.1);
