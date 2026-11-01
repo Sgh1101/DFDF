@@ -165,6 +165,6 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     await p.evaluate(() => GUN_SKINS.close());
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     assert.deepEqual(f.errors, []);
-    console.log("Phantom: original model by default without JAR import, 878 cubes and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
+    console.log("Phantom: bundled DFDF model by default without JAR import, every cube and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });
