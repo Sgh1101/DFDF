@@ -1,0 +1,22 @@
+// The site on Cloudflare Workers (Workers Builds deploys it from main): the repository's pages and art as static assets
+// (.assetsignore leaves out everything that is not part of the site), and cloudflare/worker.mjs for the rest: the home
+// page, the owner's page and the game's API (api/v1.js, run in the Worker). The API's secrets (SESSION_SECRET,
+// ADMIN_MASTER_PASS, OWNER_ID, KV_REST_API_URL, KV_REST_API_TOKEN, CF_TURN_KEY_ID, CF_TURN_API_TOKEN) are set in the
+// dashboard (Settings > Variables and Secrets), never here; nodejs_compat gives them to the API as process.env.
+// A sign-in checks the password with scrypt (about 35 ms of CPU), more than Workers Free allows: this runs on Workers Paid.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dfdf",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    // the addresses stay as they are (/about.html, not /about); / and /admin are answered by the Worker
+    "html_handling": "none",
+    "not_found_handling": "none",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
+}
