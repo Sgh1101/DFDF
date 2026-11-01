@@ -5,6 +5,7 @@
     "test": "node --test tests/*.test.js",
     "check": "node scripts/check-syntax.js",
     "dev": "node scripts/dev-server.js",
+    "deploy": "wrangler deploy --var GIT_COMMIT_SHA:${WORKERS_CI_COMMIT_SHA:-none}",
     "test:browser": "node scripts/browser-smoke.js",
     "test:phantom": "node scripts/browser-phantom.js",
     "test:champions-panel": "node scripts/browser-champions-panel.js",
@@ -41,6 +42,7 @@
     "test:relay-ask": "node scripts/browser-relay-ask.js",
     "test:keep-login": "node scripts/browser-keep-login.js",
     "test:site-pages": "node scripts/browser-site-pages.js",
+    "test:cloudflare": "node scripts/browser-cloudflare.js",
     "build:site-pages": "node scripts/build-site-pages.js",
     "dump:site-data": "node scripts/dump-site-data.js",
     "test:online": "node scripts/browser-online.js",
@@ -168,6 +170,7 @@
     "peer": "1.0.2",
     "peerjs": "1.5.4",
     "playwright": "1.62.1",
-    "three": "0.160.0"
+    "three": "0.160.0",
+    "wrangler": "4.151.0"
   }
 }

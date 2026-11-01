@@ -10,7 +10,9 @@ async function fixture() {
     const context = await browser.newContext({ viewport, serviceWorkers: "block", ...contextOptions });
     const page = await context.newPage(); page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.text().includes("network alert")) console.log(id, message.text().slice(0, 180)); });
-    await page.route("**/api/v1?*", async (route) => {
+    // options.realApi: the page calls the site's own API (scripts/browser-cloudflare.js, where it runs in the Worker on
+    // this harness's store) instead of this harness in the test process
+    if (!options.realApi) await page.route("**/api/v1?*", async (route) => {
       const result = await h.api(new URL(route.request().url()).searchParams.get("a"), route.request().postDataJSON() || {});
       await route.fulfill({ status: result.status, contentType: "application/json", body: JSON.stringify(result) });
     });
