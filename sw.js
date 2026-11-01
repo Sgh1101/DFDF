@@ -15,8 +15,8 @@ self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {}));
   self.skipWaiting();
 });
-// files the game no longer has (a third-party weapon pack, the block map's old textures): taken out of the asset cache
-const REMOVED = /^\/assets\/valorant-packs\/|^\/assets\/maps\/ascent\/(vanilla\/|vanilla-)|^\/assets\/maps\/ascent\/.*[?&]v=(vanilla2|mobile1)(&|$)|^\/assets\/ui\/ascent-preview-v1|^\/assets\/site\/maps\/ascent_trial\.webp$/;
+// files the game no longer has (a third-party weapon pack, the block map's old textures, a map taken from another game): taken out of the asset cache
+const REMOVED = /^\/assets\/valorant-packs\/|^\/assets\/maps\/ascent\/(vanilla\/|vanilla-)|^\/assets\/maps\/ascent\/.*[?&]v=(vanilla2|mobile1)(&|$)|^\/assets\/ui\/ascent-preview-v1|^\/assets\/site\/maps\/ascent_trial\.webp$|^\/assets\/maps\/kour\/|^\/assets\/site\/maps\/desert_town\.webp$/;
 const purge = () => caches.open(ASSETS).then((c) => c.keys().then((rs) => Promise.all(rs.filter((r) => { const u = new URL(r.url); return REMOVED.test(u.pathname + u.search); }).map((r) => c.delete(r))))).catch(() => {});
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(purge).then(() => self.clients.claim()));
