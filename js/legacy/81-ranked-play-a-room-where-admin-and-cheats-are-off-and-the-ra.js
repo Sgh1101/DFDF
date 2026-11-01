@@ -263,7 +263,7 @@ body.ranked #lb-rounds button,body.ranked #lb-diff button,body.ranked #lb-maps b
     if (lb && !lb.querySelector(".lb-rk")) {
       const n = document.createElement("div");
       n.className = "lb-rk";
-      n.textContent = L(`랭크전 · 관리자와 치트가 꺼져 있습니다. 사람이 ${RANKED.MIN_HUMANS}명 이상이어야 RR이 반영됩니다.`, `Ranked · admin and cheats are off. RR counts with ${RANKED.MIN_HUMANS}+ real players.`);
+      n.textContent = L(`랭크전 · 관리자와 치트가 꺼져 있습니다. 사람이 ${RANKED.MIN_HUMANS}명 이상이어야 TP가 반영됩니다.`, `Ranked · admin and cheats are off. TP counts with ${RANKED.MIN_HUMANS}+ real players.`);
       const code = lb.querySelector(".lb-code");
       code ? code.after(n) : lb.prepend(n);
     }
@@ -336,7 +336,7 @@ body.ranked #lb-rounds button,body.ranked #lb-diff button,body.ranked #lb-maps b
     const c = document.createElement("div");
     c.className = "mu-card mu-rank";
     c.id = "mu-rank";
-    c.innerHTML = `<div class="mu-ct">${L("랭크전", "Ranked")}</div><p>${L("관리자·치트·방 규칙 변경이 꺼진 경기입니다. 처음 5판은 배치전이고, 이후 이기면 RR이 오릅니다. 일반 경기에서는 RR이 바뀌지 않습니다.", "Admin, cheats and room rule changes are off. The first 5 matches are placement; after that wins raise your RR. Normal matches leave it alone.")}</p><div class="mu-rk-me" id="mu-rank-me"></div><button class="mu-go" id="mu-rank-go"><b>${L("랭크전 찾기", "Find a ranked match")}</b><small>${L("열린 랭크 방에 들어가거나 새로 엽니다", "Join an open ranked room or open one")}</small></button>`;
+    c.innerHTML = `<div class="mu-ct">${L("랭크전", "Ranked")}</div><p>${L("관리자·치트·방 규칙 변경이 꺼진 경기입니다. 처음 5판은 배치전이고, 이후 이기면 TP가 오릅니다. 일반 경기에서는 TP가 바뀌지 않습니다.", "Admin, cheats and room rule changes are off. The first 5 matches are placement; after that wins raise your TP. Normal matches leave it alone.")}</p><div class="mu-rk-me" id="mu-rank-me"></div><button class="mu-go" id="mu-rank-go"><b>${L("랭크전 찾기", "Find a ranked match")}</b><small>${L("열린 랭크 방에 들어가거나 새로 엽니다", "Join an open ranked room or open one")}</small></button>`;
     side.prepend(c);
     $("mu-rank-go").onclick = find;
   }

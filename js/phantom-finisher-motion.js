@@ -1,5 +1,6 @@
-// Seafle's supplied 0.1.0 finisher: client.c.b.i/j/m/p/q/s and c.b.a.
-// The source dragon/serpent bones are static. These source VFX move around them.
+// Champions finisher motion: ribbons, star, swirl, rings, rays, diamonds, flashes, arcs and embers
+// around the static dragon/serpent models. Timings, seeds and layout points are unchanged gameplay data.
+// The dragon/serpent bones are static; these effects move around them.
 (function (root) {
   "use strict";
   const clamp = n => Math.max(0, Math.min(1, n)), ramp = (t, a, b) => clamp((t - a) / (b - a));

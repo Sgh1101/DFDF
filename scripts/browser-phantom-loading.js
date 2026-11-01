@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
+const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json")["minecraft:geometry"][0].bones.reduce((n, b) => n + (b.cubes?.length || 0), 0);
 (async () => {
   const f = await fixture(), manifest = "**/assets/champions-phantom/**/manifest.json*";
   try {
@@ -14,7 +15,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"));
     assert.equal(await page.locator("#phantom-model-notice").isVisible(), false);
     assert.match(await page.locator("#phantom-status").innerText(), /자동 적용/);
-    assert.equal(await page.evaluate(() => { let vertices = 0; GUN_SKINS._pv().obj.getObjectByName("phantom-rig").traverse((part) => { if (part.isMesh) vertices += part.geometry.attributes.position.count; }); return vertices; }), 878 * 36);
+    assert.equal(await page.evaluate(() => { let vertices = 0; GUN_SKINS._pv().obj.getObjectByName("phantom-rig").traverse((part) => { if (part.isMesh) vertices += part.geometry.attributes.position.count; }); return vertices; }), gunCubes * 36);
     assert.equal(await page.evaluate(() => GUN_SKINS.of("scout").id), "default", "loading the original still does not grant an unowned skin");
     assert.deepEqual(f.errors, []);
     console.log("Phantom loading: clear error instead of a substitute gun, variant switching, retry to the complete original, ownership preserved");

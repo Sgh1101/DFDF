@@ -28,12 +28,6 @@
     karambit: { world: 0x5a0a22, glow: "255,60,100", fig: "slash", c: [0xff3b6b, 0xffffff] },
     butterfly: { world: 0x083a5a, glow: "60,200,255", fig: "slash", c: [0x3fd0ff, 0xffffff] },
     stiletto: { world: 0x241a40, glow: "170,130,255", fig: "slash", c: [0xb18bff, 0xffffff] },
-    vp_desire_blade: { world: 0x4a0820, glow: "255,70,130", fig: "slash", c: [0xff4f8b, 0xffd0e0] },
-    vp_eternal_axe: { world: 0x3a2a08, glow: "255,190,80", fig: "bolts", c: [0xffc04d, 0xffffff] },
-    vp_eternal_karambit: { world: 0x2a0a4a, glow: "190,100,255", fig: "slash", c: [0xb26bff, 0xffffff] },
-    vp_future_butterfly: { world: 0x06304a, glow: "60,220,255", fig: "slash", c: [0x3fe0ff, 0xffffff] },
-    vp_future_dagger: { world: 0x063a30, glow: "60,255,200", fig: "slash", c: [0x3fffc8, 0xffffff] },
-    vp_thunder_hammer: { world: 0x0a1c40, glow: "110,170,255", fig: "bolts", c: [0x9fd2ff, 0xffffff], flicker: !0 },
   };
   // how long a legendary finisher lasts and how much bigger than life its figure is drawn
   const LIFE = 4.2,

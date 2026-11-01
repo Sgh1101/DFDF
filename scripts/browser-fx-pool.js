@@ -13,7 +13,6 @@ const fs = require("node:fs"), assert = require("node:assert/strict"), { fixture
   fs.mkdirSync("test-results", { recursive: true });
   try {
     const page = await f.page("fxpool", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, quality: "perf" });
-    await page.waitForFunction(() => VALORANT_PACK.status === "ready");
     await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "pogu"; startGame(AGENTS[0], false); });
     await page.waitForFunction(() => CUR_MAP_KEY === "pogu" && !!myActor(), null, { timeout: 120000 });
     await page.evaluate(() => { closeShop(); world.phase = "live"; world.roundTime = 999; checkRoundEnd = function () {}; ADMIN.freezeAI = true; for (const a of world.actors) { a.invuln = 1e9; a.hp = 100; } });

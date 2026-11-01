@@ -1,7 +1,7 @@
 {
   "name": "13 — 전술 슈팅",
   "short_name": "13",
-  "description": "오리지널 요원과 무기로 즐기는 5대5 전술 FPS. 혼자 AI와, 또는 친구와 온라인으로.",
+  "description": "브라우저에서 바로 하는 5대5 전술 FPS. 직접 만든 요원과 맵으로, 혼자 AI와 또는 친구와 온라인으로.",
   "id": "/play.html",
   "start_url": "/?source=app",
   "scope": "/",

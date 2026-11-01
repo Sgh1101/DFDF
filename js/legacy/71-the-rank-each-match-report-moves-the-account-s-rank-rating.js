@@ -2,7 +2,7 @@
 (() => {
   // The rank. Each match report moves the account's rank rating (RR) on the
   // server: a win lifts it (more with kills), a loss takes a little. 100 RR is
-  // a division, three divisions a tier, Iron to Immortal, then Radiant. Here:
+  // a division, three divisions a tier, 구리 to 금강, then 왕좌. Here:
   // the RR the match brought on the result screen, a banner on a promotion or
   // a demotion, and the tier next to the gold on the title screen. The first
   // five ranked matches are placement: the tier stays hidden ("?", "배치 n/5"),
@@ -11,7 +11,7 @@
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko);
   const $ = (id) => document.getElementById(id);
-  const NAMES = EN ? ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"] : ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"];
+  const NAMES = EN ? ["Copper", "Bronze", "Silver", "Gold", "Platinum", "Jade", "Ruby", "Adamant", "Throne"] : ["구리", "청동", "은빛", "금빛", "백금", "비취", "홍옥", "금강", "왕좌"];
   const COL = ["#8a8f98", "#c07a4a", "#c9d3de", "#ffc849", "#3fd0c9", "#b48cff", "#3ddc84", "#ff4d6d", "#fff3a0"];
   const nameOf = (r) => NAMES[r.t] + (r.div ? " " + r.div : "");
   const step = (r) => (r.t >= 8 ? 24 : r.t * 3 + (r.div || 1) - 1);
@@ -59,10 +59,10 @@
     if ("over" === phase() && e.detail && e.detail.ranked) R.rep = e.detail;
   });
   const WHY = {
-    few_humans: L("사람이 부족해 RR에 반영되지 않았습니다", "Not enough real players, so RR did not move"),
-    draw: L("무승부 · RR 변동 없음", "Draw · RR did not move"),
-    disputed: L("플레이어 결과가 달라 RR에 반영되지 않았습니다", "Players disagreed on the result, so RR did not move"),
-    no_result: L("방장의 결과를 받지 못해 RR에 반영되지 않았습니다", "No result from the host, so RR did not move"),
+    few_humans: L("사람이 부족해 TP에 반영되지 않았습니다", "Not enough real players, so TP did not move"),
+    draw: L("무승부 · TP 변동 없음", "Draw · TP did not move"),
+    disputed: L("플레이어 결과가 달라 TP에 반영되지 않았습니다", "Players disagreed on the result, so TP did not move"),
+    no_result: L("방장의 결과를 받지 못해 TP에 반영되지 않았습니다", "No result from the host, so TP did not move"),
     duplicate: L("이미 반영된 경기입니다", "This match was already counted"),
     left: L("경기 도중 나가 패배로 처리되었습니다 (추가 벌점 포함)", "You left during the match: counted as a loss, with a penalty"),
   };
@@ -99,25 +99,25 @@
     if (!j.rankedCounted) {
       // played, but nothing moved (a placement match that did not count is not counted)
       b.innerHTML = `${badge(placing(u) ? -1 : u.rank.t, u.rank.div, 26)} <span style="color:#8a97ab">±0</span>`;
-      lbl.textContent = WHY[j.rankedWhy] || L("RR에 반영되지 않았습니다", "RR did not move");
+      lbl.textContent = WHY[j.rankedWhy] || L("TP에 반영되지 않았습니다", "TP did not move");
       lbl.style.color = "#8a97ab";
       c.title = placing(u) ? L(`배치 ${p.done}/${p.of}`, `Placement ${p.done}/${p.of}`) : "";
     } else if (placing(u)) {
       b.innerHTML = `${badge(-1, 0, 26)} <span style="color:#ffc849">${L("배치", "Placement")} ${p.done}/${p.of}</span>`;
       lbl.textContent = L(`티어는 ${p.of}판을 마치면 공개됩니다`, `Your tier shows after ${p.of} matches`);
       lbl.style.color = "#ffc849";
-      c.title = L("배치전에서는 RR이 바뀌지 않고 실력만 측정합니다", "RR does not move while placing; your skill is being measured");
+      c.title = L("배치전에서는 TP가 바뀌지 않고 실력만 측정합니다", "TP does not move while placing; your skill is being measured");
     } else if (reveal) {
       b.innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${COL[u.rank.t]}">${nameOf(u.rank)}</span>`;
-      lbl.textContent = L(`배치 완료 · ${u.rank.rr} RR`, `Placement done · ${u.rank.rr} RR`);
+      lbl.textContent = L(`배치 완료 · ${u.rank.rr} TP`, `Placement done · ${u.rank.rr} TP`);
       lbl.style.color = COL[u.rank.t];
       c.title = L("배치전 결과로 정해진 티어입니다", "The tier your placement matches set");
     } else {
       const d = j.rr | 0;
       b.innerHTML = `${badge(u.rank.t, u.rank.div, 26)} <span style="color:${d > 0 ? "#4ade80" : d < 0 ? "#ff6b7a" : "#8a97ab"}">${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}</span>`;
-      lbl.textContent = nameOf(u.rank) + " · RR";
+      lbl.textContent = nameOf(u.rank) + " · TP";
       lbl.style.color = COL[u.rank.t];
-      c.title = u.rank.t >= 8 ? `${u.rank.rr} RR` : L(`다음 단계까지 ${100 - u.rank.into} RR`, `${100 - u.rank.into} RR to the next division`);
+      c.title = u.rank.t >= 8 ? `${u.rank.rr} TP` : L(`다음 단계까지 ${100 - u.rank.into} TP`, `${100 - u.rank.into} TP to the next division`);
     }
     // the reveal after placement, a promotion or a demotion: once, after the XP banner the report brings
     if (j.rankedCounted && !R.told) {
@@ -167,7 +167,7 @@
         b.innerHTML = `${badge(r.t, r.div, 22)}<span>${nameOf(r)}</span>`;
         b.style.color = COL[r.t];
         b.style.borderColor = COL[r.t] + "66";
-        b.title = (r.t >= 8 ? `${r.rr} RR` : L(`${r.into}/100 RR · 랭크전에서만 오르고 내려갑니다`, `${r.into}/100 RR · only ranked matches move it`));
+        b.title = (r.t >= 8 ? `${r.rr} TP` : L(`${r.into}/100 TP · 랭크전에서만 오르고 내려갑니다`, `${r.into}/100 TP · only ranked matches move it`));
       }
     }
     // left of the gold chip (itself left of the account chip)
@@ -190,7 +190,7 @@
     const ul = document.querySelector(".tt-news ul");
     if (ul) {
       const li = document.createElement("li");
-      li.innerHTML = EN ? `<b>Tiers · 10 new skins</b><span>Iron to Radiant: wins raise your RR, losses take a little. Phoenix, Thunderstorm, Aurora, Dragon scale and more in the crates</span>` : `<b>티어 · 새 스킨 10종</b><span>아이언부터 레디언트까지: 이기면 RR이 오르고 지면 조금 내려갑니다. 봉황 · 뇌전 · 오로라 · 용비늘 등 상자에 추가</span>`;
+      li.innerHTML = EN ? `<b>Tiers · 10 new skins</b><span>Copper to Throne: wins raise your TP, losses take a little. Phoenix, Thunderstorm, Aurora, Dragon scale and more in the crates</span>` : `<b>티어 · 새 스킨 10종</b><span>구리부터 왕좌까지: 이기면 TP가 오르고 지면 조금 내려갑니다. 봉황 · 뇌전 · 오로라 · 용비늘 등 상자에 추가</span>`;
       ul.prepend(li);
       while (ul.children.length > 3) ul.lastElementChild.remove();
     }
