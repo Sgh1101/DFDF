@@ -120,7 +120,7 @@
       if (!node.name.startsWith("phantom-bone-") || !node.userData.base) return;
       const track = anim.bones?.[node.name.slice(13)], base = node.userData.base;
       const p = A.sample(track?.position, t, [0, 0, 0]), r = A.sample(track?.rotation, t, [0, 0, 0]), s = A.sample(track?.scale, t, [1, 1, 1]);
-      // Root/hand/camera tracks encode Minecraft's first-person placement. DFDF owns that placement.
+      // Root/hand/camera tracks would move the whole first-person placement. DFDF owns that placement.
       const movable = /magazine|mag_and_lefthand|charge_handle|bolt|trigger|mag_release/.test(node.name);
       node.position.fromArray(base.p.map((v, i) => v + (movable ? p[i] : 0)));
       node.rotation.set(...base.r.map((v, i) => (v + (movable ? r[i] : 0)) * rad), "ZYX"); node.scale.set(...(movable ? s : [1, 1, 1]));
@@ -177,7 +177,7 @@
   const start = startRound; startRound = function () { waves.clear(); return start.apply(this,arguments); };
 
   function finisher(group, skin, event = {}) {
-    // The supplied renderer draws BOTH source models, not a generated spiral.
+    // Draws BOTH finisher models (dragon + serpent) from the bundled DFDF pack.
     // client.c.b.d: models appear at 2.66s; DEFENDER changes black -> white at 2.8s.
     // ATTACKER uses serpent_cream; DEFENDER uses serpent_red (c.a enum verified).
     const snake = skin.id === ids[0] ? "cream" : "red";
@@ -186,13 +186,13 @@
     const figure = new T.Group(), native = new T.Group(), mats = [];
     native.name = 'champions-original-models';
     figure.name = "champions-original-finisher"; figure.userData.phantom = true;
-    // Original GeckoLib unit conversion and the renderer's 1.25 scale about y=4.15.
+    // GeckoLib unit conversion (1/16) and the scene's 1.25 scale about y=4.15.
     native.scale.setScalar(1.25 / 16); native.position.y = 4.15 * (1 - 1.25); figure.add(native);
     for (const name of names) {
       const path = name === "dragon_low" ? "dragon_low_black" : name;
       const material = new T.MeshBasicMaterial({ map: texture("textures/finisher/" + path + ".png"), transparent: true, alphaTest: 0.1, side: T.FrontSide });
-      // The supplied finisher_model shader shades each face with Minecraft's two
-      // diffuse lights, then mixes 20% emissive. A flat unlit material lost the form.
+      // Shade each face with two fixed diffuse lights, then mix 20% emissive.
+      // A flat unlit material lost the form.
       material.onBeforeCompile = shader => {
         shader.vertexShader = 'varying vec3 vFinisherNormal;\n' + shader.vertexShader.replace('void main() {', 'void main() {\nvFinisherNormal = normalize(mat3(modelMatrix) * normal);');
         shader.fragmentShader = 'varying vec3 vFinisherNormal;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
@@ -219,7 +219,7 @@
       const seconds = t * 8;
       figure.visible = seconds >= 2.66 && seconds < 8;
       mats[0].map = texture("textures/finisher/dragon_low_" + (skin.id === ids[1] && seconds >= 2.8 ? "white" : "black") + ".png");
-      // Original one-second alpha exit, with the hold shortened for the requested 8s round transition.
+      // One-second alpha exit, with the hold shortened for the requested 8s round transition.
       for (const material of mats) material.opacity = 1 - Math.max(0, Math.min(1, seconds - 7));
       effects.step(seconds, group.userData.previewScene ? GUN_SKINS._pv().cam : camera);
       stage.step(seconds);
@@ -251,7 +251,7 @@
     const id = event ? (["gun", "head", "melee"].includes(event.kind) ? event.skin : "") : (!player.ultW ? GS.of(curWeaponKey()).id : "");
     banner(id, Math.min(5, Math.max(1, killStreak | 0)), !!(event && GAME_RULES.finisher(event))); return r;
   };
-  // Original synth voices: the JAR contains no audio recordings.
+  // DFDF synth voices for the shot, kill, headshot and finisher cues.
   SOUNDPACK.packs.champions = {
     ko: "챔피언스 팬텀", en: "Champions Phantom",
     shot: [{ w: "sine", f: 150, to: 48, d: 0.15, v: 0.4 }, { w: "noise", d: 0.065, v: 0.22, cut: 1800, ft: "bandpass" }, { w: "triangle", f: 1760, to: 880, d: 0.08, v: 0.07 }],
@@ -284,7 +284,7 @@
   function availability(message) {
     const slot = $("slot-champions");
     slot.classList.toggle("phantom-unavailable", !ready); slot.setAttribute("aria-busy", String(!ready));
-    $("phantom-model-message").textContent = message || L("제공된 원본 모델을 불러오는 중…", "Loading the supplied original model…");
+    $("phantom-model-message").textContent = message || L("챔피언스 팬텀 모델을 불러오는 중…", "Loading the Champions Phantom model…");
     $("phantom-model-notice").hidden = ready;
   }
   async function install(next, persist = true, origin = "local") {
@@ -300,7 +300,7 @@
         const address = URL.createObjectURL(new Blob([next[name]], { type: "image/png" })); stagedUrls.set(name, address);
         const tex = await new T.TextureLoader().loadAsync(address); stagedTextures.set(name, tex);
         tex.name = name;
-        if (weaponTextures.includes(name) && (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height)) throw Error("원본 텍스처와 모델 크기가 맞지 않습니다.");
+        if (weaponTextures.includes(name) && (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height)) throw Error("텍스처와 모델 크기가 맞지 않습니다.");
         tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
       }));
       const failed = decoded.find((item) => item.status === "rejected"); if (failed) throw failed.reason;
@@ -311,7 +311,7 @@
       for (const [name, tex] of stagedTextures) textures.set(name, tex);
       for (const [name, address] of stagedUrls) urls.set(name, address);
       committed = true; refresh(); availability();
-      $("phantom-status").textContent = origin === "bundled" ? L("제공된 원본 모델·텍스처 자동 적용됨 · Seafle 제작", "Supplied original model and textures loaded automatically · by Seafle") : L("불러온 원본 모델·텍스처 적용됨 · Seafle 제작", "Imported original model and textures loaded · by Seafle");
+      $("phantom-status").textContent = origin === "bundled" ? L("챔피언스 팬텀 모델·텍스처 자동 적용됨 · DFDF 제작", "Champions Phantom model and textures loaded automatically · made by DFDF") : L("불러온 JAR 모델·텍스처 적용됨", "Imported JAR model and textures loaded");
       if (GS.isOpen() && GS.curTab() === "champions") showSelected();
     } finally {
       if (!committed) { for (const tex of stagedTextures.values()) tex.dispose(); for (const address of stagedUrls.values()) URL.revokeObjectURL(address); }
@@ -335,7 +335,7 @@
     if (part === "kill") {
       const fx = $("killfx"); bannerHome = fx.parentElement; document.body.appendChild(fx); fx.classList.add("phantom-preview"); fx.hidden = false;
       killPreviewCount = killPreviewCount % 5 + 1;
-      $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`원본 ${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Original kill ${killPreviewCount} · press again for next`); $("kf-streak").hidden = true;
+      $("kf-main").textContent = L("처치 미리보기", "KILL PREVIEW"); $("kf-sub").textContent = L(`${killPreviewCount}킬 연주 · 다시 누르면 다음 단계`, `Kill ${killPreviewCount} cue · press again for next`); $("kf-streak").hidden = true;
       banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
       if (W) waves.set('preview',W.trigger(waves.get('preview'),performance.now()/1000));
     }
@@ -350,7 +350,7 @@
       const frame = () => {
         if (preview !== run) return; // An older preview must never stop a newer song/motion.
         if (!GS.isOpen()) return stop();
-        // Installing the original model can replace the studio object while its
+        // Installing a model can replace the studio object while its
         // song is loading. Retire that motion without cancelling the new audio.
         if (studio.obj !== obj) { preview = null; previewRAF = 0; return; }
         const t = (performance.now() - started) / 1000; if (t > duration) return stop();
@@ -383,7 +383,7 @@
     <div class="skin-tier-scroll"><table><caption>${L("일반 → 희귀 → 영웅 → 전설 → 초월", "Common → Rare → Epic → Legendary → Transcendent")}</caption><thead><tr><th>${L("순위", "Rank")}</th><th>${L("등급", "Tier")}</th><th>${L("구분", "Details")}</th></tr></thead><tbody>${SKIN_TIERS.list.slice().reverse().map((row, i) => `<tr data-tier="${row.id}"${row.id === 5 ? ' class="highest"' : ""}><th scope="row">${i + 1}</th><td style="color:${row.c}">${L(row.ko, row.en)}</td><td>${row.id === 5 ? L("전설보다 높은 최고 등급 · 700 초월 코인", "Above Legendary · 700 Transcendent coins") : row.id === 4 ? L("초월 바로 아래 등급", "One tier below Transcendent") : L(`${row.id}단계`, `Tier ${row.id}`)}</td></tr>`).join("")}</tbody></table></div>`;
   $("armory").querySelector(".ar-hd").after(guide);
   const notice = document.createElement("div"); notice.id = "phantom-model-notice";
-  notice.innerHTML = `<p id="phantom-model-message" role="status"></p><button type="button" id="phantom-retry">${L("원본 다시 불러오기", "Retry original model")}</button>`;
+  notice.innerHTML = `<p id="phantom-model-message" role="status"></p><button type="button" id="phantom-retry">${L("다시 불러오기", "Retry")}</button>`;
   $("slot-champions").appendChild(notice); availability();
   const panel = document.createElement("section"); panel.id = "phantom-panel";
   const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -399,21 +399,21 @@
   panel.style.setProperty("--rc", (SKIN_TIERS.list.find((row) => row.id === 5) || {}).c || "#ff7bd5");
   panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L("팬텀 전용", "PHANTOM ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
     <div class="pp-sides" role="group" aria-label="${L("진영", "Side")}"><button type="button" class="pp-side" data-phantom-skin="champions_atk" aria-pressed="true"><b></b>${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" class="pp-side" data-phantom-skin="champions_def" aria-pressed="false"><b></b>${L("수비 · 상아빛", "Defense · Ivory")}</button></div></div>
-    <p class="pp-desc">${L("전설보다 높은 최고 등급의 팬텀 스킨. 원본 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the Phantom: the original model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
+    <p class="pp-desc">${L("전설보다 높은 최고 등급의 팬텀 스킨. 전용 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the Phantom: its own model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
     <div class="pp-tags"><span class="pp-tag">${L("공격 / 수비", "Attack / Defense")}</span><span class="pp-tag">${L("처치 배너", "Kill banner")}</span><span class="pp-tag">${L("용 마무리", "Dragon finisher")}</span><span class="pp-tag">${L("전용 사운드", "Own sound")}</span></div>
     <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
     <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
 
     <p id="phantom-audio-status" role="status" hidden></p>
-    <p id="phantom-status" role="status">${L("제공된 원본 모델·텍스처를 불러오는 중…", "Loading the supplied original model and textures…")}</p>
-    <div class="pp-source"><label class="phantom-import">${L("다른 원본 JAR 불러오기", "Import another original JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("제공된 원본으로 복원", "Restore supplied original")}</button></div>
-    <small>${L("제공된 원본 모델과 텍스처가 자동 적용됩니다. 원본 제작: Seafle. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "The supplied original model and textures load automatically. Original by Seafle. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
+    <p id="phantom-status" role="status">${L("챔피언스 팬텀 모델·텍스처를 불러오는 중…", "Loading the Champions Phantom model and textures…")}</p>
+    <div class="pp-source"><label class="phantom-import">${L("JAR 불러오기", "Import a JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("기본 모델로 복원", "Restore the default model")}</button></div>
+    <small>${L("DFDF가 제작한 챔피언스 팬텀 모델과 텍스처가 자동 적용됩니다. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "DFDF's own Champions Phantom model and textures load automatically. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
   $("champions-content").appendChild(panel);
   addEventListener("champions-audio-state", ({ detail }) => {
     const node = $("phantom-audio-status");
     node.hidden = detail === "idle";
     node.textContent = ({
-      loading: L("원본 음원 불러오는 중… 잠시만 기다려 주세요.", "Loading original audio…"),
+      loading: L("음원 불러오는 중… 잠시만 기다려 주세요.", "Loading audio…"),
       playing: L("원본 연주 재생 중 · 중지를 누르면 멈춥니다.", "Playing the original arrangement · press Stop to end."),
       muted: L("효과음이 꺼져 있어요. 설정에서 효과음을 켠 뒤 다시 눌러 주세요.", "Sound effects are off. Enable them in Settings and try again."),
       error: L("음원을 재생하지 못했어요. 미리보기 버튼을 다시 눌러 재시도하세요.", "Audio could not play. Press the preview button to retry."),
@@ -438,7 +438,7 @@
     if (loading) return;
     ++installRevision; loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = true;
     try { const original = await bundled(); await install(original, false, "bundled"); await store(null, true).catch(() => {}); }
-    catch (error) { const message = L("원본 불러오기 실패: ", "Original model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); }
+    catch (error) { const message = L("모델 불러오기 실패: ", "Model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); }
     finally { loading = false; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = false; }
   }
   $("phantom-remove").onclick = $("phantom-retry").onclick = restoreBundled;
@@ -449,9 +449,9 @@
   (async () => {
     const saved = await store().catch(() => null);
     if (saved && generation === version && !loading) {
-      try { await install(saved, false); return; } catch (error) { /* A broken local override must not hide the supplied original. */ }
+      try { await install(saved, false); return; } catch (error) { /* A broken local override must not hide the bundled model. */ }
     }
     try { const original = await bundled(); if (generation === version && !loading) await install(original, false, "bundled"); }
-    catch (error) { if (generation === version && !ready) { const message = L("원본 불러오기 실패: ", "Original model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); } }
+    catch (error) { if (generation === version && !ready) { const message = L("모델 불러오기 실패: ", "Model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); } }
   })();
 })();

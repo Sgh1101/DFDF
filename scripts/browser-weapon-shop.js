@@ -3,7 +3,6 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
 // in Chromium before writing these interaction checks.
 (async()=>{const f=await fixture();try{
  const p=await f.page('equipmentbuyer',{width:1440,height:900},{},{bootTimeout:120000});
- await p.waitForFunction(()=>VALORANT_PACK.status==='ready',null,{timeout:120000});
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'equipment-owner'});
  await f.h.api('a_user_set',{atoken:owner.atoken,id:'equipmentbuyer',op:'grant',item:'scout|champions_atk'});
  await p.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;const a=myActor();a.credits=10000;a.abilities[0].charges=0;openShop();});

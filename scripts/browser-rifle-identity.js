@@ -3,7 +3,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
 // showed single fire/15 rounds before authoring these interaction checks.
 (async()=>{const f=await fixture();let p;try{
  p=await f.page('rifleidentity',{width:1280,height:800},{},{bootTimeout:120000});
- await p.waitForFunction(()=>VALORANT_PACK.status==='ready',null,{timeout:120000});
  const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'rifle-owner'});
  for(const skin of ['champions_atk','champions_def'])await f.h.api('a_user_set',{atoken:owner.atoken,id:'rifleidentity',op:'grant',item:'scout|'+skin});
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^빙하 관측소$/}).click();await p.locator('#sel-go').click();
@@ -18,7 +17,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   assert.match(await p.locator('#buy-stats').innerText(),new RegExp(mode));
   previews[key]=await p.evaluate(key=>document.querySelector('#shop-grid [data-key="'+key+'"] img').src,key);
   const identity=await p.evaluate(()=>{const o=WEAPON_SHOP.preview().obj;let original=false,comet=false,finite=true;o.traverse(n=>{if(n.userData.valorantItem==='phantom')original=true;if(n.userData.weaponModel==='comet')comet=true;if(n.geometry)finite&&=Array.from(n.geometry.attributes.position.array).every(Number.isFinite);});return{original,comet,finite};});
-  assert.ok(identity.finite);assert.equal(identity.original,key==='scout');assert.equal(identity.comet,key==='bullpup');
+  assert.ok(identity.finite);assert.equal(identity.original,false,'no model from the removed weapon pack');assert.equal(identity.comet,key==='bullpup');
   await p.screenshot({path:'test-results/rifle-'+key+'.png'});
  }
  assert.equal(new Set(Object.values(previews)).size,3,'Phantom, burst and the new Comet have different rendered silhouettes');
@@ -38,7 +37,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   assert.equal(results[label].wire,key,'snapshot retains '+key);
  }
  for(const label of ['phantom','champions-atk','champions-def','comet'])assert.ok(results[label].shots>=10,JSON.stringify(results));
- assert.equal(results.burst.shots,3);assert.equal(results.recon.shots,1);assert.ok(results.phantom.source);assert.ok(results['champions-atk'].champions);assert.ok(results['champions-def'].champions);assert.ok(results.comet.comet);
+ assert.equal(results.burst.shots,3);assert.equal(results.recon.shots,1);assert.ok(!results.phantom.source&&!results.phantom.champions,'the plain Phantom is the game\'s own model');assert.ok(results['champions-atk'].champions);assert.ok(results['champions-def'].champions);assert.ok(results.comet.comet);
  await p.evaluate(()=>equipTest('scout'));await p.mouse.down({button:'right'});assert.equal(await p.evaluate(()=>{myActor().ads=true;tickViewmodel(.02);return isScoped();}),false,'Phantom ADS does not turn into a scout scope');await p.mouse.up({button:'right'});
  await p.evaluate(()=>equipTest('carbine'));assert.ok(await p.evaluate(()=>{myActor().ads=true;return isScoped();}));
  assert.deepEqual(f.errors,[]);console.log('Rifle identities and actual held-click firing:',results);

@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
 const sourceOracle = require('./finisher-source-oracle');
+const cubes = Object.fromEntries(['dragon_low', 'serpent_cream', 'serpent_red'].map(n => [n, require('../assets/champions-phantom/dfdf-1/geo/finisher/' + n + '.geo.json')['minecraft:geometry'][0].bones.reduce((k, b) => k + (b.cubes?.length || 0), 0)]));
 // The original finisher was explored and captured before this UI test was authored.
 (async () => {
   const f = await fixture(), dir = path.resolve("test-results/champions-finish"); fs.mkdirSync(dir, { recursive: true });
@@ -54,7 +55,7 @@ const sourceOracle = require('./finisher-source-oracle');
       await p.clock.fastForward(100); let state = await metrics(); assert.equal(state.visible, true); assert.match(state.map, /dragon_low_black/);
       await p.clock.fastForward(100); state = await metrics();
       assert.equal(state.snake, skin === "champions_atk" ? "cream" : "red"); assert.ok(state.height >= state.min - 1e-6); assert.equal(state.procedural, 0);
-      assert.equal(state.vertices, (214 + (skin === "champions_atk" ? 259 : 256)) * 36);
+      assert.equal(state.vertices, (cubes.dragon_low + cubes[skin === "champions_atk" ? "serpent_cream" : "serpent_red"]) * 36);
       assert.match(state.map, skin === "champions_atk" ? /dragon_low_black/ : /dragon_low_white/);
       await p.evaluate(() => __finishRender()); await p.screenshot({ path: path.join(dir, skin + "-large-original.png") });
       const fidelity = await sourceOracle(p);
@@ -62,7 +63,7 @@ const sourceOracle = require('./finisher-source-oracle');
       console.log('GeckoLib native reference',JSON.stringify(fidelity));
       await p.clock.fastForward(5199); state = await metrics(); assert.equal(state.round, start.round); assert.equal(state.phase, "end"); assert.equal(state.visible, true); assert.equal(state.timer, "1");
       await p.clock.fastForward(1); state = await metrics(); assert.equal(state.round, start.round + 1); assert.equal(state.phase, "buy"); assert.equal(state.active, 0);
-      console.log(skin, "source vertices", (214 + (skin === "champions_atk" ? 259 : 256)) * 36, "height", preview.height, "8s next round passed");
+      console.log(skin, "finisher vertices", (cubes.dragon_low + cubes[skin === "champions_atk" ? "serpent_cream" : "serpent_red"]) * 36, "height", preview.height, "8s next round passed");
     }
     await p.evaluate(() => { room.mode = "std"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; world.championsFinishUntil = performance.now() + 8000; endRound("atk", "test"); netShutdown(); });
     const cancelledRound = await p.evaluate(() => world.round); await p.clock.fastForward(9000); assert.equal(await p.evaluate(() => world.round), cancelledRound);

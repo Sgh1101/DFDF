@@ -1,4 +1,6 @@
-// Seafle 0.1.0 client.h.a/d and vfx_gun: source UV atlas, kill sweep and 8.7s coat.
+// Champions Phantom kill coat: per-texel UV atlas, kill sweep and 8.7s coat.
+// The palettes are the coat-eligible colour groups painted by scripts/champions-phantom/gun-paint.js
+// ([body, trim, dark, glow]); the side/top coat art comes from scripts/champions-phantom/fx.js.
 (function(root){
   'use strict';
   const clamp=n=>Math.max(0,Math.min(1,n));
@@ -13,7 +15,7 @@
   // Rasterize the native model's UV quads once, just as the original atlas builder does.
   function bake(geo,baseImage,maskImage,sideImage,topImage,attacker){
     const T=root.THREE,base=pixels(baseImage),mask=pixels(maskImage),side=pixels(sideImage),top=pixels(topImage),out=new Uint8Array(base.w*base.h*4),anchors=Array.from({length:128},()=>[-99,0]);
-    const palettes=attacker?[[1049092,2491400,4458508,6819346,9707040,0xc45454],[9175046,12454924,15212052,16728104,16743520,16763060],[657932,0x16161a,0x24242a,0x36363e,0x50505a,8553614],[16766624,16480594]]:[[1313028,3019782,5383690,8405008,12085276,15244346],[9850378,13400088,15769640,16763974,16771712,16775880],[4870238,7370886,9871020,12370895,14409961,16185596],[0xfffcc4,16769656]];
+    const palettes=attacker?[[918536,1574668,2361874,3345945,4724003,6561328],[6963218,9330204,11828778,13934140,15515224,16571528],[723726,1250071,1776417,2368556,3158074,4079178],[16725584,16747676]]:[[7828332,9802122,11644325,13157563,14539215,15789283],[6963218,9330204,11828778,13934140,15515224,16571528],[723726,1250071,1776417,2368556,3158074,4079178],[16773816,16766834]];
     const rig=root.GECKO_FINISHER_RIG.build(geo,new T.MeshBasicMaterial());rig.updateMatrixWorld(true);
     rig.traverse(m=>{if(!m.isMesh)return;const p=m.geometry.attributes.position,u=m.geometry.attributes.uv,n=m.geometry.attributes.normal;
       for(let k=0;k<p.count;k+=6){

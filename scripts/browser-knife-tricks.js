@@ -8,7 +8,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const owner=await f.h.api('auth',{id:'owner',pw:'owner-password',device:'knife-owner'});
     for(const id of ['tanto','kukri','flip','karambit','butterfly','bayonet','gut','bowie','kunai','stiletto'])await f.h.api('a_user_set',{atoken:owner.atoken,id:'knifer',op:'grant',item:'knife|'+id});
     const page = await f.page("knifer");
-    await page.waitForFunction(()=>VALORANT_PACK.status==='ready'&&CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
+    await page.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
     await page.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "glacier"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; player.ultW=null;player.slot=Object.keys(player.weapons).find(s=>player.weapons[s]==='knife');updateViewmodel(true); });
     await page.waitForFunction(()=>myActor()?.alive&&curWeaponKey()==='knife'&&VM.current?.userData.key==='knife');
     const out = await page.evaluate(() => {

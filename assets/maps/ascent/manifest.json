@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "마크X발로",
+  "name": "하늘섬 마을",
   "sourceDimensions": [
     324,
     212,
@@ -180,9 +180,9 @@
     "snow": 831,
     "chest": 1
   },
-  "textures": "vanilla-palette.json",
-  "atlas": "vanilla-atlas.png",
-  "atlasSha256": "1851d35a221dd7d90af5eb6fd1c26d3ccd5729eb531d43c7f81fa0edff809ba0",
+  "textures": "blocks-palette.json",
+  "atlas": "blocks-atlas.png",
+  "atlasSha256": "aa7d5ea2308f0c1750ab85d9f77316341056493fafd33f0056200b016ca6ace5",
   "sourceFile": "ascent-final2021.schematic",
   "sourceSha256": "b987d994b5aa01e0b614b5e7d92a4b8f41f7cf6ecab1daddd5ba3fc4cf1b9c28",
   "geometrySha256": "5a1bce1adbc90ea3af5a76b16024ad65b2b431499792b375cb7313c883c41cd8"

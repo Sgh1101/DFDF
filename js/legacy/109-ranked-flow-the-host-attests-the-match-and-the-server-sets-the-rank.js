@@ -272,7 +272,7 @@
     const p = RK.placement(),
       r = u.rank;
     if (p && p.placing) return L(`배치 ${p.done}/${p.of} · ${p.of}판을 마치면 티어가 공개됩니다`, `Placement ${p.done}/${p.of} · your tier shows after ${p.of} matches`);
-    return r ? tierName(r) + " · " + (r.t >= 8 ? r.rr + " RR" : r.into + "/100 RR") : "";
+    return r ? tierName(r) + " · " + (r.t >= 8 ? r.rr + " TP" : r.into + "/100 TP") : "";
   }
   RK.myLine = line;
   setInterval(() => {

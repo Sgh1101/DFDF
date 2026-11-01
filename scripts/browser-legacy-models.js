@@ -3,7 +3,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 // checks. All accounts and purchases here use the in-memory API fixture.
 (async()=>{const f=await fixture();try{
   const p=await f.page('legacyguns',{width:1440,height:900},{},{bootTimeout:120000});
-  await p.waitForFunction(()=>VALORANT_PACK.status==='ready',null,{timeout:120000});
   await p.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded(),null,{timeout:120000});
   const report=await p.evaluate(()=>{
     titleCam=()=>{};render=()=>{};room.map='glacier';room.mode='std';startGame(AGENTS[0],false);closeShop();world.phase='live';ADMIN.freezeAI=true;
@@ -30,7 +29,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
       rows.push({key,active:curWeaponKey(),style:rl.style,visible:VM.root.visible,size:size.toArray(),meshes,baked,finite,magDistance,magChildCount,magRigid:!rl.mag||localMag===JSON.stringify(rl.mag.children.map(n=>[n.position.toArray(),n.quaternion.toArray()])),actions,thumb:GUN_SKINS.thumb(key,'default').length,thirdPerson:!!GUN_SKINS.template(key,GUN_SKINS.list[0])});
     }
     const protectedModels={};for(const key of ['pistol','silenced','revolver','rifle','scout','autoshot','hmg','marksman','sniper']){
-      const model=GUN_BUILD[key]();let source=false;model.traverse(n=>{if(n.userData.valorantRig)source=true;});protectedModels[key]=source;
+      // the game's own builder: meshes of finite size and nothing from the removed weapon pack
+      const model=GUN_BUILD[key]();let source=false,meshes=0;model.traverse(n=>{if(n.userData.valorantRig||n.userData.sourceAttachment)source=true;if(n.isMesh)meshes++;});const size=new T.Box3().setFromObject(model).getSize(new T.Vector3());protectedModels[key]=!source&&meshes>0&&size.z>.1&&size.toArray().every(Number.isFinite);
     }
     protectedModels.carbine=GUN_BUILD.carbine().userData.weaponModel==='recon';protectedModels.bullpup=GUN_BUILD.bullpup().userData.weaponModel==='comet';
     const champion=GUN_SKINS.template('scout',GUN_SKINS.list.find(s=>s.id==='champions_atk'));
@@ -38,7 +38,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   });
   console.log(JSON.stringify(report));
   assert.equal(report.count,19);assert.equal(report.rows.length,6);assert.ok(report.champion);
-  for(const [key,value]of Object.entries(report.protectedModels))assert.ok(value,key+' retains its original builder');
+  for(const [key,value]of Object.entries(report.protectedModels))assert.ok(value,key+' uses the game\'s own builder');
   const limits={machpist:[.3,.5],smg:[.6,.8],whisper:[.75,.95],shotgun:[.85,1.1],pocketshot:[.35,.55],burst:[.85,1.1]};
   for(const r of report.rows){
     assert.ok(r.finite,r.key+' geometry');assert.ok(r.size[0]<.13&&r.size[1]<.45,r.key+' proportions');assert.ok(r.size[2]>limits[r.key][0]&&r.size[2]<limits[r.key][1],r.key+' length');

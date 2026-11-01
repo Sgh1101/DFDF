@@ -20,10 +20,10 @@ test('source west/east quads keep their actual UV orientation and outward normal
   assert.deepEqual(d.uv.slice(0,6),[14/64,1-4/32,8/64,1-4/32,8/64,1-14/32]);
   assert.equal(d.positions.length,36*3);assert.equal(d.uv.length,36*2);
 });
-test('all original finisher faces survive, including fractional sizes and signed UV extents',()=>{
-  for(const [name,count] of [['dragon_low',214],['serpent_cream',259],['serpent_red',256]]){
-    const g=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/champions-phantom/2026-0.1.0/geo/finisher/'+name+'.geo.json')))['minecraft:geometry'][0];
-    let vertices=0;
+test('all bundled finisher faces survive, including fractional sizes',()=>{
+  for(const name of ['dragon_low','serpent_cream','serpent_red']){
+    const g=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/champions-phantom/dfdf-1/geo/finisher/'+name+'.geo.json')))['minecraft:geometry'][0];
+    let vertices=0;const count=g.bones.reduce((n,b)=>n+(b.cubes?.length||0),0);assert.ok(count>100,name+' has a full body');
     for(const bone of g.bones){const d=G.data(bone,g.description);vertices+=d.positions.length/3;
       for(const n of [...d.positions,...d.normals,...d.uv])assert.ok(Number.isFinite(n));
     }

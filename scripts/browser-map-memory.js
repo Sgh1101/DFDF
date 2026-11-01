@@ -13,7 +13,7 @@ const MAPS = ["pogu", "hospital", "market", "glacier", "neon"], CYCLES = 3, SLAC
     const page = await f.page("mapmemory", { width: 960, height: 540 }, {}, { bootTimeout: 120000 });
     await page.evaluate(() => {
       // which uploaded geometries and textures are alive (and which of them a gun builder made)
-      const live = new Map(), GUN = /bedrock-rig|valorant-pack|legacy-gun-models|58-gun-skins|champions-phantom|phantom-|GUN_BUILD|GunBuilder|buildProcWeapon|bakeDeep|buildFor|skinMat/;
+      const live = new Map(), GUN = /bedrock-rig|weapon-identity|legacy-gun-models|58-gun-skins|champions-phantom|phantom-|GUN_BUILD|GunBuilder|buildProcWeapon|bakeDeep|buildFor|skinMat/;
       const kind = () => GUN.test(new Error().stack || "");
       const BG = THREE.BufferGeometry.prototype, TX = THREE.Texture.prototype, setAttribute = BG.setAttribute, needs = Object.getOwnPropertyDescriptor(TX, "needsUpdate");
       BG.setAttribute = function () { if (this.userData.__gun === undefined) this.userData.__gun = kind(); return setAttribute.apply(this, arguments); };

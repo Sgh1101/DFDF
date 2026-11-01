@@ -144,7 +144,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.deepEqual([last.lbp1.placement, last.lbp1.rank.hidden], [{ done: 4, of: 5 }, true]);
     const p1 = await f.page("lbp1", { width: 1280, height: 800 });
     await p1.waitForFunction(() => /배치 4\/5/.test((document.getElementById("rank-chip") || {}).textContent || ""), null, { timeout: 45000 });
-    assert.equal(await p1.evaluate(() => document.getElementById("rank-chip").textContent.includes("아이언")), false, "no tier while placing");
+    assert.equal(await p1.evaluate(() => document.getElementById("rank-chip").textContent.includes("구리")), false, "no tier while placing");
     // the room list: the band of a ranked room as a tier, and "Find a ranked match" shows my standing
     const stub = {};
     await p1.route("**/api/v1?*", (route) => {
@@ -154,7 +154,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     stub.rooms = { ok: true, rooms: [{ code: "ABCDEF", name: "랭크전 · far", ch: "s1", mode: "std", map: "pogu", ranked: true, band: 1350, range: 150, n: 2, max: 10, state: "lobby", host: "far", created: Date.now() }] };
     await p1.evaluate(() => MULTI.open());
     await p1.waitForSelector(".mu-room .mu-band");
-    assert.equal(await p1.evaluate(() => document.querySelector(".mu-room .mu-band").textContent), "브론즈 1", "band 1350 = 350 RR = Bronze 1");
+    assert.equal(await p1.evaluate(() => document.querySelector(".mu-room .mu-band").textContent), "청동 1", "band 1350 = 350 rr = 청동 1");
     await p1.waitForFunction(() => /배치 4\/5/.test(document.getElementById("mu-rank-me").textContent), null, { timeout: 30000 });
     await p1.screenshot({ path: dir + "/ranked-flow-rooms.png" });
     // out of range: a clear message and no connection attempt
@@ -165,7 +165,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       return { tried, banner: document.getElementById("banner").textContent, note: document.getElementById("mu-note").textContent };
     });
     assert.equal(far.tried, 0);
-    assert.match(far.banner, /실력대\(브론즈 1 부근\)가 나와 너무 달라 들어갈 수 없습니다/);
+    assert.match(far.banner, /실력대\(청동 1 부근\)가 나와 너무 달라 들어갈 수 없습니다/);
     assert.match(far.note, /입장 범위가 넓어집니다/);
     // a guest is turned away from a ranked room with its own message
     delete stub.ranked_can_join; delete stub.rooms;

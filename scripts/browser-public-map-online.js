@@ -12,7 +12,7 @@ const {PeerServer}=require(process.env.DFDF_PEER_SERVER_MODULE||'peer');
  // before building actors, rather than silently starting on the previous map.
  await h.evaluate(()=>{hostStartMatch();});
  for(const p of [h,g])await p.waitForFunction(()=>CUR_MAP_KEY==='ascent_trial'&&!!myActor()&&ASCENT_TRIAL.active,null,{timeout:120000});
- for(const p of [h,g])assert.deepEqual(await p.evaluate(()=>({name:MAP.name,textures:ASCENT_TRIAL.textureCount,free:!collideXZ(myActor().pos.x,myActor().pos.z,myActor().y,PR)})),{name:'마크X발로',textures:239,free:true});
+ for(const p of [h,g])assert.deepEqual(await p.evaluate(()=>({name:MAP.name,textures:ASCENT_TRIAL.textureCount,free:!collideXZ(myActor().pos.x,myActor().pos.z,myActor().y,PR)})),{name:'하늘섬 마을',textures:239,free:true});
  await h.evaluate(()=>{world.phase='buy';world.roundTime=999;ADMIN.freezeAI=true;for(const a of world.actors){a.credits=999999;a.invuln=999;}closeShop();});
  await g.waitForFunction(()=>world.phase==='buy');
  for(const key of ['scout','bullpup']){
