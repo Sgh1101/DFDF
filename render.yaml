@@ -1,0 +1,36 @@
+# The game server on Render (server/render.js): the API and the PeerJS server, behind the Cloudflare Worker.
+# New Blueprint in the Render dashboard reads this file; the values marked sync: false are asked for once, there.
+services:
+  - type: web
+    name: dfdf-server
+    runtime: node
+    plan: starter
+    region: singapore
+    branch: main
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/render.js
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # shared with the Cloudflare Worker (its PROXY_SECRET secret): copy this value there
+      - key: PROXY_SECRET
+        generateValue: true
+      # signs the sign-ins: the same value as on Vercel keeps everyone signed in
+      - key: SESSION_SECRET
+        sync: false
+      - key: ADMIN_MASTER_PASS
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      # the Upstash Redis database (the same one Vercel uses)
+      - key: KV_REST_API_URL
+        sync: false
+      - key: KV_REST_API_TOKEN
+        sync: false
+      # Cloudflare Realtime TURN
+      - key: CF_TURN_KEY_ID
+        sync: false
+      - key: CF_TURN_API_TOKEN
+        sync: false

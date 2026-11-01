@@ -41,6 +41,7 @@
     "test:relay-ask": "node scripts/browser-relay-ask.js",
     "test:keep-login": "node scripts/browser-keep-login.js",
     "test:site-pages": "node scripts/browser-site-pages.js",
+    "test:host": "node scripts/browser-host.js",
     "build:site-pages": "node scripts/build-site-pages.js",
     "dump:site-data": "node scripts/dump-site-data.js",
     "test:online": "node scripts/browser-online.js",
@@ -164,10 +165,15 @@
     "test:key-hints": "node scripts/browser-key-hints.js",
     "test:settings-sync": "node scripts/browser-settings-sync.js"
   },
-  "devDependencies": {
+  "dependencies": {
+    "express": "4.22.3",
     "peer": "1.0.2",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
     "peerjs": "1.5.4",
     "playwright": "1.62.1",
-    "three": "0.160.0"
+    "three": "0.160.0",
+    "wrangler": "4.151.0"
   }
 }

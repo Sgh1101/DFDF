@@ -392,8 +392,10 @@
       localStorage.setItem("lgp_name", S.user.id);
     } catch (e) {}
   }
+  // (the first answer is waited for before a room is made or joined: it says which PeerJS server to meet on)
+  let cfgReady = Promise.resolve();
   if (online) {
-    loadCfg();
+    cfgReady = loadCfg();
     checkMe();
     setInterval(loadCfg, 180000);
     setInterval(checkMe, 300000);
@@ -413,16 +415,29 @@
       : Promise.resolve();
   const iceReady = online ? askIce() : Promise.resolve();
   online && setInterval(askIce, 2 * 36e5);
+  // ── the PeerJS server the players of a match meet through ──
+  // Ours (server/render.js, at this site's /peerjs) when the owner switched it on (game.ownPeer), else the public one.
+  // Before a room is made or joined the game checks that ours answers and takes the public one when it does not; both
+  // sides of a match check, so a server that is down for everyone sends everyone to the same public one.
+  let OWN_PEER = !1;
+  const later = (ms, v) => new Promise((r) => setTimeout(() => r(v), ms));
+  const askOwnPeer = async () => {
+    await Promise.race([cfgReady, later(2500)]);
+    const c = window.SERVER_CFG, on = !!(c && c.game && !0 === c.game.ownPeer);
+    OWN_PEER = on && (await Promise.race([fetch("/peerjs/id?ts=" + Date.now(), { cache: "no-store" }).then((r) => r.ok, () => !1), later(3000, !1)]));
+  };
   const _po = peerOpts;
   peerOpts = function () {
     const o = _po.apply(this, arguments);
     try {
       ICE.length && (o.config = Object.assign({}, o.config, { iceServers: (o.config && o.config.iceServers ? o.config.iceServers : []).concat(ICE) }));
+      const https = "https:" === location.protocol;
+      OWN_PEER && Object.assign(o, { host: location.hostname, port: +location.port || (https ? 443 : 80), secure: https, path: "/" });
     } catch (e) {}
     return o;
   };
-  // making or joining a room waits a moment for the relay list
-  const waitIce = () => Promise.race([iceReady, new Promise((r) => setTimeout(r, 2500))]);
+  // making or joining a room waits a moment for the relay list and the choice of PeerJS server
+  const waitIce = () => Promise.all([Promise.race([iceReady, later(2500)]), askOwnPeer()]);
   const _cr = createRoom;
   createRoom = async function () {
     const intent = NET.intent = (NET.intent || 0) + 1;

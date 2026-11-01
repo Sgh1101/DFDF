@@ -104,6 +104,9 @@ const DEFAULT_CONFIG = {
     contactEmail: "",
     // emotes (T): the wheel, the touch button and the bodies that play them; off: the button is gone and every host drops the messages
     emotes: !0,
+    // the PeerJS server players meet through to start a match: on, ours (server/render.js on Render, at the site's /peerjs);
+    // off, the public PeerJS server. A game that cannot reach ours takes the public one (js/legacy/44-account-sync.js)
+    ownPeer: !1,
   },
   cheat: {
     refillSec: 5,

@@ -117,6 +117,7 @@ function harness(options = {}) {
     return response;
   }
   const sign = (value) => { const p = Buffer.from(JSON.stringify(value)).toString("base64url"); return p + "." + crypto.createHmac("sha256", "test-secret").update(p).digest("base64url"); };
-  return { api, db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, dropExpires: (n = 1) => droppedExpires = n, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
+  // handler: the API itself, for a real server in front of it (server/render.js in tests/render-server.test.js)
+  return { api, handler: (req, res) => sandbox.module.exports(req, res), db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, dropExpires: (n = 1) => droppedExpires = n, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
 }
 module.exports = { harness };

@@ -1,0 +1,24 @@
+# Not part of the site on Cloudflare (wrangler.jsonc serves the repository root): the servers, tools, tests, sources
+# and the repository's own files
+.git
+.github
+.cursor
+.gitignore
+.gitattributes
+.assetsignore
+node_modules
+api
+server
+cloudflare
+scripts
+tests
+test-results
+sources
+docs
+*.md
+package.json
+package-lock.json
+wrangler.jsonc
+render.yaml
+vercel.json
+.wrangler
