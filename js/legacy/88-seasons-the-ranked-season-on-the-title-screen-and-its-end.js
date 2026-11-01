@@ -9,7 +9,7 @@
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko);
   const $ = (id) => document.getElementById(id);
-  const NAMES = EN ? ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"] : ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"];
+  const NAMES = EN ? ["Copper", "Bronze", "Silver", "Gold", "Platinum", "Jade", "Ruby", "Adamant", "Throne"] : ["구리", "청동", "은빛", "금빛", "백금", "비취", "홍옥", "금강", "왕좌"];
   const user = () => {
     try {
       const s = ACCOUNT.session();
@@ -57,8 +57,8 @@
     }
     const tier = NAMES[last.t] + (last.div ? " " + last.div : "");
     $("sn-t").innerHTML = L(
-      `<b style="color:#ffc849">시즌 ${last.n} 종료</b> — ${tier}로 마쳤습니다. ${last.gold ? `보상 🪙${last.gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${last.skin ? ` · 전용 스킨 「월계관」 총 ${last.skin}종` : ""} · RR은 ${last.after || 0}부터 다시`,
-      `<b style="color:#ffc849">Season ${last.n} is over</b> — you finished ${tier}. ${last.gold ? `Reward 🪙${last.gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${last.skin ? ` · season skin Laurel on ${last.skin} guns` : ""} · RR starts again from ${last.after || 0}`
+      `<b style="color:#ffc849">시즌 ${last.n} 종료</b> — ${tier}로 마쳤습니다. ${last.gold ? `보상 🪙${last.gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${last.skin ? ` · 전용 스킨 「월계관」 총 ${last.skin}종` : ""} · TP는 ${last.after || 0}부터 다시`,
+      `<b style="color:#ffc849">Season ${last.n} is over</b> — you finished ${tier}. ${last.gold ? `Reward 🪙${last.gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${last.skin ? ` · season skin Laurel on ${last.skin} guns` : ""} · TP starts again from ${last.after || 0}`
     );
     put(n, !0);
   }

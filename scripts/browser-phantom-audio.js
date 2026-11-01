@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
+const kills = Object.values(require("../assets/champions-phantom/dfdf-1/audio/kill-sequences.json").profiles).map(p => p.events.length);
+const inspectNotes = require("../assets/champions-phantom/dfdf-1/audio/music-sequences.json").profiles.inspect.events.length;
 (async () => {
   const f = await fixture();
   try {
@@ -10,8 +12,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         // Emulate the old installed worker's immutable manifest entry. The new
         // versioned request must bypass it without flushing all map textures.
         if (!new URL(route.request().url()).searchParams.has('v')) {
-          const stale = structuredClone(require('../assets/champions-phantom/2026-0.1.0/audio/samples.json'));
-          delete stale.samples['block.note_block.hat'];delete stale.samples['block.note_block.snare'];
+          const stale = structuredClone(require('../assets/champions-phantom/dfdf-1/audio/samples.json'));
+          delete stale.samples.hat;delete stale.samples.snare;
           return route.fulfill({ contentType: 'application/json', body: JSON.stringify(stale) });
         }
         await route.continue();
@@ -34,18 +36,18 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // A cold mobile request must survive the old 1.5s combat-note expiry.
     await new Promise(resolve => setTimeout(resolve, 1800)); release();
     await p.waitForFunction(() => __audio.rms > 0.001);
-    assert.equal(await p.evaluate(() => __audio.sources.length), 10);
+    assert.equal(await p.evaluate(() => __audio.sources.length), kills[0]);
     console.log("decoded original audio RMS", await p.evaluate(() => __audio.rms));
     await p.locator("#phantom-stop").click();
     await p.evaluate(() => { __audio.sources.length = 0; __audio.rms = 0; });
     await p.locator('[data-phantom-demo="inspect"]').click();
-    await p.waitForFunction(() => __audio.sources.length === 104 && __audio.rms > .001);
+    await p.waitForFunction(n => __audio.sources.length === n && __audio.rms > .001, inspectNotes);
     assert.match(await p.locator('#phantom-audio-status').innerText(), /원본 연주/);
     await p.locator("#phantom-stop").click();
     await p.evaluate(() => { __audio.sources.length = 0; __audio.rms = 0; });
     await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded());
     await p.locator('[data-phantom-demo="fin"]').click();
-    const music = require('../assets/champions-phantom/2026-0.1.0/audio/music-sequences.json').profiles.finisher_music;
+    const music = require('../assets/champions-phantom/dfdf-1/audio/music-sequences.json').profiles.finisher_music;
     const finNotes = music.events.filter(e => e.at < 8 - 3.03).length;
     await p.waitForFunction(n => __audio.sources.length >= n, finNotes);
     await p.waitForFunction(() => GAME_AUDIO.context().currentTime > __audio.sources[0].at + .1);
@@ -68,7 +70,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       }
       return counts;
     });
-    assert.deepEqual(ladder, [10, 20, 32, 44, 107], "only the original five arrangements, including on headshots");
+    assert.deepEqual(ladder, kills.map((n, i) => kills.slice(0, i + 1).reduce((a, b) => a + b, 0)), "only the five Champions cues, including on headshots");
     await p.waitForFunction(() => GAME_AUDIO.context().currentTime > __audio.sources[0].at + 0.3);
     assert.equal(await p.evaluate(() => __audio.multi), 0, "stock multikill melody cannot overlap Phantom");
     const settings = await p.evaluate(async () => {
@@ -82,7 +84,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       CHAMPIONS_AUDIO.reset(); cancelAnimationFrame(__audio.raf); GAME_AUDIO.output.disconnect(__audio.analyser); __audio.analyser.disconnect(); __audio.mute.disconnect();
       return { muted, exclusive, count, ability: ability === false };
     });
-    assert.deepEqual(settings, { muted: false, exclusive: false, count: 10, ability: false });
+    assert.deepEqual(settings, { muted: false, exclusive: false, count: kills[0], ability: false });
     await p.close();
     let attempts = 0;
     const retry = await f.page('soundretry', { width: 844, height: 390 }, {}, { beforeLoad: p => p.route('**/audio/music-sequences.json', route => ++attempts <= 2 ? route.fulfill({ status: 503, body: 'test unavailable' }) : route.continue()) });

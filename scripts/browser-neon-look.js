@@ -11,7 +11,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
     p.on("request", (r) => /assets\/neon|neon-data|neon-fx-source|neon-appearance/.test(r.url()) && outside.push(r.url()));
     p.on("console", (m) => { if (m.type() === "error" && /shader|WebGLProgram/i.test(m.text())) shaderErrors.push(m.text()); });
     await p.locator("#go-play").click();
-    const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^네온$/ }) });
+    const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^전광$/ }) });
     await card.click();
     await p.waitForFunction(() => document.querySelector("#sel-detail .det-img")?.naturalWidth > 0);
     const look = await p.evaluate(() => {

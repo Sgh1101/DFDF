@@ -68,7 +68,8 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
         if (!url) { console.log("no portrait for", a.id); continue; }
         save(path.join(root, "assets/site/agents", a.id + ".webp"), url); data.agentImages.push(a.id);
       }
-    } else if (fs.existsSync(dataFile)) { const old = JSON.parse(fs.readFileSync(dataFile, "utf8")); data.mapImages = old.mapImages; data.agentImages = old.agentImages; }
+    } else if (fs.existsSync(dataFile)) { const old = JSON.parse(fs.readFileSync(dataFile, "utf8")); // the pictures kept are those of maps and agents the game still has
+      data.mapImages = (old.mapImages || []).filter((k) => fs.existsSync(path.join(root, "assets/site/maps", k + ".webp"))); data.agentImages = (old.agentImages || []).filter((id) => data.agents.some((a) => a.id === id)); }
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 1) + "\n");
     console.log("wrote", path.relative(root, dataFile), data.agents.length, "agents", data.maps.length, "maps", data.modes.length, "modes; listed:", data.listed.join(","));
   } finally { await f.browser.close(); }

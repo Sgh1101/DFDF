@@ -1,3 +1,0 @@
-# Preserve supplied assets byte for byte on Windows and Linux checkouts.
-assets/valorant-packs/v1/** -text -whitespace
-assets/maps/ascent/vanilla/** -text

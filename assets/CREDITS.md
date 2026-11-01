@@ -1,4 +1,4 @@
-# 사진 재질 · 하늘 조명 출처
+# 사진 재질 · 하늘 조명 · 글꼴 출처
 
 `assets/mat`의 표면 재질과 `assets/env`의 하늘 조명(HDRI)은 모두 **CC0 1.0**(퍼블릭 도메인) 자료입니다. 출처 표기 의무는 없지만 감사의 뜻으로 적어 둡니다. 게임에 맞게 크기를 줄이고, 노멀 맵을 OpenGL 방향으로 맞추고, 거칠기·주변 차폐·금속도를 한 장(ORM)으로 묶었습니다.
 
@@ -38,6 +38,21 @@
 
 - ambientCG: https://ambientcg.com (CC0 1.0)
 - Poly Haven: https://polyhaven.com (CC0 1.0)
+
+## 글꼴 (Google Fonts, SIL Open Font License 1.1)
+
+글꼴 파일은 저장소에 없고, 페이지가 Google Fonts(`fonts.googleapis.com`)에서 불러옵니다. 모두 SIL Open Font License 1.1로 배포되어 웹사이트와 게임에서 상업적으로도 쓸 수 있습니다.
+
+| 글꼴 | 만든 곳 |
+|---|---|
+| Jua | Woowahan Brothers |
+| Gowun Dodum | Yanghee Ryu |
+| Black Han Sans | Zess Type |
+| Orbitron | Matt McInerney |
+| Noto Sans KR | Google (Adobe와 함께 만든 Source Han Sans 기반) |
+
+- Google Fonts: https://fonts.google.com
+- SIL Open Font License 1.1: https://openfontlicense.org
 
 ## 사막 마을 (Kour.io 맵 7)
 

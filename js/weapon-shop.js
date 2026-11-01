@@ -45,7 +45,7 @@
     renderShop();updateHUD();
   }
   function queueThumb(img,key,skin){const token=key+'|'+skin.id;
-    if(VALORANT_PACK.status!=='ready'||(CHAMPIONS_PHANTOM.isSkin(skin.id)&&!CHAMPIONS_PHANTOM.loaded()))return;
+    if(CHAMPIONS_PHANTOM.isSkin(skin.id)&&!CHAMPIONS_PHANTOM.loaded())return;
     if(thumbnails.has(token)){img.src=thumbnails.get(token);return;}
     if(!thumbQueue.has(token))thumbQueue.set(token,[]);thumbQueue.get(token).push(img);
     if(!thumbTimer)thumbTimer=setTimeout(pumpThumb,20);
@@ -82,17 +82,17 @@
   }
   function initPreview(){if(preview)return preview;const r=new T.WebGLRenderer({canvas:el('buy-canvas'),alpha:true,antialias:true});r.setPixelRatio(Math.min(devicePixelRatio||1,2));r.outputColorSpace=T.SRGBColorSpace;r.toneMapping=renderer.toneMapping;r.toneMappingExposure=1.1;const sc=new T.Scene();sc.environment=scene.environment;sc.add(new T.HemisphereLight(0xffffff,0xa0bca8,1.8));for(const [color,power,x,y,z] of [[0xfff2dd,2.8,2,3,3],[0xa1d6d0,2,-3,1,-2]]){const light=new T.DirectionalLight(color,power);light.position.set(x,y,z);sc.add(light);}const cam=new T.PerspectiveCamera(26,1,.01,50);preview={r,sc,cam,obj:null};return preview;}
   function clearPreview(){if(!preview?.obj)return;preview.sc.remove(preview.obj);const disposed=new Set();preview.obj.traverse(n=>{if(n.geometry&&!n.geometry.userData.shared&&!disposed.has(n.geometry)){disposed.add(n.geometry);n.geometry.dispose();}});preview.obj=null;}
-  function showModel(item,skin){const key=item.kind==='weapon'?item.key+'|'+skin.id+'|'+VALORANT_PACK.status+'|'+CHAMPIONS_PHANTOM.loaded():item.kind;
+  function showModel(item,skin){const key=item.kind==='weapon'?item.key+'|'+skin.id+'|'+CHAMPIONS_PHANTOM.loaded():item.kind;
     if(previewKey===key){resizePreview();return;}previewKey=key;clearPreview();const host=el('buy-preview'),state=el('buy-preview-state'),canvas=el('buy-canvas');host.querySelector('svg')?.remove();host.dataset.weapon=item.kind==='weapon'?item.key:'';host.dataset.skin=skin?.id||'';
     if(item.kind!=='weapon'){canvas.hidden=true;state.hidden=true;host.insertAdjacentHTML('beforeend',item.kind==='armor'?shield:grenade);return;}
     canvas.hidden=false;state.hidden=true;
-    if(VALORANT_PACK.status!=='ready'||(CHAMPIONS_PHANTOM.isSkin(skin.id)&&!CHAMPIONS_PHANTOM.loaded())){state.textContent='원본 모델 불러오는 중…';state.hidden=false;return;}
-    try{const p=initPreview(),gun=GUN_SKINS.buildFor(item.key,skin);GUN_SKINS.apply(gun,skin);const pivot=new T.Group();pivot.add(gun);gun.position.sub((window.VALORANT_PACK?.bounds(gun) || new T.Box3().setFromObject(gun)).getCenter(new T.Vector3()));pivot.rotation.y=Math.PI/2+.15;p.sc.add(pivot);pivot.updateMatrixWorld(true);const box=(window.VALORANT_PACK?.bounds(pivot) || new T.Box3().setFromObject(pivot));pivot.position.sub(box.getCenter(new T.Vector3()));p.obj=pivot;resizePreview();}
+    if(CHAMPIONS_PHANTOM.isSkin(skin.id)&&!CHAMPIONS_PHANTOM.loaded()){state.textContent='원본 모델 불러오는 중…';state.hidden=false;return;}
+    try{const p=initPreview(),gun=GUN_SKINS.buildFor(item.key,skin);GUN_SKINS.apply(gun,skin);const pivot=new T.Group();pivot.add(gun);gun.position.sub(new T.Box3().setFromObject(gun).getCenter(new T.Vector3()));pivot.rotation.y=Math.PI/2+.15;p.sc.add(pivot);pivot.updateMatrixWorld(true);const box=new T.Box3().setFromObject(pivot);pivot.position.sub(box.getCenter(new T.Vector3()));p.obj=pivot;resizePreview();}
     catch(error){state.textContent='모델을 불러오지 못했습니다';state.hidden=false;console.error('Equipment preview',error);}
   }
-  function resizePreview(){if(!preview?.obj||shop.hidden)return;const {r,cam,obj,sc}=preview,host=el('buy-preview'),w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;r.setSize(w,h,false);cam.aspect=w/h;const size=(window.VALORANT_PACK?.bounds(obj) || new T.Box3().setFromObject(obj)).getSize(new T.Vector3()),tan=Math.tan(cam.fov*Math.PI/360),d=Math.max(size.y*1.3/(2*tan),size.x*1.16/(2*tan*cam.aspect))+size.z/2;cam.position.set(0,d*.12,d);cam.lookAt(0,0,0);cam.updateProjectionMatrix();r.render(sc,cam);}
+  function resizePreview(){if(!preview?.obj||shop.hidden)return;const {r,cam,obj,sc}=preview,host=el('buy-preview'),w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;r.setSize(w,h,false);cam.aspect=w/h;const size=new T.Box3().setFromObject(obj).getSize(new T.Vector3()),tan=Math.tan(cam.fov*Math.PI/360),d=Math.max(size.y*1.3/(2*tan),size.x*1.16/(2*tan*cam.aspect))+size.z/2;cam.position.set(0,d*.12,d);cam.lookAt(0,0,0);cam.updateProjectionMatrix();r.render(sc,cam);}
   new ResizeObserver(resizePreview).observe(el('buy-preview'));
-  function state(){const a=actor();return JSON.stringify([world.phase,a.alive,a.credits,a.armor,a.nades,a.weapons,(a.abilities||[]).map(x=>x.charges),GUN_SKINS.mine(),VALORANT_PACK.status,CHAMPIONS_PHANTOM.loaded(),pending?.id,NET.mode]);}
+  function state(){const a=actor();return JSON.stringify([world.phase,a.alive,a.credits,a.armor,a.nades,a.weapons,(a.abilities||[]).map(x=>x.charges),GUN_SKINS.mine(),CHAMPIONS_PHANTOM.loaded(),pending?.id,NET.mode]);}
   function watch(t){raf=0;if(shop.hidden)return;if(t-lastTick>180){lastTick=t;reconcile();if(state()!==lastState)renderShop();}raf=requestAnimationFrame(watch);}
   const open=openShop,close=closeShop;
   openShop=function(){noticeText='';const wanted=selected,r=open.apply(this,arguments);if(!shop.hidden){queueMicrotask(()=>{selected=wanted;paintSelection();shop.querySelector(`[data-item="${selected}"]`)?.focus({preventScroll:true});});if(!raf)raf=requestAnimationFrame(watch);}return r;};

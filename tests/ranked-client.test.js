@@ -87,7 +87,7 @@ test("the owner's room commands (kick, move, message, close) do not run in a ran
 });
 
 function boot109(sb) {
-  Object.assign(sb, { hostStartMatch() {}, clientBeginMatch() {}, joinRoom: async () => "joined", netAlert() {}, sendEventAll() {}, netShutdown() {}, hideAll() {}, show() {}, RANK: { names: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"] } });
+  Object.assign(sb, { hostStartMatch() {}, clientBeginMatch() {}, joinRoom: async () => "joined", netAlert() {}, sendEventAll() {}, netShutdown() {}, hideAll() {}, show() {}, RANK: { names: ["구리", "청동", "은빛", "금빛", "백금", "비취", "홍옥", "금강", "왕좌"] } });
   sb.RANKED = { on: () => !!sb.room.ranked };
   sb.ACCOUNT = { online: true, session: () => ({ token: "tok", user: { id: "Host1", guest: false } }), api: async () => ({}) };
   vm.createContext(sb);
@@ -97,14 +97,14 @@ function boot109(sb) {
 
 test("bands show as the tier their rating sits in, and a placing account sees its count", () => {
   const w = world(), RK = boot109(w.sb);
-  assert.equal(RK.bandName(1000), "아이언 1");
-  assert.equal(RK.bandName(1350), "브론즈 1");
-  assert.equal(RK.bandName(1050 + 2400), "레디언트");
+  assert.equal(RK.bandName(1000), "구리 1");
+  assert.equal(RK.bandName(1350), "청동 1");
+  assert.equal(RK.bandName(1050 + 2400), "왕좌");
   assert.equal(RK.bandName(null), "");
   w.sb.ACCOUNT.session = () => ({ user: { id: "a", placement: { done: 2, of: 5 }, rank: { t: 0, div: 1, rr: 0, into: 0, hidden: true } } });
   assert.match(RK.myLine(), /배치 2\/5/);
   w.sb.ACCOUNT.session = () => ({ user: { id: "a", placement: { done: 5, of: 5 }, rank: { t: 3, div: 2, rr: 1040, into: 40 } } });
-  assert.equal(RK.myLine(), "골드 2 · 40/100 RR");
+  assert.equal(RK.myLine(), "금빛 2 · 40/100 TP");
 });
 
 test("the host opens the match with its roster; a guest waits for it, then takes the ranked ticket (409 until the roster is in)", async () => {
@@ -166,7 +166,7 @@ test("a ranked room turns away guests and rooms out of range; the answer is read
   sb.joinRoom = async () => ++joined;
   vm.runInContext(read("109-ranked-flow"), vm.createContext(sb)); // wrap the stub as the game does
   await sb.joinRoom("abcdef");
-  assert.equal(joined, 0); assert.match(alerts[0], /실력대\(브론즈 1 부근\)가 나와 너무 달라 들어갈 수 없습니다/);
+  assert.equal(joined, 0); assert.match(alerts[0], /실력대\(청동 1 부근\)가 나와 너무 달라 들어갈 수 없습니다/);
   assert.match(sb.RANKED.joinMsg.text, /입장 범위가 넓어집니다/);
   // the same room within range, and a normal room
   answer = { status: 200, data: { ok: true, ranked: true, range: 300, band: 1350 } };

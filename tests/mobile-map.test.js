@@ -25,7 +25,7 @@ test('separate mobile pack keeps every collision byte, source reference and tran
  const cutouts=bin=>{const list=[];for(let i=0;i<bin.readUInt32LE(4);i++){const p=16+i*24;if(!palette.tiles[bin.readUInt16LE(p+21)].opaque)list.push(bin.subarray(p,p+24).toString('hex'));}return list.sort();};
  assert.deepEqual(cutouts(mobile),cutouts(source),'never cancel glass/foliage/grilles even when they share a plane');
  assert.deepEqual(optimize(source,palette),mobile,'rebuild is deterministic');
- const original=JSON.parse(fs.readFileSync(root+'vanilla-palette.json'));
+ const original=JSON.parse(fs.readFileSync(root+'blocks-palette.json'));
  assert.equal(palette.tiles.length,239);assert.ok(palette.width*palette.height<original.width*original.height*.5);
  for(const t of palette.tiles)assert.equal(t.size,t.opaque?8:16,'all cutout/glass pixels retain full source resolution');
  assert.equal(sha(fs.readFileSync(root+'mobile/atlas.png')),manifest.atlasSha256);

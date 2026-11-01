@@ -1,9 +1,10 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
+const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json")["minecraft:geometry"][0].bones.reduce((n, b) => n + (b.cubes?.length || 0), 0);
 (async () => {
   const f = await fixture(), dir = process.env.SHOT_DIR || path.resolve("test-results/phantom"); fs.mkdirSync(dir, { recursive: true });
   try {
     const p = await f.page("phantom", { width: 1280, height: 800 }, {}, { bootTimeout: 120000 });
-    assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 607);
+    assert.equal(await p.evaluate(() => GAME_CATALOG.counts().skins), 601);
     await p.locator("#go-armory").click();
     await p.locator('#ar-tabs [data-tab="pull"]').click();
     assert.equal(await p.locator("#champion-shop").isVisible(), false, "the regular pull screen has no Champions purchase panel");
@@ -25,8 +26,8 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       rig.traverse((part) => { if (part.isMesh) { vertices += part.geometry.attributes.position.count; for (const tex of [part.material.map, part.material.emissiveMap]) if (tex) dimensions.push([tex.image.naturalWidth, tex.image.naturalHeight]); } });
       return { vertices, dimensions };
     });
-    assert.equal(originalPreview.vertices, 878 * 36, "every source cube is present before any manual JAR import");
-    assert.ok(originalPreview.dimensions.length > 0 && originalPreview.dimensions.every(([w, h]) => w === 512 && h === 512), "original 512×512 textures are decoded before showing the gun");
+    assert.equal(originalPreview.vertices, gunCubes * 36, "every bundled cube is present before any manual JAR import");
+    assert.ok(originalPreview.dimensions.length > 0 && originalPreview.dimensions.every(([w, h]) => w === 512 && h === 512), "bundled 512×512 textures are decoded before showing the gun");
     await p.screenshot({ path: path.join(dir, "bundled-original-attack.png") });
     await p.locator('[data-phantom-skin="champions_def"]').click();
     await p.screenshot({ path: path.join(dir, "bundled-original-defense.png") });
@@ -164,6 +165,6 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     await p.evaluate(() => GUN_SKINS.close());
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     assert.deepEqual(f.errors, []);
-    console.log("Phantom: original model by default without JAR import, 878 cubes and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
+    console.log("Phantom: bundled DFDF model by default without JAR import, every cube and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

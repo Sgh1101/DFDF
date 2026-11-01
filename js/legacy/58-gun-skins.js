@@ -98,7 +98,6 @@
     { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
     { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
-  if (window.VALORANT_DATA) SKINS.push(...VALORANT_DATA.knives.map(s => ({...s})));
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
   // (shown by tier: the second set sits after the knives in the list)
@@ -1581,7 +1580,6 @@
       k.traverse((o) => o.geometry && o.geometry.dispose());
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
-    if (window.VALORANT_PACK && skin.pack) return VALORANT_PACK.dress(root, skin);
     if ("default" !== skin.id) {
       // the waves are one pattern for the whole gun: an imported gun gets it laid flat along its length (see flowUV)
       let flow = !1;
@@ -1820,7 +1818,7 @@
       o.receiveShadow = !1;
       n++;
     });
-    const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w));
+    const b = new T.Box3().setFromObject(w);
     w.userData.muzzle = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.min.z - 0.01];
     if (sourceMuzzle) w.userData.muzzle = sourceMuzzle.map(n => n * .88);
     TPL.set(id, w);
@@ -3191,7 +3189,6 @@
     const tg = pvTarget();
     if (!tg || !WEAPONS[tg.g]) return void pvRender();
     const shown = skinById(tg.s);
-    if (shown.pack && window.VALORANT_PACK?.status !== 'ready') return void pvRender();
     if (window.CHAMPIONS_PHANTOM?.isSkin(shown.id) && !CHAMPIONS_PHANTOM.loaded()) return void pvRender();
     let g = null;
     try {
@@ -3199,7 +3196,7 @@
     } catch (e) {}
     if (!g) return void pvRender();
     applySkin(g, shown);
-    const b = (window.VALORANT_PACK?.bounds(g) || new T.Box3().setFromObject(g)),
+    const b = new T.Box3().setFromObject(g),
       c = b.getCenter(new T.Vector3()),
       s = b.getSize(new T.Vector3());
     g.position.sub(c);
@@ -3526,11 +3523,11 @@
         applySkin(gun, skin);
         const w = new T.Group();
         w.add(gun);
-        gun.position.sub((window.VALORANT_PACK?.bounds(gun) || new T.Box3().setFromObject(gun)).getCenter(new T.Vector3()));
+        gun.position.sub(new T.Box3().setFromObject(gun).getCenter(new T.Vector3()));
         w.rotation.y = Math.PI / 2 + 0.3;
         TH.sc.add(w);
         w.updateMatrixWorld(!0);
-        const b = (window.VALORANT_PACK?.bounds(w) || new T.Box3().setFromObject(w)),
+        const b = new T.Box3().setFromObject(w),
           s = b.getSize(new T.Vector3());
         w.position.sub(b.getCenter(new T.Vector3()));
         const tan = Math.tan((TH.cam.fov * Math.PI) / 360),
@@ -4350,7 +4347,7 @@
   function paintCap() {
     const shown = AR.peek && BY[AR.peek] ? BY[AR.peek] : AR.view && BY[AR.view] ? BY[AR.view] : mySkin(AR.key),
       r = RAR[shown.rar];
-    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? (BY[AR.peek] && BY[AR.peek].excl ? `<em>${L("시즌 보상 · 랭크전 시즌을 골드 티어 이상으로 마치면 모든 총에", "Season reward · finish a ranked season at Gold or above for every gun")}</em>` : `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>`) : ""}`;
+    $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i>${AR.peek ? (BY[AR.peek] && BY[AR.peek].excl ? `<em>${L("시즌 보상 · 랭크전 시즌을 금빛 티어 이상으로 마치면 모든 총에", "Season reward · finish a ranked season at Gold or above for every gun")}</em>` : `<em>${L("미보유 · 뽑기나 상점에서 획득", "Not owned · pull it or buy it in the shop")}</em><button class="ar-wish${wished(AR.key, AR.peek) ? " on" : ""}" id="ar-wish">${wished(AR.key, AR.peek) ? L("★ 찜함", "★ Wishlisted") : L("☆ 찜하기 · 상점에 뜨면 알림", "☆ Wishlist · told when it's in the shop")}</button>`) : ""}`;
     const aw = $("ar-wish");
     if (shown.excl === "coins") $("ar-cap").innerHTML = `${WEAPONS[AR.key].name} · ${nameOf(shown)}<i style="color:${r.c}">${EN ? r.en : r.ko}</i><em>${L("초월 상점 · 코인 700개 또는 뽑기 0.00000000000000001%", "Transcendent shop · 700 coins or 0.00000000000000001% pull")}</em>`;
     aw && (aw.onclick = () => toggleWish(AR.key, AR.peek));

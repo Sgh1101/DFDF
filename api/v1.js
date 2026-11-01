@@ -403,7 +403,8 @@ const activePerm = (u) => {
 // where the account's own cheats live: under the full set admin mode lends (permBefore), or in perm itself
 const ownPerm = (u) => (u.permAdmin ? u.permBefore || null : u.perm || null);
 const setOwnPerm = (u, p) => (u.permAdmin ? (u.permBefore = p) : (u.perm = p));
-// the tiers, low to high: 3 divisions of 100 RR each, then Radiant from 2400 RR
+// the tiers, low to high: 3 divisions of 100 rr each, then the top tier from 2400 rr. These keys are stored
+// (config season.gold.*); the names players see are the game's own (구리 ... 왕좌, js/legacy/71-…)
 const RANKS = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"];
 const rankOf = (rr) => {
   rr = Math.max(0, Math.round(+rr || 0));
@@ -597,14 +598,12 @@ const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:
 // WEAPONS table and GUN_SKINS.list); a test compares them.
 const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
 const VALORANT = require('../js/valorant-data');
-for (const skin of VALORANT.knives) SKIN_TIER[skin.id] = skin.rar;
 SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 // skins no pull or shop gives: only the end of a season (or the owner)
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = VALORANT.championsWeapon;
-for (const skin of VALORANT.knives) SKIN_ONLY[skin.id] = 'knife';
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
 const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"].filter(key => !VALORANT.aliases[key]);
@@ -625,6 +624,9 @@ const histOf = (u) => (Array.isArray(u.hist) ? u.hist.slice(0, HIST_MAX) : []);
 // skins taken out of the game (plain single colours): whoever had them gets gold back,
 // one pull's worth each (three for a legendary), the first time the account is read
 const RETIRED = { obsidian: 1, ice: 2, holo: 4 };
+// the six knife skins of a removed third-party pack (legendary, knife only). Nothing records whether a copy came
+// from a pull or the shop, so each comes back at the most it could have cost: the shop's legendary knife price
+const packKnifeRefund = (c) => Math.max(0, Math.round((+c.shop.price.legendary || 0) * Math.max(1, +c.shop.knife || 1)));
 function ensureWallet(u, c) {
   let changed = !1;
   if (!Number.isSafeInteger(u.championCoins) || u.championCoins < 0) { u.championCoins = 0; changed = true; }
@@ -682,9 +684,17 @@ function ensureWallet(u, c) {
   }
   for (const g in u.own) {
     if (!Array.isArray(u.own[g])) continue;
-    const keep = u.own[g].filter((s) => !RETIRED[s]);
+    const pack = (s) => VALORANT.retiredKnives.includes(s);
+    const keep = u.own[g].filter((s) => !RETIRED[s] && !pack(s));
     for (const s of u.own[g]) RETIRED[s] && (back += Math.max(0, Math.round(+c.gacha.cost1 || 0)) * (4 === RETIRED[s] ? 3 : 1));
+    for (const s of new Set(u.own[g])) pack(s) && (back += packKnifeRefund(c));
     keep.length !== u.own[g].length && ((u.own[g] = keep), (changed = !0));
+  }
+  if (isObj(u.skins?.m) && VALORANT.retiredKnives.includes(u.skins.m.knife)) {
+    delete u.skins.m.knife; u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
+  }
+  if (Array.isArray(u.wish) && u.wish.some((w) => typeof w === "string" && VALORANT.retiredKnives.includes(w.split("|")[1]))) {
+    u.wish = u.wish.filter((w) => !(typeof w === "string" && VALORANT.retiredKnives.includes(w.split("|")[1]))); changed = true;
   }
   if (back) {
     u.gold = Math.min(9e6, u.gold + back);
@@ -1999,7 +2009,7 @@ async function leaveApply(id, m, rec, ticketed, c) {
     try { await saveUser(u); } catch (e) { if (e.retryUser && attempt < 4) continue; throw e; }
     if ((await redis(["GET", rmOpenKey(u.id)])) === m) await redis(["DEL", rmOpenKey(u.id)]);
     if (placedOf(u) >= PLACE_N && isObj(u.ssn)) { try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {} }
-    await ulog(u.id, "match", `랭크 이탈 · 패배 처리 (RR ${rr0} → ${u.rr})`, { rk: 1, ok: 1, left: 1, why: "left", rr: [rr0, u.rr], mmr: [mmr0, u.mmr], pl: u.placed });
+    await ulog(u.id, "match", `랭크 이탈 · 패배 처리 (TP ${rr0} → ${u.rr})`, { rk: 1, ok: 1, left: 1, why: "left", rr: [rr0, u.rr], mmr: [mmr0, u.mmr], pl: u.placed });
     const p = rankView(u);
     p.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.tier} ${p.div}`, { user: u.id }));
     return !0;
