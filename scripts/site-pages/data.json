@@ -1116,7 +1116,7 @@
   },
   {
    "id": "neon_agent",
-   "name": "네온",
+   "name": "전광",
    "role": "타격대",
    "color": "#41cfff",
    "accent": "#f7ef69",
@@ -1586,7 +1586,6 @@
   "zone"
  ],
  "mapImages": [
-  "desert_town",
   "pogu",
   "field",
   "garden",
