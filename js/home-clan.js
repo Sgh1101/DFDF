@@ -204,7 +204,8 @@ ${mineIsOwner ? `<div class="cl-edit"><input class="in" id="clanDescEdit" maxlen
   function draw() {
     const el = box();
     if (!el) return;
-    const user = me(), show = !!user && on() && !document.getElementById("v-dash").hidden;
+    // signed in and on the card or my records (the Clan section is a tab of my records)
+    const rec = document.getElementById("v-rec"), show = !!me() && on() && (!document.getElementById("v-dash").hidden || !!(rec && !rec.hidden)), user = me();
     el.hidden = !show;
     if (!show) return;
     if (st.token !== user.token) {

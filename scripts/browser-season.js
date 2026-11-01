@@ -32,7 +32,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading);
     await page.waitForSelector("#ssn-note:not([hidden])", { timeout: 20000 });
     const text = await page.evaluate(() => document.getElementById("ssn-note").textContent);
-    assert.match(text, /시즌 1 종료 — 플래티넘 2로 마쳤습니다\. 보상 🪙1,000 · 전용 스킨 「월계관」 총 19종 · RR은 650부터 다시/);
+    assert.match(text, /시즌 1 종료 — 백금 2로 마쳤습니다\. 보상 🪙1,000 · 전용 스킨 「월계관」 총 19종 · TP는 650부터 다시/);
     const after = f.h.user("seasoned");
     assert.deepEqual([after.gold - gold0, after.rr, after.ssn.n, after.ssnLog.length], [1000, 650, 2, 1]);
     // the hidden rating follows the same cut (1000 + RR 1300 -> 1000 + 650), and an account with ranked history is already placed
@@ -66,7 +66,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.evaluate(() => localStorage.removeItem("lgp_ssn_seen"));
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("#ssnEnd:not([hidden])", { timeout: 20000 });
-    assert.match(await page.evaluate(() => document.getElementById("ssnEnd").textContent), /시즌 1 종료 — 플래티넘 2로 마쳤습니다/);
+    assert.match(await page.evaluate(() => document.getElementById("ssnEnd").textContent), /시즌 1 종료 — 백금 2로 마쳤습니다/);
     await page.screenshot({ path: dir + "/season-home.png" });
     await page.click("#ssnEndOk");
     assert.ok(await page.evaluate(() => document.getElementById("ssnEnd").hidden && localStorage.getItem("lgp_ssn_seen") === "1"));

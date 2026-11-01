@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require(process.env.DFDF_PLAYWRIGHT_MODULE || "playwright");
 const { harness } = require("../tests/api-harness");
 // The owner page's player profile: a player's name opens one window (info, sign-ins, pulls and shop, matches and
-// rank, orders, the whole log with a filter and a CSV export) from one call, from every table where a name shows.
+// rank, the whole log with a filter and a CSV export) from one call, from every table where a name shows.
 (async () => {
   const h = harness({ now: Date.now() }), errors = [];
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "admin-profile" });
@@ -15,10 +15,6 @@ const { harness } = require("../tests/api-harness");
   assert.equal((await h.api("auth", { id: "alpha", pw: "wrong-pass", device: "dev-alpha" })).status, 401);
   assert.equal((await h.api("room_up", { token: tok.alpha, code: "PROF01", name: "profile room", players: ["alpha", "bravo"] })).status, 200);
   assert.equal((await h.api("feedback_submit", { token: tok.alpha, type: "ask", text: "profile test question" })).status, 200);
-  const cfg = (await h.api("a_config_get", { atoken: owner.atoken })).config;
-  cfg.order.on = true; cfg.order.bank = "test bank 000";
-  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: cfg })).status, 200);
-  assert.equal((await h.api("order_create", { token: tok.alpha, items: ["radar"], days: 7 })).status, 200);
   await h.api("a_user_set", { atoken: owner.atoken, id: "bravo", op: "ban", days: 3, reason: "profile test" });
   const browser = await chromium.launch({ ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}), headless: true, args: ["--no-sandbox"] });
   try {
@@ -49,7 +45,7 @@ const { harness } = require("../tests/api-harness");
     // 1. the users table: the window and all its sections
     await openFrom("users", '#ul .uname[data-user="alpha"]', "alpha");
     const tabs = await page.$$eval("#pf .pf-tabs button", (b) => b.map((x) => x.textContent));
-    assert.deepEqual(tabs, ["정보", "접속 기록", "뽑기·상점", "경기·랭크", "주문", "전체 로그"]);
+    assert.deepEqual(tabs, ["정보", "접속 기록", "뽑기·상점", "경기·랭크", "전체 로그"]);
     const info = await page.textContent('#pf [data-p="info"]');
     for (const w of ["계정", "골드·구매", "랭크", "스킨", "장착한 스킨", "미션", "문의 1건"]) assert.ok(info.includes(w), "info has " + w);
     assert.ok(/숨은 MMR/.test(info), "the owner sees the hidden MMR");
@@ -62,8 +58,6 @@ const { harness } = require("../tests/api-harness");
     assert.ok((await page.$$('#pf [data-p="shop"] .hbar')).length >= 5, "the rarity breakdown");
     await page.screenshot({ path: process.env.SHOT_DIR ? process.env.SHOT_DIR + "/profile-shop.png" : "/tmp/profile-shop.png" });
     assert.ok((await tab("match")).includes("전적"));
-    const order = await tab("order");
-    assert.ok(/radar|레이더/.test(order) && order.includes("입금 대기"), "the order: " + order.slice(0, 200));
 
     // 2. the whole log: filter by kind, search, and the CSV
     await tab("all");
@@ -91,8 +85,6 @@ const { harness } = require("../tests/api-harness");
     await openFrom("bans", '#main table .uname[data-user="bravo"]', "bravo");
     await closeProfile();
     assert.equal((await h.api("a_bans", { atoken: owner.atoken })).bans.some((b) => b.kind === "user" && b.key === "bravo"), true, "clicking the name did not lift the ban");
-    await openFrom("orders", "#ol .uname", "alpha");
-    await closeProfile();
     await openFrom("feedback", '.fbc summary .uname[data-user="alpha"]', "alpha");
     await closeProfile();
     await go("logs");
@@ -101,7 +93,7 @@ const { harness } = require("../tests/api-harness");
     await page.waitForSelector("#pf .pf-tabs");
     await page.keyboard.press("Escape");
     await page.waitForSelector("#pf", { state: "detached" });
-    assert.equal(profileCalls, 6, "one call per window (users, rooms, bans, orders, feedback, logs)");
+    assert.equal(profileCalls, 5, "one call per window (users, rooms, bans, feedback, logs)");
     assert.equal((await h.api("a_user_set", { atoken: owner.atoken, id: "alpha", op: "note", note: "still alpha" })).status, 200);
 
     // 4. a phone-width window still shows its tables

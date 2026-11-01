@@ -64,8 +64,8 @@
     let h = "";
     if (!u || u.guest) h = L("로그인한 계정만 순위에 오를 수 있습니다", "Only signed-in accounts are ranked");
     else if (p && p.done < p.of) h = `${badge(-1, 0, 26)}<span><b>${L("배치", "Placement")} ${p.done}/${p.of}</b> · ${L("배치를 마치고 랭크전을 한 판 더 하면 순위에 오릅니다", "finish placement and play a ranked match to be listed")}</span>`;
-    else if (row) h = `${badge(row.t, row.div, 26)}<span><b>${L(`${row.pos}위`, `#${row.pos}`)}</b> · ${esc(tier(row.t, row.div))} · ${row.rr} RR</span>`;
-    else if (u.rank) h = `${badge(u.rank.t, u.rank.div, 26)}<span><b>${esc(tier(u.rank.t, u.rank.div))}</b> · ${u.rank.rr} RR · ${L(`상위 ${TOP}위 밖이거나 이번 시즌 랭크전을 아직 하지 않았습니다`, `outside the top ${TOP}, or no ranked match yet this season`)}</span>`;
+    else if (row) h = `${badge(row.t, row.div, 26)}<span><b>${L(`${row.pos}위`, `#${row.pos}`)}</b> · ${esc(tier(row.t, row.div))} · ${row.rr} TP</span>`;
+    else if (u.rank) h = `${badge(u.rank.t, u.rank.div, 26)}<span><b>${esc(tier(u.rank.t, u.rank.div))}</b> · ${u.rank.rr} TP · ${L(`상위 ${TOP}위 밖이거나 이번 시즌 랭크전을 아직 하지 않았습니다`, `outside the top ${TOP}, or no ranked match yet this season`)}</span>`;
     el.innerHTML = h;
     el.hidden = !h;
   }
@@ -118,7 +118,7 @@
     if ("failed" === state && !rows.length) return void (body.innerHTML = `<div class="mu-empty"><b>${L("순위표를 불러오지 못했습니다", "Could not load the leaderboard")}</b><span>${L("⟳ 를 눌러 다시 시도하세요", "Press ⟳ to retry")}</span></div>`);
     if ("busy" === state && !rows.length) return void (body.innerHTML = `<div class="mu-empty">${L("불러오는 중…", "Loading…")}</div>`);
     if (!rows.length) return void (body.innerHTML = `<div class="mu-empty"><b>${L("아직 순위에 오른 플레이어가 없습니다", "Nobody is listed yet")}</b><span>${L("배치 5판을 마치고 랭크전을 한 판 이상 하면 이름이 올라갑니다", "Finish 5 placement matches and play a ranked match to be listed")}</span></div>`);
-    body.innerHTML = `<div class="lbd-row hd"><span>#</span><span>${L("티어", "TIER")}</span><span>${L("플레이어", "PLAYER")}</span><span class="n">RR</span><span class="n">${L("승", "W")}</span><span class="n lbd-pl">${L("경기", "PLAYED")}</span></div>${rows
+    body.innerHTML = `<div class="lbd-row hd"><span>#</span><span>${L("티어", "TIER")}</span><span>${L("플레이어", "PLAYER")}</span><span class="n">TP</span><span class="n">${L("승", "W")}</span><span class="n lbd-pl">${L("경기", "PLAYED")}</span></div>${rows
       .slice(0, TOP)
       .map((r) => `<div class="lbd-row${mine(r) ? " me" : ""}" data-pos="${r.pos}"><span class="rk">${r.pos}</span><span class="tr" style="color:${color(r.t)}">${badge(r.t, r.div, 26)}<em>${esc(tier(r.t, r.div))}</em></span><span class="nm">${esc(r.name)}${mine(r) ? `<i>${L("나", "ME")}</i>` : ""}</span><span class="n">${r.rr}</span><span class="n">${r.wins | 0}</span><span class="n lbd-pl">${r.played | 0}</span></div>`)
       .join("")}`;

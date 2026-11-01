@@ -224,7 +224,8 @@ const chipState = (page) => page.evaluate(() => {
       const id = name === "desk" ? "aicsolo" : "aicphone";
       for (const lang of ["ko", "en"]) {
         await pg.evaluate((l) => localStorage.setItem("lgp_lang", l), lang);
-        await pg.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+        // (the AI tier is in my records, the stats tab)
+        await pg.goto(BASE + "/index.html?t=" + lang + "#records-stats", { waitUntil: "domcontentloaded" });
         await pg.waitForFunction(() => document.getElementById("meAi") && !document.getElementById("meAi").hidden && document.getElementById("meAiT").textContent, null, { timeout: 30000 });
         await sleep(400);
         const h = await pg.evaluate(() => ({ n: document.getElementById("meAiN").textContent, t: document.getElementById("meAiT").textContent, rank: document.getElementById("meTierN").textContent, svg: document.querySelector("#meAiB svg") && document.querySelector("#meAiB svg").getBoundingClientRect().width, vis: document.getElementById("meAi").getBoundingClientRect().width > 0, over: document.documentElement.scrollWidth <= innerWidth }));

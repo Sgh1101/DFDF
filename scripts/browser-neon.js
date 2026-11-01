@@ -5,7 +5,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
   try {
     const p = await f.page("neontest", { width: 1280, height: 800 });
     await p.locator("#go-play").click();
-    const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^네온$/ }) });
+    const card = p.locator("#sel-grid .acard").filter({ has: p.locator(".acard-name", { hasText: /^전광$/ }) });
     await card.click();
     await p.waitForFunction(() => picked.id === "neon_agent");
     assert.equal(await p.locator("#title-roster .tr-chip").count(), 28);

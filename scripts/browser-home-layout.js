@@ -49,9 +49,9 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
       assert.equal(await page.locator("#go-armory").count(), 1);
       if (name === "desktop") await page.waitForFunction(() => document.getElementById("tt-img").naturalWidth > 0);
       await page.screenshot({ path: `${shots}/home-${name}.png` });
-      await page.locator(".home-header .home-practice summary").click(); await page.locator("#go-range").click();
+      await page.locator(".home-header .home-practice:not(.home-more) summary").click(); await page.locator("#go-range").click();
       assert.equal(await page.locator("#s-select").isVisible(), true); await page.locator("#sel-back").click();
-      assert.equal(await page.locator(".home-practice").evaluate((e) => e.open), false);
+      assert.equal(await page.locator(".home-practice:not(.home-more)").evaluate((e) => e.open), false);
       await page.locator("#go-set").click(); assert.equal(await page.locator("#pause.from-menu").isVisible(), true); await page.locator("#pz-close").click();
       await page.locator("#go-armory").click(); assert.equal(await page.locator("#armory").isVisible(), true); await page.locator("#ar-close").click();
       await page.locator("#go-multi").click(); assert.equal(await page.locator("#s-multi").isVisible(), true); await page.locator("#mu-back").click();

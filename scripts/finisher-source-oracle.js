@@ -2,7 +2,7 @@ const fs=require('node:fs'),path=require('node:path');
 // Independent comparison against the supplied GeckoLib's absolute pivot matrix walk.
 // Do not call the game's converter here: that would only compare it with itself.
 module.exports=async function sourceOracle(page){
-  const raw=Object.fromEntries(['dragon_low','serpent_cream','serpent_red'].map(n=>[n,JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/champions-phantom/2026-0.1.0/geo/finisher/'+n+'.geo.json')))['minecraft:geometry'][0]]));
+  const raw=Object.fromEntries(['dragon_low','serpent_cream','serpent_red'].map(n=>[n,JSON.parse(fs.readFileSync(path.join(__dirname,'../assets/champions-phantom/dfdf-1/geo/finisher/'+n+'.geo.json')))['minecraft:geometry'][0]]));
   return page.evaluate(raw=>{
     const figure=[...FINISHERS.active][0]?.getObjectByName('champions-original-finisher');
     if(!figure)throw new Error('No original finisher to compare');

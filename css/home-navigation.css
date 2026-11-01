@@ -65,3 +65,5 @@
   #s-title.home-original .home-header .tt-sub>.tt-item,#s-title.home-original .home-header .home-practice>summary{padding:0 12px}
   #s-title.home-original .tt-left{display:flex;gap:12px;max-width:420px}
 }
+/* 더보기 (More) opens towards the inside of the screen: it is the last item of the bar */
+.home-more>div,#s-title.home-original .home-header .home-more>div{left:auto;right:0}

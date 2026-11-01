@@ -1,4 +1,14 @@
-# 마크X발로 맵
+# 하늘섬 마을 맵 (내부 id `ascent_trial`, 옛 이름 마크X발로)
+
+## 블록 텍스처는 이 저장소가 직접 그렸습니다 (2026-11-01)
+
+- 이전 버전은 Minecraft 1.20.1 클라이언트에서 추출한 블록 PNG 239개(`assets/maps/ascent/vanilla/`)와 그 아틀라스를 썼습니다. 모두 삭제했습니다. 저장소에는 다른 게임에서 가져온 텍스처 파일이 없습니다.
+- 지금의 239개 타일은 `scripts/paint-block-textures.py`가 규칙(잡음, 벽돌, 판자, 나이테, 풀·꽃 스프라이트 등)과 이 프로젝트의 색으로 16×16 픽셀을 새로 그린 것입니다. 원본 픽셀을 읽거나 따라 그리지 않습니다. 결과는 `blocks-atlas.png`와 `blocks-palette.json`이며, 휴대폰 팩 `mobile/atlas.png`는 `scripts/package-mobile-map.py`가 이 아틀라스에서 다시 만듭니다(`npm run paint:blocks`).
+- 타일 순서·블록 상태별 타일 지정·틴트는 그대로 두었으므로 `geometry.bin`과 `mobile/geometry.bin`은 바뀌지 않았습니다. 완전히 불투명하던 타일은 계속 불투명하고, 컷아웃 타일은 투명 픽셀을 유지하며, 색유리는 반투명입니다(휴대폰 지형의 면 합치기가 이 구분에 의존합니다). 잔디 윗면·잎·풀은 지형 데이터의 초록 틴트가 곱해지므로 밝은 회색 계열로 그립니다.
+- 캐시 갱신을 위해 자산 버전을 `blocks1`(원본 크기), `mobile2`(휴대폰)로 올렸습니다. 홈 바로가기 이름은 **하늘섬 마을 · 블록 맵**, 미리보기는 게임에서 직접 렌더링한 `assets/ui/ascent-preview-v2.webp`입니다.
+- **블록 배치는 가져온 schematic(`ascent-final2021.schematic`, 작성자 미상)에서 변환한 것입니다.** 이 배치는 Valorant의 Ascent 맵을 닮았으며, 소유자가 이를 받아들였습니다. 게임은 변환된 `geometry.bin`만 읽으므로 schematic 원본(`sources/maps/`)은 저장소에서 삭제했습니다. 매니페스트의 `sourceSha256`은 출처 기록으로 남깁니다. 지형을 다시 만들려면 그 파일을 따로 구해 `node scripts/import-ascent.js <파일>`을 실행합니다.
+
+아래는 이전 기록입니다. 텍스처 출처에 관한 서술(Minecraft 기본 텍스처, `package-block-textures.py`, `vanilla/`)은 위 내용으로 대체되었습니다.
 
 제공된 `ascent-final2021.schematic`를 DFDF의 실제 Three.js 장면과 캐릭터 이동·사격 판정에 연결한 맵입니다. **일반 요원 선택·방의 맵 목록에 마크X발로가 표시됩니다.** 별도 주소 없이 선택하고 전투 투입하면 불러옵니다.
 

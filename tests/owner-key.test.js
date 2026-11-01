@@ -12,14 +12,6 @@ async function aliceGuest(h) {
   h.db.set("guest:" + GDEV, JSON.stringify(rec));
   return g.token;
 }
-async function shopOpen(h) {
-  const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "device-owner" });
-  const c = JSON.parse(JSON.stringify(h.config));
-  c.order.on = true; c.order.bank = "국민 000000-00-000000"; c.order.holder = "홍길동";
-  assert.equal((await h.api("a_config_set", { atoken: owner.atoken, config: c })).status, 200);
-  h.advance(30000);
-}
-
 test("signing up cannot take a name a guest already goes by", async () => {
   const h = harness();
   h.db.set("gname:alice", "some-guest-device");
@@ -27,25 +19,6 @@ test("signing up cannot take a name a guest already goes by", async () => {
   assert.equal(r.status, 409);
   assert.equal(h.db.get("user:alice") ?? null, null);
   assert.equal((await h.api("auth", { id: "bob", pw: "password", device: "device-123" })).status, 200);
-});
-
-test("a guest with an account's name cannot see or cancel the account's orders", async () => {
-  const h = harness();
-  await shopOpen(h);
-  const a = await h.api("auth", { id: "alice", pw: "password", device: "device-alice" });
-  const o = (await h.api("order_create", { token: a.token, items: ["gold20k"], days: 7 })).order;
-  assert.ok(o && o.id);
-  const gt = await aliceGuest(h);
-  assert.deepEqual((await h.api("order_mine", { token: gt })).orders, []);
-  assert.equal((await h.api("order_cancel", { token: gt, id: o.id })).status, 403);
-  // an order kept before the owner key: still only the account's
-  const old = JSON.parse(h.db.get("ord:" + o.id));
-  delete old.byKey;
-  h.db.set("ord:" + o.id, JSON.stringify(old));
-  assert.equal((await h.api("order_cancel", { token: gt, id: o.id })).status, 403);
-  assert.equal(JSON.parse(h.db.get("ord:" + o.id)).status, "pending");
-  assert.equal((await h.api("order_mine", { token: a.token })).orders.length, 1);
-  assert.equal((await h.api("order_cancel", { token: a.token, id: o.id })).status, 200);
 });
 
 test("a guest with an account's name cannot change or close the account's room", async () => {

@@ -228,9 +228,6 @@
   function inspect() {
     if (!player.alive || holding() || player.ultW || ["menu", "over", "end"].includes(world.phase)) return !1;
     for (const id of ["shop", "pause", "armory"]) if ($(id) && !$(id).hidden) return !1;
-    // Keyboard, touch and the public API share the supplied animation player.
-    const imported = window.VALORANT_PACK?.inspect?.();
-    if (imported !== undefined) { cancelAll(); return imported; }
     if (tier() < 2 && !typed()) return !1;
     if (M.insp.t >= 0) {
       M.insp.t = -1;

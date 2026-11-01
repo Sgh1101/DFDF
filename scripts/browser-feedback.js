@@ -18,8 +18,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // the homepage
     await page.evaluate(() => localStorage.setItem("lgp_lang", "ko"));
     await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#fbOpen");
-    await page.click("#fbOpen");
+    await page.waitForSelector("#menuBtn");
+    await page.click("#menuBtn"); await page.click("#fbOpen");
     await page.waitForSelector("#fb-back:not([hidden])");
     await page.screenshot({ path: dir + "/feedback-form.png" });
     // too short: not sent
@@ -70,9 +70,10 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // English
     await page.evaluate(() => localStorage.setItem("lgp_lang", "en"));
     await page.click("#fb-back .fb-x");
+    assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), "menuBtn", "closing it gives the focus back to the menu it came from");
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#fbOpen");
-    await page.click("#fbOpen");
+    await page.waitForSelector("#menuBtn");
+    await page.click("#menuBtn"); await page.click("#fbOpen");
     await page.waitForSelector("#fb-back:not([hidden])");
     assert.match(await page.textContent("#fb .fb-types"), /Bug report/);
     await page.keyboard.press("Escape");
@@ -81,8 +82,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     const ph = await f.page("phoner", { width: 568, height: 320 }, { hasTouch: true, isMobile: true });
     await ph.evaluate(() => { localStorage.setItem("lgp_lang", "ko"); });
     await ph.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
-    await ph.waitForSelector("#fbOpen");
-    await ph.tap("#fbOpen");
+    await ph.waitForSelector("#menuBtn");
+    await ph.tap("#menuBtn"); await ph.tap("#fbOpen");
     await ph.waitForSelector("#fb-back:not([hidden])");
     const fit = await ph.evaluate(() => {
       const r = (e) => e.getBoundingClientRect(), box = r(document.getElementById("fb")), go = r(document.getElementById("fb-go"));
@@ -130,8 +131,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // the sender sees the answer, not the note
     await page.evaluate(() => localStorage.setItem("lgp_lang", "ko"));
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#fbOpen");
-    await page.click("#fbOpen");
+    await page.waitForSelector("#menuBtn");
+    await page.click("#menuBtn"); await page.click("#fbOpen");
     await page.click('.fb-tabs [data-t="mine"]');
     await page.waitForSelector("#fb .fb-item");
     const mine = await page.textContent("#fb-body");

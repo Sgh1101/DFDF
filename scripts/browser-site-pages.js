@@ -167,13 +167,15 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
       const r = await hp.evaluate(() => ({
         foot: [...document.querySelectorAll("footer .fnav a")].map((a) => [a.getAttribute("href"), a.textContent.trim(), a.getBoundingClientRect().height]),
         intro: [...document.querySelectorAll(".intro")].filter((e) => e.offsetParent).map((e) => ({ lang: e.lang, text: e.textContent.length, links: [...e.querySelectorAll("a")].map((a) => a.getAttribute("href")) })),
-        top: getComputedStyle(document.querySelector(".tnav")).display, sw: document.documentElement.scrollWidth, iw: innerWidth,
+        top: { btn: !!document.getElementById("guideBtn").offsetParent, links: [...document.querySelectorAll("#guideMenu a")].map((a) => a.getAttribute("href")) }, sw: document.documentElement.scrollWidth, iw: innerWidth,
       }));
       assert.deepEqual(r.foot.map((x) => x[0]), NAV.map(([k]) => `./${k}.html`).concat("./privacy.html"), `home ${lang} ${w}: footer links`);
       assert.ok(r.foot.every((x) => x[1] && x[2] >= 28), "link labels are filled in and easy to tap");
       assert.equal(r.intro.length, 1, "one text block per language"); assert.equal(r.intro[0].lang, lang); assert.ok(r.intro[0].text > 200);
       for (const l of ["./guide.html", "./modes.html", "./maps.html", "./agents.html"]) assert.ok(r.intro[0].links.includes(l), l);
-      assert.equal(r.top, w >= 1000 ? "flex" : "none", "the top links show on a wide screen only"); assert.ok(r.sw <= r.iw, "no sideways scroll");
+      assert.equal(r.top.btn, true, "the guide menu's button is in the top bar"); assert.ok(r.sw <= r.iw, "no sideways scroll");
+      assert.deepEqual(r.top.links, NAV.map(([k]) => `./${k}.html`), "the guide menu lists every page");
+      await hp.click("#guideBtn"); assert.equal(await hp.locator("#guideMenu").isVisible(), true, "and opens"); await hp.keyboard.press("Escape");
       if (lang === "ko") assert.deepEqual(r.foot.map((x) => x[1]), ["게임 소개", "조작법", "모드", "맵", "요원", "패치노트", "소개", "문의", "개인정보처리방침"]);
       await hp.screenshot({ path: path.join(SHOTS, `home-${lang}-${w}.png`), fullPage: true });
       await ctx.close();

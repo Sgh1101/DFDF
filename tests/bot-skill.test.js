@@ -4,7 +4,7 @@ const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, a + " != " + b);
 const TIERS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
 const increasing = (list) => list.every((n, i) => i === 0 || n >= list[i - 1]);
 
-test("ranked tiers map straight onto 0.60 .. 1.20, Iron to Radiant", () => {
+test("ranked tiers map straight onto 0.60 .. 1.20, lowest tier to top tier", () => {
   const skills = TIERS.map(B.tierSkill);
   near(skills[0], 0.6);
   near(skills[8], 1.2);
