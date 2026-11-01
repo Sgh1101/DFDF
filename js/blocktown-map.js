@@ -409,7 +409,14 @@
     for (let c = 0; c < cols * rows; c++) {
       start[c] = ys.length;
       const x = cx0(c), z = cz0(c), list = S[((((c / cols) | 0) >> 1) * NX) + ((c % cols) >> 1)];
-      for (const h of list) if (h <= 4 && !collideXZ(x, z, h + 0.02, PR)) (ys.push(h), cellOf.push(c));
+      // a thin probe: a cell beside the next stair step is still a place (the body steps up from it); cells a body
+      // cannot really reach get no links in below and stay off the network
+      // the height is what holds the body there (the engine's own ground test): beside a step up that is the step
+      for (const h0 of list) {
+        if (h0 > 4 || collideXZ(x, z, h0 + 0.02, 0.3)) continue;
+        const h = groundAt(x, z, h0);
+        ys.length > start[c] && ys[ys.length - 1] === h || (ys.push(h), cellOf.push(c));
+      }
     }
     start[cols * rows] = ys.length;
     const N = ys.length, Y = Float32Array.from(ys), CEL = Int32Array.from(cellOf), edges = new Int32Array(N * 4).fill(-1);
@@ -477,10 +484,11 @@
     }
     return best;
   }
-  function route(x, z, y, X, Z) {
+  // from (x, z) at height y to (X, Z) at about height Y (the ground unless given)
+  function route(x, z, y, X, Z, Y = 0) {
     const nav = CACHE && CACHE.nav;
     if (!nav) return [];
-    const s = nearNode(nav, x, z, y, null), g = nearNode(nav, X, Z, 0, nav.main);
+    const s = nearNode(nav, x, z, y, null), g = nearNode(nav, X, Z, Y, nav.main);
     if (s < 0 || g < 0) return [];
     let next = nav.flows.get(g);
     if (!next) {
