@@ -158,11 +158,10 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 
     // -- the ▶ button opens the film by hand: X, Esc, backdrop; the button remembers nothing
     assert.match(await page.textContent("#promo-open"), /홍보영상/);
-    assert.equal(await page.evaluate(() => document.getElementById("promo-open").nextElementSibling.id), "fbOpen", "next to 문의 in the header");
-    assert.equal(await page.evaluate(() => { for (const id of ["orderOpen", "logout"]) document.getElementById(id).hidden = !1; return [...document.querySelectorAll(".top > *")].filter((e) => e.offsetParent !== null).length >= 6; }), true);
+    assert.equal(await page.evaluate(() => document.getElementById("promo-open").nextElementSibling.id), "menuDd", "before the menu in the header");
+    assert.equal(await page.evaluate(() => ["logoHome", "guideDd", "promo-open", "recOpen", "menuDd"].every((id) => document.getElementById(id).offsetParent !== null)), true, "the logo, the guides, the film, my records and the menu are all in the header");
     assert.deepEqual(await layout(page, "390 header (everything shown)"), []);
     assert.ok((await page.locator("#promo-open").boundingBox()).height >= 35.5, "36px touch target");
-    await page.evaluate(() => { document.getElementById("orderOpen").hidden = !0; });
     assert.deepEqual(await layout(page, "390 header (signed in)", { oneLine: !0 }), [], "one line, nothing squeezed");
     assert.equal(await page.getAttribute("#promo-open", "aria-label"), "홍보영상 보기", "the triangle alone still has a name");
     await page.screenshot({ path: dir + "/promo-button-phone.png" });

@@ -23,8 +23,11 @@ const SIZES = [[1920, 1080, 1], [1366, 768, 1], [1280, 720, 1], [1024, 768, 1], 
         assert.ok(r.heroRight < r.cardLeft, width + "x" + height + ": the title and the card stand side by side");
       }
       if(touch){
-        const targets=await page.locator('.wallet a:visible').evaluateAll(a=>a.map(e=>({id:e.id,height:e.getBoundingClientRect().height})));
-        assert.ok(targets.length>=4&&targets.every(t=>t.height>=35.5),'homepage wallet links are tappable: '+JSON.stringify(targets));
+        // the game's pages (skins, cosmetics, the leaderboard) are in the top bar's menu now
+        await page.locator('#menuBtn').click();
+        const targets=await page.locator('#mainMenu a:visible, #mainMenu button:visible').evaluateAll(a=>a.map(e=>({id:e.id,height:e.getBoundingClientRect().height})));
+        assert.ok(targets.length>=4&&targets.every(t=>t.height>=35.5),'the homepage menu items are tappable: '+JSON.stringify(targets));
+        await page.keyboard.press('Escape');
       }
       const privacy=page.locator('footer a[href="./privacy.html"]');
       await privacy.scrollIntoViewIfNeeded();

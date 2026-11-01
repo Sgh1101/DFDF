@@ -13,7 +13,7 @@ const ROLE = { 타격대: "duelist", 감시자: "sentinel", 척후대: "initiato
     // ── the homepage ──
     await f.h.api("auth", { id: "homeprog", pw: "password", device: "browser-test-homeprog" });
     put("homeprog", (u) => { u.xp = 2100; u.wins = 4; u.kills = 63; u.matches = 9; u.fwDay = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10); u.lvPaid = 7; u.mast = { hwaryeong: { xp: 450, m: 5, w: 2, k: 30 } }; u.ach = { got: { win1: Date.now() - 1000 }, roles: { duelist: 1, sentinel: 1 }, modes: { std: 1, rush: 1, dm: 1 } }; u.cos = { own: ["scout"], eq: {} }; });
-    const home = async (page, lang) => { await page.evaluate((l) => localStorage.setItem("lgp_lang", l), lang); await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" }); await page.waitForSelector("#achList .pr", { timeout: 20000 }); };
+    const home = async (page, lang) => { await page.evaluate((l) => localStorage.setItem("lgp_lang", l), lang); await page.goto(BASE + "/index.html?t=" + lang + "#records-rew", { waitUntil: "domcontentloaded" }); await page.waitForSelector("#achList .pr", { timeout: 20000 }); };
     const hp = await f.page("homeprog", { width: 1280, height: 900 });
     for (const lang of ["ko", "en"]) {
       await home(hp, lang);

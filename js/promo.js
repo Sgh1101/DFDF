@@ -38,8 +38,8 @@ window.PROMO = {
       btn.type = "button";
       btn.className = "chip";
       btn.onclick = () => window.NOTICE && NOTICE.open({ manual: !0 });
-      // next to 문의 in the header when the page has one, else a pill in the bottom corner
-      const fb = doc.getElementById("fbOpen");
+      // in the header, before its menu (the homepage) or next to 문의, when the page has one; else a pill in the bottom corner
+      const fb = doc.getElementById("menuDd") || doc.getElementById("fbOpen");
       if (fb && fb.parentNode) fb.parentNode.insertBefore(btn, fb);
       else { btn.classList.add("corner"); doc.body.appendChild(btn); }
     }

@@ -20,6 +20,16 @@ const VIEWS = [["phone-390x844", 390, 844, 1], ["phone-360x640", 360, 640, 1], [
       };
       await run("home", async () => {});
       await run("home-scrolled", async () => { await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); });
+      // the top bar's two menus, and my records with each of their tabs
+      await run("home-guide", async () => { await page.evaluate(() => window.scrollTo(0, 0)); await page.click("#guideBtn"); });
+      await run("home-menu", async () => { await page.keyboard.press("Escape"); await page.click("#menuBtn"); });
+      for (const tab of ["stats", "mast", "rew", "clan"]) await run("home-records-" + tab, async () => {
+        await page.keyboard.press("Escape");
+        await page.evaluate((t) => { openRec(t); }, tab);
+        const b = page.locator(`#recTabs [data-tab="${tab}"]`);
+        if (await b.isVisible()) await b.click();
+      });
+      await page.evaluate(() => history.back());
       await page.context().close();
     }
     fs.writeFileSync(process.env.DFDF_UI_OUT || "/tmp/ui-audit-home.json", JSON.stringify(found, null, 1));

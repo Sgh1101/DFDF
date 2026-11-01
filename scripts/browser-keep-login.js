@@ -84,7 +84,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
 
     // 6. logging out forgets the kept sign-in
     await login(p, "keeper", true);
-    await p.click("#logout");
+    await p.click("#menuBtn"); await p.click("#logout");
     assert.equal(await p.evaluate(() => [localStorage.getItem("lgp_keep"), localStorage.getItem("lgp_session")].join("|")), "|");
     await p.close();
     p = await tab();
