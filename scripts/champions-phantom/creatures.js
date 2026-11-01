@@ -7,6 +7,7 @@
 "use strict";
 const { Model, paint, THREE } = require("./model");
 const { hash } = require("./png");
+const round = (n) => Math.round(n * 10000) / 10000;
 
 const U = 16, deg = 180 / Math.PI;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -33,6 +34,13 @@ class Rig {
     const P = this.p3.get(bone);
     return this.model.cube(bone, [-(x1 * U + P[0]), y0 * U + P[1], z0 * U + P[2]], [(x1 - x0) * U, (y1 - y0) * U, (z1 - z0) * U], material);
   }
+  // Uniformly scale some bones (pivots, cube corners and sizes) about a world point in meters.
+  // Cubes of the kept materials stay where they are (the eye gems sit on the scene's fixed eye points).
+  scaleBones(names, centre, S, keep = ["eye"]) {
+    const set = new Set(names), c = [-centre.x * U, centre.y * U, centre.z * U], f = (v) => v.map((n, i) => round(c[i] + S * (n - c[i])));
+    for (const b of this.model.bones) if (set.has(b.name)) b.pivot = f(b.pivot);
+    for (const cube of this.model.cubes) if (set.has(cube.bone) && !keep.includes(cube.material)) { cube.origin = f(cube.origin); cube.size = cube.size.map((n) => round(n * S)); }
+  }
   local(bone, point) { return V(...point).multiplyScalar(U).applyMatrix4(this.world.get(bone).clone().invert()).divideScalar(U); }
 }
 // Orientation with +X along the body and +Y as close to world up as possible.
@@ -49,13 +57,15 @@ function body(rig, points, n, radius, opts) {
   const curve = new THREE.CatmullRomCurve3(points.map((p) => V(...p)), false, "centripetal"), segs = [];
   const length = curve.getLength(), step = length / n;
   for (let i = 0; i < n; i++) {
-    const t = (i + 0.5) / n, p = curve.getPointAt(t), tan = curve.getTangentAt(t), r = radius(t);
+    const t = (i + 0.5) / n, tan = curve.getTangentAt(t), p = curve.getPointAt(t);
+    if (opts.wave) p.y += opts.wave * Math.sin(i * 0.85) * (1 - t ** 4);
+    const r = radius(t) * (1 + (opts.jitter || 0) * Math.sin(i * 1.9 + 0.7)), spike = 0.5 + 1.2 * hash(i * 7.3, opts.seed || 1);
     const name = rig.bone(`seg_${String(i).padStart(2, "0")}`, "root", p, frame(tan));
     const half = step / 2 + 0.1;
     rig.box(name, [-half, half], [-r * 0.82, r], [-r, r], "scale");
     rig.box(name, [-half * 0.86, half * 0.86], [-r * 1.02, -r * 0.62], [-r * 0.74, r * 0.74], "belly");
-    if (opts.fin(i, t)) rig.box(name, [-half * 0.5, half * 0.3], [r * 0.95, r + opts.finHeight * r], [-0.05, 0.05], "fin");
-    if (opts.flank && i % 2 === 0) for (const s of [-1, 1]) rig.box(name, [-half * 0.7, half * 0.5], [-r * 0.2, r * 0.45], s > 0 ? [r, r + 0.05] : [-r - 0.05, -r], "flank");
+    if (opts.fin(i, t)) rig.box(name, [-half * 0.5, half * 0.3], [r * 0.95, r + opts.finHeight * r * spike], [-0.05, 0.05], "fin");
+    if (opts.flank && i % 2 === 0) for (const s of [-1, 1]) rig.box(name, [-half * 0.7, half * 0.5], [-r * 0.45, r * 0.55 + 0.1 * spike], s > 0 ? [r, r + 0.1 + 0.12 * spike] : [-r - 0.1 - 0.12 * spike, -r], "flank");
     segs.push({ name, p, tan, r, t });
   }
   return { curve, segs };
@@ -64,6 +74,7 @@ function body(rig, points, n, radius, opts) {
 function dragonHead(rig, eyes, neck) {
   const [a, b] = eyes.map((e) => V(...e)), side = a.clone().sub(b).normalize(), fwd = V(0, 1, 0).cross(side).normalize();
   const center = a.clone().add(b).multiplyScalar(0.5).addScaledVector(fwd, 0.3).add(V(0, -0.08, 0));
+  const first = rig.model.bones.length;
   const head = rig.bone("head", "root", center, frame(fwd));
   rig.box(head, [-0.75, 0.25], [-0.3, 0.38], [-0.48, 0.48], "scale");           // skull
   rig.box(head, [0.25, 1.15], [-0.18, 0.22], [-0.36, 0.36], "scale");           // snout
@@ -94,7 +105,7 @@ function dragonHead(rig, eyes, neck) {
     const p2 = V(0.62 * U, 0, 0).applyMatrix4(rig.world.get(h1)).divideScalar(U);
     rig.box(rig.bone(`head_horn_${tag}2`, h1, p2, frame(fwd.clone().multiplyScalar(-1).add(V(0, 1.1, 0)))), [0, 0.38], [-0.04, 0.04], [-0.04, 0.04], "horn");
     // whiskers and cheek fins
-    rig.box(rig.bone(`head_cheek_${tag}0`, head, center.clone().addScaledVector(fwd, 0.9).addScaledVector(side, s * 0.3).add(V(0, -0.02, 0)), frame(fwd.clone().multiplyScalar(-0.4).addScaledVector(side, s).add(V(0, -0.35, 0)))), [0, 0.95], [-0.03, 0.03], [-0.03, 0.03], "mane");
+    rig.box(rig.bone(`head_cheek_${tag}0`, head, center.clone().addScaledVector(fwd, 0.9).addScaledVector(side, s * 0.3).add(V(0, -0.02, 0)), frame(fwd.clone().multiplyScalar(-0.4).addScaledVector(side, s).add(V(0, -0.35, 0)))), [0, 1.7], [-0.035, 0.035], [-0.035, 0.035], "mane");
     rig.box(rig.bone(`head_cheek_${tag}1`, head, center.clone().addScaledVector(fwd, -0.4).addScaledVector(side, s * 0.45).add(V(0, -0.1, 0)), frame(fwd.clone().multiplyScalar(-1).addScaledVector(side, s * 0.8))), [0, 0.55], [-0.14, 0.14], [-0.03, 0.03], "mane");
   }
   // A crest of mane spikes fanning back from the skull.
@@ -108,6 +119,7 @@ function dragonHead(rig, eyes, neck) {
     const p = center.clone().addScaledVector(fwd, -0.7).addScaledVector(side, s * 0.48).add(V(0, -0.1 - k * 0.12, 0));
     rig.box(rig.bone(`head_mane_${i}`, head, p, frame(fwd.clone().multiplyScalar(-1).addScaledVector(side, s * 0.5).add(V(0, -0.15 - k * 0.2, 0)))), [0, 0.75 - k * 0.12], [-0.03, 0.03], [-0.1, 0.1], "mane");
   }
+  rig.scaleBones(rig.model.bones.slice(first).map((b) => b.name), center, 1.15);
   return head;
 }
 // A small arm with three claws on a body segment.
@@ -127,7 +139,7 @@ function dragon() {
   const rig = new Rig("geometry.dfdf_champions_dragon", [512, 512]);
   const eyes = EYES.dragon, neckEnd = [-4.45, 6.75, 0.5];
   const path = [[3.2, 1.0, -4.4], [5.0, 1.15, -2.0], [5.1, 1.3, 1.4], [3.2, 1.5, 3.9], [0.2, 1.7, 4.7], [-2.8, 2.0, 3.9], [-4.6, 2.6, 1.9], [-5.25, 3.7, 0.1], [-5.1, 5.1, -0.35], [-4.85, 6.25, 0.1], neckEnd];
-  const { segs } = body(rig, path, 23, (t) => 0.34 + 0.3 * Math.min(1, t * 1.6), { fin: (i) => i % 1 === 0, finHeight: 0.55, flank: true });
+  const { segs } = body(rig, path, 23, (t) => 0.34 + 0.3 * Math.min(1, t * 1.6), { fin: (i) => i % 1 === 0, finHeight: 0.6, flank: true, wave: 0.22, jitter: 0.1, seed: 3 });
   dragonHead(rig, eyes);
   for (const [k, i] of [[0, 15], [1, 7]]) for (const [s, tag] of [[1, "r"], [-1, "l"]]) arm(rig, segs[i], s, tag);
   return rig.model;
@@ -136,6 +148,7 @@ function dragon() {
 function serpentHead(rig, eyes, variant) {
   const [a, b] = eyes.map((e) => V(...e)), side = b.clone().sub(a).normalize(), fwd = V(0, 1, 0).cross(side).normalize();
   const center = a.clone().add(b).multiplyScalar(0.5).addScaledVector(fwd, 0.28).add(V(0, -0.06, 0));
+  const first = rig.model.bones.length;
   const head = rig.bone("head", "root", center, frame(fwd));
   rig.box(head, [-0.65, 0.3], [-0.26, 0.3], [-0.72, 0.72], "scale");             // broad skull
   rig.box(head, [0.3, 1.25], [-0.16, 0.2], [-0.5, 0.5], "scale");               // flat snout
@@ -161,17 +174,17 @@ function serpentHead(rig, eyes, variant) {
       // Hood fans spreading behind the head.
       for (let i = 0; i < 5; i++) {
         const k = i / 4, p = center.clone().addScaledVector(fwd, -0.55).addScaledVector(side, s * 0.62).add(V(0, 0.2 - k * 0.45, 0));
-        rig.box(rig.bone(`fan_${tag}${i}`, head, p, frame(fwd.clone().multiplyScalar(-0.75).addScaledVector(side, s * 1.0).add(V(0, 0.9 - k * 1.3, 0)))), [0, 1.0 - Math.abs(k - 0.4) * 0.6], [-0.03, 0.03], [-0.14, 0.14], "fan");
+        rig.box(rig.bone(`fan_${tag}${i}`, head, p, frame(fwd.clone().multiplyScalar(-0.75).addScaledVector(side, s * 1.0).add(V(0, 0.9 - k * 1.3, 0)))), [0, 1.5 - Math.abs(k - 0.4) * 0.9], [-0.03, 0.03], [-0.2, 0.2], "fan");
       }
       const h0 = rig.bone(`horn_${tag}0`, head, center.clone().addScaledVector(fwd, -0.4).addScaledVector(side, s * 0.3).add(V(0, 0.36, 0)), frame(fwd.clone().multiplyScalar(-1).add(V(0, 0.7, 0)).addScaledVector(side, s * 0.3)));
-      rig.box(h0, [0, 0.55], [-0.08, 0.08], [-0.08, 0.08], "plate");
-      rig.box(rig.bone(`horn_${tag}1`, h0, V(0.55 * U, 0, 0).applyMatrix4(rig.world.get(h0)).divideScalar(U), frame(fwd.clone().multiplyScalar(-1).add(V(0, 0.25, 0)))), [0, 0.5], [-0.06, 0.06], [-0.06, 0.06], "plate");
+      rig.box(h0, [0, 0.95], [-0.11, 0.11], [-0.11, 0.11], "plate");
+      rig.box(rig.bone(`horn_${tag}1`, h0, V(0.95 * U, 0, 0).applyMatrix4(rig.world.get(h0)).divideScalar(U), frame(fwd.clone().multiplyScalar(-1).add(V(0, 0.25, 0)))), [0, 0.9], [-0.09, 0.09], [-0.09, 0.09], "plate");
     } else {
       // Swept double horns and spines instead of hood fans.
       for (let i = 0; i < 3; i++) {
         const p = center.clone().addScaledVector(fwd, -0.5 - i * 0.12).addScaledVector(side, s * (0.4 + i * 0.12)).add(V(0, 0.32 - i * 0.18, 0));
         const h = rig.bone(`horn_${tag}${i}`, head, p, frame(fwd.clone().multiplyScalar(-1).add(V(0, 0.55 - i * 0.3, 0)).addScaledVector(side, s * (0.35 + i * 0.25))));
-        rig.box(h, [0, 1.1 - i * 0.22], [-0.07, 0.07], [-0.07, 0.07], i ? "fan" : "plate");
+        rig.box(h, [0, 1.7 - i * 0.3], [-0.1, 0.1], [-0.1, 0.1], i ? "fan" : "plate");
       }
     }
   }
@@ -180,6 +193,7 @@ function serpentHead(rig, eyes, variant) {
     const p = center.clone().addScaledVector(fwd, -0.2 - i * 0.22).add(V(0, 0.36, 0));
     rig.box(rig.bone(`crest_${i}`, head, p, frame(fwd.clone().multiplyScalar(-1).add(V(0, 1.6 - i * 0.25, 0)))), [0, 0.42 - i * 0.04], [-0.02, 0.02], [-0.09, 0.09], "fan");
   }
+  rig.scaleBones(rig.model.bones.slice(first).map((b) => b.name), center, 1.3);
   return head;
 }
 function serpent(variant) {
