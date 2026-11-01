@@ -172,17 +172,6 @@ const DEFAULT_CONFIG = {
   // clans: a clan costs `cost` gold to make and holds `max` members at most (2 to 50); on switches the whole thing
   // (the homepage section, the tags beside names in a game and the clan board)
   clan: { on: !0, cost: 1000, max: 50 },
-  // paid cheats, by bank transfer: a player picks cheats and a length, gets an order number and the
-  // account to pay (set here, never in the repository), and the owner opens them in the admin page
-  // once the money has arrived. price is for 7 days; dur multiplies it by length (d0 = permanent).
-  order: {
-    on: !1,
-    bank: "",
-    holder: "",
-    note: "입금이 확인되면 운영자가 직접 열어 드립니다. 보통 하루 안에 열립니다.",
-    price: { radar: 3000, wall: 5000, cheat: 4000, oneShot: 8000, infAmmo: 2000, noRecoil: 2000, speed: 3000, fastFire: 3000, buff: 4000, gold1k: 2000, gold5k: 9000, gold20k: 30000 },
-    dur: { d1: 0.3, d7: 1, d30: 3, d0: 10 },
-  },
   // seasons: every `weeks` weeks from startDay (a date in Korea, YYYYMMDD) a season ends.
   // Each account keeps keep% of its RR; whoever played at least minPlay counted ranked
   // matches in it gets the gold of the tier it finished on, and from skinTier up (0 iron …
@@ -300,7 +289,7 @@ async function ulog(id, kind, msg, data) {
   try { await pipe(ulogCmds(id, kind, msg, data)); } catch (e) {}
 }
 // entries of the server log that also belong in an account's own log (the others call ulog with more detail)
-const ULOG_FROM_LOG = new Set(["order", "room", "level", "rank", "feedback"]);
+const ULOG_FROM_LOG = new Set(["room", "level", "rank", "feedback"]);
 async function log(type, msg, extra) {
   try {
     const cmds = [
@@ -344,10 +333,14 @@ async function banOf(user, device, ip) {
 // it may speed itself up or fire faster, and the buff (every ability but the
 // ultimate back every so many seconds). `until` 0 means no end date.
 const PERM_SW = ["radar", "wall", "cheat", "god", "oneShot", "infAmmo", "noRecoil"];
+// Cheats only count when the owner's admin page (or admin mode) wrote them: cleanPerm stamps `src`. A perm without the
+// stamp was left by the old paid-cheat sales; it stays stored but is switched off until the owner saves it again.
+const PERM_SRC = "admin";
+const permMarked = (p) => isObj(p) && PERM_SRC === p.src;
 function cleanPerm(p, days) {
   p = p && "object" == typeof p ? p : {};
   const num = (v, lo, hi, d) => Math.max(lo, Math.min(hi, isFinite(+v) ? +v : d));
-  const out = { on: !!p.on };
+  const out = { on: !!p.on, src: PERM_SRC };
   for (const k of PERM_SW) out[k] = !!p[k];
   out.speed = Math.round(num(p.speed, 1, 3, 1) * 100) / 100;
   out.fastFire = Math.round(num(p.fastFire, 1, 10, 1) * 10) / 10;
@@ -365,7 +358,7 @@ const permUntil = (p) => {
 };
 // the cheats of a perm that have not run out (null if none); a perm without ends is whole or nothing, as it always was
 function permNow(p, t = now()) {
-  if (!isObj(p) || !p.on) return null;
+  if (!isObj(p) || !p.on || !permMarked(p)) return null;
   if (!isObj(p.ends)) return p.until && p.until < t ? null : p;
   const q = Object.assign({}, p), ends = {};
   for (const k of permKeys(p)) {
@@ -588,7 +581,7 @@ async function saveUser(u, report) {
   else Object.defineProperty(u, SNAPSHOT, { value, writable: true });
 }
 const rlKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 32) : u.id);
-// who a player is for owning things (orders, rooms): an account by its id, a guest by its device, never by a shown
+// who a player is for owning things (rooms): an account by its id, a guest by its device, never by a shown
 // name alone (a guest's name can read the same as an account's)
 const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:" + u.id.toLowerCase());
 
@@ -806,7 +799,7 @@ const weekMapOf = (c, t) => {
 const eventMapOf = (c, t) => EVENT_MAP.choose(t, !1 !== c.game.eventMap, c.game.eventMapEnd);
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { order: { on: !!c.order.on }, game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, aiComp: publicAiComp(c.aiComp), rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
+  return { config: { game: c.game, weekMap: weekMapOf(c, now()), eventMap: eventMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, aiComp: publicAiComp(c.aiComp), rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -1166,246 +1159,6 @@ A.feedback_mine = async (q, b) => {
   return { items: rows.filter(Boolean).map((r) => { const x = JSON.parse(r); return { id: x.id, t: x.t, type: x.type, title: x.title, status: x.status, reply: x.reply || "", replyT: x.replyT || 0 }; }) };
 };
 
-// ── paid cheats by bank transfer ──
-// A player picks cheats and a length, the order gets a short code and the account to pay into (the
-// owner sets it in the settings), and the owner opens the cheats on the account from the admin page
-// once the money is in. Opening merges into the account's own cheat permission (`perm`), the one the
-// owner can already give by hand; a ranked match never honours it.
-const ORDER_ITEMS = [
-  { k: "radar", name: "레이더", desc: "작은 지도에 적이 보입니다", sw: 1 },
-  { k: "wall", name: "벽 투시", desc: "벽 너머의 적이 보입니다", sw: 1 },
-  { k: "cheat", name: "치트 모드", desc: "능력이 다시 차고 다른 요원의 능력 세트를 씁니다", sw: 1 },
-  { k: "oneShot", name: "한 방 처치", desc: "총 한 발에 쓰러뜨립니다", sw: 1 },
-  { k: "infAmmo", name: "탄약 무한", desc: "재장전 없이 쏩니다", sw: 1 },
-  { k: "noRecoil", name: "반동 없음", desc: "총이 튀지 않습니다", sw: 1 },
-  { k: "speed", name: "이동 속도 ×1.5", desc: "더 빨리 달립니다" },
-  { k: "fastFire", name: "연사 ×2", desc: "총을 두 배 빨리 쏩니다" },
-  { k: "buff", name: "능력 재충전 10초", desc: "궁극기 말고는 10초마다 다시 찹니다" },
-  // gold: paid once, no length, added to the account when the owner opens the order
-  { k: "gold1k", name: "골드 1,000", desc: "상점과 뽑기에 쓰는 골드", gold: 1000 },
-  { k: "gold5k", name: "골드 5,000", desc: "상점과 뽑기에 쓰는 골드", gold: 5000 },
-  { k: "gold20k", name: "골드 20,000", desc: "상점과 뽑기에 쓰는 골드", gold: 20000 },
-];
-// no longer sold, still named in the orders already made
-const ORDER_LEGACY = { god: "무적" };
-const orderNames = () => Object.assign({}, ORDER_LEGACY, Object.fromEntries(ORDER_ITEMS.map((x) => [x.k, x.name])));
-const goldOf = (k) => (ORDER_ITEMS.find((x) => x.k === k) || {}).gold || 0;
-// admin mode is never sold: the owner gives it to an account by hand (and with it every cheat)
-const orderPick = (list) => {
-  const known = new Set(ORDER_ITEMS.map((x) => x.k));
-  return [...new Set((Array.isArray(list) ? list : []).map(String))].filter((k) => known.has(k));
-};
-const ORDER_DUR = [{ id: "d1", days: 1, label: "1일" }, { id: "d7", days: 7, label: "7일" }, { id: "d30", days: 30, label: "30일" }, { id: "d0", days: 0, label: "영구" }];
-const ORDER_STATUS = ["pending", "granted", "rejected", "cancelled", "refunded", "revoked"];
-const orderTotal = (c, items, days) => {
-  const dur = ORDER_DUR.find((d) => d.days === days);
-  if (!dur) return 0;
-  const sum = (ks) => ks.reduce((n, k) => n + (c.order.price[k] || 0), 0);
-  // the cheats are priced by length; gold is paid once
-  return Math.round((sum(items.filter((k) => !goldOf(k))) * (c.order.dur[dur.id] || 0)) / 100) * 100 + sum(items.filter(goldOf));
-};
-const orderCatalog = (c) => ({ items: ORDER_ITEMS.map((x) => ({ k: x.k, name: x.name, desc: x.desc, price: c.order.price[x.k] || 0, gold: x.gold || 0 })), legacy: ORDER_LEGACY, durations: ORDER_DUR.map((d) => ({ days: d.days, label: d.label, mult: c.order.dur[d.id] || 0 })) });
-const orderPay = (c) => ({ bank: c.order.bank, holder: c.order.holder, note: c.order.note });
-const orderMe = ownerKey;
-const cleanDeposit = (v) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
-// The books of the paid orders: one line for each thing that happened (order made, money confirmed and opened,
-// taken back, refunded, declined, cancelled), kept for good. `money` is what moved in (+) or out (-) in won.
-const LEDGER_KINDS = ["order", "paid", "revoke", "refund", "reject", "cancel"];
-const ledgerLine = (kind, o, extra) => JSON.stringify(Object.assign({ t: now(), kind, id: o.id, user: o.by, items: o.items, days: o.days, total: o.total, depositor: o.depositor, money: 0 }, extra));
-const ledgerAdd = (kind, o, extra) => pipe([["LPUSH", "ledger", ledgerLine(kind, o, extra)], ["LTRIM", "ledger", "0", "19999"]]);
-// One order changes status one request at a time: a short lock per order (the owner's grant, refund, revoke and the
-// player's own cancel all take it), released only while it is still ours. Whoever finds it taken gets a 409.
-const ORDER_UNLOCK = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
-return 0`;
-async function withOrderLock(id, fn) {
-  const lock = "ordlock:" + id, nonce = crypto.randomBytes(12).toString("hex");
-  if ((await redis(["SET", lock, nonce, "NX", "EX", "30"])) === null) throw fail(409, "이 주문을 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요");
-  try { return await fn(); }
-  finally { try { await redis(["EVAL", ORDER_UNLOCK, "1", lock, nonce]); } catch (e) {} }
-}
-// the first time the books are opened, the orders made before them are written in (oldest first)
-async function ledgerSeed() {
-  if ((await redis(["LRANGE", "ledger", "0", "0"])).length) return;
-  const ids = await redis(["LRANGE", "ord", "0", "1999"]);
-  const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-  const lines = [];
-  for (const o of rows.sort((a, b) => a.t - b.t)) {
-    lines.push(ledgerLine("order", o, { t: o.t }));
-    if (o.grantedAt) lines.push(ledgerLine("paid", o, { t: o.grantedAt, money: o.total }));
-    if ("refunded" === o.status) lines.push(ledgerLine("refund", o, { t: o.refundedAt || o.grantedAt || o.t, money: o.grantedAt ? -o.total : 0, reason: o.reason || "" }));
-    if ("revoked" === o.status) lines.push(ledgerLine("revoke", o, { t: o.revokedAt || o.grantedAt || o.t, reason: o.reason || "" }));
-    if ("rejected" === o.status) lines.push(ledgerLine("reject", o, { t: o.t, reason: o.reason || "" }));
-    if ("cancelled" === o.status) lines.push(ledgerLine("cancel", o, { t: o.t }));
-  }
-  for (const l of lines) await redis(["LPUSH", "ledger", l]);
-}
-// What an order gave is taken back, and only this order's part of it.
-//  - gold: the whole sum the order gave comes off, even if it is already spent; the balance may go below nothing
-//    (a debt the account earns back; every spend checks gold >= price, so nothing can be bought until it is paid off).
-//  - cheats: a cheat goes off only if no OTHER granted, unexpired order of the account also grants it.
-//  - perm.until: if another remaining order is permanent (days 0) the account stays permanent. Otherwise this order's
-//    own extension is removed: a timed order undoes its days (exactly, back to `prevUntil` recorded when it was
-//    opened, if it is still the last extension; else it subtracts its days; at or below now only the other orders' expiry keeps cheats on); an order that made the
-//    account permanent leaves the latest expiry of the remaining orders, or switches the cheats off if none remain.
-//    An order that has already run out leaves `until` alone (its days are used up). While the owner's admin mode
-//    lends its own full set (permAdmin), the account's own cheats underneath (permBefore) are the ones changed.
-// Orders are read from the account's order index (ordu:, the latest 200); older ones are not counted.
-const ordExp = (o, k) => (0 === o.days ? 0 : isObj(o.ends) && Number.isFinite(o.ends[k]) ? o.ends[k] : Number.isFinite(o.exp) ? o.exp : o.until > 0 ? o.until : (o.grantedAt || o.t || 0) + o.days * 864e5);
-async function takeBackOrder(u, o) {
-  const cheats = o.items.filter((k) => !goldOf(k));
-  if (cheats.length) {
-    const t = now(), ids = await redis(["LRANGE", "ordu:" + orderMe(u), "0", "199"]);
-    const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-    const others = rows.filter((x) => x.id !== o.id && "granted" === x.status && x.items.some((k) => !goldOf(k)));
-    const fix = (perm) => {
-      if (!isObj(perm)) return perm;
-      const p = Object.assign({}, perm), ends = {}, off = (k) => (PERM_SW.includes(k) ? (p[k] = !1) : (p[k] = "buff" === k ? 0 : 1));
-      for (const k of permKeys(perm)) ends[k] = permEnd(perm, k);
-      for (const k of cheats) {
-        const ok = others.filter((x) => x.items.includes(k) && (0 === x.days || ordExp(x, k) > t));
-        if (!ok.length) {
-          off(k);
-          delete ends[k];
-          continue;
-        }
-        const e = ends[k];
-        if (undefined === e) continue;
-        if (ok.some((x) => 0 === x.days)) ends[k] = 0;
-        else if (o.days > 0 && ordExp(o, k) <= t) continue;
-        else {
-          const latest = ok.reduce((n, x) => Math.max(n, ordExp(x, k)), 0);
-          if (0 === o.days) {
-            // this order made the cheat permanent: whatever the others still run to
-            if (latest > t) ends[k] = latest;
-            else (off(k), delete ends[k]);
-          } else if (e > 0) {
-            const pe = isObj(o.prevEnds) && k in o.prevEnds ? o.prevEnds[k] : o.prevUntil,
-              own = isObj(o.ends) && Number.isFinite(o.ends[k]) ? o.ends[k] : o.until;
-            const to = pe > 0 && e === own ? pe : e - o.days * 864e5;
-            // nothing of this order's time is left: only what the other orders still run to keeps the cheat on
-            if (to > t) ends[k] = to;
-            else if (latest > t) ends[k] = latest;
-            else (off(k), delete ends[k]);
-          }
-        }
-      }
-      p.ends = ends;
-      p.on = !!p.on && permKeys(p).length > 0;
-      if (p.on) p.until = permUntil(p);
-      return p;
-    };
-    if (u.permAdmin) u.permBefore && (u.permBefore = fix(u.permBefore));
-    else u.perm = fix(u.perm);
-  }
-  const g = o.items.reduce((n, k) => n + goldOf(k), 0);
-  g && (u.gold = (+u.gold || 0) - g);
-}
-A.order_info = async () => {
-  const c = await loadConfig();
-  return Object.assign({ on: !!c.order.on }, orderCatalog(c));
-};
-A.order_create = async (q, b) => {
-  const u = await who(b.token),
-    c = await loadConfig();
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  if (u.guest) throw fail(403, "게스트는 구매할 수 없습니다. 계정을 만들어 주세요");
-  if (!c.order.on) throw fail(403, "지금은 판매하지 않습니다");
-  if (!c.order.bank) throw fail(503, "입금 계좌가 아직 정해지지 않았습니다");
-  const items = orderPick(b.items);
-  if (!items.length) throw fail(400, "원하는 상품을 하나 이상 골라 주세요");
-  const days = +b.days;
-  if (!ORDER_DUR.some((d) => d.days === days)) throw fail(400, "기간을 골라 주세요");
-  const depositor = cleanDeposit(b.depositor) || u.id;
-  const total = orderTotal(c, items, days);
-  if (total <= 0) throw fail(400, "가격이 정해지지 않았습니다");
-  const me = orderMe(u);
-  if (await limited("ord:" + me + ":d", 10, 86400)) throw fail(429, "오늘은 더 주문할 수 없습니다");
-  const ids = await redis(["LRANGE", "ordu:" + me, "0", "19"]);
-  const mine = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-  if (mine.filter((o) => "pending" === o.status).length >= 3) throw fail(409, "입금 확인을 기다리는 주문이 이미 3건 있습니다");
-  const id = Array.from(crypto.randomBytes(6), (x) => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[x % 31]).join("");
-  const rec = { id, t: now(), by: u.id, byKey: me, items, days, total, depositor, status: "pending", note: "", reason: "" };
-  await pipe([
-    ["SET", "ord:" + id, JSON.stringify(rec), "EX", String(400 * 86400)],
-    ["LPUSH", "ord", id],
-    ["LTRIM", "ord", "0", "1999"],
-    ["LPUSH", "ordu:" + me, id],
-    ["LTRIM", "ordu:" + me, "0", "199"],
-  ]);
-  await ledgerAdd("order", rec);
-  await log("order", `주문 ${id} · ${u.id} · ${items.join(",")} · ${days || "영구"}일 · ${total}원`, { id, user: u.id });
-  return { order: rec, pay: orderPay(c) };
-};
-A.order_mine = async (q, b) => {
-  const u = await who(b.token),
-    c = await loadConfig();
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  const ids = await redis(["LRANGE", "ordu:" + orderMe(u), "0", "19"]);
-  const orders = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-  return { orders: orders.map((o) => ({ id: o.id, t: o.t, items: o.items, days: o.days, total: o.total, depositor: o.depositor, status: o.status, reason: o.reason || "", until: o.until || 0 })), pay: orders.some((o) => "pending" === o.status) ? orderPay(c) : null, perm: activePerm(u) };
-};
-A.order_cancel = async (q, b) => {
-  const u = await who(b.token);
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-  if (!id) throw fail(404, "없는 주문입니다");
-  return withOrderLock(id, async () => {
-    const raw = await redis(["GET", "ord:" + id]);
-    if (!raw) throw fail(404, "없는 주문입니다");
-    const o = JSON.parse(raw);
-    // orders made before `byKey` was kept were all made by accounts (a guest cannot order)
-    if (o.byKey ? o.byKey !== orderMe(u) : u.guest || o.by.toLowerCase() !== u.id.toLowerCase()) throw fail(403, "내 주문이 아닙니다");
-    if ("pending" !== o.status) throw fail(409, "이미 처리된 주문입니다");
-    o.status = "cancelled";
-    // the new status is written first: a failed ledger line can never let a retry act on the old one
-    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-    await ledgerAdd("cancel", o);
-    await ulog(u.id, "order", `주문 ${id} 취소`, { id });
-    return { ok: !0 };
-  });
-};
-// each cheat of an order: the end it had on the account before (null = not on) and the end the order gives it (0 = never)
-function orderEnds(u, o) {
-  const t = now(), cur = permNow(ownPerm(u), t), prevEnds = {}, ends = {};
-  for (const k of o.items.filter((x) => !goldOf(x))) {
-    const e = cur && permKeys(cur).includes(k) ? permEnd(cur, k) : null;
-    prevEnds[k] = e;
-    ends[k] = 0 === o.days || 0 === e ? 0 : (e > t ? e : t) + o.days * 864e5;
-  }
-  const all = Object.values(ends);
-  return { until: cur ? permUntil(cur) : 0, exp: 0 === o.days || all.includes(0) ? 0 : Math.max(0, ...all), prevEnds, ends };
-}
-// opening what was paid for: cheats merged into those the account already has, each one's length added on its own end; gold is added to the wallet
-function applyOrder(u, o) {
-  const gold = o.items.reduce((n, k) => n + goldOf(k), 0),
-    cheats = o.items.filter((k) => !goldOf(k));
-  const own = ownPerm(u);
-  let out = own;
-  if (cheats.length) {
-    const cur = permNow(own),
-      p = Object.assign({}, cur || {}),
-      oe = orderEnds(u, o),
-      kept = {};
-    if (cur) for (const k of permKeys(cur)) kept[k] = permEnd(cur, k);
-    for (const k of cheats) {
-      const it = ORDER_ITEMS.find((x) => x.k === k);
-      // an order made while god mode was still sold opens it too
-      if (!it) ORDER_LEGACY[k] && PERM_SW.includes(k) && (p[k] = !0);
-      else if (it.sw) p[k] = !0;
-      else if ("speed" === k) p.speed = Math.max(+p.speed || 1, 1.5);
-      else if ("fastFire" === k) p.fastFire = Math.max(+p.fastFire || 1, 2);
-      else if ("buff" === k) p.buff = Math.max(+p.buff || 0, 10);
-      kept[k] = oe.ends[k];
-    }
-    p.on = !0;
-    out = cleanPerm(p, 0);
-    out.ends = kept;
-    out.until = permUntil(out);
-    setOwnPerm(u, out);
-  }
-  if (gold) u.gold = Math.min(9e6, (+u.gold || 0) + gold);
-  return out;
-}
 // the catalogue: which guns and skins a pull can give (the game checks it matches its own)
 A.catalog = async () => ({ guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS });
 // Transcendent skins have a separate earned currency, never a gold price or random pull.
@@ -2602,7 +2355,8 @@ function adminCheats(u) {
     const out = cleanPerm(full, 0);
     // whatever the account already had keeps its own end if that is later (or none)
     out.until = cur && (!cur.until || cur.until > u.adminUntil) ? cur.until : u.adminUntil;
-    if (!u.permAdmin) u.permBefore = cur || null;
+    // an unmarked (old, switched off) perm is kept as it was so the revert below gives it back untouched
+    if (!u.permAdmin) u.permBefore = cur || (isObj(u.perm) && !permMarked(u.perm) ? u.perm : null);
     u.perm = out;
     u.permAdmin = !0;
   } else if (u.permAdmin) {
@@ -2724,15 +2478,14 @@ ADMIN.user_profile = async (q, b) => {
     u = dev ? await getJ(guestKey(dev)) : null;
   }
   const me = u && u.guest ? "g:" + u.dev : "u:" + lc;
-  const [lines, global, ordIds, fbIds] = await pipe([["LRANGE", ulogKey(id), "0", String(ULOG_MAX - 1)], ["LRANGE", "logs", "0", "1999"], ["LRANGE", "ordu:u:" + lc, "0", "19"], ["LRANGE", "fbu:" + me, "0", "19"]]);
+  const [lines, global, fbIds] = await pipe([["LRANGE", ulogKey(id), "0", String(ULOG_MAX - 1)], ["LRANGE", "logs", "0", "1999"], ["LRANGE", "fbu:" + me, "0", "19"]]);
   const parse = (x) => {
     try { return JSON.parse(x); } catch (e) { return null; }
   };
   const own = (lines || []).map(parse).filter((e) => e && e.t && e.k);
   if (!u && !own.length) throw fail(404, "없는 아이디");
-  const recs = ((ordIds || []).length || (fbIds || []).length ? await pipe((ordIds || []).map((i) => ["GET", "ord:" + i]).concat((fbIds || []).map((i) => ["GET", "fb:" + i]))) : []).map((x) => (x ? parse(x) : null));
-  const orders = recs.slice(0, (ordIds || []).length).filter(Boolean).map((o) => ({ id: o.id, t: o.t, items: o.items, days: o.days, total: o.total, status: o.status, until: o.until || 0, reason: o.reason || "" }));
-  const feedback = recs.slice((ordIds || []).length).filter(Boolean).map((f) => ({ id: f.id, t: f.t, type: f.type, title: f.title, status: f.status }));
+  const recs = ((fbIds || []).length ? await pipe((fbIds || []).map((i) => ["GET", "fb:" + i])) : []).map((x) => (x ? parse(x) : null));
+  const feedback = recs.filter(Boolean).map((f) => ({ id: f.id, t: f.t, type: f.type, title: f.title, status: f.status }));
   // the log begins at its oldest line; before that only what the server log and the account itself kept
   const since = own.length ? own[own.length - 1].t : 0,
     before = (x) => !since || x < since;
@@ -2771,7 +2524,7 @@ ADMIN.user_profile = async (q, b) => {
   const last = (list) => list.sort((p, r) => r.t - p.t).slice(0, 10);
   agg.ips = last(agg.ips);
   agg.devs = last(agg.devs);
-  const out = { id: u ? u.id : id, found: !!u, log: timeline.slice(0, 900), since, capped: own.length >= ULOG_MAX, agg, orders, itemNames: Object.fromEntries(ORDER_ITEMS.map((x) => [x.k, x.name])), feedback, t };
+  const out = { id: u ? u.id : id, found: !!u, log: timeline.slice(0, 900), since, capped: own.length >= ULOG_MAX, agg, feedback, t };
   if (!u) return { profile: out };
   const lv = levelOf(u.xp || 0, c.xp.perLevel),
     cur = seasonNow(c, t),
@@ -2785,7 +2538,7 @@ ADMIN.user_profile = async (q, b) => {
     pulls: u.pulls || 0, bought: u.bought || 0, cosBought: u.cosBought || 0, spent: u.spent || 0, refunded: u.refunded || 0,
     kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0,
     owner: !!u.owner, admin: !!(u.owner || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
-    permActive: !!activePerm(u), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
+    permActive: !!activePerm(u), permLegacy: !!(isObj(u.perm) && u.perm.on && !permMarked(u.perm)), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
     ai: aiView(u),
@@ -2888,104 +2641,6 @@ ADMIN.feedback_del = async (q, b) => {
   return { deleted: ids.length };
 };
 
-// the paid-cheat orders
-ADMIN.orders = async (q, b) => {
-  const ids = await redis(["LRANGE", "ord", "0", "1999"]);
-  const rows = ids.length ? (await pipe(ids.map((i) => ["GET", "ord:" + i]))).filter(Boolean).map((x) => JSON.parse(x)) : [];
-  const st = String(b.status || ""),
-    s = String(b.q || "").toLowerCase();
-  const counts = { total: rows.length, pending: rows.filter((r) => "pending" === r.status).length, sum: rows.filter((r) => "granted" === r.status).reduce((n, r) => n + r.total, 0) };
-  const items = rows.filter((r) => (!st || r.status === st) && (!s || JSON.stringify(r).toLowerCase().includes(s))).slice(0, 300);
-  const c = await loadConfig();
-  return { orders: items, counts, names: orderNames(), on: !!c.order.on, bank: !!c.order.bank };
-};
-ADMIN.order_set = async (q, b) => {
-  const id = String(b.id || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-  const op = String(b.op || "");
-  if (!id) throw fail(404, "없는 주문입니다");
-  if (!["grant", "reject", "refund", "revoke", "note"].includes(op)) throw fail(400, "알 수 없는 처리");
-  return withOrderLock(id, async () => {
-    const raw = await redis(["GET", "ord:" + id]);
-    if (!raw) throw fail(404, "없는 주문입니다");
-    const o = JSON.parse(raw);
-    // the books and the log come after the order's new status is saved, so a retry never applies it twice
-    let after = null;
-    null != b.note && (o.note = fbStr(b.note, 300));
-    if ("grant" === op || "refund" === op || "revoke" === op) {
-      const u = await getJ(userKey(o.by));
-      if (!u) throw fail(404, "계정을 찾을 수 없습니다: " + o.by);
-      if ("grant" === op) {
-        if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 열어 줄 수 있습니다");
-        ensureWallet(u, await loadConfig());
-        const prev = orderEnds(u, o),
-          perm = applyOrder(u, o);
-        await saveUser(u);
-        o.status = "granted";
-        o.grantedAt = now();
-        o.until = perm && o.items.some((k) => !goldOf(k)) ? perm.until : 0;
-        // kept for the take-back (see takeBackOrder): the account's end before this order, and this order's own end
-        if (o.items.some((k) => !goldOf(k))) { o.prevUntil = prev.until; o.exp = prev.exp; o.prevEnds = prev.prevEnds; o.ends = prev.ends; }
-        after = async () => {
-          await ledgerAdd("paid", o, { t: o.grantedAt, money: o.total, by: String(b.by || "") });
-          await log("order", `주문 ${o.id} 열어 줌 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-        };
-      } else if ("revoke" === op) {
-        // taken back without giving the money back: the cheats and gold this order opened go, the order stays on the books
-        if ("granted" !== o.status) throw fail(409, "열어 준 주문만 회수할 수 있습니다");
-        await takeBackOrder(u, o);
-        await saveUser(u);
-        o.status = "revoked";
-        o.revokedAt = now();
-        o.reason = fbStr(b.reason, 200);
-        after = async () => {
-          await ledgerAdd("revoke", o, { reason: o.reason });
-          await log("order", `주문 ${o.id} 회수 · ${o.by} · ${o.items.join(",")}`, { id: o.id, user: o.by });
-        };
-      } else {
-        if (!["granted", "pending", "revoked"].includes(o.status)) throw fail(409, "이미 처리된 주문입니다");
-        if (b.revoke && "granted" === o.status) {
-          // what the order gave is taken back by the same rule as a revoke (see takeBackOrder)
-          await takeBackOrder(u, o);
-          await saveUser(u);
-        }
-        const paid = "pending" !== o.status;
-        o.status = "refunded";
-        o.refundedAt = now();
-        o.reason = fbStr(b.reason, 200);
-        after = async () => {
-          await ledgerAdd("refund", o, { money: paid ? -o.total : 0, reason: o.reason });
-          await log("order", `주문 ${o.id} 환불${b.revoke ? "·회수" : ""} · ${o.by}`, { id: o.id, user: o.by });
-        };
-      }
-    } else if ("reject" === op) {
-      if ("pending" !== o.status) throw fail(409, "대기 중인 주문만 거절할 수 있습니다");
-      o.status = "rejected";
-      o.reason = fbStr(b.reason, 200);
-      after = async () => {
-        await ledgerAdd("reject", o, { reason: o.reason });
-        await log("order", `주문 ${o.id} 거절 · ${o.by}`, { id: o.id, user: o.by });
-      };
-    }
-    await redis(["SET", "ord:" + id, JSON.stringify(o), "EX", String(400 * 86400)]);
-    after && (await after());
-    return { order: o };
-  });
-};
-// the books: every money event of the paid orders, newest first, with the totals of what is shown
-ADMIN.ledger = async (q, b) => {
-  await ledgerSeed();
-  const raw = await redis(["LRANGE", "ledger", "0", "19999"]);
-  const kind = String(b.kind || ""),
-    from = +b.from || 0,
-    to = +b.to || 0,
-    s = String(b.q || "").toLowerCase();
-  const rows = raw.map((x) => JSON.parse(x)).filter((r) => (!kind || r.kind === kind) && (!from || r.t >= from) && (!to || r.t < to) && (!s || JSON.stringify(r).toLowerCase().includes(s)));
-  rows.sort((a, c) => c.t - a.t);
-  const sum = (k) => rows.filter((r) => r.kind === k).reduce((n, r) => n + (r.money || 0), 0);
-  const count = (k) => rows.filter((r) => r.kind === k).length;
-  const totals = { paid: sum("paid"), refund: -sum("refund"), net: sum("paid") + sum("refund"), orders: count("order"), paidCount: count("paid"), revoked: count("revoke"), refunded: count("refund"), rejected: count("reject") };
-  return { rows: rows.slice(0, 1000), total: rows.length, totals, names: orderNames() };
-};
 // the owner's own default ("config:default": { config, t }), merged over the built-in one like loadConfig does
 const readDefault = async () => {
   const d = await getJ("config:default");
@@ -3029,7 +2684,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "order.dur.d1": [0, 1000], "order.dur.d7": [0, 1000], "order.dur.d30": [0, 1000], "order.dur.d0": [0, 1000], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000], "aiComp.win": [0, 1000], "aiComp.loss": [0, 1000], "aiComp.perKill": [0, 100], "aiComp.maxKill": [0, 1000], "aiComp.maxPerDay": [0, 100000] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000], "aiComp.win": [0, 1000], "aiComp.loss": [0, 1000], "aiComp.perKill": [0, 100], "aiComp.maxKill": [0, 1000], "aiComp.maxPerDay": [0, 100000] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -3511,4 +3166,3 @@ module.exports.rankMath = { MMR_BASE, PLACE_N, mmrFromRR, rrFromMMR, eloExpected
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };
 module.exports.COS = COS;
 module.exports.FB_TYPES = FB_TYPES;
-module.exports.ORDER_ITEMS = ORDER_ITEMS;
