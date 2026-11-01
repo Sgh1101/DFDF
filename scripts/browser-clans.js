@@ -35,8 +35,9 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     await page.goto(BASE + path, { waitUntil: "domcontentloaded" });
     return page;
   };
+  // (the Clan section is a tab of my records on the homepage: the address opens it, and a reload keeps it)
   const home = async (session, viewport = { width: 1280, height: 900 }, lang = "ko", hidden = false) => {
-    const page = await plain(viewport, { s: session, lang });
+    const page = await plain(viewport, { s: session, lang }, "/index.html#records-clan");
     // the section fills in once the server has answered; for a guest, or with clans off, it never shows
     await page.waitForFunction(() => document.querySelector("#clanBody .cl-card"), null, { timeout: hidden ? 2500 : 20000 }).catch((e) => { if (!hidden) throw e; });
     return page;

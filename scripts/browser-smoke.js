@@ -46,7 +46,7 @@ const {harness}=require('../tests/api-harness');
  const invalid=await page.evaluate(()=>{const a=myActor(),before=a.input.seq;NET.onInput(a.ctrl,{seq:before+1,mv:null,yaw:NaN,pitch:Infinity,btn:0});return a.input.seq===before;});assert.equal(invalid,true);
  h.advance(61000);await page.evaluate(()=>gameOver());await page.waitForTimeout(500);
  const result=await page.evaluate(()=>window.LAST_MATCH);console.log('result',result.outcome,result.k);
- await page.goto('' + (process.env.DFDF_BASE_URL || 'http://127.0.0.1:3000') + '/' ,{waitUntil:'domcontentloaded'});await page.waitForTimeout(400);await page.locator('#logout').click();assert.equal(await page.locator('#hist').isVisible(),false);
+ await page.goto('' + (process.env.DFDF_BASE_URL || 'http://127.0.0.1:3000') + '/' ,{waitUntil:'domcontentloaded'});await page.waitForTimeout(400);await page.locator('#menuBtn').click();await page.locator('#logout').click();assert.equal(await page.locator('#hist').isVisible(),false);
  assert.deepEqual(errors,[]);console.log('all browser flow checks passed');
  await browser.close();
 })();

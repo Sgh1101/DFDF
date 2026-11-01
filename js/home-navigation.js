@@ -25,6 +25,20 @@
     lb.onclick = () => LEADERBOARD.open();
     $("go-armory").after(lb);
   }
+  // 더보기 (More): feedback, paid cheats and diagnostics share one menu after the settings, so the bar keeps to play,
+  // the armoury, the leaderboard, practice and the settings. It is built like the practice menu and comes after it.
+  const more = document.createElement("details");
+  more.className = "home-practice home-more";
+  more.innerHTML = `<summary title="${L("더보기", "More")}"><b>${L("더보기", "More")}</b></summary><div></div>`;
+  more.querySelector("summary").insertAdjacentHTML("afterbegin", icon("M5 12h.01 M12 12h.01 M19 12h.01"));
+  const moreBox = more.querySelector("div");
+  $("go-set").after(more);
+  // an item hands the focus to the menu's button before it runs, so a window it opens gives the focus back to a button
+  // that is still on the screen; then the menu closes
+  more.addEventListener("click", (event) => { if (event.target.closest("button")) more.querySelector("summary").focus({ preventScroll: true }); }, true);
+  more.addEventListener("click", (event) => { if (event.target.closest("button")) more.open = false; });
+  // one of the two menus open at a time
+  for (const [a, b] of [[practice, more], [more, practice]]) a.addEventListener("toggle", () => a.open && (b.open = false));
   // the target range was mounted before the practice menu existed and landed in the bar: it belongs in the menu
   const into = practice.querySelector(":scope > div");
   if (into && $("go-targets") && !into.contains($("go-targets"))) into.append($("go-targets"));
@@ -32,6 +46,7 @@
   const tidy = () => {
     const d = $("go-diagnostics");
     if (!d || d.classList.contains("tt-item")) return;
+    moreBox.append(d);
     d.className = "tt-item tt-mini home-minor";
     d.innerHTML = `<b>${L("성능 진단", "Diagnostics")}</b>`;
     d.title = L("성능 진단", "Diagnostics");
@@ -48,7 +63,7 @@
     fb.innerHTML = `<b>${L("문의", "Feedback")}</b>`;
     fb.insertAdjacentHTML("afterbegin", icon("M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"));
     fb.onclick = () => FEEDBACK.open();
-    $("go-set").after(fb);
+    moreBox.prepend(fb);
     // paid cheats (shown only once the owner has opened the sale)
     if (window.ORDERS) {
       const od = document.createElement("button");

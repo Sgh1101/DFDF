@@ -16,7 +16,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
     u.hist = MODES.map((mode, i) => ({ mode, map: "빙하 관측소", agent: "화령", k: 10 - (i % 5), d: 3, a: 1, dmg: 800, cs: 700, rank: 1 + (i % 3), n: 8, s: [9, 9], win: i % 2 === 0, t: Date.now() - i * 3600e3, xp: 100, gold: 100, rr: 0 }));
     f.h.db.set("user:homeprof", JSON.stringify(u));
     await f.h.api("auth", { id: "nomast", pw: "password", device: "browser-test-nomast" });
-    const home = async (page, lang) => { await page.evaluate((l) => localStorage.setItem("lgp_lang", l), lang); await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" }); };
+    const home = async (page, lang) => { await page.evaluate((l) => localStorage.setItem("lgp_lang", l), lang); await page.goto(BASE + "/index.html?t=" + lang + "#records-mast", { waitUntil: "domcontentloaded" }); };
     const page = await f.page("homeprof", { width: 1280, height: 900 });
     for (const lang of ["ko", "en"]) {
       await home(page, lang);

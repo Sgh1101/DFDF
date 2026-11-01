@@ -424,7 +424,7 @@
     b.className = "tt-item";
     b.innerHTML = `<b>${L("표적 사격", "Target range")}</b>`;
     b.onclick = enter;
-    const host = document.querySelector(".home-practice > div") || ($("go-range") && $("go-range").parentElement);
+    const host = document.querySelector(".home-practice:not(.home-more) > div") || ($("go-range") && $("go-range").parentElement);
     host && host.appendChild(b);
   }
   mount();

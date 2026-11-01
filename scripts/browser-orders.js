@@ -23,7 +23,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // the homepage chip too
     await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => document.getElementById("orderOpen") && !document.getElementById("orderOpen").hidden, null, { timeout: 15000 });
-    await page.click("#orderOpen");
+    await page.click("#menuBtn"); await page.click("#orderOpen");
     await page.waitForSelector("#od-back:not([hidden]) .od-it");
     assert.equal(await page.locator("#od .od-it").count(), 12);
     assert.equal(await page.locator('#od .od-it[data-k="admin"]').count(), 0, "admin mode is not on sale");
@@ -60,7 +60,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await ph.evaluate(() => localStorage.setItem("lgp_lang", "ko"));
     await ph.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
     await ph.waitForFunction(() => document.getElementById("orderOpen") && !document.getElementById("orderOpen").hidden, null, { timeout: 15000 });
-    await ph.tap("#orderOpen");
+    await ph.tap("#menuBtn"); await ph.tap("#orderOpen");
     await ph.waitForSelector("#od .od-it");
     await ph.tap('#od .od-it[data-k="radar"]');
     const fit = await ph.evaluate(() => { const r = (e) => e.getBoundingClientRect(), box = r(document.getElementById("od")), go = r(document.getElementById("od-go")), hit = document.elementFromPoint(go.left + go.width / 2, go.top + go.height / 2); return { inside: box.top >= 0 && box.bottom <= innerHeight && box.right <= innerWidth, go: go.bottom <= innerHeight && go.top >= 0, hit: hit === document.getElementById("od-go"), enabled: !document.getElementById("od-go").disabled }; });
@@ -95,7 +95,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     await page.click("#od-back .od-x");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => !document.getElementById("orderOpen").hidden);
-    await page.click("#orderOpen");
+    await page.click("#menuBtn"); await page.click("#orderOpen");
     await page.click('#od .od-tabs [data-t="mine"]');
     await page.waitForSelector("#od .od-item");
     const mine = await page.textContent("#od-body");

@@ -147,9 +147,11 @@ background:linear-gradient(180deg,#ff5b6b,#e0303f);border:1px solid rgba(255,140
   .hero .sub{letter-spacing:.32em;margin-top:8px}
   .auth,.card{margin:0;max-width:none}
   .auth .d{display:none}
-  .auth h3{margin-bottom:10px}
-  .in{padding:10px 12px;margin-bottom:8px}
-  .or{margin:8px 0}
+  .auth h3{margin-bottom:8px}
+  .auth{padding:14px 16px}
+  .in{padding:9px 12px;margin-bottom:6px}
+  .keep{min-height:30px;margin:0 0 4px}
+  .or{margin:4px 0}
   .card{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.62fr);gap:16px;align-items:center;padding:16px}
   .ring{width:76px;height:76px}.lvl b{font-size:24px}.lvl small{font-size:8px}
   .pf{gap:12px}.nm{font-size:17px}.rank{margin-top:3px}.xpt{margin-top:5px}
@@ -159,19 +161,22 @@ background:linear-gradient(180deg,#ff5b6b,#e0303f);border:1px solid rgba(255,140
   .wallet{flex-wrap:wrap;gap:4px;margin-top:8px;font-size:11px}.wallet span,.wallet a{padding:4px 6px;white-space:nowrap}
   .hint{font-size:11px}
   section{padding-top:24px}
+  body.rec .stage{align-items:start}
 }
 /* a desktop window: the title on the left, the profile card with the way in on the right (the column of 440 px
    left the button below the fold at 1280 x 720); phones and short landscape windows keep their own rules */
 @media(min-width:1000px) and (min-height:600px){
   .wrap{max-width:1160px;padding:0 32px}
   .top{padding:20px 0}
-  .stage{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:72px;align-items:center;min-height:calc(100vh - 140px);padding-bottom:24px}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:72px;align-items:center;min-height:calc(100vh - 78px);padding-bottom:24px}
   .hero{text-align:left;padding:0}
   .hero h1{font-size:clamp(120px,15vw,200px);letter-spacing:.04em}
   .hero .sub{margin-top:18px;font-size:13px;letter-spacing:.5em}
   .hero p{margin:24px 0 0;max-width:38ch;font-size:16px;line-height:1.9}
   .auth,.card{margin:0;max-width:none}
   .views .hist{max-width:none;margin:24px 0 0}
+  body.rec .stage{align-items:start}
+  body.rec .hero{position:sticky;top:24px}
 }
 [hidden]{display:none!important}
 h2{font-family:var(--fd);font-size:12px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin:0 0 12px}
@@ -189,8 +194,44 @@ footer a{color:var(--steel);display:inline-flex;align-items:center;min-height:36
 .ilinks a{display:inline-flex;align-items:center;min-height:36px;padding:4px 14px;border:1px solid var(--line);border-radius:99px;color:var(--gold);text-decoration:none;font-size:13px;line-height:1.3;box-sizing:border-box}
 .ilinks a:hover{border-color:var(--gold)}
 html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
-.tnav{display:none}
-@media(min-width:1000px){.tnav{display:flex;gap:4px;margin-left:18px}.tnav a{color:var(--steel);text-decoration:none;font-size:13px;padding:8px 10px;border-radius:99px}.tnav a:hover{color:var(--ink);background:rgba(20,25,34,.8)}}
+/* the top bar: the logo, the guide menu, and on the right the records button and one menu for the rest */
+.logo{color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;min-height:38px;min-width:36px}
+.dd{position:relative}
+.tb{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;border:1px solid var(--line);border-radius:99px;background:rgba(20,25,34,.8);color:var(--steel);font:inherit;font-size:13px;cursor:pointer}
+.tb:hover,.tb[aria-expanded=true],.tb.on{color:var(--ink);border-color:var(--steel-dim)}
+.tb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tb .car{width:14px;height:14px;margin-right:-2px}
+.tb.ic{width:38px;padding:0;justify-content:center}
+.dm{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:184px;padding:6px;display:flex;flex-direction:column;background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.dm.right{left:auto;right:0}
+.dm a,.dm button{display:flex;align-items:center;width:100%;min-height:40px;padding:0 12px;box-sizing:border-box;border:0;border-radius:10px;background:none;color:var(--ink);font:inherit;font-size:13.5px;text-align:left;text-decoration:none;cursor:pointer}
+.dm a:hover,.dm button:hover,.dm a:focus-visible,.dm button:focus-visible{background:rgba(255,255,255,.06)}
+.dm-sec{display:flex;flex-direction:column}
+.dm-sec:not([hidden]) ~ .dm-sec{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+#dmGame a{color:var(--gold)}
+@media(max-width:560px){.tb .lb{display:none}#recOpen{width:38px;padding:0;justify-content:center}}
+/* my records: the stats and the match history, mastery, rewards and achievements, the clan */
+.rec-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.rec-back{display:inline-flex;align-items:center;gap:4px;min-height:38px;padding:0 14px;border:1px solid var(--line);border-radius:99px;background:rgba(20,25,34,.8);color:var(--steel);font:inherit;font-size:13px;cursor:pointer}
+.rec-back:hover{color:var(--ink)}
+.rec-t{margin:0}
+.rec-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.rec-tabs button{min-height:38px;padding:0 14px;border:1px solid var(--line);border-radius:99px;background:rgba(20,25,34,.8);color:var(--steel);font:inherit;font-size:13px;cursor:pointer}
+.rec-tabs button.on{background:var(--gold);border-color:var(--gold);color:#14100a;font-weight:700}
+#v-rec .st{margin-top:0}
+#v-rec .tier.ai{margin:0 0 12px}
+.rec-skins{margin-top:10px;font-size:12px;color:var(--steel);text-align:center}
+#v-rec .hist,#v-rec .mast{max-width:none;margin:18px 0 0}
+#v-rec .rec-pane > .hist:first-child,#v-rec .rec-pane > .mast:first-child{margin-top:0}
+.reclink{display:block;min-height:36px;margin:8px auto 0;padding:0 14px;border:0;background:none;color:var(--steel);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.reclink:hover{color:var(--ink)}
+@media(max-width:560px) and (max-height:760px){.hero{padding:16px 0 14px}.hero p{display:none}.hero .sub{margin-top:8px}}
+/* phones and narrow windows: the title and the one card fill the first screen; the records open as a page of their own */
+@media(max-width:999px) and (min-height:561px){
+  .stage{display:flex;flex-direction:column;justify-content:center;min-height:calc(100svh - 70px)}
+  body.rec .stage{justify-content:flex-start;min-height:0}
+  body.rec .hero{display:none}
+}
 @media(pointer:coarse){.wallet a{display:inline-flex;align-items:center;min-height:36px;box-sizing:border-box}}
 .banned{max-width:420px;margin:60px auto;text-align:center}
 .banned b{font-size:22px;color:#ff9aa5}
@@ -208,14 +249,23 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 <body>
 <div class="bg"><div class="bg-grid"></div></div>
 <div class="wrap">
+  <!-- the top bar: the logo, one guide menu, and on the right the records (signed in) and one menu for the rest -->
   <div class="top">
-    <div class="logo">13</div>
-    <nav class="tnav" aria-label="사이트 메뉴"><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a></nav>
+    <a class="logo" href="./" id="logoHome">13</a>
+    <div class="dd" id="guideDd">
+      <button class="tb" id="guideBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="guideMenu"><span data-t="guide"></span><svg class="car" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <nav class="dm tnav" id="guideMenu" aria-label="사이트 메뉴" hidden><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a><a href="./about.html" data-t="pgAbout"></a><a href="./contact.html" data-t="pgContact"></a></nav>
+    </div>
     <span class="sp"></span>
-    <button class="chip" id="orderOpen" data-t="order" type="button" hidden></button>
-    <button class="chip" id="fbOpen" data-t="feedback" type="button"></button>
-    <button class="chip" id="lang">English</button>
-    <button class="chip" id="logout" hidden data-t="logout"></button>
+    <button class="tb" id="recOpen" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span class="lb" data-t="records"></span></button>
+    <div class="dd" id="menuDd">
+      <button class="tb ic" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="mainMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-1.7-1L15 3.6h-4l-.4 2.4a7.5 7.5 0 0 0-1.7 1l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.7 1.7 1l.4 2.4h4l.4-2.4c.6-.3 1.2-.6 1.7-1l2.3.9 2-3.4z"/></svg></button>
+      <div class="dm right" id="mainMenu" hidden>
+        <div class="dm-sec" id="dmGame" hidden><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meChampionCoins" href="./play.html#champion-shop"></a><a id="meCos" href="./play.html#cos"></a><a id="meBoard" href="./play.html#ranks"></a></div>
+        <div class="dm-sec"><button id="fbOpen" data-t="feedback" type="button"></button><button id="orderOpen" data-t="order" type="button" hidden></button><button id="lang" type="button">English</button></div>
+        <div class="dm-sec" id="dmOut" hidden><button id="logout" data-t="logout" type="button"></button></div>
+      </div>
+    </div>
   </div>
   <div id="notices"></div>
 
@@ -251,26 +301,36 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
         </div>
       </div>
       <div class="tier" id="meTier" hidden><div class="tb" id="meTierB"></div><div class="ti"><b id="meTierN"></b><div class="tbar"><i id="meTierX"></i></div><small id="meTierT"></small><small class="ssn" id="meSeason"></small></div></div>
-      <div class="tier ai" id="meAi" hidden><div class="tb" id="meAiB"></div><div class="ti"><b id="meAiN"></b><small id="meAiT"></small></div></div>
       <div class="ssn-end" id="ssnEnd" hidden><span id="ssnEndT"></span><button type="button" id="ssnEndOk"></button></div>
-      <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
-      <div class="wallet"><span class="g" id="meGold">🪙 0</span><a id="meChampionCoins" href="./play.html#champion-shop"></a><span id="meSkins"></span><a id="meSkinPull" href="./play.html#skins"></a><a id="meSkinMine" href="./play.html#skins-mine"></a><a id="meCos" href="./play.html#cos"></a><a id="meBoard" href="./play.html#ranks"></a></div>
+      <div class="wallet"><span class="g" id="meGold">🪙 0</span></div>
       </div>
       <div class="go">
       <div class="inv" id="inv" hidden></div>
       <a class="enter" id="enter" href="./play.html"><span id="enterT" data-t="enter"></span><i>›</i></a>
       <div class="hint" id="hint" data-t="enterHint"></div>
       <a class="skip" id="skip" href="./play.html" hidden data-t="skipInvite"></a>
+      <button class="reclink" id="recLink" type="button"><span data-t="recLink"></span> ›</button>
       </div>
     </div>
   </div>
 
-  <div class="hist mast" id="mast" hidden><h3 data-t="mastTitle"></h3><div id="mastList"></div></div>
-  <div class="hist mast" id="lvr" hidden><h3 data-t="lvrTitle"></h3><div id="lvrList"></div></div>
-  <div class="hist mast" id="ach" hidden><h3 data-t="achTitle"></h3><div id="achList"></div></div>
-  <div class="hist mast" id="clan" hidden><h3 id="clanTitle"></h3><div id="clanBody"></div></div>
-
-  <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
+  <!-- my records: the stats, the match history, mastery, rewards and achievements, the clan (signed in only) -->
+  <div id="v-rec" hidden>
+    <div class="rec-head"><button class="rec-back" id="recBack" type="button">‹ <span data-t="recBack"></span></button><h2 class="rec-t" data-t="records"></h2></div>
+    <div class="rec-tabs" role="tablist" id="recTabs"><button type="button" role="tab" data-tab="stats" data-t="tabStats"></button><button type="button" role="tab" data-tab="mast" data-t="tabMast"></button><button type="button" role="tab" data-tab="rew" data-t="tabRew"></button><button type="button" role="tab" data-tab="clan" data-t="tabClan"></button></div>
+    <div class="rec-pane" data-pane="stats" role="tabpanel">
+      <div class="tier ai" id="meAi" hidden><div class="tb" id="meAiB"></div><div class="ti"><b id="meAiN"></b><small id="meAiT"></small></div></div>
+      <div class="st"><div><b id="meK">0</b><span data-t="kills"></span></div><div><b id="meW">0</b><span data-t="wins"></span></div><div><b id="meM">0</b><span data-t="matches"></span></div><div><b id="meR">-</b><span data-t="winRate"></span></div></div>
+      <div class="rec-skins" id="meSkins"></div>
+      <div class="hist" id="hist" hidden><h3 data-t="history"></h3><div id="histList"></div></div>
+    </div>
+    <div class="rec-pane" data-pane="mast" role="tabpanel" hidden><div class="hist mast" id="mast" hidden><h3 data-t="mastTitle"></h3><div id="mastList"></div></div></div>
+    <div class="rec-pane" data-pane="rew" role="tabpanel" hidden>
+      <div class="hist mast" id="lvr" hidden><h3 data-t="lvrTitle"></h3><div id="lvrList"></div></div>
+      <div class="hist mast" id="ach" hidden><h3 data-t="achTitle"></h3><div id="achList"></div></div>
+    </div>
+    <div class="rec-pane" data-pane="clan" role="tabpanel" hidden><div class="hist mast" id="clan" hidden><h3 id="clanTitle"></h3><div id="clanBody"></div></div></div>
+  </div>
 
   <div id="v-ban" hidden class="banned box"><b data-t="banned"></b><p id="banWhy" style="color:var(--steel);margin-top:10px"></p></div>
   </div>
@@ -304,7 +364,7 @@ const T = {
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 스파이크로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (4자 이상)", signinBtn: "로그인 / 가입", keep: "이 기기에서 로그인 유지", or: "또는", guestBtn: "게스트로 시작",
-    order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", aiTier: "AI 경쟁전", aiNone: "아직 기록이 없습니다 · 혼자 하기에서 경쟁전을 해 보세요", aiRec: (p, w, b) => `${p}판 ${w}승 · 최고 ${b}`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
+    order: "치트 구매", feedback: "문의 · 제안", logout: "로그아웃", guide: "가이드", menu: "메뉴", records: "내 기록", recBack: "돌아가기", recLink: "내 전투 기록", tabStats: "전적", tabMast: "숙련도", tabRew: "보상 · 업적", tabClan: "클랜", kills: "처치", wins: "승리", matches: "경기", winRate: "승률", gold: "골드", skins: (a, b) => `총 스킨 ${a}/${b}`, skinPull: "스킨 뽑기 ›", skinMine: "내 스킨 ›", style: "꾸미기 ›", tiers: ["아이언", "브론즈", "실버", "골드", "플래티넘", "다이아몬드", "초월자", "불멸", "레디언트"], rrNext: (a) => `다음 단계까지 ${100 - a} RR · 이기면 오르고 지면 조금 내려갑니다`, rrTop: (a) => `레디언트 · ${a} RR`, placing: (a, b) => `배치전 ${a}/${b} · ${b}판을 마치면 티어가 공개됩니다`, placingName: "배치 중", board: "순위표 ›", aiTier: "AI 경쟁전", aiNone: "아직 기록이 없습니다 · 혼자 하기에서 경쟁전을 해 보세요", aiRec: (p, w, b) => `${p}판 ${w}승 · 최고 ${b}`, season: (n, d, p, need) => `시즌 ${n} · ${d > 1 ? d + "일 남음" : "오늘 끝남"} · 랭크전 ${p}판${need > p ? ` (보상까지 ${need - p}판 더)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>시즌 ${n} 종료</b> — ${tier}로 마쳤습니다. ${gold ? `보상 🪙${gold.toLocaleString()}` : "랭크전을 더 했다면 보상이 있었습니다"}${skin ? ` · 전용 스킨 「월계관」 총 ${skin}종` : ""} · RR은 ${after}부터 다시`, seasonOk: "확인",
     lvrTitle: "레벨 보상", achTitle: "업적", fwName: "오늘의 첫 승리 보너스", fwReady: "오늘 받을 수 있음", fwDone: "오늘 받음", lvEach: (g) => `레벨이 오를 때마다 🪙 ${g}`, lvReached: "달성", lvGap: (n) => `${n}레벨 남음`, achDone: "달성",
     mastTitle: "요원 숙련도", mastEmpty: "아직 숙련도가 없습니다. 요원으로 한 판 하면 그 요원의 숙련도가 쌓입니다", mastMore: (n) => `전체 보기 (${n}명)`, mastLess: "접기", mastRec: (m, w) => `${m}경기 · ${w}승`, mastMax: "최고 단계", roles: {},
     history: "경기 기록", noHist: "아직 기록이 없습니다. 한 판 하고 오면 여기에 남습니다", score: "점수", win: "승리", loss: "패배", draw: "무승부", place: (r) => `${r}위`, kills1: (k) => `${k}킬`,
@@ -322,7 +382,7 @@ const T = {
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the spike. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (4+ characters)", signinBtn: "Sign in / Sign up", keep: "Keep me signed in on this device", or: "or", guestBtn: "Play as guest",
-    order: "Buy cheats", feedback: "Feedback", logout: "Sign out", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", aiTier: "AI Competitive", aiNone: "No matches yet · try Competitive in solo play", aiRec: (p, w, b) => `${p} played · ${w} won · best ${b}`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
+    order: "Buy cheats", feedback: "Feedback", logout: "Sign out", guide: "Guides", menu: "Menu", records: "My records", recBack: "Back", recLink: "My battle record", tabStats: "Stats", tabMast: "Mastery", tabRew: "Rewards", tabClan: "Clan", kills: "Kills", wins: "Wins", matches: "Matches", winRate: "Win rate", gold: "Gold", skins: (a, b) => `Gun skins ${a}/${b}`, skinPull: "Pull skins ›", skinMine: "My skins ›", style: "Style ›", tiers: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"], rrNext: (a) => `${100 - a} RR to the next division · wins raise it, losses take a little`, rrTop: (a) => `Radiant · ${a} RR`, placing: (a, b) => `Placement ${a}/${b} · your tier shows after ${b} matches`, placingName: "Placing", board: "Leaderboard ›", aiTier: "AI Competitive", aiNone: "No matches yet · try Competitive in solo play", aiRec: (p, w, b) => `${p} played · ${w} won · best ${b}`, season: (n, d, p, need) => `Season ${n} · ${d > 1 ? d + " days left" : "ends today"} · ${p} ranked${need > p ? ` (${need - p} more for the reward)` : ""}`, seasonEnd: (n, tier, gold, skin, after) => `<b>Season ${n} is over</b> — you finished ${tier}. ${gold ? `Reward 🪙${gold.toLocaleString()}` : "More ranked matches would have earned a reward"}${skin ? ` · season skin Laurel on ${skin} guns` : ""} · RR starts again from ${after}`, seasonOk: "OK",
     lvrTitle: "Level rewards", achTitle: "Achievements", fwName: "First win of the day", fwReady: "Available today", fwDone: "Taken today", lvEach: (g) => `Every level gained pays 🪙 ${g}`, lvReached: "Reached", lvGap: (n) => `${n} level${n > 1 ? "s" : ""} to go`, achDone: "Done",
     mastTitle: "Agent mastery", mastEmpty: "No mastery yet. Play a match with an agent and it builds up for that agent", mastMore: (n) => `Show all (${n} agents)`, mastLess: "Show less", mastRec: (m, w) => `${m} matches · ${w} wins`, mastMax: "Max level", roles: { 타격대: "Duelist", 감시자: "Sentinel", 척후대: "Initiator", 전략가: "Controller" },
     history: "Match history", noHist: "No matches yet. Play one and it shows up here", score: "Score", win: "Victory", loss: "Defeat", draw: "Draw", place: (r) => (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : r + "th"), kills1: (k) => `${k} kills`,
@@ -353,6 +413,8 @@ function paintLang() {
   document.querySelectorAll("[data-t]").forEach((e) => (e.textContent = t(e.dataset.t)));
   $("#uid").placeholder = t("idPh"); $("#upw").placeholder = t("pwPh");
   $("#lang").textContent = L === "ko" ? "English" : "한국어";
+  $("#menuBtn").setAttribute("aria-label", t("menu")); $("#menuBtn").title = t("menu");
+  $("#recOpen").setAttribute("aria-label", t("records")); $("#recOpen").title = t("records");
   window.PROMO && PROMO.paint();
   drawFeat();
   drawEnter();
@@ -382,7 +444,25 @@ function save(sess) { sess && !sess.hist && S && S.hist && (sess.hist = S.hist);
 // each visit logs in again (this tab keeps it).
 const gatePassed = () => { try { return !!(S && S.token) && sessionStorage.getItem("lgp_gate") === S.token; } catch (e) { return !1; } };
 const kept = () => { try { return !!(S && S.token) && localStorage.getItem("lgp_keep") === S.token; } catch (e) { return !1; } };
-function view(v) { $("#hist").hidden = v !== "dash"; $("#mast").hidden = $("#lvr").hidden = $("#ach").hidden = $("#clan").hidden = v !== "dash"; if (v !== "dash") $("#histList").replaceChildren(); ["auth", "dash", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v)); $("#logout").hidden = v !== "dash" || !S; $("#hero").hidden = v === "ban"; try { scrollTo(0, 0); } catch (e) {} }
+// the views: auth (sign in), dash (the profile card), rec (my records, from the card or the top bar) and ban
+let VIEW = "";
+// signed in and on the card or my records (the sections of my records fill in for either)
+const inside = () => !$("#v-dash").hidden || !$("#v-rec").hidden;
+const REC_RE = /^#records(?:-(stats|mast|rew|clan))?$/;
+function view(v) {
+  const signedIn = v === "dash" || v === "rec";
+  if (!signedIn) $("#histList").replaceChildren();
+  ["auth", "dash", "rec", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v));
+  $("#recOpen").hidden = !signedIn || !S;
+  $("#recOpen").classList.toggle("on", v === "rec");
+  $("#dmOut").hidden = !signedIn || !S;
+  $("#hero").hidden = v === "ban";
+  document.body.classList.toggle("rec", v === "rec");
+  // leaving the records by any way (a sign-out, the storage of another tab) takes their history entry with it
+  VIEW === "rec" && v !== "rec" && REC_RE.test(location.hash) && history.replaceState(null, "", location.pathname + location.search);
+  VIEW = v;
+  try { scrollTo(0, 0); } catch (e) {}
+}
 function drawNotices() {
   const n = [];
   if (OFFLINE) n.push(`<div class="notice">${esc(t("offline"))}</div>`);
@@ -419,6 +499,7 @@ function drawMe() {
   // profile cosmetics: the title under the name, the name card behind the profile
   $("#meCos").hidden = !wallet; $("#meCos").textContent = t("style"); $("#meCos").href = gameUrl("") + "#cos";
   $("#meBoard").hidden = !wallet; $("#meBoard").textContent = t("board"); $("#meBoard").href = gameUrl("") + "#ranks";
+  $("#dmGame").hidden = !wallet;
   const cs = window.COSMETICS ? COSMETICS.equipped(u) : { title: null, card: null };
   $("#meTitle").hidden = !cs.title;
   if (cs.title) { $("#meTitle").textContent = COSMETICS.name(cs.title); $("#meTitle").style.color = COSMETICS.tier(cs.title.r)[2]; }
@@ -480,7 +561,7 @@ let ROSTER = null, MAST_ALL = !1;
 fetch("./js/agent-roster.json").then((r) => r.json()).then((j) => { ROSTER = j; S && drawMast(); }).catch(() => { ROSTER = []; });
 function drawMast() {
   const box = $("#mast"), u = S && S.user, off = CFG && CFG.mastery && CFG.mastery.on === !1;
-  box.hidden = !u || typeof u.gold !== "number" || off || $("#v-dash").hidden;
+  box.hidden = !u || typeof u.gold !== "number" || off || !inside();
   if (box.hidden) return;
   const mast = (u.mast && typeof u.mast === "object" && u.mast) || {}, by = Object.fromEntries((ROSTER || []).map((a) => [a.id, a]));
   const rows = Object.keys(mast).filter((id) => mast[id] && typeof mast[id] === "object").sort((a, b) => (mast[b].xp | 0) - (mast[a].xp | 0) || (a < b ? -1 : 1));
@@ -496,7 +577,7 @@ function drawMast() {
 // level rewards and achievements. The server pays them (only for a match with a valid ticket); the numbers here are the
 // owner's, from the public config, and the account's own progress, from its user
 function drawProg() {
-  const u = S && S.user, R = CFG && CFG.rewards, shown = !!u && typeof u.gold === "number" && !!R && !$("#v-dash").hidden;
+  const u = S && S.user, R = CFG && CFG.rewards, shown = !!u && typeof u.gold === "number" && !!R && inside();
   const lv = shown && R.lv && R.lv.on, fw = shown && R.firstWin && R.firstWin.on, ach = shown && R.ach && R.ach.on && Array.isArray(u.ach) && u.ach.length;
   $("#lvr").hidden = !(lv || fw); $("#ach").hidden = !ach;
   if (lv || fw) {
@@ -547,6 +628,79 @@ function drawEnter() {
   $("#hint").hidden = !!ROOM;
 }
 $("#logout").onclick = () => { save(null); view("auth"); };
+// ── the top bar's two menus: the guides, and one for the rest (the game's pages, feedback, language, sign out) ──
+const MENUS = [["#guideBtn", "#guideMenu"], ["#menuBtn", "#mainMenu"]];
+// while one is open the page under the top bar can't be clicked or tabbed into: a click there only closes the menu
+const menuShade = () => { const on = MENUS.some(([, menu]) => !$(menu).hidden); document.querySelectorAll(".wrap > :not(.top)").forEach((n) => (n.inert = on)); };
+function closeMenus(except) {
+  for (const [btn, menu] of MENUS) if (btn !== except) { $(menu).hidden = !0; $(btn).setAttribute("aria-expanded", "false"); }
+  menuShade();
+}
+for (const [btn, menu] of MENUS)
+  $(btn).onclick = (e) => {
+    e.stopPropagation();
+    const open = $(menu).hidden;
+    closeMenus(btn);
+    $(menu).hidden = !open;
+    $(btn).setAttribute("aria-expanded", open ? "true" : "false");
+    menuShade();
+  };
+// an item hands the focus to its menu's button before it runs, so a window it opens (feedback, orders) gives the focus
+// back to a button that is still on the screen
+document.addEventListener("click", (e) => { const item = e.target.closest(".dm a, .dm button"); item && item.closest(".dd").querySelector(".tb").focus({ preventScroll: !0 }); }, !0);
+// a click outside closes them, and so does a click on one of their items (after the item has done its work)
+document.addEventListener("click", (e) => { if (!e.target.closest(".dd") || e.target.closest(".dm a, .dm button")) closeMenus(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const open = MENUS.find(([, menu]) => !$(menu).hidden);
+  closeMenus();
+  open && $(open[0]).focus();
+});
+// ── my records: a view of their own (the stats and match history, mastery, rewards and achievements, the clan) ──
+let REC_TAB = "stats";
+function recTab(tab) {
+  REC_TAB = ["stats", "mast", "rew", "clan"].includes(tab) ? tab : "stats";
+  document.querySelectorAll("#recTabs [data-tab]").forEach((b) => { const on = b.dataset.tab === REC_TAB; b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
+  document.querySelectorAll("#v-rec [data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== REC_TAB));
+  VIEW === "rec" && history.replaceState(history.state, "", "#records-" + REC_TAB);
+}
+function openRec(tab) {
+  if (!S) return;
+  closeMenus();
+  recTab(tab || REC_TAB);
+  paintRecTabs();
+  // its own history entry, so a phone's back button returns to the card
+  REC_RE.test(location.hash) ? history.replaceState(history.state, "", "#records-" + REC_TAB) : history.pushState({ rec: 1 }, "", "#records-" + REC_TAB);
+  view("rec");
+}
+function closeRec() {
+  if (VIEW !== "rec") return;
+  if (history.state && history.state.rec) return history.back();
+  history.replaceState(null, "", location.pathname + location.search);
+  view("dash");
+}
+// a tab whose sections are all hidden (a guest has no clan; the owner can switch clans, mastery or rewards off) is not offered; the
+// open one stays (its sections may still be on their way from the server)
+function paintRecTabs() {
+  document.querySelectorAll("#recTabs [data-tab]").forEach((b) => {
+    const pane = document.querySelector(`#v-rec [data-pane="${b.dataset.tab}"]`);
+    const want = b.dataset.tab !== "stats" && b.dataset.tab !== REC_TAB && ![...pane.querySelectorAll(".hist")].some((x) => !x.hidden);
+    b.hidden !== want && (b.hidden = want);
+  });
+}
+{
+  const mo = new MutationObserver(paintRecTabs);
+  document.querySelectorAll("#v-rec [data-pane]").forEach((p) => mo.observe(p, { subtree: !0, attributes: !0, attributeFilter: ["hidden"] }));
+}
+$("#recOpen").onclick = () => (VIEW === "rec" ? closeRec() : openRec());
+$("#recLink").onclick = () => openRec("stats");
+$("#recBack").onclick = closeRec;
+document.querySelectorAll("#recTabs [data-tab]").forEach((b) => (b.onclick = () => recTab(b.dataset.tab)));
+addEventListener("popstate", () => {
+  const m = REC_RE.exec(location.hash);
+  if (m) S && VIEW === "dash" && (view("rec"), recTab(m[1] || REC_TAB));
+  else if (VIEW === "rec") view("dash");
+});
 addEventListener("storage", (e) => { if (e.key !== "lgp_session") return; const next = JSON.parse(e.newValue || "null"); if (!next || next.token !== (S && S.token)) { S = null; sessionStorage.removeItem("lgp_gate"); view("auth"); } else { S = next; if (gatePassed()) enter(); } });
 function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("reason") + ": " + b.reason + " · " : "") + (b.until ? new Date(b.until).toLocaleString() + " " + t("until") : t("forever")); }
 async function auth(guest) {
@@ -576,7 +730,7 @@ $("#uid").onkeydown = (e) => { if (e.key === "Enter") $("#upw").focus(); };
 const eventOpen = () => !!(CFG && CFG.eventMap && CFG.eventMap.key && (!CFG.eventMap.until || Date.now() < CFG.eventMap.until));
 function drawFeat() { $("#feat").innerHTML = T[L].feat.map((x) => `<li>${x.replace("{wk}", (CFG && CFG.weekMap ? T[L].featWeek : "") + (eventOpen() ? T[L].featEvent : ""))}</li>`).join(""); }
 // the announcement and the promo film come up in the middle once, right after signing in (js/notice-popup.js)
-function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.auto(); }
+function enter() { view("dash"); drawMe(); drawEnter(); window.NOTICE && NOTICE.auto(); const m = REC_RE.exec(location.hash); m && openRec(m[1]); }
 (async () => {
   paintLang();
   try { CFG = (await api("config")).config; OFFLINE = !1; } catch (e) { OFFLINE = !0; CFG = { game: {}, channels: [] }; }
