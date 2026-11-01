@@ -3,10 +3,10 @@
   'use strict';
   const trial=new URLSearchParams(location.search).get('ascent-trial')==='1';
   const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null};
-  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','마크X발로 불러오기');
+  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','하늘섬 마을 불러오기');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
-  const title=document.createElement('strong');title.textContent='마크X발로';
-  const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='원본 지형을 준비하는 중…';msg.style.margin='8px 0';
+  const title=document.createElement('strong');title.textContent='하늘섬 마을';
+  const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='지형을 준비하는 중…';msg.style.margin='8px 0';
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
   const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px;display:inline-block;min-height:32px;line-height:32px;padding:0 6px';
   panel.append(title,msg,start,exit);panel.hidden=!trial;document.body.append(panel);
@@ -33,8 +33,8 @@
     if(r&&r.width){Object.assign(panel.style,{left:Math.max(8,Math.round(r.left))+'px',top:'auto',bottom:Math.round(innerHeight-r.top+8)+'px',transform:'none'});}
     else Object.assign(panel.style,{left:'50%',top:'calc(env(safe-area-inset-top,0px) + 6px)',bottom:'auto',transform:'translateX(-50%)'});
   };
-  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'마크X발로',size:5,walls:[],graphicsStatic:true};
-  const entry={key:KEY,name:'마크X발로',size:5};
+  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'하늘섬 마을',size:5,walls:[],graphicsStatic:true};
+  const entry={key:KEY,name:'하늘섬 마을',size:5};
   (window.MAP_EXTRA||=[]).push(entry);
   if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else{MAP_LIST.push(entry);dispatchEvent(new CustomEvent('maps-changed',{detail:{count:MAP_LIST.length}}));}
   let pending=null,startRevision=0,loadRevision=0;
@@ -309,7 +309,7 @@
     if(renderAssets.has(profile))return renderAssets.get(profile);
     if(assetLoads.has(profile))return assetLoads.get(profile);
     const promise=(async()=>{
-      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version=profile==='mobile'?'mobile1':'vanilla2';
+      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version=profile==='mobile'?'mobile2':'blocks1';
       const mr=profile==='mobile'?await fetch(base+'manifest.json?v='+version):null;
       if(mr&&!mr.ok)throw Error('휴대폰용 맵 목록을 불러오지 못했어');
       const meta=mr?await mr.json():S.meta;
@@ -356,18 +356,18 @@
     try {
       // Full-quality files keep their existing URLs; the separate mobile pack
       // is fetched only for mobile, and never replaces cached original assets.
-      const mr=await fetch('./assets/maps/ascent/manifest.json?v=vanilla2');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
+      const mr=await fetch('./assets/maps/ascent/manifest.json?v=blocks1');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
       const meta=S.meta=await mr.json();
       await loadAsset(profileFor(SETTINGS.quality));
       MAPS[KEY]={graphicsStatic:true,
-        key:KEY,name:'마크X발로',size:5,theme:'glacier',fog:.002,
+        key:KEY,name:'하늘섬 마을',size:5,theme:'glacier',fog:.002,
         bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
         attackSpawn:sourcePoint(95,193),defendSpawn:sourcePoint(175,55),
         sites:[{id:'A',label:'A 거점',...sourcePoint(220,177),r:6},{id:'B',label:'B 거점',...sourcePoint(105,70),r:6}],
         nodes:{atk:sourcePoint(95,193),mid:sourcePoint(180,125),A:sourcePoint(220,177),B:sourcePoint(105,70),def:sourcePoint(175,55)},walls:[],
       };
       S.status='ready';start.disabled=false;
-      msg.textContent='마크X발로 준비 완료 · 원본 지형과 마인크래프트 기본 텍스처를 사용합니다.';
+      msg.textContent='하늘섬 마을 준비 완료 · 블록 재질은 이 게임에서 직접 그린 것입니다.';
       if(!trial)panel.hidden=true;
       return true;
     }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;notice(true);return false;}

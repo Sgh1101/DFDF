@@ -1,6 +1,6 @@
-"""Build a separate light atlas; retain all original cutout/glass pixels.
+"""Build a separate light atlas from the painted block atlas; cutout/glass tiles keep 16 px.
 Requires Pillow. Run this, then node scripts/mobile-map-geometry.js.
-Original vanilla assets are never overwritten.
+The full-size painted atlas is never overwritten.
 """
 import hashlib,json,math
 from pathlib import Path
@@ -8,8 +8,8 @@ from PIL import Image
 
 root=Path(__file__).resolve().parent.parent/'assets/maps/ascent'
 dest=root/'mobile';dest.mkdir(exist_ok=True)
-source=json.loads((root/'vanilla-palette.json').read_text(encoding='utf8'))
-original=Image.open(root/'vanilla-atlas.png').convert('RGBA')
+source=json.loads((root/'blocks-palette.json').read_text(encoding='utf8'))
+original=Image.open(root/source['atlas']).convert('RGBA')
 tiles=[];images=[]
 for i,t in enumerate(source['tiles']):
     x=i%source['columns']*source['cell']+source['padding']
