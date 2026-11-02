@@ -42,6 +42,8 @@
     "test:relay-ask": "node scripts/browser-relay-ask.js",
     "test:keep-login": "node scripts/browser-keep-login.js",
     "test:site-pages": "node scripts/browser-site-pages.js",
+    "build:csp": "node scripts/build-csp.js",
+    "test:csp": "node scripts/browser-csp.js",
     "test:cloudflare": "node scripts/browser-cloudflare.js",
     "build:site-pages": "node scripts/build-site-pages.js",
     "dump:site-data": "node scripts/dump-site-data.js",
