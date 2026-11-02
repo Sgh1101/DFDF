@@ -15,9 +15,9 @@ test("owner hello sends only scoped proof and retries a failed issuance", async 
 
 test("disconnect and replacement channels reject late owner grants", async () => {
   let resolve, granted = 0;
-  const connection = { event: {} }, X = { OWNP: new Set() };
+  const connection = { event: {} }, X = { OWNP: new Set(), GRANT: new Set() };
   const NET = { room: "ABC123", peer: {}, conns: new Map([["peer", connection]]), onAction() {}, onPeerGone() {} };
-  const context = { NET, X, Date, Map, setInterval() {}, isClient: () => false, netShutdown() {}, world: { actors: [] }, sendEventTo: () => granted++, myActor() {}, run() {}, AC: { api: (action, body) => { assert.equal(action, "owner_check"); assert.equal(body.p, "peer"); assert.equal(Object.hasOwn(body, "token"), false); return new Promise((r) => resolve = r); } } };
+  const context = { NET, X, A2: {PEERS:new Map()}, Date, Map, setInterval() {}, isClient: () => false, netShutdown() {}, world: { actors: [] }, sendEventTo: () => granted++, myActor() {}, run() {}, AC: { api: (action, body) => { assert.equal(action, "owner_check"); assert.equal(body.p, "peer"); assert.equal(Object.hasOwn(body, "token"), false); return new Promise((r) => resolve = r); } } };
   vm.createContext(context); vm.runInContext(hostSource, context);
   NET.onAction("peer", { t: "own-hi", ticket: "proof" });
   connection.event = {};
@@ -30,4 +30,10 @@ test("disconnect and replacement channels reject late owner grants", async () =>
   NET.onAction("peer", { t: "own-hi", ticket: "proof" }); NET.onPeerGone("peer");
   resolve({ owner: true, exp: Date.now() + 300000 }); await Promise.resolve();
   assert.equal(X.OWNP.size, 0); assert.equal(granted, 1);
+});
+test('host shutdown explicitly clears room grants and cached gameplay flags without relying on channel callbacks',()=>{
+ const X={OWNP:new Set(['owner-peer']),GRANT:new Set(['granted-peer']),HUNT:{granted:false}},A2={PEERS:new Map([['granted-peer',{god:true}]])},OWN={god:new Set([1]),bind:new Set([2])};
+ const ctx={NET:{onPeerGone(){},onAction(){}},X,A2,OWN,Date,Map,setInterval(){},netShutdown(){},world:{actors:[]},isClient:()=>false,sendEventTo(){},run(){},helloKey:'',helloExp:0,GRANTN:new Map(),AC:{}};
+ vm.createContext(ctx);vm.runInContext(hostSource,ctx);ctx.netShutdown();
+ for(const set of [X.OWNP,X.GRANT,A2.PEERS,OWN.god,OWN.bind])assert.equal(set.size,0);
 });

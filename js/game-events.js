@@ -263,6 +263,7 @@
   };
   const receive = NET.onEvent;
   NET.onEvent = function (event) {
+    if (!GAME_RULES.validHostEvent(event, WEAPONS)) return;
     if (event && event.t === "ability-state") {
       const actor = currentActor(), ability = actor.abilities && actor.abilities[event.i];
       if (ability) { ability.charges = event.charges; ability.cd = event.cd; actor.ultCharge = event.ult; }
@@ -309,6 +310,7 @@
     return result;
   };
   applySnapshot = function (value) {
+    if (!GAME_RULES.validSnapshot(value)) return;
     const result = apply.apply(this, arguments);
     if (Number.isFinite(value.championsFinishMs)) world.championsFinishUntil = performance.now() + Math.max(0, Math.min(8000, value.championsFinishMs));
     return result;

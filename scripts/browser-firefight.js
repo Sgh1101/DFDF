@@ -1,5 +1,5 @@
 const fs = require("node:fs"), assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// Fight cost: ten actors (5v5) that really shoot, on 하늘섬 마을 (~44k colliders) and on 포구, with third-person casings on; the player is the tenth and stands still.
+// Fight cost: ten actors (5v5) that really shoot, on 마크X발로 (~44k colliders) and on 포구, with third-person casings on; the player is the tenth and stands still.
 // Per step it counts the calls to the collider queries (rayBlocked, wallT, groundAt, the casing ground query) and times
 // step(); and each frame also times render() on the CPU. Prints one JSON summary and writes test-results/firefight.json.
 // Headless SwiftShader numbers are only good for comparing a run with another run on the same machine.
@@ -30,7 +30,7 @@ const STEPS = Number(process.env.DFDF_FIGHT_STEPS) || 600, QUALITY = process.env
       if (map === "ascent") {
         await page.locator("#go-play").click();
         if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click();
-        await page.locator("#sel-maps button").filter({ hasText: /^하늘섬 마을$/ }).click();
+        await page.locator("#sel-maps button").filter({ hasText: /^마크X발로$/ }).click();
         await page.waitForFunction(() => ASCENT_TRIAL.status === "ready");
         await page.locator("#sel-go").click({ timeout: 120000 });
         await page.waitForFunction(() => ASCENT_TRIAL.active && !!myActor(), null, { timeout: 120000 });

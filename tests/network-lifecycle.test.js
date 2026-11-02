@@ -3,7 +3,7 @@ const { EventEmitter } = require('node:events');
 const engine = fs.readFileSync('js/legacy/03-engine.js', 'utf8');
 const transport = engine.slice(engine.indexOf('let roundEndTimer ='), engine.indexOf('function startRound()')) + engine.slice(engine.indexOf('const NET = {'), engine.indexOf('const room = {'));
 const recovery = fs.readFileSync('js/legacy/30-multiplayer-drops-a-guest-used-to-be-thrown-back-to-the-ti.js', 'utf8');
-const fallback = fs.readFileSync('js/legacy/45-fewer-dropped-players-each-guest-has-two-links-to-the-host.js', 'utf8');
+const fallback = fs.readFileSync((process.env.DFDF_NETWORK_SOURCE_ROOT || '.')+'/js/legacy/45-fewer-dropped-players-each-guest-has-two-links-to-the-host.js', 'utf8');
 function setup() {
   let now = 100, next = 0;
   const timers = new Map(), peers = [], received = [], left = [];
@@ -113,4 +113,20 @@ test('leaving a room cancels retained lobby seats from that room', async () => {
   c.NET.mode = 'host'; c.NET.room = 'ABC123'; c.NET.peer = { destroy() {} }; c.room.members.set('lost', { team: 'atk', slot: 0 });
   c.NET.onPeerGone('lost'); c.netShutdown(); c.NET.room = 'DEF456'; c.NET.mode = 'host'; c.NET.peer = {};
   await h.advance(65000); assert.equal(expired, 0);
+});
+test('hello from an unadmitted or full-room peer closes both links and receives no recurring snapshots',()=>{
+ const {c,Channel}=setup();c.NET.mode='host';c.NET.peer={};
+ for(let i=0;i<80;i++){
+  const peer='full-'+i,state=new Channel(peer,'state'),event=new Channel(peer,'event');
+  for(const channel of [state,event]){c.hostAccept(channel);channel.ready();}
+  event.emit('data',{t:'hello',name:'visitor'});c.sendSnapshot({t:'s'});
+  assert.equal(state.open,false);assert.equal(event.open,false);assert.equal(c.NET.conns.has(peer),false);assert.equal(state.sent.length,0);
+ }
+ assert.equal(c.NET.conns.size,0);
+});
+test('successfully admitted hello enables snapshot delivery and a second link keeps that admission',()=>{
+ const {c,Channel}=setup();c.NET.mode='host';c.NET.peer={};c.NET.onAction=(peer,m)=>{if(m.t==='hello')c.room.members.set(peer,{team:'atk',slot:0});};
+ const event=new Channel('joined','event');c.hostAccept(event);event.ready();event.emit('data',{t:'hello'});
+ assert.equal(c.NET.conns.get('joined').quiet,false);
+ const state=new Channel('joined','state');c.hostAccept(state);state.ready();c.sendSnapshot({t:'s'});assert.equal(state.sent.length,1);
 });

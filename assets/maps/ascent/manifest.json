@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "하늘섬 마을",
+  "name": "마크X발로",
   "sourceDimensions": [
     96,
     32,
@@ -17,24 +17,25 @@
     112
   ],
   "scale": 1.25,
-  "nonAir": 63392,
-  "quads": 3833,
-  "colliders": 565,
+  "nonAir": 65348,
+  "quads": 13672,
+  "colliders": 2099,
   "histogram": {
     "1": 45604,
-    "2": 7120,
-    "5": 240,
-    "18": 54,
-    "24": 546,
-    "35": 2996,
-    "44": 391,
-    "45": 1512,
-    "95": 84,
-    "98": 4845
+    "2": 6444,
+    "5": 1484,
+    "17": 12,
+    "18": 354,
+    "24": 837,
+    "35": 4877,
+    "44": 1755,
+    "45": 1530,
+    "95": 280,
+    "98": 2171
   },
   "variants": {
-    "cube": 63001,
-    "slab": 391
+    "cube": 63593,
+    "slab": 1755
   },
   "textures": "blocks-palette.json",
   "atlas": "blocks-atlas.png",
@@ -42,7 +43,7 @@
   "provenance": {
     "author": "DFDF",
     "generator": "scripts/build-original-maps.js",
-    "revision": "original-1",
+    "revision": "neighborhood-2",
     "externalMapInput": false
   },
   "layout": {
@@ -95,7 +96,115 @@
         74,
         80
       ]
-    }
+    },
+    "districts": [
+      {
+        "id": "market",
+        "label": "시장 골목",
+        "center": [
+          22,
+          29
+        ]
+      },
+      {
+        "id": "station",
+        "label": "정류장 광장",
+        "center": [
+          74,
+          29
+        ]
+      },
+      {
+        "id": "canal",
+        "label": "중앙 산책로",
+        "center": [
+          48,
+          56
+        ]
+      },
+      {
+        "id": "residential",
+        "label": "주택가",
+        "center": [
+          48,
+          82
+        ]
+      }
+    ],
+    "buildings": [
+      {
+        "x": 7,
+        "z": 12,
+        "w": 11,
+        "d": 12,
+        "tone": 14,
+        "kind": "shop"
+      },
+      {
+        "x": 29,
+        "z": 39,
+        "w": 10,
+        "d": 10,
+        "tone": 9,
+        "kind": "cafe"
+      },
+      {
+        "x": 78,
+        "z": 12,
+        "w": 11,
+        "d": 12,
+        "tone": 14,
+        "kind": "shop"
+      },
+      {
+        "x": 7,
+        "z": 66,
+        "w": 12,
+        "d": 12,
+        "tone": 1,
+        "kind": "home"
+      },
+      {
+        "x": 77,
+        "z": 66,
+        "w": 12,
+        "d": 12,
+        "tone": 1,
+        "kind": "home"
+      },
+      {
+        "x": 25,
+        "z": 87,
+        "w": 11,
+        "d": 11,
+        "tone": 9,
+        "kind": "home"
+      },
+      {
+        "x": 60,
+        "z": 87,
+        "w": 11,
+        "d": 11,
+        "tone": 9,
+        "kind": "home"
+      },
+      {
+        "x": 7,
+        "z": 39,
+        "w": 12,
+        "d": 10,
+        "tone": 5,
+        "kind": "shop"
+      },
+      {
+        "x": 77,
+        "z": 39,
+        "w": 12,
+        "d": 10,
+        "tone": 3,
+        "kind": "cafe"
+      }
+    ]
   },
-  "geometrySha256": "8a416ea940cffbf8f2db10bb49d993dd2cfbe303b69823e9fa3ec15ae9e79461"
+  "geometrySha256": "aa7aed6bf7b86a1a315d1edf493119b0ebce4a52153d2e60401095163f8d776d"
 }

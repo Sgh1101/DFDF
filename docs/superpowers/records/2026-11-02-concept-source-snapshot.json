@@ -1,0 +1,39 @@
+{
+  "source": "codex/champions-concept-v2 worktree",
+  "sourceBase": "32a422e",
+  "status": "Reviewed stable individual files, not an unfinished-branch merge. Original checkout left untouched. Our branch regenerates/validates the assets.",
+  "files": [
+    {
+      "file": "scripts/champions-phantom/gun.js",
+      "sha256": "001b8fff2ce0a2babf37e848e34f903bb10cea83c8134442d0bf68b0ab64ea67"
+    },
+    {
+      "file": "scripts/champions-phantom/gun-paint.js",
+      "sha256": "5f38428a6517ebca7ad2a9bd14fc41396ccf35c3fb1c716bfea230d648035756"
+    },
+    {
+      "file": "js/champions-phantom.js",
+      "sha256": "e0ca517efbdccf8d32d2d84dcb2454d21242cf202c11d625312d44d4a878fd23"
+    },
+    {
+      "file": "js/phantom-assets.js",
+      "sha256": "e9ca13563a7e54159e6767986dc91f633c9dfd5db3e0c51db66d097c904ba2dc"
+    },
+    {
+      "file": "tests/phantom-bundle.test.js",
+      "sha256": "01eb0816129ea2619fc952dae05a1611ca2fa8549cc4fcefa1fead458164ffb3"
+    },
+    {
+      "file": "tests/champions-concept.test.js",
+      "sha256": "85c487df608a384c0defbb921e14ab32b3eb80dc0621233e0e97a0b041a0046d"
+    },
+    {
+      "file": "scripts/browser-champions-concept.js",
+      "sha256": "280b5197a3c296dc1da79a735a4d3780ad541c2cff37be082a50f70d2e866154"
+    },
+    {
+      "file": "assets/champions-phantom/.gitattributes",
+      "sha256": "27ff148ccc54021940996d00daa93a9af8fb6b0abbab9b4638a8a59423898bc1"
+    }
+  ]
+}

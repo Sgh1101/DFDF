@@ -130,57 +130,67 @@
       g.add(torus(bd, 0.009, 0.003, 12, 0, -0.054, 0.262));
       return g;
     },
-    // a balisong, open: a tanto blade with serrations on a black tang, two slotted
-    // handles on their pins, a latch on the bite handle
+    // DFDF Tide: swept silver blade, milled teal frames and exposed spacers.
+    // The two original pin locations are the animation interface.
     butterfly() {
       const g = new T.Group(),
         bl = GUNMAT.blade(),
-        tn = GUNMAT.tan(),
+        tn = GUNMAT.polymer(),
         ch = GUNMAT.chrome(),
         bk = GUNMAT.black(),
-        gl = GUNMAT.glow(0x40c4ff);
-      const blade = [[0.03, 0.026], [-0.015, 0.026], [-0.31, 0.026], [-0.35, 0.022, -0.362, 0.012], [-0.367, 0.007, -0.36, 0.002], [-0.29, -0.028], [-0.12, -0.028]];
-      for (let i = 0; i < 3; i++) blade.push([-0.11 + 0.02 * i, -0.016, -0.1 + 0.02 * i, -0.028]);
-      blade.push([-0.045, -0.028], [-0.04, -0.02], [-0.015, -0.02], [-0.015, -0.026], [0.03, -0.026]);
-      g.add(prof(bl, blade, 0.012, 0.004, { bs: 0.006 }));
-      // the grind along the edge and the swedge by the tip stay bright on the dark blade
-      g.add(prof(ch, [[-0.29, -0.027], [-0.13, -0.027], [-0.13, -0.021], [-0.284, -0.021]], 0.0125, 0));
-      g.add(prof(ch, [[-0.2, 0.02], [-0.34, 0.02], [-0.355, 0.014], [-0.2, 0.015]], 0.0125, 0));
+        gl = GUNMAT.glow(0x65dfcf);
+      g.userData.design = 'dfdf-butterfly-v2';
+      const blade = [[0.03,0.025],[-0.018,0.025],[-0.20,0.036],[-0.29,0.035,-0.368,0.002],[-0.332,-0.027,-0.25,-0.032],[-0.075,-0.027],[-0.042,-0.018],[-0.015,-0.018],[-0.015,-0.025],[0.03,-0.025]];
+      g.add(prof(bl, blade, 0.013, 0.004, { bs: 0.005 }));
+      g.add(prof(ch, [[-0.36,0.001],[-0.25,-0.031],[-0.075,-0.026],[-0.078,-0.015],[-0.25,-0.021]],0.0135,0));
+      g.add(prof(bk,[[-0.045,0.013],[-0.23,0.023],[-0.29,0.019],[-0.23,0.016],[-0.045,0.006]],0.014,0));
+      g.add(prof(tn,[[-0.045,0.009],[-0.115,0.014],[-0.13,0.009],[-0.045,0.003]],0.0145,0));
       g.add(box(bk, 0.014, 0.054, 0.05, 0, 0, 0.004));
       g.add(pin(ch, 0.006, 0.036, 0, 0.014, 0));
       g.add(pin(ch, 0.006, 0.036, 0, -0.014, 0));
       // each handle: two plates with slanted slots, spacers between, one plate face lit
       const handle = (name, y, sign) => {
         const h = part(name, 0, y, 0);
-        const pts = [...arc(0, 0, 0.014, PI / 2, 1.5 * PI, 8), [0.33, -0.014], [0.35, -0.008], [0.355, 0], [0.35, 0.009], [0.34, 0.014]];
-        const holes = [0.034, 0.066, 0.098, 0.245, 0.277].map((z) => slot(z, -0.0085, 0.016, 0.017, 0.011));
-        for (const sx of [-0.0115, 0.0115]) h.add(prof(tn, pts, 0.007, 0.0015, { holes, x: sx, uv: 3 }));
-        for (const z of [0.19, 0.335]) h.add(pin(bk, 0.005, 0.016, 0, 0, z, 8));
-        h.add(box(gl, 0.032, 0.004, 0.01, 0, 0.006 * sign, 0.2));
-        sign < 0 && h.add(box(ch, 0.02, 0.005, 0.02, 0, -0.016, 0.33));
+        const pts = [...arc(0,0,0.014,PI/2,1.5*PI,8),[0.19,-0.014],[0.31,-0.019],[0.345,-0.013],[0.355,-0.003],[0.35,0.012],[0.31,0.019],[0.19,0.014]];
+        const holes = [rrect(.037,.105,-.007,.007,.004),rrect(.126,.198,-.007,.007,.004),rrect(.225,.3,-.009,.009,.004)];
+        for (const sx of [-.0115,.0115]) {
+          h.add(prof(tn,pts,.007,.0015,{holes,x:sx}));
+          h.add(prof(ch,[[.03,.011],[.19,.011],[.312,.016],[.335,.01],[.31,.012],[.19,.007],[.03,.007]],.0015,0,{x:sx*1.36}));
+        }
+        for (const z of [.019,.212,.332]) h.add(pin(ch,.004,.031,0,0,z,10));
+        h.add(box(bk,.015,.008,.024,0,0,.319));
+        h.add(box(gl,.033,.003,.025,0,.006*sign,.211));
+        sign < 0 && h.add(prof(ch,rrect(.325,.345,-.023,-.012,.003),.022,.001));
         g.add(h);
       };
       handle("hA", 0.014, 1);
       handle("hB", -0.014, -1);
       return finish(g);
     },
-    // a karambit: a hooked claw off a grooved grip, a chrome pivot at the root,
-    // the ring at the back; the whole knife turns around the ring
+    // DFDF Ember: copper frame around a contoured grip and a continuous claw.
+    // The finger-ring centre remains the original spin pivot.
     karambit() {
       const g = new T.Group(),
         bl = GUNMAT.blade(),
         bk = GUNMAT.black(),
         ch = GUNMAT.chrome(),
-        gl = GUNMAT.glow(0xff3d5a);
+        frame = GUNMAT.polymer(),
+        gl = GUNMAT.glow(0xffbc73);
+      g.userData.design = 'dfdf-karambit-v2';
       const spin = part("spin", 0, 0.008, 0.25);
       spin.add(torus(ch, 0.03, 0.0065, 20, 0, 0, 0, 0, PI / 2, 0));
-      const handle = [[-0.016, 0.026], [-0.255, 0.02], [-0.272, 0.01], [-0.272, -0.02], [-0.258, -0.034], [-0.245, -0.036], [-0.21, -0.014, -0.175, -0.036], [-0.168, -0.038], [-0.133, -0.016, -0.098, -0.036], [-0.09, -0.038], [-0.06, -0.018, -0.03, -0.03], [-0.016, -0.02]];
-      spin.add(prof(bk, handle, 0.026, 0.007, { uv: 3 }));
-      spin.add(pin(ch, 0.015, 0.03, 0, -0.004, -0.248, 16));
-      spin.add(pin(ch, 0.005, 0.03, 0, 0.004, -0.12, 8));
-      spin.add(box(gl, 0.028, 0.003, 0.12, 0, 0.0215, -0.13));
-      const claw = [[-0.252, 0.016], [-0.39, 0.03, -0.5, -0.06, -0.462, -0.196], [-0.46, -0.204, -0.453, -0.2], [-0.44, -0.11, -0.36, -0.045, -0.252, -0.03]];
-      spin.add(prof(bl, claw, 0.013, 0.005, { bs: 0.007 }));
+      const handle=[[-.017,.026],[-.15,.034],[-.245,.026],[-.277,.006],[-.265,-.029],[-.237,-.041],[-.20,-.02,-.175,-.04],[-.16,-.043],[-.12,-.023,-.095,-.041],[-.08,-.04],[-.05,-.02,-.018,-.023]];
+      spin.add(prof(frame,handle,.027,.005));
+      const inset=[[-.034,.016],[-.15,.023],[-.237,.016],[-.251,-.002],[-.229,-.025],[-.20,-.011,-.176,-.026],[-.16,-.029],[-.12,-.012,-.096,-.026],[-.073,-.025],[-.04,-.009]];
+      spin.add(prof(bk,inset,.032,.004,{uv:3}));
+      for(const z of [-.066,-.143,-.232]) spin.add(pin(ch,.0038,.041,0,.001,z,10));
+      for(let i=0;i<4;i++) spin.add(prof(frame,slot(-.105-i*.027,.006,.012,.006,-.006),.033,0));
+      spin.add(prof(gl,rrect(-.222,-.17,.019,.022,.001),.029,0));
+      spin.add(torus(frame,.037,.0025,24,0,0,0,0,PI/2,0));
+      const claw=[[-.252,.016],[-.335,.041,-.42,.012,-.455,-.05],[-.485,-.101,-.48,-.163,-.451,-.203],[-.448,-.208,-.443,-.2],[-.441,-.135,-.395,-.068,-.344,-.041],[-.302,-.022,-.267,-.025]];
+      spin.add(prof(bl,claw,.014,.005,{bs:.005}));
+      spin.add(prof(ch,[[-.446,-.195],[-.436,-.13,-.39,-.068,-.343,-.04],[-.274,-.025],[-.28,-.015],[-.346,-.03],[-.41,-.066,-.449,-.13,-.446,-.195]],.0145,0));
+      spin.add(prof(frame,[[-.269,.009],[-.33,.025,-.4,-.001,-.43,-.045],[-.4,-.014,-.336,.01,-.277,-.002]],.015,0));
       g.add(spin);
       return finish(g);
     },

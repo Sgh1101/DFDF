@@ -13,7 +13,7 @@
   // second. A peer that has not said "hello" yet is "quiet": it is sent nothing, at most QUIET_MAX of them are kept
   // at once (the oldest goes first), and one that does not say hello within HELLO_MS is closed. A guest sends its hello the moment its
   // event link opens; the second link of a guest that has said hello is not counted.
-  const HELLO_MS = 12000, QUIET_MAX = 16;
+  const HELLO_MS = 12000, QUIET_MAX = 16, ACTIVE_MAX = 12;
   const quiet = new Map(); // peer -> { owner, chs: its links so far, timer }
   const hush = (peer) => {
     const q = quiet.get(peer);
@@ -37,6 +37,7 @@
     if ((label !== "state" && label !== "event") || ["me", "ai", "dead"].includes(e.peer)) return e.close();
     const known = conns().get(e.peer);
     let q = quiet.get(e.peer);
+    if (!known && conns().size >= ACTIVE_MAX + QUIET_MAX) return e.close();
     if (!q && !(known && !known.quiet)) {
       // full: the one that has waited longest goes (a guest says hello within a second or two, so it is not that one)
       if (quiet.size >= QUIET_MAX) { const [oldest, oq] = quiet.entries().next().value; silenceEnd(oldest, oq); }
@@ -59,11 +60,18 @@
     e.on("data", (data) => {
       const o = conns().get(e.peer);
       if (current() && o && o[label] === e && e.open) {
-        if (o.quiet && data && "hello" === data.t) {
-          o.quiet = !1;
-          hush(e.peer);
-        }
         hostRecv(e.peer, data);
+        if (o.quiet && data && "hello" === data.t) {
+          // Admission is decided by the complete onAction chain, including
+          // reconnect validation. A hello alone does not buy a broadcast slot.
+          const admitted = room.started ? world.actors.some(a => a.ctrl === e.peer) : room.members.has(e.peer);
+          if (admitted && [...conns().values()].filter(c=>!c.quiet).length < ACTIVE_MAX) {
+            o.quiet = !1; hush(e.peer);
+          } else {
+            hush(e.peer); conns().delete(e.peer);
+            for (const c of [o.state,o.event]) try { c && c.close(); } catch (x) {}
+          }
+        }
       }
     });
     e.on("close", () => {

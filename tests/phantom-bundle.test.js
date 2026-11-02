@@ -39,7 +39,7 @@ test("the committed pack is exactly what the generator produces", () => {
   } finally { fs.rmSync(out, { recursive: true, force: true }); }
 });
 test("bundled loader rejects damaged, missing or unsafe assets instead of silently accepting substitutes", async () => {
-  await assert.rejects(A.bundled(async (address) => address.endsWith("phantom_attacker.png") ? new Response("wrong texture") : fetcher(address), "bundle/"), /손상/);
+  await assert.rejects(A.bundled(async (address) => address.split('?')[0].endsWith("phantom_attacker.png") ? new Response("wrong texture") : fetcher(address), "bundle/"), /손상/);
   await assert.rejects(A.bundled(async (address) => address.split('?')[0].endsWith("manifest.json") ? fetcher(address) : new Response("", { status: 404 }), "bundle/"), /불러오지/);
   const invalid = { ...manifest, files: [{ ...manifest.files[0], name: "../mod.class" }] };
   await assert.rejects(A.bundled(async () => new Response(JSON.stringify(invalid)), "bundle/"), /항목/);
@@ -51,4 +51,16 @@ test('the updated bundle bypasses an old worker cached manifest and includes eve
   },'bundle/');
   assert.ok(requested.includes('?revision='));
   for(const name of ['gunart_side','gunart_top','lick_attacker','lick_defender'])assert.ok(assets['textures/vfx/'+name+'.png']);
+});
+
+test('a returning player with old cached gun files receives the current verified bundle',async()=>{
+  const oldCache=new Map(manifest.files.map(f=>['bundle/'+f.name,Buffer.from('previous release')]));
+  let staleReads=0;
+  const assets=await A.bundled(async address=>{
+    if(address.split('?')[0].endsWith('manifest.json'))return fetcher(address);
+    if(oldCache.has(address)){staleReads++;return new Response(oldCache.get(address));}
+    return fetcher(address);
+  },'bundle/');
+  assert.equal(staleReads,0,'a content update must bypass the old cache key');
+  assert.deepEqual(Buffer.from(assets['geo/phantom_champions_2026.geo.json']),fs.readFileSync(path.join(root,'geo/phantom_champions_2026.geo.json')));
 });

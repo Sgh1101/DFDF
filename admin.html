@@ -758,7 +758,7 @@ VIEWS.rooms = async () => {
   const draw = async () => {
     const [{ rooms }, { config }] = await Promise.all([call("a_rooms"), call("a_config_get")]);
     const chName = (id) => (config.channels.find((c) => c.id === id) || { name: id }).name;
-    const by = {};
+    const by = Object.create(null);
     rooms.forEach((r) => (by[r.ch] = by[r.ch] || []).push(r));
     $("#main").innerHTML = `<div class="bar"><span class="muted">서버(채널) 목록과 이름은 '게임 설정' 아래쪽에서 바꿉니다. 명령은 방장 화면에 20초 안에 전달됩니다.</span></div>` +
       (config.channels.map((c) => `<div class="sec"><h3>${esc(c.name)} <span class="muted">${esc(c.id)}</span></h3>${(by[c.id] || []).map(roomHtml).join("") || '<p class="muted">열린 방 없음</p>'}</div>`).join("")) +

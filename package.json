@@ -166,7 +166,9 @@
     "test:colorblind": "node scripts/browser-colorblind.js",
     "test:map-week": "node scripts/browser-map-week.js",
     "test:key-hints": "node scripts/browser-key-hints.js",
-    "test:settings-sync": "node scripts/browser-settings-sync.js"
+    "test:settings-sync": "node scripts/browser-settings-sync.js",
+    "test:champions-concept": "node scripts/browser-champions-concept.js",
+    "test:host-data": "node scripts/browser-host-data.js"
   },
   "devDependencies": {
     "peer": "1.0.2",

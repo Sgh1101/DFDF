@@ -138,11 +138,12 @@
   const _goneOwner = NET.onPeerGone;
   NET.onPeerGone = function (peer) {
     X.OWNP.delete(peer); ownerExpiry.delete(peer); ownerRequests.delete(peer);
+    X.GRANT.delete(peer); A2.PEERS.delete(peer);
     return _goneOwner.apply(this, arguments);
   };
   const _shutdownOwner = netShutdown;
   netShutdown = function () {
-    X.OWNP.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0; GRANTN.clear();
+    X.OWNP.clear(); X.GRANT.clear(); A2.PEERS.clear(); OWN.god.clear(); OWN.bind.clear(); ownerExpiry.clear(); ownerRequests.clear(); helloKey = ""; helloExp = 0; GRANTN.clear();
     const r = _shutdownOwner.apply(this, arguments);
     // cheats the owner gave me in that room end with it
     if (X.HUNT.granted) (X.HUNT.granted = !1), X.relock();

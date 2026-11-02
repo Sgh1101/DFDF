@@ -1,0 +1,11 @@
+/* Korean headings use the real 400 face; changing digits keep a steady width. */
+.title-mark,.sel-top h2,.ov-head,.tt-name,#banner,#kf-main{font-weight:400}
+.mono,#tb-time,.rs-cnt,.hp-num,.ammo-n,.ammo-r,.ab-key,.ab-meta,.buy-price,.shop-price,#kf-streak{
+  font-family:'Noto Sans KR',system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+  font-weight:700;
+  letter-spacing:0;
+}
+#killfx.phantom-attack #kf-streak,#killfx.phantom-defense #kf-streak{font-family:Orbitron,system-ui,sans-serif}
+button,input,select,textarea{font-synthesis:none}
+@media(max-width:600px){.lbl{letter-spacing:.08em}.ab-meta{font-size:11px}.acard-q{font-size:12px}}

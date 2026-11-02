@@ -227,6 +227,8 @@
   }
   async function checkPeer(peer, ticket, quiet) {
     if (!ticket || !AC || !AC.api || isClient()) return;
+    const scope = NET.room, host = NET.peer, conn = NET.conns.get(peer), channel = conn && conn.event;
+    if (!conn) return;
     let perm = null;
     try {
       const j = await AC.api("perm_check", { ticket, room: NET.room, p: peer });
@@ -234,7 +236,7 @@
     } catch (e) {
       return; // the server did not answer: keep what we had
     }
-    if (LAST.get(peer) !== ticket) return; // a newer ticket came in meanwhile
+    if (LAST.get(peer) !== ticket || NET.room !== scope || NET.peer !== host || NET.conns.get(peer) !== conn || conn.event !== channel) return;
     if (!perm) {
       const had = PERMS.has(peer);
       dropPeer(peer);
@@ -271,6 +273,7 @@
   const _sd = netShutdown;
   netShutdown = function () {
     OWNER_GRANT_ME = !1; // the owner's grant in that room ends with it
+    PERMS.clear(); TICKET.clear(); LAST.clear(); ADDED.clear(); OGRANT.clear();
     return _sd.apply(this, arguments);
   };
   const _pg = NET.onPeerGone;

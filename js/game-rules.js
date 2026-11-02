@@ -28,7 +28,22 @@
   const championsFinisher = (event) => finisher(event) && championsSkin(finisherSkin(event));
   // the Champions skin a player's finisher uses: the attackers' dragon pair or the defenders'
   const playerFinisherSkin = (team) => ("atk" === team ? "champions_atk" : "champions_def");
-  const rules = { validInput, abilityReady, outcome, ffaMode, FFA_MODES, finisher, finisherSkin, playerFinisherSkin, championsSkin, championsFinisher };
+  const bounded = (n, lo=0, hi=1000000) => typeof n === 'number' && Number.isFinite(n) && n >= lo && n <= hi;
+  function validHostEvent(e,weapons) {
+    if (!e || typeof e !== 'object' || typeof e.t !== 'string') return false;
+    if (e.t === 'am') return typeof e.k === 'string' && Object.hasOwn(weapons,e.k) && bounded(e.n) && (e.r == null || bounded(e.r));
+    if (e.t === 'ability-state') return Number.isInteger(e.i) && e.i >= 0 && e.i < 4 && bounded(e.charges) && bounded(e.cd) && bounded(e.ult);
+    return true;
+  }
+  function validSnapshot(s) {
+    if (!s || typeof s !== 'object' || typeof s.ph !== 'string' || s.ph.length > 24 || !['rt','sa','sd','rd'].every(k=>bounded(s[k]))) return false;
+    if (!Array.isArray(s.sk) || s.sk.length < 5 || !s.sk.every(n=>bounded(n,-10000000,10000000))) return false;
+    if (!Array.isArray(s.a) || s.a.length > 128) return false;
+    return s.a.every(a=>Array.isArray(a) && a.length >= 11 && a.length <= 32 &&
+      (typeof a[0] === 'string' && a[0].length <= 96 || bounded(a[0])) &&
+      a.slice(1).every(n=>bounded(n,-10000000,10000000)));
+  }
+  const rules = { validInput, validHostEvent, validSnapshot, abilityReady, outcome, ffaMode, FFA_MODES, finisher, finisherSkin, playerFinisherSkin, championsSkin, championsFinisher };
   if (typeof module === "object" && module.exports) module.exports = rules;
   else root.GAME_RULES = rules;
 })(typeof window === "object" ? window : globalThis);

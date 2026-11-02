@@ -54,7 +54,7 @@ function painter(side) {
   const pal = PALETTES[side];
   return ({ material: baseMaterial, p, n, u, v, w, h, cube }) => {
     // the defense gun keeps a pale handguard and barrel; the attack gun keeps them black
-    const material = side === "defender" && baseMaterial === "dark" && (cube.bone === "handguard" || cube.bone === "barrel") ? "body" : baseMaterial;
+    const material = side === "defender" && baseMaterial === "dark" && !cube.keepDark && (cube.bone === "handguard" || cube.bone === "barrel") ? "body" : baseMaterial;
     const [x, y, z] = p, up = n[1] > 0.7, down = n[1] < -0.7, flank = Math.abs(n[2]) > 0.7, end = Math.abs(n[0]) > 0.7;
     // Face light: tops bright, flanks middle, ends and undersides dark.
     let shade = up ? 4 : flank ? 3 : end ? 2 : 1;
@@ -64,8 +64,8 @@ function painter(side) {
     const grain = hash(Math.round(x * 4), Math.round(y * 4), Math.round(z * 4), material.length);
     if (grain < 0.05) shade--; else if (grain > 0.97) shade++;
     let group = material === "glow" ? "glow" : material, glow = material === "glow";
-    if (material === "body" && up && cube.size[2] >= 2.4) group = pal.deck || "shell"; // pale deck on wide tops
-    const veinable = material === "body" || (material === "dark" && (cube.bone === "handguard" || cube.bone === "barrel"));
+    if (material === "body" && up && cube.size[2] >= 2.4) { group = "body"; shade = 4; }
+    const veinable = !cube.keepDark && (material === "body" || (material === "dark" && (cube.bone === "handguard" || cube.bone === "barrel")));
     if (veinable && flank) {
       if (near([x, y], VEINS, 0.3)) { group = "trim"; shade = 4 + (grain > 0.6 ? 1 : 0); }
       else if (near([x, y], VEINS, 0.5)) { if (pal.accent) group = "accent"; else shade = Math.min(shade, 2); }
@@ -79,6 +79,14 @@ function painter(side) {
     // thin gold edging along a cube's flank edges, and a pale highlight on tops
     if (cube.edge && flank && ((v === 0 && cube.edge !== "bottom") || (v === h - 1 && cube.edge !== "top"))) { group = "trim"; shade = 4; glow = false; }
     if (cube.hi && up) { group = pal.deck || "shell"; shade = pal.deck ? 5 : 4; glow = false; }
+    // Atlas-only scale engraving avoids hundreds of additional geometry pieces.
+    if (cube.scales && flank) {
+      const row = Math.floor(y / .40), sx = ((x + (row % 2) * .38) % .76 + .76) % .76;
+      const sy = ((y % .40) + .40) % .40;
+      const curve = Math.hypot((sx - .38) / .40, (sy - .40) / .40);
+      group = "trim"; shade = Math.abs(curve - 1) < .12 ? 1 : sy < .09 ? 5 : 3;
+      glow = false;
+    }
     if (material === "trim" && (up || v === 0)) shade = Math.max(shade, 4);
     if (material === "dark" && group === "dark") shade = Math.min(shade, 4);
     const colors = pal[group];

@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  assert.deepEqual(await p.evaluate(()=>({desert:!!MAPS.desert_town,loader:!!window.KOUR_MAP,event:!!document.getElementById('sel-event')})),{desert:false,loader:false,event:false},'Claude removal remains in effect');
  assert.equal(await p.evaluate(()=>performance.getEntriesByType('resource').filter(r=>/\/assets\/maps\/(ascent|desert|kour)\//.test(r.name)).length),0,'ordinary entry does not load either map');
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();
- await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});
+ await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  for(const [key,global] of [['ascent_trial','ASCENT_TRIAL']]){
   await p.evaluate(async({key,global})=>{await window[global].ensure();room.map=key;room.mode='std';await startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;},{key,global});

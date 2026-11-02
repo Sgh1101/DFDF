@@ -217,6 +217,7 @@
     const effects = PHANTOM_FINISHER_MOTION.create(group, texture, skin.id === ids[0], event, enlargement, figure.position.y, figure.rotation.y);
     return (t) => {
       const seconds = t * 8;
+      for(const rig of native.children)GECKO_FINISHER_RIG.animate(rig,seconds);
       figure.visible = seconds >= 2.66 && seconds < 8;
       mats[0].map = texture("textures/finisher/dragon_low_" + (skin.id === ids[1] && seconds >= 2.8 ? "white" : "black") + ".png");
       // One-second alpha exit, with the hold shortened for the requested 8s round transition.
@@ -373,8 +374,9 @@
     GS.preview(VALORANT_DATA.championsWeapon, selected);
     const studio = GS._pv();
     if (studio?.obj) {
-      const size = new T.Box3().setFromObject(studio.obj).getSize(new T.Vector3());
-      studio.fit = { L: Math.max(size.x, size.z), H: size.y, w: 0.68, h: 0.62 };
+      // pvShow already measured the unparented model. A world-space box here
+      // includes the temporary pop-in scale and can crop the gun once it grows.
+      studio.fit = { ...studio.fit, w: 0.68, h: 0.62 };
     }
     for (const b of document.querySelectorAll("[data-phantom-skin]")) b.setAttribute("aria-pressed", String(b.dataset.phantomSkin === selected));
   }

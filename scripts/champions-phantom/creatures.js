@@ -76,6 +76,9 @@ function dragonHead(rig, eyes, neck) {
   const center = a.clone().add(b).multiplyScalar(0.5).addScaledVector(fwd, 0.3).add(V(0, -0.08, 0));
   const first = rig.model.bones.length;
   const head = rig.bone("head", "root", center, frame(fwd));
+  // Raised gilt brow plates leave both eye/glow anchors unobstructed.
+  rig.box(head, [-.62,.12], [.39,.47], [-.38,.38], "crest");
+  for(const s of [-1,1])rig.box(head, [-.65,.1], [.22,.32], s>0?[.48,.54]:[-.54,-.48], "crest");
   rig.box(head, [-0.75, 0.25], [-0.3, 0.38], [-0.48, 0.48], "scale");           // skull
   rig.box(head, [0.25, 1.15], [-0.18, 0.22], [-0.36, 0.36], "scale");           // snout
   rig.box(head, [0.55, 1.2], [0.22, 0.3], [-0.2, 0.2], "horn");                  // nose ridge
@@ -150,6 +153,9 @@ function serpentHead(rig, eyes, variant) {
   const center = a.clone().add(b).multiplyScalar(0.5).addScaledVector(fwd, 0.28).add(V(0, -0.06, 0));
   const first = rig.model.bones.length;
   const head = rig.bone("head", "root", center, frame(fwd));
+  // Raised gilt brow plates leave both eye/glow anchors unobstructed.
+  rig.box(head, [-.62,.12], [.39,.47], [-.38,.38], "crest");
+  for(const s of [-1,1])rig.box(head, [-.65,.1], [.22,.32], s>0?[.48,.54]:[-.54,-.48], "crest");
   rig.box(head, [-0.65, 0.3], [-0.26, 0.3], [-0.72, 0.72], "scale");             // broad skull
   rig.box(head, [0.3, 1.25], [-0.16, 0.2], [-0.5, 0.5], "scale");               // flat snout
   rig.box(head, [-0.5, 0.9], [0.3, 0.38], [-0.4, 0.4], "plate");                // brow plate
@@ -206,12 +212,12 @@ function serpent(variant) {
 
 // ── texture painting ──
 const PAL = {
-  dragon_black: { scale: [0x2a0709, 0x4a0c10, 0x701418, 0x962024, 0xb83234], belly: [0x5e5a5c, 0x7c787a, 0x9c989a, 0xbcb8b8, 0xd6d2cf], fin: [0x16080a, 0x2a0c10, 0x441318, 0x5c1a20, 0x7a242a], flank: [0x2a0a0e, 0x46121a, 0x6a1c24, 0x8e2a30, 0xb03a3e], horn: [0x3c1416, 0x5a2022, 0x7a3030, 0x9c4440, 0xbc5a52], mane: [0x2a0c0e, 0x481416, 0x6a1e20, 0x8e2c2c, 0xb03e3c] },
+  dragon_black: { scale: [0x2a0709, 0x4a0c10, 0x701418, 0x962024, 0xb83234], belly: [0x5e5a5c, 0x7c787a, 0x9c989a, 0xbcb8b8, 0xd6d2cf], fin: [0x16080a, 0x2a0c10, 0x441318, 0x5c1a20, 0x7a242a], flank: [0x2a0a0e, 0x46121a, 0x6a1c24, 0x8e2a30, 0xb03a3e], horn: [0x6a4012, 0x8e5e1c, 0xb47e2a, 0xd49e3c, 0xfcdc88], mane: [0x2a0c0e, 0x481416, 0x6a1e20, 0x8e2c2c, 0xb03e3c] },
   dragon_white: { scale: [0x6e5a3e, 0x9c8562, 0xbfa880, 0xd8c6a0, 0xece0c4], belly: [0x8a8070, 0xb2a894, 0xd2c8b4, 0xe8e0d0, 0xf6f2e8], fin: [0x6a5c48, 0x8e7e64, 0xb0a084, 0xcfc0a4, 0xe6dac0], flank: [0x5a3a1e, 0x7a5028, 0x9a6a36, 0xb98648, 0xd2a262], horn: [0x8c8a90, 0xaeacb2, 0xcac8ce, 0xe0dee4, 0xf4f2f8], mane: [0x7e7c84, 0xa2a0a8, 0xc2c0c8, 0xdcdae2, 0xf0eef4] },
   serpent_cream: { scale: [0x8c7450, 0xb49a70, 0xd2bc90, 0xe6d4aa, 0xf4e8c8], belly: [0x9e9078, 0xc4b89e, 0xe0d6be, 0xf0e8d6, 0xfaf6ec], fin: [0xa8a296, 0xc8c2b4, 0xe0dace, 0xf0ece2, 0xfcfaf4], plate: [0xa08a64, 0xc2aa80, 0xdcc69c, 0xece0c0, 0xf8f0dc], fan: [0xaaa49a, 0xcac4b8, 0xe2ddd2, 0xf2eee6, 0xfefcf8], mark: [0x3a2010, 0x52301a, 0x6c4024, 0x84522e, 0x9c6438] },
   serpent_red: { scale: [0x4a0a0a, 0x6c1210, 0x8e1c16, 0xac281e, 0xc8382a], belly: [0x3a1a18, 0x5a2a26, 0x7a3c36, 0x9a5048, 0xb8665c], fin: [0x200606, 0x380a0a, 0x521010, 0x6e1814, 0x8a221c], plate: [0x5a0e0c, 0x7c1814, 0x9c241c, 0xba3024, 0xd4422e], fan: [0x2a0808, 0x440c0c, 0x641412, 0x841c18, 0xa42820], mark: [0x0a0404, 0x140606, 0x200808, 0x2c0a0a, 0x380c0c] },
 };
-const FIXED = { mouth: [0x4a0c10, 0x6a1418, 0x8c1c20, 0xa82428, 0xc0302e], tongue: [0x6a1020, 0x8c1828, 0xb02434, 0xcc3444, 0xe04656], tooth: [0xa89c88, 0xc8bea8, 0xe2dac8, 0xf2ecde, 0xfffaf0], claw: [0x6c665c, 0x8e887c, 0xb0aa9c, 0xd0cabc, 0xeee8dc], dark: [0x050404, 0x0c0808, 0x140c0c, 0x1c1010, 0x241414] };
+const FIXED = { crest: [0x6a4012,0x9b6824,0xc5953b,0xecbe58,0xffe3a0], mouth: [0x4a0c10, 0x6a1418, 0x8c1c20, 0xa82428, 0xc0302e], tongue: [0x6a1020, 0x8c1828, 0xb02434, 0xcc3444, 0xe04656], tooth: [0xa89c88, 0xc8bea8, 0xe2dac8, 0xf2ecde, 0xfffaf0], claw: [0x6c665c, 0x8e887c, 0xb0aa9c, 0xd0cabc, 0xeee8dc], dark: [0x050404, 0x0c0808, 0x140c0c, 0x1c1010, 0x241414] };
 
 function creaturePainter(pal, kind) {
   const eye = kind.startsWith("dragon") ? [0xff6a1c, 0xffb040] : [0xffd040, 0xfff0a0];
