@@ -1,6 +1,6 @@
 /* Korean headings use the real 400 face; changing digits keep a steady width. */
 .title-mark,.sel-top h2,.ov-head,.tt-name,#banner,#kf-main{font-weight:400}
-.mono,#tb-time,.rs-cnt,.hp-num,.ammo-n,.ammo-r,.ab-key,.ab-meta,.buy-price,.shop-price,#kf-streak{
+.mono,#tb-time,#tb-atk,#tb-def,.rs-cnt,#v-hp,#v-ar,#am-count,#am-credit,.ab-key,.ab-meta,.buy-price,.shop-price,#kf-streak{
   font-family:'Noto Sans KR',system-ui,sans-serif;
   font-variant-numeric:tabular-nums;
   font-weight:700;

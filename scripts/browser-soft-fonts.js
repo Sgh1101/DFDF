@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// The game's type: readable Korean faces. Titles, banners and numbers in Black Han Sans, body text in Noto Sans KR,
+// The game's type: readable Korean faces. Titles and banners in Black Han Sans; numbers in Noto Sans KR, body text in Noto Sans KR,
 // on the game page and on the homepage. The Champions Phantom's kill banner keeps its own type (Orbitron for the word,
 // Noto Sans KR for the small lines), as it was. The fixture blocks Google Fonts, so this checks the families the
 // pages ask for, not the drawn glyphs.
@@ -21,8 +21,10 @@ const DISPLAY = /^"Black Han Sans"/, BODY = /^"Noto Sans KR"/;
     await page.evaluate(() => { window.KILL_EVENT = null; killStreak = 0; playKillFx("화령", false); banner("라운드 승리", "#4ade80"); });
     await page.waitForFunction(() => !!document.getElementById("kf-main").textContent);
     const plain = await read();
-    for (const s of ["#kf-main", "#kf-tag", "#kf-streak", "#banner"]) assert.match(plain[s], DISPLAY, s + " is in Black Han Sans: " + plain[s]);
-    for (const s of ["#kf-sub", "#roster", "body"]) assert.match(plain[s], BODY, s + " is in Noto Sans KR: " + plain[s]);
+    for (const s of ["#kf-main", "#kf-tag", "#banner"]) assert.match(plain[s], DISPLAY, s + " is in Black Han Sans: " + plain[s]);
+    for (const s of ["#kf-sub", "#kf-streak", "#roster", "body"]) assert.match(plain[s], BODY, s + " is in Noto Sans KR: " + plain[s]);
+    const digits=await page.evaluate(()=>['#v-hp','#v-ar','#am-count','#am-credit','#tb-time','#tb-atk','#tb-def'].map(s=>{const c=getComputedStyle(document.querySelector(s));return {s,family:c.fontFamily,variant:c.fontVariantNumeric};}));
+    for(const d of digits){assert.match(d.family,BODY,d.s+' uses the readable number face');assert.match(d.variant,/tabular-nums/,d.s+' keeps a stable digit width');}
     // the Champions Phantom's banner as it was
     await page.evaluate(() => { window.KILL_EVENT = { kind: "gun", skin: "champions_atk" }; killStreak = 0; playKillFx("화령", false); });
     await page.waitForFunction(() => !!document.getElementById("kf-main").textContent);

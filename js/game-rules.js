@@ -31,12 +31,14 @@
   const bounded = (n, lo=0, hi=1000000) => typeof n === 'number' && Number.isFinite(n) && n >= lo && n <= hi;
   function validHostEvent(e,weapons) {
     if (!e || typeof e !== 'object' || typeof e.t !== 'string') return false;
+    for(const k of ['sa','sd','rd'])if(e[k]!=null&&!bounded(e[k]))return false;
+    if(e.t==='over'&&e.k!=null&&(!Array.isArray(e.k)||e.k.length>128||!e.k.every(a=>Array.isArray(a)&&a.length===2&&bounded(a[1]))))return false;
     if (e.t === 'am') return typeof e.k === 'string' && Object.hasOwn(weapons,e.k) && bounded(e.n) && (e.r == null || bounded(e.r));
     if (e.t === 'ability-state') return Number.isInteger(e.i) && e.i >= 0 && e.i < 4 && bounded(e.charges) && bounded(e.cd) && bounded(e.ult);
     return true;
   }
   function validSnapshot(s) {
-    if (!s || typeof s !== 'object' || typeof s.ph !== 'string' || s.ph.length > 24 || !['rt','sa','sd','rd'].every(k=>bounded(s[k]))) return false;
+    if (!s || typeof s !== 'object' || typeof s.ph !== 'string' || s.ph.length > 24 || !bounded(s.rt,-1000000) || !['sa','sd','rd'].every(k=>bounded(s[k]))) return false;
     if (!Array.isArray(s.sk) || s.sk.length < 5 || !s.sk.every(n=>bounded(n,-10000000,10000000))) return false;
     if (!Array.isArray(s.a) || s.a.length > 128) return false;
     return s.a.every(a=>Array.isArray(a) && a.length >= 11 && a.length <= 32 &&

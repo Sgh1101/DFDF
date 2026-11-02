@@ -7,9 +7,13 @@ test('host numeric events cannot introduce markup, prototype keys or nonfinite H
  for(const k of ['__proto__','constructor','missing'])assert.equal(rules.validHostEvent({t:'am',k,n:12,r:24},weapons),false);
  assert.equal(rules.validHostEvent({t:'ability-state',i:0,charges:1,cd:.25,ult:3},weapons),true);
  assert.equal(rules.validHostEvent({t:'ability-state',i:0,charges:1,cd:0,ult:'<svg/onload=alert(1)>'},weapons),false);
+ assert.equal(rules.validHostEvent({t:'over',sa:'<svg/onload=alert(1)>',sd:0,k:[]},weapons),false);
+ assert.equal(rules.validHostEvent({t:'over',sa:1,sd:0,k:[[1,'<img src=x>']]},weapons),false);
+ assert.equal(rules.validHostEvent({t:'over',sa:1,sd:0,k:[[1,5]]},weapons),true);
 });
 test('snapshots reject hostile score/round and actor values before any partial state update',()=>{
  assert.equal(rules.validSnapshot(snapshot()),true);
+ const planted=snapshot();planted.rt=-350;assert.equal(rules.validSnapshot(planted),true,'a planted spike keeps a live round running below zero');
  for(const key of ['sa','sd','rd','rt']){const s=snapshot();s[key]='<img src=x>';assert.equal(rules.validSnapshot(s),false);}
  for(const i of [6,7,10,11]){const s=snapshot();s.a[0][i]='<svg/onload=alert(1)>';assert.equal(rules.validSnapshot(s),false);}
  const old=snapshot();old.a[0].pop();assert.equal(rules.validSnapshot(old),true,'older actors without ult charge remain compatible');

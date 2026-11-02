@@ -15,13 +15,13 @@ test('activation retires the entire legacy asset cache, including unversioned im
  const context={URL,location:{origin:'https://game.example'},self:{addEventListener:(k,f)=>handlers.set(k,f),clients:{claim:async()=>{}}},caches:{keys:async()=>['13-v2','13-assets-v1','13-v3-original-maps','13-assets-v2-original-maps'],delete:async k=>{removed.push(k);},open:async()=>({keys:async()=>[],delete:async()=>{}})}};
  vm.runInNewContext(fs.readFileSync(require.resolve('../sw.js'),'utf8'),context);
  handlers.get('activate')({waitUntil:p=>{pending=p;}});await pending;
- assert.deepEqual(removed.sort(),['13-assets-v1','13-v2']);
+ assert.deepEqual(removed.sort(),['13-assets-v1','13-v2','13-v3-original-maps']);
 });
 
 test('activation purges retired files while retaining the current island preview and Champions',async()=>{
  const handlers=new Map(),origin='https://game.example',deleted=[];
- const stale=['/assets/maps/kour/manifest.json','/assets/site/maps/desert_town.webp','/assets/maps/ascent/geometry.bin?v=blocks2','/assets/ui/ascent-preview-v3.webp','/assets/site/maps/ascent_trial.webp?x=1'];
- const keep=['/assets/maps/ascent/manifest.json?v=original-1','/assets/site/maps/ascent_trial.webp?v=original-1','/assets/champions-phantom/dfdf-1/manifest.json'];
+ const stale=['/assets/maps/kour/manifest.json','/assets/site/maps/desert_town.webp','/assets/maps/ascent/geometry.bin?v=blocks2','/assets/ui/ascent-preview-v3.webp','/assets/site/maps/ascent_trial.webp?x=1','/assets/site/maps/ascent_trial.webp?v=original-1','/assets/maps/ascent/manifest.json?v=original-1','/assets/maps/ascent/geometry.bin?v=original-1'];
+ const keep=['/assets/maps/ascent/manifest.json?v=neighborhood-2','/assets/site/maps/ascent_trial.webp?v=neighborhood-2','/assets/champions-phantom/dfdf-1/manifest.json'];
  const cache={keys:async()=>[...stale,...keep].map(u=>({url:origin+u})),delete:async r=>{deleted.push(r.url.slice(origin.length));return true;}};
  const context={URL,location:{origin},self:{addEventListener:(n,f)=>handlers.set(n,f),clients:{claim:async()=>{}}},caches:{keys:async()=>[],open:async()=>cache}};
  vm.runInNewContext(fs.readFileSync(require.resolve('../sw.js'),'utf8'),context);

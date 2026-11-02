@@ -309,7 +309,7 @@
     if(renderAssets.has(profile))return renderAssets.get(profile);
     if(assetLoads.has(profile))return assetLoads.get(profile);
     const promise=(async()=>{
-      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version='original-1';
+      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version='neighborhood-2';
       const mr=profile==='mobile'?await fetch(base+'manifest.json?v='+version):null;
       if(mr&&!mr.ok)throw Error('휴대폰용 맵 목록을 불러오지 못했어');
       const meta=mr?await mr.json():S.meta;
@@ -356,7 +356,7 @@
     try {
       // Full-quality files keep their existing URLs; the separate mobile pack
       // is fetched only for mobile, and never replaces cached original assets.
-      const mr=await fetch('./assets/maps/ascent/manifest.json?v=original-1');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
+      const mr=await fetch('./assets/maps/ascent/manifest.json?v=neighborhood-2');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
       const meta=S.meta=await mr.json();
       await loadAsset(profileFor(SETTINGS.quality));
       MAPS[KEY]={graphicsStatic:true,
