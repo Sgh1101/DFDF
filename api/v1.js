@@ -297,6 +297,7 @@ async function log(type, msg, extra) {
 }
 // wrong passwords one account takes in 15 minutes before it stops taking any (A.auth)
 const AUTH_FAIL_MAX = 10;
+const PW_NEW_MIN = 8;
 // a little brake on guessing passwords
 async function limited(key, max, sec) {
   const memo = requestState.getStore();
@@ -851,6 +852,8 @@ A.auth = async (q, b, req) => {
     await redis(["DEL", failKey]);
   } else {
     if (!c.game.registerOpen) throw fail(403, "지금은 새 가입을 받지 않습니다");
+    // a new account needs a longer password; accounts made with 4-7 characters before keep signing in with them
+    if (pw.length < PW_NEW_MIN) throw fail(400, "새로 가입하는 비밀번호는 " + PW_NEW_MIN + "자 이상이어야 합니다");
     if (RESERVED_ID.test(id)) throw fail(400, "게스트·플레이어로 시작하는 아이디는 쓸 수 없습니다");
     if (PROTO_ID.test(id)) throw fail(400, "쓸 수 없는 아이디입니다");
     // a name a guest already goes by is taken too

@@ -5,6 +5,7 @@
 // /admin, all through the Worker. DFDF_WRANGLER_BIN may point at another wrangler (bin/wrangler.js).
 const assert = require("node:assert/strict"), http = require("node:http"), path = require("node:path"), { spawn } = require("node:child_process");
 const { fixture } = require("./browser-fixture");
+const { HEADER, policy } = require("./build-csp");
 
 const REDIS_PORT = 10097, SITE_PORT = 8797, SITE = "http://127.0.0.1:" + SITE_PORT;
 const until = async (check, ms, what) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (await check()) return; throw new Error("timed out: " + what()); };
@@ -42,6 +43,8 @@ const until = async (check, ms, what) => { for (const end = Date.now() + ms; Dat
       const r = await get(p);
       assert.equal(r.status, 200, p + " is served as it is"); assert.equal(r.h("x-content-type-options"), "nosniff", p);
     }
+    // the Content-Security-Policy of the stage: on the static files (_headers) and on what the Worker answers itself
+    for (const p of ["/", "/index.html", "/play.html", "/about.html", "/admin", "/js/legacy/manifest.json", "/api/release", "/api/v1?a=config", "/not-there.html"]) assert.equal((await fetch(SITE + p)).headers.get(HEADER), policy(), p + " carries the " + HEADER);
     for (const p of ["/admin", "/admin.html"]) { const a = await get(p); assert.equal(a.status, 200); assert.equal(a.h("x-frame-options"), "DENY", p); assert.equal(a.h("x-robots-tag"), "noindex, nofollow", p); assert.equal(a.h("cache-control"), "no-store", p); }
     const sw = await get("/sw.js");
     assert.equal(sw.h("cache-control"), "no-cache"); assert.equal(sw.h("service-worker-allowed"), "/");

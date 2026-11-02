@@ -54,3 +54,14 @@ Worker의 **Settings → Variables and Secrets**에 아래 값을 **Secret**으�
 - **되돌리기:** 넘긴 뒤 일주일은 Vercel 프로젝트를 그대로 둡니다. 문제가 생기면 Cloudflare DNS에서 13fps.xyz를 다시 Vercel A 레코드로 돌리면 됩니다.
 - **홍보 영상:** 별도 Vercel 사이트(`13fps-film.vercel.app`)에 있습니다.
 - **나중 일:** 우리 PeerJS 서버(Render) 작업은 `claude/cloudflare-render` 브랜치에 보류해 두었습니다.
+
+## 보안 헤더(CSP)
+
+`scripts/build-csp.js`가 한 정책을 세 곳에 씁니다. Vercel(`vercel.json`), Cloudflare 정적 파일(`_headers`), Worker가 직접 답하는 `/`·`/admin`·API(`cloudflare/csp.mjs`).
+
+- **1단계(지금): `report-only`.** `Content-Security-Policy-Report-Only` 헤더라서 아무것도 막지 않고, 막혔을 것을 브라우저 콘솔에만 적습니다.
+  - 사장님이나 제가 사이트를 열어 보고 콘솔(F12)에 `Content-Security-Policy-Report-Only` 경고가 없는지 보면 됩니다.
+  - 실제 접속자의 보고는 모으지 않습니다. 모으려면 보고를 받는 주소가 따로 필요합니다.
+- **2단계: `enforce`.** `scripts/build-csp.js`의 `MODE`를 `"enforce"`로 바꾸고 `node scripts/build-csp.js`를 한 번 돌리면 `Content-Security-Policy`(실제로 막는 헤더)로 바뀝니다. 강제 모드에서도 테스트(`npm test`, `npm run test:csp`)가 통과하는 것을 확인했습니다.
+- **광고:** AdSense 코드를 넣을 때, 1단계 상태에서 콘솔에 나오는 광고 도메인을 `build-csp.js`의 `AD`에 추가한 뒤 2단계로 넘어갑니다.
+- **페이지 안 스크립트를 고치면** `node scripts/build-csp.js`를 다시 돌려야 합니다. 안 돌리면 `tests/csp.test.js`가 실패합니다.
