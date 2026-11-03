@@ -312,7 +312,7 @@
       for (const [name, tex] of stagedTextures) textures.set(name, tex);
       for (const [name, address] of stagedUrls) urls.set(name, address);
       committed = true; refresh(); availability();
-      $("phantom-status").textContent = origin === "bundled" ? L("챔피언스 팬텀 모델·텍스처 자동 적용됨 · DFDF 제작", "Champions Phantom model and textures loaded automatically · made by DFDF") : L("불러온 JAR 모델·텍스처 적용됨", "Imported JAR model and textures loaded");
+      $("phantom-status").textContent = origin === "bundled" ? L("챔피언스 팬텀 원본 총 모델·텍스처 자동 적용됨", "Original Champions Phantom gun model and textures loaded automatically") : L("불러온 JAR 모델·텍스처 적용됨", "Imported JAR model and textures loaded");
       if (GS.isOpen() && GS.curTab() === "champions") showSelected();
     } finally {
       if (!committed) { for (const tex of stagedTextures.values()) tex.dispose(); for (const address of stagedUrls.values()) URL.revokeObjectURL(address); }

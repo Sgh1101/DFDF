@@ -1,5 +1,6 @@
 // Authored after exploring the actual Champions menu in test:phantom.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{fixture}=require('./browser-fixture');
+const sourceGeo=require('./champions-phantom/source-gun/geo/phantom_champions_2026.geo.json')['minecraft:geometry'][0],sourceVertices=sourceGeo.bones.reduce((n,b)=>n+(b.cubes?.length||0),0)*36;
 (async()=>{
  const f=await fixture(),out=process.env.SHOT_DIR||'test-results/champions-concept/proof',rows=[];fs.mkdirSync(out,{recursive:true});
  try{
@@ -23,7 +24,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
      return {count,red:red/count,light:light/count,luminance:luminance/count,verts,minX,maxX,minY,maxY,gl:gl.getError()};
     });
     console.log(label,side,JSON.stringify(info));rows.push({label,side,...info});
-    assert.equal(info.gl,0);assert.ok(info.count>500);assert.ok(info.minX>=-1.02&&info.maxX<=1.02&&info.minY>=-1.02&&info.maxY<=1.02,'the complete gun fits');
+    assert.equal(info.gl,0);assert.equal(info.verts,sourceVertices,'every original cube is rendered');assert.ok(info.count>500);assert.ok(info.minX>=-1.02&&info.maxX<=1.02&&info.minY>=-1.02&&info.maxY<=1.02,'the complete gun fits');
     await p.locator('#ar-cv').screenshot({path:path.join(out,label+'-'+side+'-model.png')});
     await p.screenshot({path:path.join(out,label+'-'+side+'-ui.png')});
     const movement=await p.evaluate(()=>{const obj=GUN_SKINS._pv().obj,mag=obj.getObjectByName('phantom-bone-magazine'),bolt=obj.getObjectByName('phantom-bone-bolt');CHAMPIONS_PHANTOM.pose(obj,'idle',0);const a=mag.position.clone(),b=bolt.position.clone();CHAMPIONS_PHANTOM.pose(obj,'reload_tactical',.85);const reload=a.distanceTo(mag.position);CHAMPIONS_PHANTOM.pose(obj,'shoot',.04);const shoot=b.distanceTo(bolt.position);CHAMPIONS_PHANTOM.pose(obj,'inspect',3);const inspect=[...mag.position.toArray(),...mag.quaternion.toArray()].every(Number.isFinite);CHAMPIONS_PHANTOM.pose(obj,'idle',0);return{reload,shoot,inspect};});

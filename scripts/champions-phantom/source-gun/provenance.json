@@ -1,0 +1,96 @@
+{
+  "source": "ChampionsPhantom2026-0.1.0.jar",
+  "sourceSha256": "99e2c9076976b9ca5c7f38ffcae8e08e6f06b0df55ce13b9a597cb1a97d86683",
+  "creatorStatement": "The user identified themselves as the original creator and requested use of the provided gun model and textures.",
+  "scope": "Gun geometry and attacker/defender base and glow textures, copied byte-for-byte.",
+  "files": [
+    {
+      "name": "geo/phantom_champions_2026.geo.json",
+      "size": 619976,
+      "sha256": "36fe668022913cc238e24de8096685e956e6715c7fc8bd71c622fa9a3234d2f2"
+    },
+    {
+      "name": "textures/item/phantom_attacker.png",
+      "size": 17002,
+      "sha256": "1a2c17e93cfa2c9370e7d81006f3c458ec4ea270d43c54eacb14b35f3631664f"
+    },
+    {
+      "name": "textures/item/phantom_attacker_glowmask.png",
+      "size": 2029,
+      "sha256": "a617422b7b0c775e1f4b7a7b8e0225a70deacf81be40a3775cd82f826a5435d3"
+    },
+    {
+      "name": "textures/item/phantom_defender.png",
+      "size": 16840,
+      "sha256": "37823e13e7dc21209cdc18e5ef8203623382c1874639cc73f8f4140db998d20d"
+    },
+    {
+      "name": "textures/item/phantom_defender_glowmask.png",
+      "size": 1973,
+      "sha256": "abbac045ffc13584eec8d39f976cb6029d7064aa06ceaedb8f522675b2e45693"
+    }
+  ],
+  "wavePalettes": {
+    "attacker": [
+      [
+        1049092,
+        2491400,
+        4458508,
+        6819346,
+        9707040,
+        12866644
+      ],
+      [
+        9175046,
+        12454924,
+        15212052,
+        16728104,
+        16743520,
+        16763060
+      ],
+      [
+        657932,
+        1447450,
+        2368554,
+        3552830,
+        5263450,
+        8553614
+      ],
+      [
+        16766624,
+        16480594
+      ]
+    ],
+    "defender": [
+      [
+        1313028,
+        3019782,
+        5383690,
+        8405008,
+        12085276,
+        15244346
+      ],
+      [
+        9850378,
+        13400088,
+        15769640,
+        16763974,
+        16771712,
+        16775880
+      ],
+      [
+        4870238,
+        7370886,
+        9871020,
+        12370895,
+        14409961,
+        16185596
+      ],
+      [
+        16776388,
+        16769656
+      ]
+    ]
+  },
+  "wavePaletteSource": "Original-pack integration at 4f0f2a3, before procedural replacements."
+}

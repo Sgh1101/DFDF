@@ -7,7 +7,7 @@
 | 사막 마을 | 과거 Kour.io map7 | 클로드의 main 32a422e 삭제를 유지. 교체 후보로 만든 사막도 최종 패키지에 포함하지 않음 | 과거 이력의 권리는 미확인 |
 | 마크X발로 (하늘섬) | 같은 생성기 및 공유 배치, scripts/paint-block-textures.py | 원본 schematic 형상 제거, 독립적인 도로·시장·정류장·주택가 배치(neighborhood-2)로 교체 | 플레이 품질 검증 기록 참고 |
 | 과거 Kour.io·schematic | 이전 Git 커밋의 외부 원본 | 현행 패키지와 이미지에서 제거. 과거 Git 이력은 보존 | 과거 사용 허가 유무는 미확인. 이력을 다시 배포할 때 별도 확인 |
-| 챔피언스 | scripts/champions-phantom, SOURCE-NOTICE | 사용자의 11월 2일 승인에 따라 검토한 자체 시안 소스, 금빛 마무리 장식·몸/턱 움직임, 새 합성곡 Aurora를 적용. 리그·장착·재화·8초 조건 유지 | 다른 작품의 보호되는 외형·음악·상표와의 관계는 별도 검토 미완료. 생성 스크립트만으로 법적 허가를 보증하지 않음 |
+| 챔피언스 | 제공한 ChampionsPhantom2026-0.1.0.jar의 총 다섯 파일, 나머지는 scripts/champions-phantom | 원본 제작자라고 밝힌 사용자의 11월 3일 선택에 따라 총 JSON·공격/수비 기본/발광 PNG를 바이트까지 보존. 출처·해시는 source-gun/provenance.json. 기존 음악·마무리·배너·장착·재화 유지 | 사용자의 제작자 진술과 사용 요청을 기록. 그 외 다른 작품의 외형·음악·상표 관계는 별도 검토 미완료 |
 | 칼 두 종류 | js/legacy/67-knives.js의 자체 프로파일·베벨·프레임 형상 | Ember 카람빗·Tide 나비칼. 손·그립·피벗·크기·모션 소스 보존 | 실제 렌더러와 자세히 보기 검사 기록 참고 |
 | 재질·HDRI | ambientCG·Poly Haven CC0 | 세부 원본은 assets/CREDITS.md | 가져온 경로와 원본 CC0 표기를 계속 보관 |
 | 글꼴 | Google Fonts, SIL OFL | 외부 로드, 제작사·라이선스 출처 기록 | 재배포로 바뀌면 라이선스 파일도 포함 |

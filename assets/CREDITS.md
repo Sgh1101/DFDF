@@ -64,4 +64,6 @@
 
 ## 챔피언스 및 권리 확인 상태
 
-`assets/champions-phantom/dfdf-1/SOURCE-NOTICE.txt`와 생성 스크립트가 제작 경로를 기록합니다. 최신 main의 클로드 수정(외형·마무리·음악)을 그대로 가져왔으며, 광고 준비 코드에서 추가로 변경하지 않았습니다. 파일 제작 경로와 다른 작품의 보호되는 표현·상표 사용 권한은 구분해야 합니다. 표현에 관한 별도 권리 검토나 허가를 완료했다고 단정하지 않습니다. 전체 기록은 `docs/asset-provenance.md`를 확인하세요.
+2026-11-03: 사용자가 원본 제작자라고 밝히며 제공한 `ChampionsPhantom2026-0.1.0.jar`의 총 외형·비율·색상을 요청했습니다. 총 형상 JSON과 공격·수비 기본/발광 텍스처는 원본 바이트를 보존하며 `scripts/champions-phantom/source-gun/provenance.json`에 해시와 출처를 기록합니다. 나머지 마무리·배너·음악은 DFDF 생성 코드의 결과입니다.
+
+`assets/champions-phantom/dfdf-1/SOURCE-NOTICE.txt`와 생성 스크립트가 총 원본 및 나머지 연출의 제작 경로를 구분해 기록합니다. 광고 설정은 별도입니다. 전체 기록은 `docs/asset-provenance.md`를 확인하세요.
