@@ -18,6 +18,18 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.deepEqual([r.rar, r.tier, r.knife], [4, true, true]);
     const cat = await f.h.api("catalog", {});
     assert.equal(cat.tiers.champion, 4);
+    // its own sound pack (not the stock sound), banner and finisher figure; none of the pack's voices is loud enough to clip
+    const wired = await page.evaluate(() => {
+      const pk = SOUNDPACK.packs[SOUNDPACK.skins.champion], voices = pk ? ["shot", "kill", "head", "fin"].flatMap((k) => pk[k] || []) : [];
+      const th = FINISHER_LEGEND.themes.champion;
+      return { pack: !!pk && ["shot", "kill", "head", "fin"].every((k) => pk[k] && pk[k].length), loud: Math.max(0, ...voices.map((v) => v.v || 0)), kill: pk ? pk.kill.reduce((a, v) => a + (v.v || 0), 0) : 99, banner: !!KILLBANNER.table.champion, fig: th && th.fig, phantomPack: SOUNDPACK.skins.champions_atk, soft: th && th.soft };
+    });
+    assert.ok(wired.pack, "the skin has its own sound pack");
+    assert.ok(wired.loud <= 0.25, "no voice louder than 0.25: " + wired.loud);
+    assert.ok(wired.kill <= 1.1, "a kill sound's voices add up to " + wired.kill);
+    assert.ok(wired.banner, "the skin has its own kill banner");
+    assert.equal(wired.fig, "ripple", "the skin's own finisher figure");
+    assert.equal(wired.phantomPack, "champions", "the Phantom keeps its own pack");
     // the shell keeps inside the gun's own outline, on every gun (the Vandal and the rest of the pack included), so a gun in the
     // skin is still that gun, and the waves run along the imported ones. The old shell had a pointed plate, a six-sided stock
     // behind it and a fin under it (1.37 times the built guns' height: a fish), followed a box that counted the pack's flat scope
@@ -95,6 +107,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const n0 = rings();
       actorFire(me);
       res.afterShot = rings() - n0;
+      {
+        const first = fx.filter((o) => o.mesh && o.mesh.geometry && o.mesh.geometry.type === "RingGeometry").map((o) => o.mesh), mz = W.muzzleOf(VM.current);
+        res.ringAtMuzzle = mz ? Math.min(...first.map((m) => m.position.distanceTo(mz))) : -1;
+        res.ringSolid = first.length > 0 && first.every((m) => m.material.blending === THREE.NormalBlending);
+        res.ringColours = new Set(first.map((m) => m.material.color.getHex())).size;
+      }
       for (let i = 0; i < 30; i++) step(0.05);
       res.gone = rings();
       // the rings grow and fade
@@ -123,6 +141,9 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     console.log(JSON.stringify(out));
     assert.equal(out.wears, true);
     assert.ok(out.afterShot >= 2, "rings leave the muzzle: " + out.afterShot);
+    assert.ok(out.ringAtMuzzle >= 0 && out.ringAtMuzzle < 0.05, "the rings start at the gun's muzzle: " + out.ringAtMuzzle);
+    assert.ok(out.ringSolid, "the rings are solid colour (read on a bright sky)");
+    assert.ok(out.ringColours >= 2, "the rings run through the skin's colours: " + out.ringColours);
     assert.ok(out.grown, "they grow and light up");
     assert.equal(out.plain, 0, "no rings with another skin"); assert.equal(out.knife, 0, "none from the knife");
     assert.ok(out.waves >= 2, "a kill sends waves: " + out.waves);

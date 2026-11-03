@@ -7,8 +7,8 @@
   if ("undefined" == typeof actorFire || !window.GUN_SKINS || "function" != typeof addFx) return;
   const GS = window.GUN_SKINS;
   const ID = "champion";
-  const GOLD = 0xe6bd4f,
-    AQUA = 0xc060ff;
+  // the skin's own colours, purple then pink then gold: a shot's rings and a kill's waves run through them in that order
+  const COLS = [0xb066ff, 0xff4fb8, 0xffc24d];
   const hk = (a) => ("client" === NET.mode && "me" !== a.ctrl && a.netWeapon ? a.netWeapon : actorWeaponKey(a));
   const wears = (a) => {
     try {
@@ -23,44 +23,76 @@
   };
   const q = () => Math.max(0.4, ("object" == typeof GFX && GFX.fx) || 1);
 
-  // ── rings that leave the muzzle: faces the way it points, growing and fading ──
+  // ── rings that leave the muzzle: face the way it points, growing and fading ──
   let RING = null;
-  const ringGeo = () => RING || ((RING = new T.RingGeometry(0.86, 1, 56)), (RING.userData.shared = !0), RING);
+  const ringGeo = () => RING || ((RING = new T.RingGeometry(0.8, 1, 56)), (RING.userData.shared = !0), RING);
   function rings(pos, dir, big) {
     if (!pos || !dir) return;
-    const n = Math.max(2, Math.round(3 * q()));
+    const n = Math.max(2, Math.round(3 * q())),
+      d = dir.clone().normalize(),
+      reach = big ? 2 : 1.5,
+      size = big ? 0.7 : 0.5;
     for (let i = 0; i < n; i++) {
-      const col = i % 2 ? GOLD : AQUA,
-        mat = new T.MeshBasicMaterial({ color: col, transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide, blending: T.AdditiveBlending });
-      mat.color.multiplyScalar(1.5);
-      const m = new T.Mesh(ringGeo(), mat),
-        d = dir.clone().normalize(),
-        delay = i * 0.055;
+      // solid colour (not additive), so the ring reads against a bright sky and a bright floor as well as a dark one
+      const mat = new T.MeshBasicMaterial({ color: COLS[i % COLS.length], transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide }),
+        m = new T.Mesh(ringGeo(), mat),
+        delay = i * 0.06,
+        life = 0.55 + delay;
       m.position.copy(pos);
       m.lookAt(pos.clone().add(d));
       m.userData.noCollide = !0;
-      let started = !1;
-      addFx(m, 0.62 + delay, (o, t) => {
-        const life = 0.62 + delay,
-          k = Math.max(0, t * life - delay) / 0.62; // 0..1 once its turn has come
+      addFx(m, life, (o, t) => {
+        const k = Math.max(0, t * life - delay) / 0.55; // 0..1 once its turn has come
         if (k <= 0) return void (o.material.opacity = 0);
-        started || ((started = !0), o.position.copy(pos));
-        o.position.copy(pos).addScaledVector(d, 0.1 + k * (big ? 1.7 : 1.2));
-        o.scale.setScalar((big ? 0.12 : 0.08) + k * (big ? 0.55 : 0.4));
-        o.material.opacity = 0.9 * (1 - k) * (1 - k);
+        const e = 1 - (1 - k) * (1 - k);
+        o.position.copy(pos).addScaledVector(d, 0.04 + e * reach);
+        o.scale.setScalar(0.05 + e * size);
+        o.material.opacity = 0.95 * (1 - k * k);
       });
     }
   }
-  // my own shot: from just in front of the gun, along the view
+  // the muzzle of the gun in my hands, found from the gun's own front (the middle of its muzzle end, a little above the
+  // bore line where the crown sits), so the rings leave the gun wherever it is on screen
+  const MZ = new WeakMap();
+  function muzzleOf(g) {
+    let l = MZ.get(g);
+    if (!l) {
+      g.updateWorldMatrix(!0, !0);
+      const inv = g.matrixWorld.clone().invert(),
+        box = new T.Box3(),
+        b = new T.Box3();
+      g.traverse((o) => {
+        if (!o.isMesh || !o.geometry || o.userData.kit || !o.visible) return;
+        o.geometry.boundingBox || o.geometry.computeBoundingBox();
+        b.copy(o.geometry.boundingBox).applyMatrix4(inv.clone().multiply(o.matrixWorld));
+        const s = b.getSize(new T.Vector3());
+        Math.min(s.x, s.y, s.z) >= 1e-4 && box.union(b);
+      });
+      if (box.isEmpty()) return null;
+      l = new T.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.7, box.min.z);
+      MZ.set(g, l);
+    }
+    g.updateWorldMatrix(!0, !1);
+    return g.localToWorld(l.clone());
+  }
+  // my own shot: from the gun's muzzle along the view (from just in front of the camera when the gun cannot be found)
   function mine() {
     const f = new T.Vector3(),
       u = new T.Vector3(),
       r = new T.Vector3();
     camera.getWorldDirection(f);
-    u.copy(camera.up).applyQuaternion(camera.quaternion);
-    r.crossVectors(f, u).normalize();
-    const ads = !!player.ads;
-    rings(camera.position.clone().addScaledVector(r, ads ? 0.04 : 0.17).addScaledVector(u, ads ? -0.05 : -0.1).addScaledVector(f, ads ? 0.55 : 0.62), f, !1);
+    let p = null;
+    try {
+      const g = "undefined" != typeof VM && VM.current;
+      g && g.visible && VM.root.visible && (p = muzzleOf(g));
+    } catch (e) {}
+    if (!p) {
+      u.copy(camera.up).applyQuaternion(camera.quaternion);
+      r.crossVectors(f, u).normalize();
+      const ads = !!player.ads;
+      p = camera.position.clone().addScaledVector(r, ads ? 0.04 : 0.17).addScaledVector(u, ads ? -0.05 : -0.1).addScaledVector(f, ads ? 0.55 : 0.62);
+    }
+    rings(p, f, !1);
   }
   const forward = (a) => {
     const cp = Math.cos(a.pitch || 0);
@@ -90,24 +122,36 @@
     return r;
   };
 
-  // ── a kill: waves over the ground ──
-  let FLAT = null;
-  const flatGeo = () => FLAT || ((FLAT = new T.RingGeometry(0.9, 1, 64)), (FLAT.userData.shared = !0), FLAT);
+  // ── a kill: waves over the ground, three ripples (purple, pink, gold) running out from where the target fell ──
+  let FLAT = null,
+    DISC = null;
+  const flatGeo = () => FLAT || ((FLAT = new T.RingGeometry(0.84, 1, 64)), (FLAT.userData.shared = !0), FLAT);
+  const discGeo = () => DISC || ((DISC = new T.CircleGeometry(1, 40)), (DISC.userData.shared = !0), DISC);
   function waves(x, y, z) {
-    const n = Math.max(2, Math.round(4 * q()));
+    const n = Math.max(2, Math.round(3 * q()));
+    const ground = Math.max(0.06, y - 0.9);
+    // a flash of colour where it fell
+    const dm = new T.Mesh(discGeo(), new T.MeshBasicMaterial({ color: COLS[1], transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide }));
+    dm.rotation.x = -Math.PI / 2;
+    dm.position.set(x, ground + 0.01, z);
+    dm.userData.noCollide = !0;
+    addFx(dm, 0.45, (o, t) => {
+      o.scale.setScalar(0.4 + t * 2.2);
+      o.material.opacity = 0.6 * (1 - t) * (1 - t);
+    });
     for (let i = 0; i < n; i++) {
-      const mat = new T.MeshBasicMaterial({ color: i % 2 ? GOLD : AQUA, transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide, blending: T.AdditiveBlending });
-      mat.color.multiplyScalar(1.4);
-      const m = new T.Mesh(flatGeo(), mat),
-        delay = i * 0.09,
+      const mat = new T.MeshBasicMaterial({ color: COLS[i % COLS.length], transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide }),
+        m = new T.Mesh(flatGeo(), mat),
+        delay = i * 0.11,
         life = 1 + delay;
       m.rotation.x = -Math.PI / 2;
-      m.position.set(x, Math.max(0.06, y - 0.9), z);
+      m.position.set(x, ground + 0.02 + i * 0.005, z);
       m.userData.noCollide = !0;
       addFx(m, life, (o, t) => {
-        const k = Math.max(0, t * life - delay);
-        o.material.opacity = k <= 0 ? 0 : 0.85 * Math.pow(1 - k, 2);
-        o.scale.setScalar(0.3 + k * 4.2);
+        const k = Math.max(0, t * life - delay),
+          e = 1 - (1 - k) * (1 - k);
+        o.material.opacity = k <= 0 ? 0 : 0.95 * (1 - k * k);
+        o.scale.setScalar(0.3 + e * 4.4);
       });
     }
   }
@@ -138,5 +182,5 @@
     return r;
   };
 
-  window.CHAMPION_WAVE = { rings, waves, wears };
+  window.CHAMPION_WAVE = { rings, waves, wears, muzzleOf };
 })();

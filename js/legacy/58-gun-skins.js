@@ -91,7 +91,7 @@
     { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
     // 챔피언의 물결: our own legendary, gloss-black armour with pale-grey plates edged in orange and gold and a purple-pink
     // plasma flame flowing over it in waves; shots send rings of light out of the muzzle (96-…champion…js)
-    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 1024, tile: 0.2, pat: "champion", kit: "champion", em: !0, anim: "pulse", pal: ["#09090e", "#d6d9e2", "#e3b13e", "#ff8f1f", "#8a35ff", "#ff3fb0"], body: [0xffffff, 0.3, 0.4], coat: [1, 0.04], metal: [0xe3b13e, 0.2, 1], dark: [0x07070b, 0.45, 0.5], glow: 0xc060ff, glass: 0xe8c6ff },
+    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, tile: 0.2, pat: "champion", kit: "champion", em: !0, anim: "pulse", pal: ["#09090e", "#d6d9e2", "#e3b13e", "#ff8f1f", "#8a35ff", "#ff3fb0"], body: [0xffffff, 0.3, 0.4], coat: [1, 0.04], metal: [0xe3b13e, 0.2, 1], dark: [0x07070b, 0.45, 0.5], glow: 0xc060ff, glass: 0xe8c6ff },
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
@@ -1146,37 +1146,30 @@
           });
         }
     },
-    // 챔피언의 물결: gloss-black armour with pale-grey plates edged in orange and gold, and a flame of purple-to-pink
-    // plasma flowing across it in waves. Base: black, plates, trim, a dim flame; emissive: the flame and the orange lines
+    // 챔피언의 물결: gloss-black armour in four bands across the tile. Two bands are bricks of pale-grey plate (bevelled grey,
+    // a black rim, an orange line inside, a gold shard at the cut corner); the two between are black channels a flame runs
+    // through — ribbons of purple, then pink, then orange, thick and thin as they flow, with small tongues licking up from
+    // them. Everything repeats a whole number of times across the tile, so it joins. Base: black, plates, hairlines, a dim
+    // flame; emissive: the flame and the orange lines (so only they glow)
     champion(g, W, H, pal, em) {
       const wrap = wrapper(W, H),
-        R = rng(2024);
+        R = rng(2024),
+        TAU = Math.PI * 2,
+        band = H / 4;
       g.fillStyle = "#000";
       g.fillRect(0, 0, W, H);
       if (!em) {
-        g.fillStyle = pal[0];
+        const bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, pal[0]);
+        bg.addColorStop(0.5, "#14141c");
+        bg.addColorStop(1, pal[0]);
+        g.fillStyle = bg;
         g.fillRect(0, 0, W, H);
-        // a fine honeycomb in the black, and chevron ribs over it, like machined armour
-        g.strokeStyle = "rgba(255,255,255,.055)";
-        g.lineWidth = W * 0.0016;
-        const hr = W / 24,
-          hh = hr * Math.sqrt(3);
-        for (let r = -1; r <= Math.ceil(H / hh) + 1; r++)
-          for (let c = -1; c <= 24; c++) {
-            const cx = c * hr * 1.5,
-              cy = r * hh + (c % 2 ? hh / 2 : 0);
-            g.beginPath();
-            for (let k = 0; k < 6; k++) {
-              const a = (k / 6) * Math.PI * 2;
-              k ? g.lineTo(cx + Math.cos(a) * hr * 0.9, cy + Math.sin(a) * hr * 0.9) : g.moveTo(cx + Math.cos(a) * hr * 0.9, cy + Math.sin(a) * hr * 0.9);
-            }
-            g.closePath();
-            g.stroke();
-          }
-        g.strokeStyle = "rgba(255,255,255,.07)";
-        g.lineWidth = W * 0.0022;
-        for (let i = 0; i < 24; i++) {
-          const y = (i / 24) * H;
+        // faint chevron ribs in the black, like machined armour
+        g.strokeStyle = "rgba(255,255,255,.05)";
+        g.lineWidth = W * 0.002;
+        for (let i = 0; i < 16; i++) {
+          const y = (i / 16) * H;
           g.beginPath();
           g.moveTo(0, y + H * 0.02);
           g.lineTo(W * 0.5, y);
@@ -1184,85 +1177,129 @@
           g.stroke();
         }
       }
-      // the plates: angular, pale grey with a black rim, an orange line inside, a gold shard at one corner
-      const plate = (cx, cy, s, rot) => {
-        const P = [[-1, -0.5], [0.4, -0.78], [1, -0.18], [0.8, 0.62], [-0.3, 0.8], [-0.95, 0.3]];
-        wrap(cx, cy, s * 1.3, (x, y) => {
-          const path = (k) => {
-            g.beginPath();
-            P.forEach(([a, b], n) => {
-              const px = a * k * s,
-                py = b * k * s,
-                rx = x + px * Math.cos(rot) - py * Math.sin(rot),
-                ry = y + px * Math.sin(rot) + py * Math.cos(rot);
-              n ? g.lineTo(rx, ry) : g.moveTo(rx, ry);
-            });
-            g.closePath();
-          };
-          if (!em) {
-            path(1);
-            g.fillStyle = "#06060a";
-            g.fill();
-            path(0.9);
-            g.fillStyle = pal[1];
-            g.fill();
-            path(0.9);
-            g.lineWidth = W * 0.004;
-            g.strokeStyle = "rgba(0,0,0,.55)";
+      // the plate bands: bricks, every other row shifted half a brick
+      const cols = 3,
+        cw = W / cols,
+        m = band * 0.1,
+        hw = cw / 2 - m * 0.7,
+        hh = band / 2 - m,
+        cut = band * 0.26;
+      for (const row of [0, 2])
+        for (let c = 0; c < cols; c++) {
+          const cx = (c + 0.5 + (row ? 0.5 : 0)) * cw,
+            cy = (row + 0.5) * band;
+          wrap(cx, cy, cw, (mx, my) => {
+            const path = (k) => {
+              const w = hw * k,
+                h = hh * k,
+                ct = cut * k;
+              g.beginPath();
+              g.moveTo(mx - w + ct, my - h);
+              g.lineTo(mx + w, my - h);
+              g.lineTo(mx + w, my + h - ct);
+              g.lineTo(mx + w - ct, my + h);
+              g.lineTo(mx - w, my + h);
+              g.lineTo(mx - w, my - h + ct);
+              g.closePath();
+            };
+            if (!em) {
+              path(1);
+              g.fillStyle = "#050508";
+              g.fill();
+              path(0.93);
+              const gr = g.createLinearGradient(0, my - hh, 0, my + hh);
+              gr.addColorStop(0, pal[1]);
+              gr.addColorStop(1, "#7d8294");
+              g.fillStyle = gr;
+              g.fill();
+              g.lineWidth = W * 0.003;
+              g.strokeStyle = "rgba(0,0,0,.6)";
+              g.stroke();
+              // a light bevel along the upper edge
+              g.beginPath();
+              g.moveTo(mx - hw * 0.93 + cut, my - hh * 0.93);
+              g.lineTo(mx + hw * 0.93, my - hh * 0.93);
+              g.strokeStyle = "rgba(255,255,255,.7)";
+              g.lineWidth = W * 0.0035;
+              g.stroke();
+              // the gold shard at the cut corner
+              const px = mx + hw * 0.93,
+                py = my + hh * 0.93;
+              g.beginPath();
+              g.moveTo(px - cut * 0.95, py);
+              g.lineTo(px, py - cut * 0.95);
+              g.lineTo(px - cut * 0.28, py - cut * 0.28);
+              g.closePath();
+              g.fillStyle = pal[2];
+              g.fill();
+            }
+            path(0.78);
+            g.lineWidth = W * (em ? 0.0042 : 0.0028);
+            g.strokeStyle = em ? "rgba(255,143,31,.95)" : pal[3];
             g.stroke();
-            // the gold shard
-            const gx = x + s * 0.55,
-              gy = y - s * 0.55;
-            g.beginPath();
-            g.moveTo(gx, gy);
-            g.lineTo(gx + s * 0.34, gy + s * 0.06);
-            g.lineTo(gx + s * 0.1, gy + s * 0.34);
-            g.closePath();
-            g.fillStyle = pal[2];
-            g.fill();
-          }
-          path(0.74);
-          g.lineWidth = W * (em ? 0.0042 : 0.003);
-          g.strokeStyle = em ? "rgba(255,150,40,.95)" : pal[3];
-          g.stroke();
-        });
-      };
-      for (let i = 0; i < 16; i++) plate(R() * W, R() * H, W * (0.055 + 0.03 * R()), R() * 6.28);
-      // the flame: strokes of a wave (a whole number of turns across the tile, so it joins), each wider and cooler
-      // at the edge, hot at the core — purple, then pink, then orange
-      const flame = (y0, amp, turns, ph, w) => {
-        const wave = (k) => {
+          });
+        }
+      // gold hairlines where a plate band meets a flame channel
+      for (let i = 0; i < 4; i++) {
+        g.fillStyle = em ? "rgba(255,170,60,.85)" : pal[2];
+        g.fillRect(0, i * band - H * 0.0025, W, H * 0.005);
+      }
+      // the flame: a ribbon through each channel, thick and thin as it flows; three layers, the core hottest
+      const ribbon = (yc, amp, turns, ph, wmax, lick) => {
+        const N = 96,
+          pt = (x) => {
+            const a = (x / W) * turns * TAU + ph;
+            return [yc + Math.sin(a) * amp, wmax * (0.42 + 0.58 * Math.pow(0.5 + 0.5 * Math.sin(a * 0.5 + 1.1), 1.2))];
+          };
+        for (const [col, k, al] of [[pal[4], 1, em ? 0.6 : 0.42], [pal[5], 0.62, em ? 0.9 : 0.62], [pal[3], 0.3, em ? 1 : 0.72], ...(em ? [["#ffe2a8", 0.1, 1]] : [])]) {
           g.beginPath();
-          for (let x = 0; x <= W; x += W / 64) {
-            const t = (x / W) * turns * 2 * Math.PI + ph,
-              y = y0 + Math.sin(t) * amp * k + Math.sin(t * 2.3 + ph) * amp * 0.25;
-            x ? g.lineTo(x, y) : g.moveTo(x, y);
+          for (let i = 0; i <= N; i++) {
+            const x = (i / N) * W,
+              [y, w] = pt(x);
+            i ? g.lineTo(x, y - (w * k) / 2) : g.moveTo(x, y - (w * k) / 2);
           }
-        };
-        g.lineCap = "round";
-        [[pal[4], 1, em ? 0.55 : 0.4], [pal[5], 0.6, em ? 0.85 : 0.6], [pal[3], 0.26, em ? 1 : 0.7]].forEach(([c, k, a]) => {
-          wave(1);
-          g.lineWidth = w * k;
-          g.globalAlpha = a;
-          g.strokeStyle = c;
-          g.stroke();
-        });
+          for (let i = N; i >= 0; i--) {
+            const x = (i / N) * W,
+              [y, w] = pt(x);
+            g.lineTo(x, y + (w * k) / 2);
+          }
+          g.closePath();
+          g.globalAlpha = al;
+          g.fillStyle = col;
+          g.fill();
+        }
+        // tongues licking up and forward from the crests
+        for (let i = 0; i < lick; i++) {
+          const x = ((i + 0.25) / lick) * W,
+            [y, w] = pt(x),
+            h = band * (0.3 + 0.12 * R()),
+            lean = band * 0.4;
+          wrap(x, y, lean + h, (dx, dy) => {
+            for (const [col, k] of [[pal[5], 1], [pal[3], 0.55]]) {
+              g.beginPath();
+              g.moveTo(dx - w * 0.2 * k, dy - w * 0.2);
+              g.quadraticCurveTo(dx + lean * 0.1, dy - h * 0.6 * k, dx + lean * k, dy - h * k - w * 0.2);
+              g.quadraticCurveTo(dx + lean * 0.5, dy - h * 0.35 * k, dx + w * 0.25 * k, dy - w * 0.2);
+              g.closePath();
+              g.globalAlpha = em ? 0.95 : 0.6;
+              g.fillStyle = col;
+              g.fill();
+            }
+          });
+        }
         g.globalAlpha = 1;
       };
-      flame(H * 0.12, H * 0.035, 3, 0.4, H * 0.05);
-      flame(H * 0.33, H * 0.04, 4, 2.1, H * 0.06);
-      flame(H * 0.55, H * 0.035, 3, 4.0, H * 0.05);
-      flame(H * 0.76, H * 0.04, 4, 1.2, H * 0.06);
-      flame(H * 0.94, H * 0.03, 3, 5.1, H * 0.045);
+      ribbon(band * 1.5, band * 0.16, 3, 0.4, band * 0.62, 6);
+      ribbon(band * 3.5, band * 0.16, 3, 3.1, band * 0.62, 6);
       // sparks thrown off the flame
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 26; i++) {
         const x = R() * W,
-          y = R() * H,
-          r = W * (0.002 + 0.003 * R());
+          y = (i % 2 ? 1.5 : 3.5) * band + (R() - 0.5) * band * 0.9,
+          r = W * (0.0022 + 0.003 * R());
         g.fillStyle = i % 3 ? pal[5] : pal[3];
         g.globalAlpha = em ? 0.95 : 0.5;
         g.beginPath();
-        g.arc(x, y, r, 0, 2 * Math.PI);
+        g.arc(x, y, r, 0, TAU);
         g.fill();
       }
       g.globalAlpha = 1;
@@ -1367,32 +1404,6 @@
     }
     uv.needsUpdate = !0;
   }
-  // the imported guns are painted from one small atlas, so a pattern drawn for a whole gun (the waves) comes out on them in
-  // scraps, a few pixels to a face. Lay it flat along the gun instead: a side face takes the side view, a top or bottom face
-  // the plan view, a muzzle or butt face the end view, so the pattern runs on from part to part as it does on the built guns
-  function flowUV(mesh, root, tile, vOff) {
-    const g = mesh.geometry,
-      uv = g && g.attributes.uv,
-      pos = g && g.attributes.position;
-    if (!uv || !pos || g.userData.shared || g.userData.uvFlow === tile) return;
-    g.userData.uv0 = g.userData.uv0 || uv.array.slice();
-    g.userData.uvFlow = tile;
-    const to = root.matrixWorld.clone().invert().multiply(mesh.matrixWorld),
-      normalMatrix = new T.Matrix3().getNormalMatrix(to),
-      nor = g.attributes.normal,
-      p = new T.Vector3(),
-      n = new T.Vector3();
-    for (let i = 0; i < uv.count; i++) {
-      p.fromBufferAttribute(pos, i).applyMatrix4(to);
-      nor ? n.fromBufferAttribute(nor, i).applyMatrix3(normalMatrix) : n.set(1, 0, 0);
-      const ax = Math.abs(n.x),
-        ay = Math.abs(n.y),
-        az = Math.abs(n.z),
-        [a, b] = ax >= ay && ax >= az ? [p.z, p.y] : ay >= az ? [p.z, p.x] : [p.x, p.y];
-      uv.setXY(i, a / tile, b / tile + (vOff || 0));
-    }
-    uv.needsUpdate = !0;
-  }
   // ── a skin's own shell: parts added over the gun so its outline changes, sized from the gun's own box ──
   const KITS = {
     // 챔피언의 물결: finely worked armour — bevelled grey receiver plates down both sides edged in gold with seams, rivets and
@@ -1405,8 +1416,7 @@
         box = new T.Box3(),
         parts = [],
         size = new T.Vector3();
-      // the gun's drawn metal only: shown, and with some thickness. The imported guns carry flat sight and scope overlay
-      // quads (the operator's reaches 3.8 m across), which the old box counted, so every plate grew to the size of the quad
+      // the gun's drawn metal only: shown, and with some thickness (flat overlay quads are left out of the box)
       root.traverseVisible((o) => {
         if (!o.isMesh || !o.geometry || o.userData.kit || Math.abs(o.matrixWorld.determinant()) < 1e-12) return;
         o.geometry.boundingBox || o.geometry.computeBoundingBox();
@@ -1414,7 +1424,7 @@
         b.getSize(size);
         if (Math.min(size.x, size.y, size.z) < 1e-4) return;
         box.union(b);
-        parts.push({ y: (b.min.y + b.max.y) / 2, w: size.x * size.y * size.z });
+        parts.push({ z0: b.min.z, z1: b.max.z, dz: size.z, dy: size.y, hw: Math.max(-b.min.x, b.max.x) });
       });
       if (box.isEmpty()) return;
       const z0 = box.min.z,
@@ -1422,19 +1432,15 @@
         L = z1 - z0,
         H0 = box.max.y - box.min.y;
       if (L < 0.2 || H0 < 0.08) return;
-      // the plates sit on the body, not on the magazine, grip and sights that stretch the box. The built guns were drawn
-      // to this box and keep it; an imported gun is thin for its box (the Vandal's stock is 0.21 m tall, the stock plate
-      // sized from the box was 0.44 m), so it gets its height from where its metal is, never under 60% of the box, and
-      // the parts keep to that band
-      let imported = !1;
-      root.traverse((n) => n.userData.valorantRig && (imported = !0));
-      const wsum = parts.reduce((a, p) => a + p.w, 0) || 1,
-        cy = parts.reduce((a, p) => a + p.w * p.y, 0) / wsum,
-        sd = Math.sqrt(parts.reduce((a, p) => a + p.w * (p.y - cy) ** 2, 0) / wsum),
-        H = imported ? H0 * Math.min(1, Math.max(0.6, (4 * sd) / H0)) : H0,
-        y0 = imported ? Math.min(box.max.y - H, Math.max(box.min.y, cy - H / 2)) : box.min.y,
+      // the plates sit on the body, not on the magazine, grip and sights that stretch the box. The built guns were drawn to
+      // this box and keep it; the plates stand off the body by its own half-width (read from the parts that make up the
+      // middle of the gun), so they sit on it and never stand out as wings
+      const H = H0,
+        y0 = box.min.y,
         y1 = y0 + H;
-      const hw = Math.max(0.03, Math.min(0.07, (box.max.x - box.min.x) * 0.3)),
+      let bodyHW = 0;
+      for (const p of parts) if (p.z0 < z0 + L * 0.7 && p.z1 > z0 + L * 0.3 && p.dz > L * 0.15 && p.dy > H0 * 0.12) bodyHW = Math.max(bodyHW, p.hw);
+      const hw = Math.max(0.026, Math.min(0.06, bodyHW || (box.max.x - box.min.x) * 0.3)),
         kit = new T.Group();
       kit.userData.kitOf = skin.id;
       kit.name = "skinKit";
@@ -1444,7 +1450,7 @@
             glow: new T.MeshBasicMaterial({ color: 0xff9a2e }),
             core: new T.MeshBasicMaterial({ color: 0xb85cff }),
             hot: new T.MeshBasicMaterial({ color: 0xffd9a0 }),
-            panel: new T.MeshPhysicalMaterial({ color: 0xc4c8d3, roughness: 0.34, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.05 }),
+            panel: new T.MeshPhysicalMaterial({ color: 0xd0d2da, roughness: 0.34, metalness: 0.22, clearcoat: 1, clearcoatRoughness: 0.05 }),
             seam: new T.MeshStandardMaterial({ color: 0x0a0a10, roughness: 0.6, metalness: 0.3 }),
           }),
         gold = skinMat(skin, "metal"),
@@ -1490,10 +1496,9 @@
         m.position.set(x, Y(v), Z(u));
         return add(m);
       };
-      // the side plate is a squared receiver panel (straight top and bottom, a cut corner at each end), so it reads as
-      // armour on the gun. It used to be a pointed lozenge that, with the six-sided stock behind it and the gold fin
-      // under it, made the gun read as a fish
-      const armour = [[0.2, 0.44], [0.2, 0.84], [0.26, 0.92], [0.7, 0.92], [0.75, 0.84], [0.75, 0.4], [0.68, 0.3], [0.28, 0.3]];
+      // the side plate is a squared receiver cover over the upper half of the body (straight top, a cut corner at each end), so
+      // the lower half keeps the gun's own black-and-flame body showing and the gun keeps its silhouette., and in the middle sits the core: three rings of light, the same rings the muzzle sends out
+      const armour = [[0.24, 0.52], [0.24, 0.84], [0.3, 0.92], [0.7, 0.92], [0.76, 0.84], [0.76, 0.58], [0.69, 0.5], [0.31, 0.5]];
       for (const sd of [-1, 1]) {
         const x0 = sd * (hw + T0 * 0.5),
           xo = sd * (hw + T0 * 1.05); // the outer face of the plate
@@ -1501,21 +1506,20 @@
         plate(armour, null, T0, x0, panel);
         outline(grow(armour, 1.015), xo + sd * T0 * 0.1, T0 * 0.28, gold, T0 * 0.28);
         outline(grow(armour, 0.9), xo + sd * T0 * 0.15, T0 * 0.3, glow, T0 * 0.18);
-        // 2. seams across the plate, and a block of vents at the rear
-        bar([0.44, 0.31], [0.44, 0.91], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
-        bar([0.2, 0.62], [0.75, 0.62], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
-        for (let k = 0; k < 5; k++) {
-          const v = 0.4 + k * 0.045;
-          bar([0.52, v], [0.62, v + 0.01], T0 * 0.2, xo + sd * T0 * 0.1, seam, T0 * 0.2);
+        // 2. two seams down the plate, and a block of vents at the front
+        for (const u of [0.355, 0.645]) bar([u, 0.51], [u, 0.91], T0 * 0.14, xo + sd * T0 * 0.08, seam, T0 * 0.14);
+        for (let k = 0; k < 4; k++) {
+          const v = 0.58 + k * 0.07;
+          bar([0.675, v], [0.735, v], T0 * 0.2, xo + sd * T0 * 0.1, seam, T0 * 0.2);
         }
         // 3. rivets at the corners
         grow(armour, 0.965).forEach(([u, v]) => stud(xo + sd * T0 * 0.3, u, v, T0 * 0.28));
-        // 4. the core: a lit disc, a hot centre, two gold rings, eight ticks round it
-        const cu = 0.52,
-          cv = 0.55,
+        // 4. the core: a lit disc, a hot centre, three rings of light round it (gold, gold, orange), eight ticks
+        const cu = 0.5,
+          cv = 0.72,
           cy = Y(cv),
           cz = Z(cu),
-          cr = Math.min(H * 0.15, L * 0.06),
+          cr = Math.min(H * 0.09, L * 0.045),
           xc = sd * (hw + T0 * 1.2);
         const disc = add(new T.Mesh(new T.CylinderGeometry(cr, cr, T0 * 0.5, 28), core));
         disc.rotation.z = Math.PI / 2;
@@ -1523,8 +1527,8 @@
         const hotc = add(new T.Mesh(new T.CylinderGeometry(cr * 0.45, cr * 0.45, T0 * 0.5, 20), hot));
         hotc.rotation.z = Math.PI / 2;
         hotc.position.set(xc + sd * T0 * 0.12, cy, cz);
-        for (const [k, tube] of [[1.2, 0.13], [1.55, 0.07]]) {
-          const ring = add(new T.Mesh(new T.TorusGeometry(cr * k, cr * tube, 8, 40), gold));
+        for (const [k, tube, mt] of [[1.2, 0.13, gold], [1.55, 0.08, gold], [1.75, 0.07, glow]]) {
+          const ring = add(new T.Mesh(new T.TorusGeometry(cr * k, cr * tube, 8, 40), mt));
           ring.rotation.y = Math.PI / 2;
           ring.position.set(xc, cy, cz);
         }
@@ -1534,17 +1538,13 @@
           tk.position.set(xc, cy + Math.sin(a) * cr * 1.38, cz + Math.cos(a) * cr * 1.38);
           tk.rotation.x = -a + Math.PI / 2;
         }
-        // 5. light strips low on the plate
-        bar([0.26, 0.38], [0.5, 0.38], T0 * 0.25, xo + sd * T0 * 0.15, glow, T0 * 0.16);
-        bar([0.28, 0.35], [0.48, 0.35], T0 * 0.2, xo + sd * T0 * 0.12, hot, T0 * 0.12);
       }
       // (no stock frame and no fin under the fore-end: they stood out of the gun's own outline, the tail and the fin of the fish)
       // 6. the top: a rail with teeth along it, a scope housing and its lens, a gold hood; a ringed muzzle crown
       const railU0 = 0.3,
         railU1 = 0.74,
         rh = H * 0.07;
-      // (on an imported gun the rail is sunk a little into the top of the body, so it sits on the gun and does not hover over it)
-      const yr = y1 - (imported ? rh * 0.6 : 0);
+      const yr = y1;
       add(new T.Mesh(new T.BoxGeometry(hw * 0.7, rh, L * (railU1 - railU0)), dark)).position.set(0, yr + rh * 0.5, Z((railU0 + railU1) / 2));
       const teeth = Math.max(8, Math.round(L * 55));
       for (let k = 0; k < teeth; k++) {
@@ -1567,6 +1567,41 @@
         r.position.set(0, Y(0.7), z0 + L * (0.055 + k * 0.022));
       }
       for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) add(new T.Mesh(new T.BoxGeometry(T0 * 0.2, Math.min(H * 0.2, 0.034), L * 0.008), seam)).position.set(sd * (hw * 0.75 + T0 * 0.1), Y(0.7), z0 + L * (0.012 + k * 0.012));
+      // the kit is a hundred small parts; drawn one by one they would be as many draw calls in the hand. They are baked into one
+      // mesh per material (seven at most), the same shape for far fewer draws
+      const byMat = new Map();
+      for (const m of [...kit.children]) {
+        m.updateMatrix();
+        const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+        g.applyMatrix4(m.matrix);
+        byMat.has(m.material) || byMat.set(m.material, []);
+        byMat.get(m.material).push(g);
+        m.geometry.dispose();
+        kit.remove(m);
+      }
+      for (const [mat, list] of byMat) {
+        const n = list.reduce((a, g) => a + g.attributes.position.count, 0),
+          pos = new Float32Array(n * 3),
+          nor = new Float32Array(n * 3),
+          uv = new Float32Array(n * 2);
+        let at = 0;
+        for (const g of list) {
+          pos.set(g.attributes.position.array, at * 3);
+          g.attributes.normal && nor.set(g.attributes.normal.array, at * 3);
+          g.attributes.uv && uv.set(g.attributes.uv.array, at * 2);
+          at += g.attributes.position.count;
+          g.dispose();
+        }
+        const mg = new T.BufferGeometry();
+        mg.setAttribute("position", new T.BufferAttribute(pos, 3));
+        mg.setAttribute("normal", new T.BufferAttribute(nor, 3));
+        mg.setAttribute("uv", new T.BufferAttribute(uv, 2));
+        mg.computeBoundingBox();
+        mg.computeBoundingSphere();
+        const mesh = new T.Mesh(mg, mat);
+        mesh.userData.kit = !0;
+        kit.add(mesh);
+      }
       root.add(kit);
     },
   };
@@ -1581,12 +1616,6 @@
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
     if ("default" !== skin.id) {
-      // the waves are one pattern for the whole gun: an imported gun gets it laid flat along its length (see flowUV)
-      let flow = !1;
-      if ("champion" === skin.pat) {
-        root.updateMatrixWorld(!0);
-        root.traverse((n) => n.userData.valorantRig && (flow = !0));
-      }
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
         const kind = o.material.userData && o.material.userData.kind,
@@ -1596,7 +1625,6 @@
         if (!m) return;
         o.material = m;
         m.map && fitUV(o, skin.tile, skin.vOff);
-        m.map && flow && flowUV(o, root, skin.tile || TILE, skin.vOff);
       });
     }
     root.userData.skin = skin.id;
