@@ -18210,6 +18210,9 @@ function netShutdown() {
   NET.lastK = null;
   NET.clk = null;
   NET.latency = 0;
+  _inputAcc = 0;
+  _inputDs = [];
+  _inputHistory = { peer: null, actor: null, round: null, recent: [] };
 }
 function peerCount() {
   return "host" === NET.mode ? NET.conns.size : "client" === NET.mode ? 1 : 0;
@@ -18700,7 +18703,8 @@ const SNAP_HZ = 20,
   INPUT_HZ = 60;
 let _snapAcc = 0,
   _inputAcc = 0,
-  _inputDs = [];
+  _inputDs = [],
+  _inputHistory = { peer: null, actor: null, round: null, recent: [] };
 function isHost() {
   return "client" !== NET.mode;
 }
@@ -18731,6 +18735,13 @@ function netStep(e) {
   } else {
     // The input goes with the time it covers (dt, in 0.1 ms; ds lists the frames when it covers more than one) so that the host
     // moves the body by the same steps, and the body is kept where the input left it (see reconcileLocal).
+    // The state channel is unordered. Repeat three recent commands so a newer packet can recover a missing movement step
+    // before it is acknowledged; the host deduplicates them. Reset the local history on a connection, body or round change.
+    if (_inputHistory.peer !== NET.peer || _inputHistory.actor !== t || _inputHistory.round !== world.round) {
+      _inputAcc = 0;
+      _inputDs = [];
+      _inputHistory = { peer: NET.peer, actor: t, round: world.round, recent: [] };
+    }
     const dq = Math.max(1e-4, Math.round(e * 1e4) / 1e4);
     ((_inputAcc += e), _inputDs.length < 8 && _inputDs.push(Math.round(dq * 1e4)));
     let msg = null;
@@ -18738,6 +18749,10 @@ function netStep(e) {
       _inputAcc = Math.min(_inputAcc - 1 / 60, 1 / 120);
       ((msg = gatherInput()), (msg.t = "in"), (msg.seq = ++_inputSeq), (msg.dt = _inputDs.reduce((a, b) => a + b, 0)));
       (_inputDs.length > 1 && (msg.n = _inputDs.length), _inputDs.length > 1 && (msg.ds = _inputDs));
+      if (_inputHistory.recent.length) msg.prev = _inputHistory.recent.slice();
+      const { seq, dt, mv, btn, yaw, pitch, ds } = msg;
+      _inputHistory.recent.push({ seq, dt, mv, btn, yaw, pitch, ...(ds ? { ds } : {}) });
+      if (_inputHistory.recent.length > 3) _inputHistory.recent.shift();
       _inputDs = [];
     }
     if (t && t.alive) {
@@ -19116,15 +19131,26 @@ function hostLeftNotice() {
 // the body alike and the guest's prediction matches (reconcileLocal). The host's own time pays for it: a guest cannot move
 // faster than real time (a bank of at most 0.5 s), and inputs that piled up behind a slow link are caught up at once. An input
 // without a dt (an old guest) moves the body by the host's frame as before. o.simSeq is the last input the body was moved by.
-function netQueueInput(o, m) {
+function netInputFrames(m) {
   const ds = Array.isArray(m.ds) ? m.ds : null,
     n = ds ? ds.length : 1,
-    ok = Number.isInteger(m.dt) && m.dt > 0 && m.dt <= 1e3 && (!ds || (n <= 8 && ds.every((x) => Number.isInteger(x) && x > 0) && ds.reduce((a, b) => a + b, 0) === m.dt));
-  if (!ok) return void ((o.inq = null), (o.simSeq = null));
+    ok = Number.isInteger(m.dt) && m.dt > 0 && m.dt <= 1e3 && (!ds || (n > 0 && n <= 8 && ds.every((x) => Number.isInteger(x) && x > 0) && ds.reduce((a, b) => a + b, 0) === m.dt));
+  return ok ? ds || [m.dt] : null;
+}
+function netQueueInput(o, m, previousSeq = 0) {
+  const frames = netInputFrames(m);
+  if (!frames) return void ((o.inq = null), (o.simSeq = null));
   const q = o.inq || (o.inq = []);
-  (q.push({ seq: m.seq, mv: m.mv, btn: m.btn, yaw: m.yaw, pitch: m.pitch, ds: (ds || [m.dt]).map((x) => x / 1e4), dt: m.dt / 1e4 }),
-    q.length > 90 && q.splice(0, q.length - 60),
-    null == o.simSeq && (o.simSeq = 0));
+  const append = (input, steps) => q.push({ seq: input.seq, mv: input.mv, btn: input.btn, yaw: input.yaw, pitch: input.pitch, ds: steps.map((x) => x / 1e4), dt: input.dt / 1e4 });
+  let lastSeq = Math.max(previousSeq, q.length ? q[q.length - 1].seq : o.simSeq || 0);
+  if (Array.isArray(m.prev) && m.prev.length <= 3)
+    for (const input of m.prev) {
+      if (!GAME_RULES.validInput(input) || input.seq <= lastSeq || input.seq >= m.seq) continue;
+      const steps = netInputFrames(input);
+      if (steps) { append(input, steps); lastSeq = input.seq; }
+    }
+  append(m, frames);
+  (q.length > 90 && q.splice(0, q.length - 60), null == o.simSeq && (o.simSeq = 0));
 }
 function guestMoves(t, e) {
   const now = performance.now(),
@@ -19146,15 +19172,15 @@ function guestMoves(t, e) {
 ((NET.onInput = (e, t) => {
   if (!GAME_RULES.validInput(t)) return;
   const o = world.actors.find((t) => t.ctrl === e);
-  o &&
-    (t.seq <= (o.input.seq || 0) ||
-      ((o.input.seq = t.seq),
-      (o.input.mv = t.mv),
-      (o.input.btn = t.btn),
-      (o.yaw = t.yaw),
-      (o.pitch = t.pitch),
-      o._inPeer !== e && ((o._inPeer = e), (o.inq = null), (o.simSeq = null)),
-      netQueueInput(o, t)));
+  if (!o || t.seq <= (o.input.seq || 0)) return;
+  const previousSeq = o.input.seq || 0;
+  ((o.input.seq = t.seq),
+    (o.input.mv = t.mv),
+    (o.input.btn = t.btn),
+    (o.yaw = t.yaw),
+    (o.pitch = t.pitch),
+    o._inPeer !== e && ((o._inPeer = e), (o.inq = null), (o.simSeq = null)),
+    netQueueInput(o, t, previousSeq));
 }),
   (NET.onAction = (e, t) => {
     switch (t.t) {
