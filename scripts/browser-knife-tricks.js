@@ -1,6 +1,8 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
-// Each knife turns on its own pivot while the hand and arm stay: the karambit on its ring
-// (with light trails), the rest on the grip; every inspect is a trick that ends as it began.
+// Each knife turns on its own pivot in the fingers (the karambit on its ring, with light trails; the rest on the
+// grip) and the arm moves with the trick, about the hand: brought up to look, the forearm rolled to show both flats,
+// the wrist cocking and flicking each spin, a toss that flies on a parabola at an even turn rate. Every inspect ends
+// as it began, the arm back where it was.
 (async () => {
   const f = await fixture();
   try {
@@ -35,13 +37,14 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         // the karambit pivots on its ring
         if (m === "karambit") { const ring = KNIVES.parts(a).spin, g = new THREE.Vector3(), q = new THREE.Vector3(); ring.getWorldPosition(g); pv.getWorldPosition(q); r.ringDist = +g.distanceTo(q).toFixed(4); r.ghosts = (pv.userData.ghosts || []).length; }
         // the trick: starts and ends as held, goes somewhere in between
-        const D = KNIVES.inspD(m), T = { rx: 0, ry: 0, rz: 0, px: 0, py: 0, pz: 0, open: 0, hA: 0, hB: 0, blade: 0, slide: 0, about: "" }, E = { ...T };
-        const fn = KNIFE_TRICKS.SHOW[m]; let maxRx = 0, maxRy = 0, maxRz = 0, maxPy = 0, maxHA = 0, maxBl = 0, maxSl = 0;
-        for (let s = 0; s <= D; s += 0.02) { for (const k in T) T[k] = 0; fn(s, T); maxRx = Math.max(maxRx, Math.abs(T.rx)); maxRy = Math.max(maxRy, Math.abs(T.ry)); maxRz = Math.max(maxRz, Math.abs(T.rz)); maxPy = Math.max(maxPy, Math.abs(T.py)); maxHA = Math.max(maxHA, Math.abs(T.hA)); maxBl = Math.max(maxBl, Math.abs(T.blade)); maxSl = Math.max(maxSl, T.slide); }
-        for (const k in E) E[k] = 0; fn(D, E);
+        const D = KNIVES.inspD(m); let maxRx = 0, maxRy = 0, maxRz = 0, maxPy = 0, maxHA = 0, maxBl = 0, maxSl = 0, maxArm = 0, maxRoll = 0;
+        for (let s = 0; s <= D; s += 0.02) { const { T, A } = KNIFE_TRICKS.sample("insp", m, s); maxRx = Math.max(maxRx, Math.abs(T.rx)); maxRy = Math.max(maxRy, Math.abs(T.ry)); maxRz = Math.max(maxRz, Math.abs(T.rz)); maxPy = Math.max(maxPy, Math.abs(T.py)); maxHA = Math.max(maxHA, Math.abs(T.hA)); maxBl = Math.max(maxBl, Math.abs(T.blade)); maxSl = Math.max(maxSl, T.slide); maxArm = Math.max(maxArm, Math.hypot(A.x, A.y, A.z)); maxRoll = Math.max(maxRoll, Math.abs(A.roll)); }
+        const { T: E, A: EA } = KNIFE_TRICKS.sample("insp", m, D), S0 = KNIFE_TRICKS.sample("insp", m, 0).A;
         const whole = (v) => { const w = Math.abs(v) % (2 * Math.PI); return Math.min(w, 2 * Math.PI - w) < 1e-6; };
+        const still = (A) => Object.values(A).every((v) => Math.abs(v) < 1e-6);
         r.D = D; r.endsAtRest = whole(E.rx) && whole(E.ry) && whole(E.rz) && whole(E.hA) && whole(E.hB) && Math.abs(E.py) < 1e-6 && Math.abs(E.blade) < 1e-6 && Math.abs(E.pz) < 1e-6 && Math.abs(E.slide) < 1e-6;
-        r.reach = { rx: +(maxRx / Math.PI).toFixed(2), ry: +(maxRy / Math.PI).toFixed(2), rz: +(maxRz / Math.PI).toFixed(2), py: +maxPy.toFixed(3), hA: +(maxHA / Math.PI).toFixed(2), blade: +(maxBl / Math.PI).toFixed(2), slide: +maxSl.toFixed(2) };
+        r.armRests = still(EA) && still(S0);
+        r.reach = { rx: +(maxRx / Math.PI).toFixed(2), ry: +(maxRy / Math.PI).toFixed(2), rz: +(maxRz / Math.PI).toFixed(2), py: +maxPy.toFixed(3), hA: +(maxHA / Math.PI).toFixed(2), blade: +(maxBl / Math.PI).toFixed(2), slide: +maxSl.toFixed(2), arm: +maxArm.toFixed(3), roll: +maxRoll.toFixed(2) };
       }
       // an inspect run on the karambit: the trails show while it spins fast, the pivot comes back at the end
       skins.set("knife", "karambit"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
@@ -50,15 +53,28 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       M.insp.t = 0;
       for (let i = 0; i < 600; i++) { tickViewmodel(0.01); if (M.insp.t < 0) break; const gh = pv.userData.ghosts; trail = Math.max(trail, ...gh.map((g) => (g.g.visible ? g.mat.opacity : 0))); maxY = Math.max(maxY, pv.position.y - pv.userData.p0.y); }
       res.run = { trail: +trail.toFixed(2), maxY: +maxY.toFixed(3), ended: M.insp.t < 0, err: window.__knifeErr ? String(window.__knifeErr) : null };
+      // the arm in a real inspect: the hand comes up toward the middle of the screen and goes back exactly where it was
+      { skins.set("knife", "default"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
+        const a6 = VM.current, pv6 = KNIFE_PIVOT.of(a6), hand = () => { a6.updateMatrixWorld(true); return pv6.getWorldPosition(new THREE.Vector3()).applyMatrix4(VM.root.matrixWorld.clone().invert()); };
+        KNIVES.idle.anim = -1; M.draw.t = M.knife.t = -1; M.insp.t = -1; for (let i = 0; i < 40; i++) tickViewmodel(0.016); const h0 = hand(), q0 = a6.quaternion.clone();
+        let up = 0, left = 0, turned = 0; M.insp.t = 0;
+        for (let i = 0; i < 400 && M.insp.t >= 0; i++) { tickViewmodel(0.01); const h = hand(); up = Math.max(up, h.y - h0.y); left = Math.max(left, h0.x - h.x); turned = Math.max(turned, a6.quaternion.angleTo(q0)); }
+        tickViewmodel(0.016); const h1 = hand();
+        res.arm = { up: +up.toFixed(3), left: +left.toFixed(3), turned: +turned.toFixed(2), back: +h1.distanceTo(h0).toFixed(5), backTurn: +a6.quaternion.angleTo(q0).toFixed(5), ended: M.insp.t < 0 }; }
+      // a toss: a parabola, turning at an even rate while it flies (the karambit's last throw, two flips)
+      { const at = (s) => KNIFE_TRICKS.sample("insp", "karambit", s).T, t0 = 3.75, d = 0.62, mid = at(t0 + d / 2), q1 = at(t0 + d / 4), q3 = at(t0 + (3 * d) / 4);
+        res.toss = { peak: +mid.py.toFixed(3), quarter: +q1.py.toFixed(3), threeQuarter: +q3.py.toFixed(3), rate1: +((mid.rx - q1.rx) / (d / 4)).toFixed(2), rate2: +((q3.rx - mid.rx) / (d / 4)).toFixed(2) }; }
+      // the wrist leads a spin: it cocks the other way just before the knife goes round, and flicks through as it does
+      { const A = (s) => KNIFE_TRICKS.sample("idle", "", s).A.pitch; res.flick = { cock: +A(0.17).toFixed(3), flick: +A(0.3).toFixed(3) }; }
       // the idle trick, as a phone sees it (no inspect key): each knife does one when held still
       res.idle = {};
       for (const id of ["butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
         skins.set("knife", id || "default"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
-        const a2 = VM.current, pv2 = KNIFE_PIVOT.of(a2), kp = KNIVES.parts(a2); let moved = 0; KNIVES.idle.t = 0; KNIVES.idle.anim = 0;
-        M.insp.t = -1; M.knife.t = -1; M.draw.t = -1;
-        for (let i = 0; i < 200 && KNIVES.idle.anim >= 0; i++) { tickViewmodel(0.01); moved = Math.max(moved, Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y) + (kp.hA ? Math.abs(kp.hA.rotation.x) : 0) + (kp.blade ? Math.abs(kp.blade.rotation.x) : 0)); }
+        const a2 = VM.current, pv2 = KNIFE_PIVOT.of(a2), kp = KNIVES.parts(a2); let moved = 0, arm = 0;
+        M.insp.t = -1; M.knife.t = -1; M.draw.t = -1; KNIVES.idle.anim = -1; tickViewmodel(0.016); const q0 = a2.quaternion.clone(); KNIVES.idle.t = 0; KNIVES.idle.anim = 0;
+        for (let i = 0; i < 200 && KNIVES.idle.anim >= 0; i++) { tickViewmodel(0.01); arm = Math.max(arm, a2.quaternion.angleTo(q0)); moved = Math.max(moved, Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y) + (kp.hA ? Math.abs(kp.hA.rotation.x) : 0) + (kp.blade ? Math.abs(kp.blade.rotation.x) : 0) + arm); }
         tickViewmodel(0.016);
-        res.idle[id || "default"] = { moved: +moved.toFixed(2), ended: KNIVES.idle.anim < 0, back: +(Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y)).toFixed(3) };
+        res.idle[id || "default"] = { moved: +moved.toFixed(2), arm: +arm.toFixed(3), ended: KNIVES.idle.anim < 0, back: +(Math.abs(pv2.rotation.x) + Math.abs(pv2.rotation.y) + a2.quaternion.angleTo(q0)).toFixed(3) };
       }
       // the kunai turns on its ring: the ring stays put while the knife whirls round it
       skins.set("knife", "kunai"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
@@ -97,11 +113,17 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       assert.ok(r.knifeMoved > 0.05, k + ": the knife turns (" + r.knifeMoved + ")");
       assert.ok(r.armMeshes > 0 && r.fingers, k + ": has an arm and fingers on the grip");
       assert.ok(r.endsAtRest, k + ": the trick ends as the knife is held");
+      assert.ok(r.armRests, k + ": the arm starts and ends at rest");
+      assert.ok(r.reach.arm >= 0.05, k + ": the hand is brought up to look at the knife " + JSON.stringify(r.reach));
     }
     assert.deepEqual(ALL.map((id) => out[id].model), ["", ...ALL.slice(1)]);
     // the five new knives: each its own trick
-    assert.ok(out.bayonet.reach.rx >= 3.9 && out.bayonet.reach.ry >= 0.28, "the bayonet: a look along the flat, a flip, a reverse grip and back " + JSON.stringify(out.bayonet.reach));
-    assert.ok(out.gut.reach.ry >= 1.9 && out.gut.reach.rz >= 0.34 && out.gut.reach.rx >= 1.9, "the gut knife: a palm spin, the hook shown, a toss " + JSON.stringify(out.gut.reach));
+    assert.ok(out.bayonet.reach.rx >= 3.9 && out.bayonet.reach.roll >= 2, "the bayonet: both flats, a flip, a reverse grip and back " + JSON.stringify(out.bayonet.reach));
+    assert.ok(out.gut.reach.ry >= 1.9 && out.gut.reach.roll >= 1.2 && out.gut.reach.rx >= 1.9, "the gut knife: a palm spin, the forearm rolled to show the hook, a toss " + JSON.stringify(out.gut.reach));
+    assert.ok(out.default.reach.roll >= 2, "the combat knife: the forearm turns to show the other flat " + JSON.stringify(out.default.reach));
+    assert.ok(out.arm.up > 0.03 && out.arm.left > 0.04 && out.arm.turned > 0.8 && out.arm.back < 1e-4 && out.arm.backTurn < 1e-4 && out.arm.ended, "the arm comes up and turns in an inspect, and goes back where it was " + JSON.stringify(out.arm));
+    assert.ok(Math.abs(out.toss.peak - 0.17) < 0.002 && Math.abs(out.toss.quarter - 0.75 * 0.17) < 0.002 && Math.abs(out.toss.quarter - out.toss.threeQuarter) < 2e-3 && Math.abs(out.toss.rate1 - out.toss.rate2) < 0.05 && out.toss.rate1 > 15, "a toss flies on a parabola at an even turn rate " + JSON.stringify(out.toss));
+    assert.ok(out.flick.cock < -0.1 && out.flick.flick > 0.05, "the wrist cocks back before the spin and flicks through " + JSON.stringify(out.flick));
     assert.ok(out.bowie.reach.rx >= 1.9 && out.bowie.reach.py >= 0.14, "the bowie: thrown end over end " + JSON.stringify(out.bowie.reach));
     assert.ok(out.kunai.reach.rx >= 5.9 && out.kunai.ring.drift < 0.004 && out.kunai.ring.turned >= 3, "the kunai whirls about its ring, the ring stays put " + JSON.stringify(out.kunai));
     assert.ok(out.stiletto.reach.slide >= 0.99 && out.stiletto.reach.ry >= 3.9 && out.stiletto.reach.rx >= 3.9, "the stiletto: blade in, spun, thrown, blade out " + JSON.stringify(out.stiletto.reach));
@@ -115,8 +137,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(out.tanto.reach.rx >= 1.9, "the tanto goes into a reverse grip and back");
     assert.ok(out.run.trail > 0.1 && out.run.maxY > 0.12 && out.run.ended && !out.run.err, "the karambit run shows trails and a toss: " + JSON.stringify(out.run));
     assert.deepEqual(out.after, { rot: [0, 0, 0], dy: 0 });
-    for (const [k, r] of Object.entries(out.idle)) { assert.ok(r.moved > 0.5, k + ": an idle trick shows (" + r.moved + ")"); assert.ok(r.ended, k + ": the idle trick ends"); assert.ok(r.back < 0.01, k + ": and the knife is back in the hand"); }
+    for (const [k, r] of Object.entries(out.idle)) { assert.ok(r.moved > 0.5, k + ": an idle trick shows (" + r.moved + ")"); assert.ok(r.arm > 0.02, k + ": the wrist moves with it (" + r.arm + ")"); assert.ok(r.ended, k + ": the idle trick ends"); assert.ok(r.back < 0.01, k + ": and the knife and arm are back (" + r.back + ")"); }
     assert.deepEqual(f.errors, []);
-    console.log("knife tricks: every knife turns on its own pivot (the karambit on its ring, with trails), arm stays, every trick ends as it began");
+    console.log("knife tricks: every knife turns on its own pivot (the karambit on its ring, with trails), the arm moves with each trick (raised, both flats, the wrist leading spins, tosses on a parabola), every trick ends as it began");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
