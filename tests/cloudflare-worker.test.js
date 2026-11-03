@@ -24,6 +24,17 @@ const ASSETS = { fetch: async (req) => new Response("asset " + new URL(req.url).
 const call = (path, init = {}) => worker.fetch(new Request("https://13fps.xyz" + path, init), { ASSETS });
 const post = (action, body, ip) => call("/api/v1?a=" + action, { method: "POST", headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip }, body: JSON.stringify(body) });
 
+test("http:// goes to https:// with the same path and query; wrangler dev on localhost stays on http", async () => {
+  for (const path of ["/", "/admin", "/api/v1?a=config"]) {
+    const r = await worker.fetch(new Request("http://13fps.xyz" + path), { ASSETS });
+    assert.equal(r.status, 301, path);
+    assert.equal(r.headers.get("location"), "https://13fps.xyz" + path);
+    assert.equal(r.headers.get("x-content-type-options"), "nosniff");
+  }
+  const local = await worker.fetch(new Request("http://127.0.0.1:8787/"), { ASSETS });
+  assert.equal(await local.text(), "asset /index.html");
+});
+
 test("/ is the home page and /admin the owner's page, each with its headers", async () => {
   const home = await call("/");
   assert.equal(await home.text(), "asset /index.html");

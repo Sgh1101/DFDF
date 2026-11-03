@@ -13,10 +13,14 @@ const PAGES = { "/": ["/index.html", SITE], "/admin": ["/admin.html", { ...SITE,
 const APIS = { "/api/v1": api, "/api/release": release };
 // the largest request body the API takes (Vercel stopped bodies at 4.5 MB; nothing the game sends comes near this)
 const BODY_MAX = 1 << 20;
+const LOCAL = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // http:// is sent to https:// (wrangler dev on this machine stays on http). This covers what the Worker answers (/, /admin,
+    // the API); the static files are served before the Worker runs, so the zone's "Always Use HTTPS" covers those.
+    if (url.protocol === "http:" && !LOCAL.has(url.hostname)) { url.protocol = "https:"; return new Response(null, { status: 301, headers: { ...SITE, Location: url.href } }); }
     if (url.pathname.startsWith("/api/")) return Object.hasOwn(APIS, url.pathname) ? run(APIS[url.pathname], request, url) : new Response(null, { status: 404, headers: SITE });
     const [file, headers] = PAGES[url.pathname] || [url.pathname, SITE];
     return withHeaders(await env.ASSETS.fetch(new Request(new URL(file + url.search, url), request)), headers);
