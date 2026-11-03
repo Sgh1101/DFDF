@@ -35,6 +35,8 @@
     "test:finisher-always": "node scripts/browser-finisher-always.js",
     "test:phantom-audio": "node scripts/browser-phantom-audio.js",
     "test:phantom-loading": "node scripts/browser-phantom-loading.js",
+    "test:champions-default": "node scripts/browser-champions-default.js",
+    "test:rgx": "node scripts/browser-rgx-firefly.js",
     "build:champions-phantom": "node scripts/champions-phantom/build.js",
     "test:regression": "node scripts/browser-regression.js",
     "test:startup": "node scripts/browser-startup.js",

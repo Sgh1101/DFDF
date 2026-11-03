@@ -1,0 +1,12 @@
+[
+  {
+    "file": "js/legacy/67-knives.js",
+    "region": "HAND through end",
+    "sha256": "969ba08f2f9d71c83ffd57ea3d3695b2d7c3dcca41b7589dd172c2508c188c56"
+  },
+  {
+    "file": "js/legacy/83-knife-tricks-the-knife-turns-in-the-hand-and-the-arm-stays.js",
+    "region": "whole module",
+    "sha256": "cdd2c8c57de7b66998095ab264a4e1dcad69c0a32bd4cb5bd4b3ab4759c5b168"
+  }
+]
