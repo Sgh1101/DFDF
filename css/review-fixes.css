@@ -1,6 +1,43 @@
 /* Review fixes (design pass over the home, agent select and touch HUD).
    Only layout, text flow, contrast and tap sizes; no colours or shapes of the approved design change. */
 
+/* Announcements belong to the home, and dialog content must not show the
+   character behind it or resize when a shorter settings tab is selected. */
+#acct-notice{grid-column:1/-1;order:-1;min-width:0;flex-shrink:0}
+#acct-notice>span{min-width:0;overflow-wrap:break-word}
+#pause{z-index:55}
+#pause .pz-card{width:min(760px,calc(100vw - 24px))!important;height:min(640px,calc(100dvh - 24px))!important;max-height:calc(100dvh - 24px)!important;display:flex;flex-direction:column;background:#101720}
+#pause .pz-tabs{flex-shrink:0;overflow-x:auto;scrollbar-width:thin}
+#pause .pz-tabs button{flex-shrink:0;white-space:nowrap}
+#pause .pz-title,#pause .pz-card>.lbl,#pause .pz-btns{flex-shrink:0}
+#pause .pz-set{flex:1 1 auto;min-height:0;max-height:none!important;overflow:auto;scrollbar-gutter:stable}
+#pause .pz-btns{flex-wrap:wrap}
+#s-select .sel-body,#s-select .sel-detail{min-height:0}
+#s-select .sel-detail{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-bottom:28px;scroll-padding-block:16px 28px}
+#s-select .sel-foot{flex-shrink:0}
+#s-select #sel-maps,#s-select #sel-modes{max-width:100%;padding-bottom:8px;scrollbar-gutter:stable}
+#s-select .lb-map{flex-shrink:0;white-space:nowrap}
+#ar-odds{display:flex;flex-wrap:wrap;gap:6px 12px;word-break:normal;overflow-wrap:normal}
+#ar-odds i,.pl-tier b,.pl-tier em{white-space:nowrap;word-break:normal;overflow-wrap:normal}
+#ar-odds i{font-style:normal}
+#armory .pl-tier{grid-template-columns:max-content max-content minmax(32px,1fr) max-content;gap:8px}
+@media(max-width:900px){
+  #armory .pl-tier{grid-template-columns:minmax(0,1fr) max-content;gap:4px 8px}
+  #armory .pl-tier b,#armory .pl-tier em{grid-column:1/-1}
+  #armory .pl-tier .pl-bar{grid-column:1}
+}
+body:not(.touching) #hud #tips{bottom:calc(var(--vitals-height,94px) + 38px);font-size:12px;line-height:1.65;color:#c5d1df;max-width:min(620px,calc(100vw - 44px))}
+body:not(.touching) #hud #tips b{font-size:11.5px;color:#edf4ff}
+body:not(.touching) #hud #klog{top:calc(var(--mini-bottom,198px) + 48px)}
+#go-training{min-height:44px;padding:9px 12px;text-align:left;color:#e5edf7;border-color:#687e94;background:#182330;font-size:12px;grid-column:1/-1}
+#lockhint .lh-box{display:flex;flex-direction:column;align-items:center;gap:12px}
+#lockhint #lh-start{min-height:44px;min-width:220px;margin:8px 0 12px}
+#lockhint #lh-touch{min-height:40px;margin-top:8px}
+@media(max-width:1000px) and (max-height:600px),(max-width:600px){
+  #s-title :is(#go-play,#go-multi){order:0}
+  #s-title #go-training{order:1}
+}
+
 /* ── Korean text: break between words, never inside one ("능력으/로", "초대 코/드") ── */
 .title-desc,.title-foot,#go-play small,#go-multi small,.home-guide,.home-guide p,#s-title .tt-news li,.acard-q,.sel-detail .det-desc,#sel-mode-sub{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
 .title-desc{text-wrap:balance}

@@ -57,7 +57,7 @@
     b.classList.toggle('owned',item.owned);b.classList.toggle('unaffordable',!unlimited(a)&&a.credits<item.cost);b.setAttribute('aria-disabled',String(!usable(item,a)));b.setAttribute('aria-label',item.name+' · '+(item.owned?'보유 중':price(item.cost,a)));
     if(item.kind==='weapon'){const img=document.createElement('img');img.className='buy-gun-image';img.alt='';img.decoding='async';b.append(img);const skin=GUN_SKINS.of(item.key);queueThumb(img,item.key,skin);if(skin.id!=='default'){const dot=document.createElement('i');dot.className='buy-skin-dot';b.append(dot);}}
     else{const icon=document.createElement('span');icon.className='buy-icon';icon.innerHTML=shield;icon.firstElementChild.classList.add('buy-shield');b.append(icon);}
-    const cost=document.createElement('span');cost.textContent=item.owned?'보유 중':price(item.cost,a);const name=document.createElement('b');name.textContent=item.name;b.append(cost,name);
+    const cost=document.createElement('span');cost.textContent=item.kind==='armor'&&a.armor>item.amount?'더 높은 방어력 장착':item.owned?'보유 중':price(item.cost,a);const name=document.createElement('b');name.textContent=item.name;b.append(cost,name);
     b.onpointerenter=e=>{if(e.pointerType!=='touch')select(id);};b.onfocus=()=>select(id);b.onclick=()=>purchase(id);return b;
   }
   function util(item){const a=actor(),id=item.kind+':'+item.key,b=document.createElement('button');b.className='buy-util';b.type='button';b.dataset.item=id;b.dataset.kind=item.kind;b.dataset.key=item.key;b.setAttribute('aria-disabled',String(!usable(item,a)));

@@ -83,7 +83,8 @@
     $("lbd-season").textContent = L(`전체 기간 · 상위 ${TOP}위`, `All time · top ${TOP}`);
     const u = user();
     let h = "";
-    if (!u || u.guest) h = L("로그인한 계정만 순위에 오를 수 있습니다", "Only signed-in accounts are ranked");
+    if ("clan" === tab && (!u || u.guest)) h = L("클랜 순위를 둘러보세요. 로그인 후 클랜에 가입할 수 있습니다.", "Browse the clan standings. Sign in to join a clan.");
+    else if (!u || u.guest) h = L("로그인한 계정만 순위에 오를 수 있습니다", "Only signed-in accounts are ranked");
     else if (b.me && b.me.pos) h = `<span><b>${L(`${b.me.pos}위`, `#${b.me.pos}`)}</b> · ${"clan" === tab ? tagChip(b.me.tag) + esc(b.me.name) : esc(b.me.name)} · ${"level" === tab ? `Lv ${b.me.lv} · ` : ""}${num(b.me.v)} ${"clan" === tab || "level" === tab ? "XP" : esc(BCOLS[tab][1])}${b.me.pos > TOP ? L(` · 상위 ${TOP}위 밖`, ` · outside the top ${TOP}`) : ""}</span>`;
     else if ("clan" === tab) h = L("클랜에 들어가면 클랜 순위에 오릅니다 (홈페이지의 클랜 칸)", "Join a clan to be on the clan board (the Clan section of the homepage)");
     else if ("ok" === b.state) h = L("아직 순위에 없습니다. 경기를 한 판 마치면 올라갑니다", "Not listed yet. Finish a match to be listed");

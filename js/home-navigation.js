@@ -39,6 +39,38 @@
   more.addEventListener("click", (event) => { if (event.target.closest("button")) more.open = false; });
   // one of the two menus open at a time
   for (const [a, b] of [[practice, more], [more, practice]]) a.addEventListener("toggle", () => a.open && (b.open = false));
+  const menus = [practice, more];
+  const closeMenus = () => menus.forEach((menu) => { menu.open = false; });
+  document.addEventListener("pointerdown", (event) => {
+    for (const menu of menus) if (!menu.contains(event.target)) menu.open = false;
+  });
+  document.addEventListener("focusin", (event) => {
+    for (const menu of menus) if (!menu.contains(event.target)) menu.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    const menu = menus.find((menu) => menu.open);
+    if (event.key !== "Escape" || !menu) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    closeMenus(); menu.querySelector("summary").focus({ preventScroll: true });
+  }, true);
+  new MutationObserver(() => { if ($("s-title").hidden) closeMenus(); }).observe($("s-title"), { attributes:true, attributeFilter:["hidden"] });
+  if (window.ACCOUNT?.session()?.user?.guest && ACCOUNT.openSignIn) {
+    const login = document.createElement("button");
+    login.id = "go-signin"; login.type = "button"; login.className = "btn";
+    login.textContent = L("로그인 / 가입", "Sign in / Sign up");
+    login.onclick = () => { closeMenus(); ACCOUNT.openSignIn(); };
+    $("home-account").prepend(login);
+    const settingsLogin = login.cloneNode(true);
+    settingsLogin.id = "pz-signin";
+    settingsLogin.onclick = () => { $("pz-close").click(); ACCOUNT.openSignIn(); };
+    document.querySelector("#pause .pz-btns").prepend(settingsLogin);
+    if ($("sel-comp")) {
+      const rankedLogin = login.cloneNode(true); rankedLogin.id = "sel-signin";
+      rankedLogin.textContent = L("로그인 후 경쟁전", "Sign in for competitive");
+      rankedLogin.onclick = () => ACCOUNT.openSignIn();
+      $("sel-modes").after(rankedLogin);
+    }
+  }
   // the target range was mounted before the practice menu existed and landed in the bar: it belongs in the menu
   const into = practice.querySelector(":scope > div");
   if (into && $("go-targets") && !into.contains($("go-targets"))) into.append($("go-targets"));

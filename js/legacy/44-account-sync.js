@@ -125,7 +125,7 @@
   );
   // Banners and messages during a match (rounds and phases, the spike, deaths and takeovers, ability results, cheat and
   // admin messages, room and connection messages). "A — B" and "A · B" texts are also translated piece by piece (see tr).
-  // Agent, weapon, skin and ability names stay Korean. The server's error texts are translated in js/client-request.js.
+  // Some agent, skin and ability names remain Korean proper names. The server's error texts are translated in js/client-request.js.
   Object.assign(DICT, {
     "적": "Enemy", "아군": "Ally", "적군": "Enemy", "킬": "Kills", "데스": "Deaths", "도움": "Assists", "피해": "Damage", "전체": "All",
     "시점 고정": "View locked", "시점 해제": "View released", "시작 지점": "Start point",
@@ -259,6 +259,12 @@
     "폭포 협곡": "Waterfall Canyon", "고대 유적": "Ancient Ruins", "늪지 사원": "Swamp Temple", "유조선": "Oil Tanker",
     "군함 갑판": "Warship Deck", "화물 터미널": "Cargo Terminal", "항구 창고": "Harbor Warehouse", "모래 투기장": "Sand Arena",
   });
+  Object.assign(DICT, {
+    "마우스로 플레이 시작":"Start with mouse", "터치 기기 · 모바일 조작 사용":"Touch device · use mobile controls", "더 높은 방어력 장착":"Higher armor equipped",
+    "참새":"Sparrow", "부엉이":"Owl", "황소":"Bull", "표범":"Panther", "정찰 소총":"Recon Rifle", "팬텀":"Phantom", "코멧 소총":"Comet Rifle", "멧돼지":"Boar", "코뿔소":"Rhino", "송골매":"Falcon", "독수리":"Eagle", "전투 나이프":"Combat Knife",
+    "칼 대난투":"Knife Fight", "총기 순환":"Gun Game", "감염":"Infection", "점령전":"Conquest", "깃발 탈취":"Capture the Flag", "축소전":"Shrinking Zone", "신속플레이":"Swift", "표적 사격":"Target Range", "전광":"Surge",
+    "되튐 전격":"Rebound Bolt", "질주 회로":"Surge Circuit", "전류 통로":"Current Lane", "과충전":"Overcharge",
+  });
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];
   function tr(s) {
@@ -343,10 +349,12 @@
       if (!n) {
         n = document.createElement("div");
         n.id = "acct-notice";
-        n.style.cssText = "position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;max-width:min(680px,92vw);display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;border-radius:10px;background:rgba(20,16,4,.88);border:1px solid #5c4b1f;color:#ffc849;font-size:12.5px;pointer-events:none";
+        n.setAttribute("role", "status");
+        n.style.cssText = "display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;border-radius:10px;background:#241e10;border:1px solid #5c4b1f;color:#ffc849;font-size:12.5px;line-height:1.5;text-align:left";
         n.innerHTML = '<span></span><button type="button" aria-label="' + L("닫기", "Close") + '" style="pointer-events:auto;flex:none;min-width:28px;min-height:28px;border-radius:8px;border:1px solid #5c4b1f;background:transparent;color:inherit;font:inherit;cursor:pointer">✕</button>';
         n.querySelector("button").onclick = () => { try { sessionStorage.setItem("lgp_notice_x", n.firstChild.dataset.t || ""); } catch (e) {} n.remove(); };
-        document.body.appendChild(n);
+        // Keep announcements in the home flow, beneath other screens and dialogs.
+        ($("s-title").querySelector(".tt-menu") || $("s-title")).prepend(n);
       }
       n.firstChild.dataset.t = c.game.announcement;
       n.firstChild.textContent = "📢 " + c.game.announcement;
@@ -464,7 +472,7 @@
   const gateOk = gatePassed;
   let GATE = null;
   const queued = [];
-  function openGate() {
+  function openGate(optional = false) {
     if (GATE) return;
     GATE = document.createElement("div");
     GATE.id = "acct-gate";
@@ -478,11 +486,25 @@
   <div id="ag-err"></div>
   <div class="ag-note">${L("처음이면 쓰고 싶은 아이디·비밀번호를 넣으면 바로 가입됩니다.", "New here? Pick an ID and password and you are signed up.")}</div>
 </form>`;
+    const trigger = document.activeElement;
+    const cancel = () => {
+      if ($("ag-go").disabled) return;
+      GATE.remove(); GATE = null; queued.length = 0;
+      trigger && trigger.isConnected && trigger.focus({ preventScroll: true });
+    };
+    if (optional && S) {
+      const back = document.createElement("button");
+      back.type = "button"; back.id = "ag-cancel"; back.className = "ag-ghost";
+      back.textContent = L("돌아가기 · 현재 계정 유지", "Back · keep current session");
+      back.onclick = cancel;
+      GATE.querySelector("form").append(back);
+      GATE.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); cancel(); } });
+    }
     document.body.appendChild(GATE);
     const id = $("ag-id"),
       pw = $("ag-pw");
     try {
-      id.value = (S && S.user && !S.user.guest && S.user.id) || localStorage.getItem("lgp_name") || "";
+      id.value = S && S.user ? (S.user.guest ? "" : S.user.id) : localStorage.getItem("lgp_name") || "";
     } catch (e) {}
     id.setAttribute("aria-label", L("아이디", "ID"));
     pw.setAttribute("aria-label", L("비밀번호", "Password"));
@@ -861,13 +883,14 @@
       if (!b) {
         b = document.createElement("a");
         b.id = "acct-chip";
-        b.href = "./";
+        b.href = "./#records-stats";
         b.style.cssText = "position:fixed;top:10px;right:12px;z-index:40;padding:6px 12px;border-radius:99px;background:rgba(20,25,34,.8);border:1px solid #2a3444;color:#e8edf4;font-size:12px;text-decoration:none";
         document.body.appendChild(b);
       }
-      b.textContent = `${S.user.id} · Lv.${S.user.level || 1}`;
+      b.textContent = `${S.user.guest && LANG === "en" ? S.user.id.replace(/^게스트/, "Guest") : S.user.id} · Lv.${S.user.level || 1}`;
+      b.title = L("내 프로필과 기록", "My profile and records");
       b.style.display = $("s-title") && !$("s-title").hidden && getComputedStyle($("s-title")).display !== "none" ? "" : "none";
     } catch (e) {}
   }, 1000);
-  window.ACCOUNT = { api, beat, runCmd, beginReport, flushReports, session: () => S, meta: META, chMobile, online };
+  window.ACCOUNT = { api, beat, runCmd, beginReport, flushReports, session: () => S, meta: META, chMobile, online, openSignIn: () => openGate(true) };
 })();
