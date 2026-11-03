@@ -14,7 +14,7 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     await page.unroute(manifest); await page.locator("#phantom-retry").click();
     await page.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"));
     assert.equal(await page.locator("#phantom-model-notice").isVisible(), false);
-    assert.match(await page.locator("#phantom-status").innerText(), /자동 적용/);
+    assert.match(await page.locator("#phantom-status").innerText(), /자체 디자인 적용/);
     assert.equal(await page.evaluate(() => { let vertices = 0; GUN_SKINS._pv().obj.getObjectByName("phantom-rig").traverse((part) => { if (part.isMesh) vertices += part.geometry.attributes.position.count; }); return vertices; }), gunCubes * 36);
     assert.equal(await page.evaluate(() => GUN_SKINS.of("scout").id), "default", "loading the original still does not grant an unowned skin");
     assert.deepEqual(f.errors, []);

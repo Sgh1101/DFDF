@@ -262,10 +262,10 @@
   };
   for (const id of ids) SOUNDPACK.skins[id] = "champions";
 
-  // IndexedDB is local to this browser. No source assets enter API requests or peer messages.
-  async function store(value, remove = false) {
+  // Retire only the old imported-model cache. Inventory and equipment live elsewhere.
+  async function forgetLegacyImport() {
     const db = await new Promise((resolve, reject) => { const req = indexedDB.open("dfdf-phantom", 1); req.onupgradeneeded = () => req.result.createObjectStore("assets"); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-    try { return await new Promise((resolve, reject) => { const tx = db.transaction("assets", value || remove ? "readwrite" : "readonly"), os = tx.objectStore("assets"); const req = remove ? os.delete("local") : value ? os.put(value, "local") : os.get("local"); tx.oncomplete = () => resolve(req.result); tx.onerror = () => reject(tx.error); }); } finally { db.close(); }
+    try { return await new Promise((resolve, reject) => { const tx = db.transaction("assets", "readwrite"); tx.objectStore("assets").delete("local"); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); } finally { db.close(); }
   }
   function refresh() {
     generation++;
@@ -288,7 +288,7 @@
     $("phantom-model-message").textContent = message || L("챔피언스 팬텀 모델을 불러오는 중…", "Loading the Champions Phantom model…");
     $("phantom-model-notice").hidden = ready;
   }
-  async function install(next, persist = true, origin = "local") {
+  async function install(next) {
     const parsed = A.validate(next); // Validate before replacing a working pack.
     const revision = ++installRevision, stagedTextures = new Map(), stagedUrls = new Map(); let committed = false;
     try {
@@ -306,13 +306,11 @@
       }));
       const failed = decoded.find((item) => item.status === "rejected"); if (failed) throw failed.reason;
       if (revision !== installRevision) return;
-      if (persist) await store(next);
-      if (revision !== installRevision) return;
       stop(); release(); assets = next; model = parsed; ready = true;
       for (const [name, tex] of stagedTextures) textures.set(name, tex);
       for (const [name, address] of stagedUrls) urls.set(name, address);
       committed = true; refresh(); availability();
-      $("phantom-status").textContent = origin === "bundled" ? L("챔피언스 팬텀 원본 총 모델·텍스처 자동 적용됨", "Original Champions Phantom gun model and textures loaded automatically") : L("불러온 JAR 모델·텍스처 적용됨", "Imported JAR model and textures loaded");
+      $("phantom-status").textContent = L("챔피언스 팬텀 자체 디자인 적용됨 · DFDF 제작", "Champions Phantom custom design loaded · made by DFDF");
       if (GS.isOpen() && GS.curTab() === "champions") showSelected();
     } finally {
       if (!committed) { for (const tex of stagedTextures.values()) tex.dispose(); for (const address of stagedUrls.values()) URL.revokeObjectURL(address); }
@@ -408,15 +406,15 @@
 
     <p id="phantom-audio-status" role="status" hidden></p>
     <p id="phantom-status" role="status">${L("챔피언스 팬텀 모델·텍스처를 불러오는 중…", "Loading the Champions Phantom model and textures…")}</p>
-    <div class="pp-source"><label class="phantom-import">${L("JAR 불러오기", "Import a JAR")}<input id="phantom-file" type="file" accept=".jar,.zip" aria-label="${L("챔피언스 팬텀 JAR", "Champions Phantom JAR")}"></label><button type="button" id="phantom-remove">${L("기본 모델로 복원", "Restore the default model")}</button></div>
-    <small>${L("DFDF가 제작한 챔피언스 팬텀 모델과 텍스처가 자동 적용됩니다. 별도로 불러온 JAR은 이 브라우저에만 저장됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "DFDF's own Champions Phantom model and textures load automatically. A separately imported JAR stays in this browser. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
+    <div class="pp-source"><button type="button" id="phantom-remove">${L("디자인 다시 불러오기", "Reload design")}</button></div>
+    <small>${L("DFDF가 제작한 챔피언스 팬텀 디자인이 적용됩니다. 미보유 스킨은 미리보기만 가능합니다. 챔피언스 탭 코인 700개 또는 기존 뽑기 0.00000000000000001%로 획득합니다.", "Champions Phantom uses DFDF's own design. Unowned skins are preview only; obtain them for 700 coins here or a 0.00000000000000001% regular pull.")}</small>`;
   $("champions-content").appendChild(panel);
   addEventListener("champions-audio-state", ({ detail }) => {
     const node = $("phantom-audio-status");
     node.hidden = detail === "idle";
     node.textContent = ({
       loading: L("음원 불러오는 중… 잠시만 기다려 주세요.", "Loading audio…"),
-      playing: L("원본 연주 재생 중 · 중지를 누르면 멈춥니다.", "Playing the original arrangement · press Stop to end."),
+      playing: L("전용 음악 재생 중 · 중지를 누르면 멈춥니다.", "Playing Champions music · press Stop to end."),
       muted: L("효과음이 꺼져 있어요. 설정에서 효과음을 켠 뒤 다시 눌러 주세요.", "Sound effects are off. Enable them in Settings and try again."),
       error: L("음원을 재생하지 못했어요. 미리보기 버튼을 다시 눌러 재시도하세요.", "Audio could not play. Press the preview button to retry."),
     })[detail] || "";
@@ -429,31 +427,22 @@
     playingTimer = setTimeout(settle, { shot: 800, kill: 1500, fin: 8000, inspect: 10200, reload: 2800 }[b.dataset.phantomDemo] || 1500);
   });
   $("phantom-stop").onclick = stop;
-  $("phantom-file").onchange = async (event) => {
-    const file = event.target.files[0]; if (!file || loading) return;
-    ++installRevision; loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = true;
-    try { if (file.size > 48 * 1024 * 1024) throw Error("JAR 파일은 48MB 이하여야 합니다."); $("phantom-status").textContent = L("불러오는 중…", "Importing…"); await install(await A.read(await file.arrayBuffer())); choose(selected); }
-    catch (e) { $("phantom-status").textContent = L("불러오기 실패: ", "Import failed: ") + e.message; }
-    finally { loading = false; event.target.value = ""; $("phantom-file").disabled = $("phantom-remove").disabled = false; }
-  };
   async function restoreBundled() {
     if (loading) return;
-    ++installRevision; loading = true; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = true;
-    try { const original = await bundled(); await install(original, false, "bundled"); await store(null, true).catch(() => {}); }
+    ++installRevision; loading = true; $("phantom-remove").disabled = $("phantom-retry").disabled = true;
+    try { const generated = await bundled(); await install(generated); forgetLegacyImport().catch(() => {}); }
     catch (error) { const message = L("모델 불러오기 실패: ", "Model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); }
-    finally { loading = false; $("phantom-file").disabled = $("phantom-remove").disabled = $("phantom-retry").disabled = false; }
+    finally { loading = false; $("phantom-remove").disabled = $("phantom-retry").disabled = false; }
   }
   $("phantom-remove").onclick = $("phantom-retry").onclick = restoreBundled;
   new MutationObserver(() => { if ($("armory").hidden) stop(); }).observe($("armory"), { attributes: true, attributeFilter: ["hidden"] });
   window.CHAMPIONS_PHANTOM = { isSkin, dress, finisher, choose, demo, stop, pose, loaded: () => ready, waveState: actor => W.sample(waves.get(actor),performance.now()/1000) };
-  // Do not overwrite a user import if the startup IndexedDB read resolves later.
+  // The user's own design is authoritative, including for returning browsers.
+  // Never install an older locally imported reference model over the shipped artwork.
   const version = generation;
+  forgetLegacyImport().catch(() => {});
   (async () => {
-    const saved = await store().catch(() => null);
-    if (saved && generation === version && !loading) {
-      try { await install(saved, false); return; } catch (error) { /* A broken local override must not hide the bundled model. */ }
-    }
-    try { const original = await bundled(); if (generation === version && !loading) await install(original, false, "bundled"); }
+    try { const generated = await bundled(); if (generation === version && !loading) await install(generated); }
     catch (error) { if (generation === version && !ready) { const message = L("모델 불러오기 실패: ", "Model failed to load: ") + error.message; $("phantom-status").textContent = message; availability(message); } }
   })();
 })();
