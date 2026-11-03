@@ -90,7 +90,7 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     if (process.env.PHANTOM_JAR) {
       await p.locator("#phantom-file").setInputFiles(process.env.PHANTOM_JAR);
-      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded(), null, { timeout: 60000 });
+      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && !document.getElementById('phantom-file').disabled && document.getElementById('phantom-status').textContent.includes('불러온 JAR'), null, { timeout: 60000 });
       await p.waitForFunction(() => { const rig = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"); let n = 0; rig?.traverse((m) => { if (m.isMesh && m.material.map?.image?.complete) n++; }); return n > 5; });
       assert.ok(await p.evaluate(() => { let n = 0; GUN_SKINS._pv().obj.traverse((m) => { if (m.isMesh) n++; }); return n < 30; }), "source cubes are merged per bone");
       await p.screenshot({ path: path.join(dir, "original-attack.png") });

@@ -1,5 +1,9 @@
 # Asset manifests verify exact bytes; Git must not rewrite JSON/text bytes on Windows.
 assets/** -text
+# The user-supplied gun inputs are copied and checked byte-for-byte.
+scripts/champions-phantom/source-gun/** -text whitespace=cr-at-eol
+# The original model's authored CRLF bytes are intentional and hash-verified.
+assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json whitespace=cr-at-eol
 # Generated CSP outputs are compared byte-for-byte across Windows and Linux.
 vercel.json text eol=lf
 _headers text eol=lf
