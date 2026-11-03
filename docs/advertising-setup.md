@@ -2,13 +2,19 @@
 
 현재는 **광고·선택적 분석을 로드하지 않는다.** ads-config.json은 도입 준비 기록이고, advertising-policy.js는 순수한 허용 판단 함수다. 광고 SDK 로더는 이 변경에 없다. 설정을 true로 바꿔도 광고가 나오지 않는다. privacy-preferences.js의 브라우저 선호는 인증 CMP나 제3자 동의 증명이 아니다.
 
+## 사이트 확인 코드
+
+2026-11-04 사용자가 제공한 게시자 ID는 `ca-pub-3446698746925219`다. 홈페이지 `index.html`의 `<head>`에 `google-adsense-account` 메타 태그를 추가하고, 루트 `ads.txt`에 해당 Google 직접 판매자 레코드를 준비했다. 광고 SDK를 실행하지 않는 [Google의 메타 태그 확인 방법](https://support.google.com/adsense/answer/7584263?hl=ko)을 사용한다.
+
+운영 배포 후 `https://13fps.xyz/`의 원본 HTML에 메타 태그가 있고 `https://13fps.xyz/ads.txt`가 HTTP 200으로 해당 레코드를 반환하는지 확인한다. 애드센스에서 **메타 태그** 확인 방법을 선택한 뒤 검토를 요청한다. 사이트 소유권 확인과 광고 게재 승인은 별개이며 실제 계정의 검토 결과는 아직 확인하지 않았다.
+
 ## 운영자가 실제 계정에서 처리할 단계
 
 1. [AdSense 신청 자격](https://support.google.com/adsense/answer/9724?hl=ko)에 맞는 신청인으로 로그인한다. 신원·지급 정보·약관 수락은 계정 소유자가 직접 처리한다.
 2. `13fps.xyz`를 [사이트 목록](https://support.google.com/adsense/answer/12169212?hl=ko)에 추가하고, 계정이 제공한 사이트 확인 방법을 사용한다. 게시자 ID는 실제 `ca-pub-` 값만 쓴다. 테스트·가짜 ID를 공개하지 않는다.
 3. 자산 권리 기록의 미확인 항목을 해소한다. 단순히 맵을 다른 이름으로 부르거나 출처를 적는 것으로 허가를 대신하지 않는다.
 4. 이용자 연령층·대상 지역을 검토한다. 아동용 설정과 개인화 제한을 적용하고 [인증 CMP 요건](https://support.google.com/adsense/answer/13554116?hl=ko)을 실제 계정에서 설정한다. 지역을 모르면 추정해서 동의 처리 완료로 간주하지 않는다.
-5. 필요한 경우 계정이 안내한 실제 판매자 레코드로 루트 ads.txt를 구성한다. 현재는 게시자 ID를 모르므로 가짜 ads.txt를 제공하지 않는다.
+5. 루트 ads.txt의 게시자 ID와 판매자 레코드가 실제 계정의 안내와 일치하는지 확인한다. 현재 레코드는 위 사용자가 제공한 게시자 ID를 사용한다.
 6. 사이트 승인·CMP 설정·거절/철회 흐름을 확인한 후 별도 코드 리뷰로 SDK 로더와 광고 슬롯을 추가한다. `ADVERTISING_POLICY.evaluate`의 외부 consent는 실제 CMP가 확인한 값이어야 한다. 로컬 선호 값을 `cmpVerified`로 바꾸면 안 된다.
 
 ## 첫 도입의 범위
