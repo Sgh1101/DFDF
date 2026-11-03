@@ -3,6 +3,7 @@
   const GS = window.GUN_SKINS, A = window.PHANTOM_ASSETS;
   if (!GS || !A) return;
   const ids = ["champions_atk", "champions_def"], isSkin = (id) => ids.includes(id);
+  const championGunName = VALORANT_DATA.names[VALORANT_DATA.championsWeapon];
   const L = (ko, en) => window.GAME_LANG === "en" ? en : ko, $ = (id) => document.getElementById(id);
   const variant = (id) => id === ids[0] ? "attacker" : "defender";
   let assets = null, model = null, ready = false, selected = ids[0], preview = null, previewRAF = 0, generation = 0, installRevision = 0, loading = false, bannerHome = null, bundledRequest = null;
@@ -397,9 +398,9 @@
   };
   const demoButton = ([k, v]) => `<button type="button" class="pp-btn" data-phantom-demo="${k}">${ICON[k]}<span>${v}</span><s class="pp-eq" aria-hidden="true"><i></i><i></i><i></i></s></button>`;
   panel.style.setProperty("--rc", (SKIN_TIERS.list.find((row) => row.id === 5) || {}).c || "#ff7bd5");
-  panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L("팬텀 전용", "PHANTOM ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
+  panel.innerHTML = `<div class="pp-head"><div class="pp-titles"><span class="pp-kicker">CHAMPIONS · ${L(championGunName + " 전용", championGunName + " ONLY")}</span><h3>${L("챔피언스 팬텀", "Champions Phantom")}<i class="pp-rar">${L("초월", "TRANSCENDENT")}</i></h3></div>
     <div class="pp-sides" role="group" aria-label="${L("진영", "Side")}"><button type="button" class="pp-side" data-phantom-skin="champions_atk" aria-pressed="true"><b></b>${L("공격 · 붉은빛", "Attack · Crimson")}</button><button type="button" class="pp-side" data-phantom-skin="champions_def" aria-pressed="false"><b></b>${L("수비 · 상아빛", "Defense · Ivory")}</button></div></div>
-    <p class="pp-desc">${L("전설보다 높은 최고 등급의 팬텀 스킨. 전용 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for the Phantom: its own model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
+    <p class="pp-desc">${L("전설보다 높은 최고 등급의 " + championGunName + " 스킨. 전용 모델에 처치 배너, 용 마무리, 전용 합성 사운드가 함께 적용됩니다.", "The highest tier above Legendary, for " + championGunName + ": its own model with a kill banner, a dragon finisher and its own synthesized sound.")}</p>
     <div class="pp-tags"><span class="pp-tag">${L("공격 / 수비", "Attack / Defense")}</span><span class="pp-tag">${L("처치 배너", "Kill banner")}</span><span class="pp-tag">${L("용 마무리", "Dragon finisher")}</span><span class="pp-tag">${L("전용 사운드", "Own sound")}</span></div>
     <div class="pp-rows"><div class="pp-row"><em>${L("소리", "Sound")}</em><div class="pp-btns" role="group">${[["shot", L("발사음", "Shot")], ["kill", L("킬 배너·소리", "Kill banner & sound")], ["fin", L("마무리", "Finisher")]].map(demoButton).join("")}</div></div>
     <div class="pp-row"><em>${L("연출", "Motion")}</em><div class="pp-btns" role="group">${[["inspect", L("살펴보기", "Inspect")], ["reload", L("재장전", "Reload")]].map(demoButton).join("")}<button type="button" class="pp-btn pp-stop" id="phantom-stop">${ICON.stop}<span>${L("중지", "Stop")}</span></button></div></div></div>
