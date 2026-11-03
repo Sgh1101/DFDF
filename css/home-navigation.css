@@ -67,3 +67,7 @@
 }
 /* 더보기 (More) opens towards the inside of the screen: it is the last item of the bar */
 .home-more>div,#s-title.home-original .home-header .home-more>div{left:auto;right:0}
+.home-practice:not([open])>div{display:none!important}
+#s-title.home-original .home-header .home-practice>div button{display:block;width:100%;min-height:40px;padding:9px 12px;text-align:left;justify-content:flex-start;white-space:normal}
+#s-title.home-original #go-signin{padding:6px 10px;white-space:nowrap;font-size:11px;border-color:var(--gold);color:var(--gold)}
+@media(max-width:1000px){#s-title.home-original .home-header #acct-chip{display:none!important}}

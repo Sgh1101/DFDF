@@ -49,7 +49,7 @@
     $("go-play").querySelector("small").textContent = L(`AI 대전 · 모드 ${data.modes}종 · 맵 ${n}종`, `Versus AI · ${data.modes} modes · ${n} maps`);
     title.querySelector(".title-desc").textContent = L(`사이트를 두고 벌이는 전술 교전. ${data.agents}명 요원의 능력으로 각을 열고, 연막과 스파이크로 승부를 냅니다.`, `Fight for the site with ${data.agents} agents, abilities, smoke and the spike.`);
     const skins = data.skins;
-    title.querySelector(".title-foot").textContent = L(`요원 ${data.agents}명 · 무기 ${data.weapons}종 · 맵 ${n}종 · 스킨 ${skins}종`, `${data.agents} agents · ${data.weapons} weapons · ${n} maps · ${skins} skins`);
+    title.querySelector(".title-foot").textContent = L(`요원 ${data.agents}명 · 총 ${data.guns}종 + 나이프 · 맵 ${n}종 · 스킨 ${skins}종`, `${data.agents} agents · ${data.guns} guns + knife · ${n} maps · ${skins} skins`);
     paintRecent();
   }
   // the map list also changes after this script loads (the Ascent trial map, the owner's extra maps): count it again

@@ -26,7 +26,7 @@
     const r = u.mast[ag.id];
     return r && "object" == typeof r ? r : { lv: 1, xp: 0, into: 0, need: 0, m: 0, w: 0, k: 0 };
   };
-  const tip = (r) => MT.label(r.lv) + (r.lv >= MT.MAX ? "" : ` · ${r.into} / ${r.need} XP`) + (r.m ? L(` · ${r.m}경기 ${r.w}승`, ` · ${r.m} matches ${r.w} wins`) : "");
+  const tip = (r) => MT.label(r.lv) + (r.lv >= MT.MAX ? "" : r.need > 0 ? ` · ${r.into} / ${r.need} XP` : L(" · 한 경기를 마치면 숙련도가 시작됩니다", " · Finish a match to start mastery")) + (r.m ? L(` · ${r.m}경기 ${r.w}승`, ` · ${r.m} matches ${r.w} wins`) : "");
   const css = document.createElement("style");
   css.textContent =
     ".mb-pos{position:absolute;top:5px;left:5px;z-index:2;pointer-events:none;line-height:0}" +

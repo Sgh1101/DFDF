@@ -147,7 +147,7 @@
     if (!b) {
       b = document.createElement("a");
       b.id = "rank-chip";
-      b.href = "./";
+      b.href = "./#records-stats";
       b.style.cssText = "position:fixed;top:10px;right:12px;z-index:40;display:flex;align-items:center;gap:5px;padding:3px 11px 3px 5px;border-radius:99px;background:rgba(20,25,34,.86);border:1px solid #2a3444;font-size:12px;font-family:var(--f-display);letter-spacing:.03em;text-decoration:none";
       document.body.appendChild(b);
     }

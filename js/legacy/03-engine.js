@@ -21672,7 +21672,7 @@ function renderSelect() {
   const t = $("sel-detail");
   GAME_PORTRAITS.clear(t);
   (t.style.setProperty("--ac", picked.color),
-    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}${e.counterplay ? '<br><strong>대응</strong> '+e.counterplay : ''}</div>\n        </div>\n      </div>`).join("")}\n  `));
+    (t.innerHTML = `\n    <div class="det-hero">\n      <img class="det-img" alt="">\n      <div class="det-hero-txt">\n        <div class="det-name">${picked.name}</div>\n        <div class="det-role">${picked.role} · ${picked.codename || picked.id.toUpperCase()}</div>\n      </div>\n    </div>\n    <p class="det-desc">${picked.desc}</p>\n    ${picked.abilities.map((e) => `\n      <div class="ab">\n        <div class="ab-key">${abIcon(e.type)}<b>${e.key}</b></div>\n        <div>\n          <div class="ab-name">${e.name}</div>\n          <div class="ab-meta">${e.ult ? `궁극기 · 충전 ${e.ult}` : e.cost ? `최대 ${e.charges}회` : `재사용 ${e.cd}초`}</div>\n          <div class="ab-desc">${e.desc}${e.counterplay ? '<br><strong>대응</strong> '+e.counterplay : ''}</div>\n        </div>\n      </div>`).join("")}\n  `));
   GAME_PORTRAITS.set(t.querySelector(".det-img"), picked, 420, 520, true);
 }
 function startGame(e, t) {
@@ -21736,6 +21736,7 @@ function startGame(e, t) {
   }),
   ($("go-fly").onclick = () => enterFly()),
   ($("fly-exit").onclick = () => exitFly()),
+  ($("lh-start").onclick = () => { lockCooldown = 0; tryLock(); }),
   ($("lh-touch").onclick = (e) => {
     (e.stopPropagation(), setTouchMode(!0));
   }),

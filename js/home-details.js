@@ -1,6 +1,23 @@
 (() => {
   const $ = (id) => document.getElementById(id), EN = window.GAME_LANG === "en", L = (ko, en) => EN ? en : ko;
   const menu = $("s-title").querySelector(".tt-menu");
+  const training = document.createElement("button");
+  training.id = "go-training"; training.type = "button"; training.className = "btn";
+  training.textContent = L("처음이라면 · 조작과 능력 훈련", "New here? · Controls & ability training");
+  training.onclick = () => $("go-quick-guide")?.click();
+  $("go-multi").after(training);
+  // Measure only on layout changes; no extra per-frame HUD layout reads.
+  const hud = $("hud"), vitals = $("vitals"), mini = $("mini");
+  const fitHud = () => {
+    if (!hud || hud.hidden) return;
+    const height = Math.ceil(vitals.getBoundingClientRect().height);
+    const bottom = Math.ceil(mini.getBoundingClientRect().bottom - hud.getBoundingClientRect().top);
+    if (height) hud.style.setProperty("--vitals-height", height + "px");
+    if (bottom) hud.style.setProperty("--mini-bottom", bottom + "px");
+  };
+  const hudSize = new ResizeObserver(fitHud);
+  for (const node of [vitals, mini]) if (node) hudSize.observe(node);
+  addEventListener("resize", fitHud);
   const account = ACCOUNT.session(), favoriteKey = "lgp_favorites:" + (account && account.user.id || "local");
   let favorites = new Set();
   try {

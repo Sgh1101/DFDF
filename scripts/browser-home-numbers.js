@@ -72,7 +72,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000";
     check("ko", ko, { modes: /모드 (\d+)종/, agents: /요원 (\d+)명/, abilities: /능력 (\d+)개/, maps: /전장 (\d+)곳 — 5대5 (\d+)곳 · 소규모 3대3 (\d+)곳 · 1대1 (\d+)곳/, guns: /총 (\d+)종/, skins: /스킨 (\d+)종 × 총 (\d+)종/ });
     const en = await feat("en");
     assert.equal(en.length, 7);
-    check("en", en, { modes: /(\d+) modes/, agents: /(\d+) agents/, abilities: /(\d+) abilities/, maps: /(\d+) maps — (\d+) for 5v5, (\d+) small 3v3, (\d+) duels/, guns: /(\d+) guns/, skins: /(\d+) skins × (\d+) guns/ });
+    check("en", en, { modes: /(\d+) modes/, agents: /(\d+) agents/, abilities: /(\d+) abilities/, maps: /(\d+) permanent maps — (\d+) for 5v5, (\d+) small 3v3, (\d+) duels/, guns: /(\d+) guns/, skins: /(\d+) skins × (\d+) guns/ });
     assert.ok(!/[ᄀ-ᇿ㄰-㆏가-힯]/.test(en.join("\n")), "English feature text has Hangul: " + en.join(" | "));
     assert.deepEqual(f.errors, [], "page errors");
     console.log("home numbers passed");

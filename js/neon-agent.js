@@ -16,7 +16,7 @@
   const host = () => NET.mode !== "client";
   const A = (key, name, type, cost, charges, cd, desc, ult) => ({ key, name, type, cost, charges, cd, desc, _rs: 1, ...(ult ? { ult } : {}) });
   const agent = {
-    id: "neon_agent", key: "neon_agent", name: "전광", role: "타격대", color: "#41cfff", accent: "#f7ef69",
+    id: "neon_agent", key: "neon_agent", codename: "SURGE", name: "전광", role: "타격대", color: "#41cfff", accent: "#f7ef69",
     quote: "멈추면 지는 거야.",
     desc: "몸에 전류를 두른 배달원 출신 돌격수. 튕기는 전격탄으로 길을 열고, 전류 통로를 깔고, 질주와 미끄러지기로 누구보다 먼저 닿는다.",
     abilities: [

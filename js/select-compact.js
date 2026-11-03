@@ -4,6 +4,9 @@
   const foot = document.querySelector("#s-select .sel-foot"), mid = foot && foot.querySelector(".sel-mid"), back = document.getElementById("sel-back");
   if (!foot || !mid || !back) return;
   const L = (ko, en) => ("en" === window.GAME_LANG ? en : ko);
+  const detail = document.getElementById("sel-detail");
+  detail.tabIndex = 0; detail.setAttribute("role", "region");
+  detail.setAttribute("aria-label", L("요원과 능력 · 아래로 스크롤하여 모두 보기", "Agent abilities · scroll to see all"));
   const pick = document.createElement("button");
   pick.type = "button"; pick.id = "sel-pick"; pick.className = "btn";
   pick.setAttribute("aria-expanded", "false"); pick.setAttribute("aria-controls", "sel-mid");
