@@ -4,7 +4,7 @@
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ||= "1";
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
 const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", SHOTS = path.join(__dirname, "..", "test-results", "site-pages");
-const PAGES = ["guide", "controls", "modes", "maps", "agents", "patch-notes", "about", "contact", "privacy"];
+const PAGES = ["guide", "controls", "modes", "maps", "agents", "patch-notes", "about", "contact", "privacy", "terms", "credits"];
 const NAV = [["guide", "게임 소개"], ["controls", "조작법"], ["modes", "모드"], ["maps", "맵"], ["agents", "요원"], ["patch-notes", "패치노트"], ["about", "소개"], ["contact", "문의"]];
 const SIZES = [[375, 740], [1280, 800]];
 const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data.json"), "utf8"));
@@ -39,7 +39,7 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
         assert.deepEqual(r.over, [], `${p} ${w}: nothing sticks out of the page`);
         assert.deepEqual(r.nav.map((n) => [n[0], n[1]]), NAV.map(([k, l]) => [`./${k}.html`, l]), `${p}: header navigation`);
         assert.ok(r.nav.every((n) => n[2]), `${p} ${w}: every navigation link is shown`);
-        assert.deepEqual(r.foot, NAV.map(([k]) => `./${k}.html`).concat("./privacy.html"), `${p}: footer links`);
+        assert.deepEqual(r.foot, NAV.map(([k]) => `./${k}.html`).concat("./terms.html", "./credits.html", "./privacy.html", "./privacy.html#choices"), `${p}: footer links`);
         assert.ok(r.play.length >= 2 && r.play.every(([t, bw, bh]) => t === "게임 시작" && bw >= 80 && bh >= 40), `${p} ${w}: header and footer 게임 시작 buttons`);
         assert.equal(r.canonical, `https://13fps.xyz/${p}.html`); assert.ok(r.og && r.desc >= 40 && r.lang === "ko");
         await page.screenshot({ path: path.join(SHOTS, `${p}-${w}.png`), fullPage: true });
@@ -65,6 +65,7 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
     // ── the data pages against the live game ──
     const game = await f.page("sitepages", { width: 1280, height: 800 }, {}, { bootTimeout: 120000 });
     await game.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    await game.evaluate(async()=>{if(!await ASCENT_TRIAL.ensure())throw Error('Island package unavailable');});
     const live = await game.evaluate(() => ({
       agents: AGENTS.map((a) => [a.id, a.name, a.role, a.abilities.map((x) => [x.key, x.name, x.desc])]),
       maps: MAP_LIST.filter((m) => m.key !== window.WEEK_MAP_KEY).map((m) => [m.key, m.name, MAP_SIZE(m.key)]),
@@ -167,14 +168,14 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
         intro: [...document.querySelectorAll(".intro")].filter((e) => e.offsetParent).map((e) => ({ lang: e.lang, text: e.textContent.length, links: [...e.querySelectorAll("a")].map((a) => a.getAttribute("href")) })),
         top: { btn: !!document.getElementById("guideBtn").offsetParent, links: [...document.querySelectorAll("#guideMenu a")].map((a) => a.getAttribute("href")) }, sw: document.documentElement.scrollWidth, iw: innerWidth,
       }));
-      assert.deepEqual(r.foot.map((x) => x[0]), NAV.map(([k]) => `./${k}.html`).concat("./privacy.html"), `home ${lang} ${w}: footer links`);
+      assert.deepEqual(r.foot.map((x) => x[0]), NAV.map(([k]) => `./${k}.html`).concat("./terms.html", "./credits.html", "./privacy.html", "./privacy.html#choices"), `home ${lang} ${w}: footer links`);
       assert.ok(r.foot.every((x) => x[1] && x[2] >= 28), "link labels are filled in and easy to tap");
       assert.equal(r.intro.length, 1, "one text block per language"); assert.equal(r.intro[0].lang, lang); assert.ok(r.intro[0].text > 200);
       for (const l of ["./guide.html", "./modes.html", "./maps.html", "./agents.html"]) assert.ok(r.intro[0].links.includes(l), l);
       assert.equal(r.top.btn, true, "the guide menu's button is in the top bar"); assert.ok(r.sw <= r.iw, "no sideways scroll");
       assert.deepEqual(r.top.links, NAV.map(([k]) => `./${k}.html`), "the guide menu lists every page");
       await hp.click("#guideBtn"); assert.equal(await hp.locator("#guideMenu").isVisible(), true, "and opens"); await hp.keyboard.press("Escape");
-      if (lang === "ko") assert.deepEqual(r.foot.map((x) => x[1]), ["게임 소개", "조작법", "모드", "맵", "요원", "패치노트", "소개", "문의", "개인정보처리방침"]);
+      if (lang === "ko") assert.deepEqual(r.foot.map((x) => x[1]), ["게임 소개", "조작법", "모드", "맵", "요원", "패치노트", "소개", "문의", "이용규칙", "제작·출처", "개인정보처리방침", "개인정보 설정"]);
       await hp.screenshot({ path: path.join(SHOTS, `home-${lang}-${w}.png`), fullPage: true });
       await ctx.close();
     }

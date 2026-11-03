@@ -1,10 +1,14 @@
 /* The article pages of 13 (guide, controls, modes, maps, agents, patch notes, about, contact, privacy).
-   Written by scripts/build-site-pages.js together with the pages; the look follows index.html: dark, Jua for titles,
-   Gowun Dodum for text. Nothing here is loaded by the game. */
+   Written by scripts/build-site-pages.js together with the pages; the look follows index.html: dark, Black Han Sans for titles,
+   Noto Sans KR for text. Nothing here is loaded by the game. */
 :root{--void:#0a0d12;--panel:#141922;--panel2:#1b222e;--line:#2a3444;--steel:#8a97ab;--dim:#5b6879;--ink:#e8edf4;--text:#c3ccd8;--red:#ff3b4e;--gold:#ffc849;--cyan:#22d3ee;--green:#4ade80;
---fd:'Jua',system-ui,sans-serif;--fb:'Gowun Dodum','Noto Sans KR',system-ui,sans-serif;color-scheme:dark}
+--fd:'Black Han Sans',system-ui,sans-serif;--fb:'Noto Sans KR',system-ui,sans-serif;color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+.privacy-check{display:flex;gap:12px;align-items:flex-start;padding:12px 0;cursor:pointer}
+.privacy-check input{width:22px;height:22px;flex:0 0 22px;margin-top:3px;accent-color:var(--gold)}
+#privacyChoices .row{display:flex;flex-wrap:wrap;gap:10px}
+#privacyChoices button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 body{background:var(--void);background-image:radial-gradient(ellipse 90% 40% at 50% 0%,#17202f 0%,transparent 65%);background-repeat:no-repeat;color:var(--text);font-family:var(--fb);font-size:16px;line-height:1.85;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--gold);text-underline-offset:3px}
 a:hover{color:#ffe08a}

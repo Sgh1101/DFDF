@@ -19951,6 +19951,14 @@ function _hT(e, t) {
 function _hH(e, t) {
   e && e._h !== t && ((e._h = t), (e.innerHTML = t));
 }
+function _hAmmo(e, count, reserve) {
+  if (!e) return;
+  const value = String(count), sub = String(reserve);
+  if (e._ammo === value + '|' + sub) return;
+  e._ammo = value + '|' + sub;
+  const small = document.createElement('small'); small.textContent = sub;
+  e.replaceChildren(document.createTextNode(value), small);
+}
 function _hW(e, t) {
   e && e._w !== t && ((e._w = t), (e.style.width = t));
 }
@@ -20000,11 +20008,11 @@ function updateHUD() {
   if (($("ammo").classList.toggle("ultw", !!n), n)) {
     const e = ULTW[n.kind];
     ($("ammo").style.setProperty("--uwc", e.glow),
-      _hH(
+      _hAmmo(
         $("am-count"),
         e.ammo
-          ? `${n.ammo}<small>/${e.ammo}</small>`
-          : `${Math.max(0, n.t).toFixed(1)}<small>초</small>`,
+          ? n.ammo : Math.max(0, n.t).toFixed(1),
+        e.ammo ? `/${e.ammo}` : '초',
       ),
       _hT(
         $("am-name"),
@@ -20013,9 +20021,9 @@ function updateHUD() {
           ("blades" === n.kind ? " · 우클릭 일제" : ""),
       ));
   } else
-    (_hH(
+    (_hAmmo(
       $("am-count"),
-      `${player.ammo[t] || 0}<small>/${a >= 999999 ? "∞" : a}</small>`,
+      player.ammo[t] || 0, `/${a >= 999999 ? "∞" : a}`,
     ),
       _hT($("am-name"), o.name + (player.reloading > 0 ? " · 재장전" : "")));
   (_hT(

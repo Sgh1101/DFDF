@@ -53,3 +53,15 @@
 
 - Google Fonts: https://fonts.google.com
 - SIL Open Font License 1.1: https://openfontlicense.org
+
+## 하늘섬 마을 (DFDF 자체 지형)
+
+2026-11-01 광고 준비 작업에서 `scripts/build-original-maps.js`의 독립적인 배치로 교체했습니다. 스폰·사이트 좌표는 `js/original-map-layouts.js`, 모델·충돌 생성은 위 생성 스크립트가 기준입니다. 외부 게임의 지형·UV·재질·이미지·schematic은 생성 입력이 아닙니다. 각 패키지 manifest에 생성 경로와 해시를 기록합니다.
+
+기존 Kour.io 맵 7의 파일과 원본 schematic에서 만든 형상은 현행 배포 자산에서 제거했습니다. 과거 자료는 Git 이력에 남아 있으므로 그 이력의 출처 설명을 현행 자산의 사용 허가로 해석하지 마세요. `ascent_trial` 내부 이름은 저장 데이터와 연동을 위한 호환 이름입니다. 사막 마을과 전용 이벤트 기능은 클로드의 최신 삭제 작업을 유지합니다.
+
+하늘섬의 블록 텍스처는 `scripts/paint-block-textures.py`가 그린 자체 이미지입니다. 기본 Minecraft 텍스처를 추출한 파일이 아닙니다. 클로드가 적용한 재료별 단색 텍스처를 그대로 사용합니다.
+
+## 챔피언스 및 권리 확인 상태
+
+`assets/champions-phantom/dfdf-1/SOURCE-NOTICE.txt`와 생성 스크립트가 제작 경로를 기록합니다. 최신 main의 클로드 수정(외형·마무리·음악)을 그대로 가져왔으며, 광고 준비 코드에서 추가로 변경하지 않았습니다. 파일 제작 경로와 다른 작품의 보호되는 표현·상표 사용 권한은 구분해야 합니다. 표현에 관한 별도 권리 검토나 허가를 완료했다고 단정하지 않습니다. 전체 기록은 `docs/asset-provenance.md`를 확인하세요.

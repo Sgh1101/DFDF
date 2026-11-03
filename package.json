@@ -46,6 +46,10 @@
     "test:csp": "node scripts/browser-csp.js",
     "test:cloudflare": "node scripts/browser-cloudflare.js",
     "build:site-pages": "node scripts/build-site-pages.js",
+    "build:original-maps": "node scripts/build-original-maps.js",
+    "test:original-maps": "node scripts/browser-original-maps.js",
+    "test:ads-readiness": "node scripts/browser-ads-readiness.js",
+    "test:service-worker": "node scripts/browser-service-worker.js",
     "dump:site-data": "node scripts/dump-site-data.js",
     "test:online": "node scripts/browser-online.js",
     "test:name-safety": "node scripts/browser-name-safety.js",
@@ -162,7 +166,9 @@
     "test:colorblind": "node scripts/browser-colorblind.js",
     "test:map-week": "node scripts/browser-map-week.js",
     "test:key-hints": "node scripts/browser-key-hints.js",
-    "test:settings-sync": "node scripts/browser-settings-sync.js"
+    "test:settings-sync": "node scripts/browser-settings-sync.js",
+    "test:champions-concept": "node scripts/browser-champions-concept.js",
+    "test:host-data": "node scripts/browser-host-data.js"
   },
   "devDependencies": {
     "peer": "1.0.2",

@@ -52,6 +52,7 @@
       const node=new T.Group(),p=pivot(b.pivot),parent=pivot(byName.get(b.parent)?.pivot),r=rotation(b.rotation);
       node.name='phantom-bone-'+b.name;node.position.set(...p.map((x,i)=>x-parent[i]));node.rotation.set(...r,'ZYX');
       node.userData.sourcePivot=(b.pivot||[0,0,0]).slice();
+      node.userData.restPosition=node.position.toArray();node.userData.restRotation=node.rotation.toArray().slice(0,3);
       if(b.cubes?.length){
         const d=data(b,geo.description),g=new T.BufferGeometry();
         g.setAttribute('position',new T.Float32BufferAttribute(d.positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(d.normals,3));g.setAttribute('uv',new T.Float32BufferAttribute(d.uv,2));
@@ -62,5 +63,19 @@
     for(const b of geo.bones)(nodes.get(b.parent)||root).add(nodes.get(b.name));
     return root;
   }
-  return Object.freeze({pivot,rotation,rotate,data,build});
+  function animate(root,seconds){
+    if(!Number.isFinite(seconds))return;
+    const strength=Math.max(0,Math.min(1,(seconds-2.66)/.5));
+    root.traverse(node=>{
+      const rest=node.userData.restPosition,rot=node.userData.restRotation;
+      if(!rest||!rot)return;
+      const seg=/^phantom-bone-seg_(\d+)$/.exec(node.name);
+      if(seg){
+        const i=+seg[1],wave=Math.sin(seconds*2.1-i*.32),sway=Math.sin(seconds*1.35-i*.24);
+        node.position.set(rest[0]+sway*1.2*strength,rest[1]+wave*1.5*strength,rest[2]+sway*.8*strength);
+        node.rotation.z=rot[2]+wave*.025*strength;
+      }else if(node.name==='phantom-bone-head_jaw')node.rotation.z=rot[2]-(.5+.5*Math.sin(seconds*2.1))*.08*strength;
+    });
+  }
+  return Object.freeze({pivot,rotation,rotate,data,build,animate});
 });

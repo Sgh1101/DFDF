@@ -14,7 +14,7 @@ const {fixture} = require('./browser-fixture');
     } : undefined});
    await p.locator('#go-play').click();
    if (await p.locator('#sel-pick').isVisible()) await p.locator('#sel-pick').click();
-   await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();
+   await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
    await p.waitForFunction(() => ASCENT_TRIAL.status === 'ready');
    await p.locator('#sel-go').click({timeout:120000});
    await p.waitForFunction(() => ASCENT_TRIAL.active && !!myActor(), null, {timeout:120000});
@@ -49,7 +49,7 @@ const {fixture} = require('./browser-fixture');
    });
    results[label]=result;console.log(label,JSON.stringify(result));
    fs.writeFileSync('test-results/performance.json',JSON.stringify(results,null,2));
-   assert.equal(result.colliders,44380);assert.equal(result.textures,239);
+   assert.equal(result.colliders,require('../assets/maps/ascent/manifest.json').colliders);assert.equal(result.textures,239);
    if(label==='after'){
     assert.ok(result.rects.mini<100,JSON.stringify(result));assert.equal(result.rects.terrain,0,'warm terrain stays cached');
     assert.equal(result.pixelDifferences,0,'all source wall pixels match the original draw');

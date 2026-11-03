@@ -537,6 +537,7 @@ body.touching #netping{left:auto;right:14px;top:80px}
   }
   board.querySelectorAll(".bd-tabs button").forEach((b) => (b.onclick = () => openBoard(b.dataset.v, !0)));
   $("bd-x").onclick = closeBoard;
+  const boardNumber=n=>Number.isFinite(n)?Math.max(0,Math.trunc(n)):0;
   function paintBoard(force) {
     const now = performance.now();
     if (!force && now - paintT < 250) return;
@@ -546,13 +547,13 @@ body.touching #netping{left:auto;right:14px;top:80px}
     const ffa = window.GAME_MODES && GAME_MODES[room.mode] && GAME_MODES[room.mode].ffa;
     const mine = "atk" === me.team ? world.scoreAtk : world.scoreDef,
       theirs = "atk" === me.team ? world.scoreDef : world.scoreAtk;
-    $("bd-score").innerHTML = ffa ? `데스매치 · <b>${me.kills || 0}</b>킬` : `<b>${mine}</b> : <b>${theirs}</b> · ${world.round} 라운드`;
+    $("bd-score").innerHTML = ffa ? `데스매치 · <b>${boardNumber(me.kills)}</b>킬` : `<b>${boardNumber(mine)}</b> : <b>${boardNumber(theirs)}</b> · ${boardNumber(world.round)} 라운드`;
     $("bd-body").innerHTML = "sb" === view ? sbHTML(me, ffa) : clHTML(me);
   }
   function rowHTML(a, me, showUlt) {
     const s = st(a.id);
     let p;
-    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${s.k}</div><div class="n">${s.d}</div><div class="n">${s.a}</div><div class="n">${Math.round(s.dmg)}</div><div class="n pg">${(p = pingOf(a)) >= 0 ? p : ""}</div><div class="ult">${showUlt ? `궁 ${a.ultCharge || 0}/${a.ultMax || 5}` : ""}</div></div>`;
+    return `<div class="bd-row${a === me ? " me" : ""}${a.alive ? "" : " dead"}"><img src="${pic(a)}" alt=""><div class="nm">${String(nameOf(a)).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";")}${window.LV_CHIP ? LV_CHIP.html(a) : ""}<small>${a.agent ? a.agent.name : ""}${isAI(a) ? " · AI" : ""}</small></div><div class="n">${boardNumber(s.k)}</div><div class="n">${boardNumber(s.d)}</div><div class="n">${boardNumber(s.a)}</div><div class="n">${Math.round(s.dmg)}</div><div class="n pg">${(p = pingOf(a)) >= 0 ? p : ""}</div><div class="ult">${showUlt ? `궁 ${boardNumber(a.ultCharge)}/${boardNumber(a.ultMax) || 5}` : ""}</div></div>`;
   }
   const HEAD = '<div class="bd-row hd"><span></span><span>플레이어</span><span class="n">킬</span><span class="n">데스</span><span class="n">도움</span><span class="n">피해</span><span class="n pg">핑</span><span></span></div>';
   function sbHTML(me, ffa) {

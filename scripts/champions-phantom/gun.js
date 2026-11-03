@@ -1,14 +1,10 @@
-// DFDF's own Champions Phantom: a blocky (voxel) rifle modelled in code.
-// Units are 1/16 block; +X is the muzzle, +Y up, Z across the gun. The game
-// turns +X to its -Z forward axis and scales the rig (js/champions-phantom.js).
-// Bones keep the names the game animates (magazine, mag_and_lefthand,
-// charge_handle, bolt, trigger, mag_release) and the muzzle attachment point.
+// The approved Champions concept in the game's native cube rig.
+// Units: 1/16 block. +X is the muzzle; animation pivots remain compatible.
 "use strict";
 const { Model } = require("./model");
 
 function build() {
   const m = new Model("geometry.dfdf_champions_phantom", [512, 512]);
-  // ── hierarchy and attachment points ──
   m.bone("root", null, [-3.5, -3.25, 0]);
   m.bone("mag_and_lefthand", "root", [6, -5.5, 0]);
   m.bone("magazine", "mag_and_lefthand", [6, -5.5, 0], [0, 0, 28]);
@@ -23,95 +19,124 @@ function build() {
   m.bone("muzzle_pos", "gun_and_righthand", [41.25, 0, 0]);
   m.bone("shell", "gun_and_righthand", [2.5, 0, -1.5]);
 
-  // Symmetric box helper: x0..x1, y0..y1, half width hz around z = cz.
-  const box = (bone, x0, x1, y0, y1, hz, material, cz = 0, extra) => m.cube(bone, [x0, y0, cz - hz], [x1 - x0, y1 - y0, hz * 2], material, extra);
-  // Stepped slope: n slices interpolating the bottom/top from a to b.
-  function ramp(bone, x0, x1, bottom0, bottom1, top0, top1, hz, material, n, extra) {
-    for (let i = 0; i < n; i++) {
-      const a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n, f = (i + 0.5) / n;
-      box(bone, a, b, bottom0 + (bottom1 - bottom0) * f, top0 + (top1 - top0) * f, hz, material, 0, extra);
+  const E = { both: { edge: "both" }, top: { edge: "top" }, hi: { hi: true } };
+  const box = (bone, x0, x1, y0, y1, hz, material, cz = 0, extra) =>
+    m.cube(bone, [x0, y0, cz - hz], [x1 - x0, y1 - y0, hz * 2], material, extra);
+  // A real diagonal cuboid, rather than disconnected stair treads.
+  function beam(bone, a, b, thickness, hz, material, cz = 0, extra = {}) {
+    const x = (a[0] + b[0]) / 2, y = (a[1] + b[1]) / 2;
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    return m.cube(bone, [x - length / 2, y - thickness / 2, cz - hz], [length, thickness, hz * 2], material,
+      { ...extra, pivot: [x, y, cz], rotation: [0, 0, Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI] });
+  }
+  const pair = (fn) => { for (const sign of [-1, 1]) fn(sign); };
+
+  // Hooked open stock with deliberate, unobstructed central negative space.
+  beam("stock", [-22.1, -5.2], [-22.1, 2.0], 1.5, 1.05, "body", 0, E.both);
+  beam("stock", [-22.1, 1.9], [-8.0, 1.3], 1.8, 1.08, "body", 0, E.both);
+  beam("stock", [-22.0, -5.7], [-17.6, -6.0], 1.55, 1.08, "body", 0, E.both);
+  beam("stock", [-17.6, -6.0], [-8.0, -2.5], 1.55, 1.08, "body", 0, E.both);
+  beam("stock", [-8.0, -2.5], [-8.0, 1.3], 1.65, 1.13, "dark", 0, E.both);
+  box("stock", -23.0, -22.75, -4.9, 1.4, 1.02, "dark");
+  pair(s => {
+    beam("stock", [-21.7, 2.35], [-8.4, 1.8], .32, .08, "trim", s * 1.16);
+    beam("stock", [-21.7, -6.15], [-17.6, -6.45], .32, .08, "trim", s * 1.16);
+    beam("stock", [-17.6, -6.45], [-8.1, -2.95], .32, .08, "trim", s * 1.16);
+    beam("stock", [-21.5, .95], [-18.0, .8], .16, .06, "glow", s * 1.18);
+  });
+  box("stock", -22.9, -21.2, 1.5, 2.9, 1.15, "trim");
+  box("stock", -9.2, -7.4, -.7, 2.4, 1.25, "trim");
+  box("stock", -8.8, -7.0, -2.7, -.7, 1.23, "body", 0, E.both);
+
+  // Slim receiver with raised gold contours and an engraved scale panel.
+  box("receiver", -7.5, 10.2, -4.2, 2.3, 1.4, "body", 0, E.both);
+  beam("receiver", [9.3, -1.0], [13.4, .15], 4.0, 1.4, "body", 0, E.both);
+  pair(s => {
+    box("receiver", -5.5, 6.3, -.7, 1.7, .10, "trim", s * 1.52, { scales: true });
+    beam("receiver", [-6.7, 2.0], [-2.7, 1.75], .55, .13, "trim", s * 1.57);
+    beam("receiver", [-2.7, 1.75], [1.3, -.9], .60, .14, "trim", s * 1.57);
+    beam("receiver", [1.3, -.9], [7.0, -1.5], .60, .14, "trim", s * 1.57);
+    beam("receiver", [7.0, -1.5], [10.9, -3.15], .6, .14, "trim", s * 1.57);
+    beam("receiver", [-6.8, 2.65], [-2.4, 2.65], .45, .12, "trim", s * 1.50);
+    box("receiver", -6.1, -2.2, -3.5, -1.4, .13, "dark", s * 1.51, E.both);
+    box("receiver", -5.5, -2.9, -2.4, -2.05, .14, "glow", s * 1.67);
+    box("receiver", 7.3, 10.4, -.2, 1.25, .13, "dark", s * 1.53, E.both);
+    box("receiver", 7.9, 9.7, .35, .58, .14, "glow", s * 1.68);
+    for (const x of [-6.4, 10.7]) box("receiver", x, x + .55, -.9, -.35, .14, "shell", s * 1.61);
+  });
+  box("receiver", -7.5, -6.8, -4.0, 2.7, 1.48, "trim");
+  box("receiver", 2.9, 10.3, -5.7, -4.2, 1.55, "body", 0, E.both);
+  box("receiver", 10.3, 11.2, -5.3, -3.6, 1.5, "trim");
+  box("receiver", -3.75, 2.0, -6.3, -5.7, .5, "trim");
+  beam("receiver", [1.7, -6.0], [2.1, -4.2], .6, .5, "dark");
+  box("receiver", -3.75, -3.125, -5.7, -4.2, .5, "dark");
+  // Low segmented rail and small iron sights keep the unscoped silhouette.
+  box("receiver", -6.6, 13.8, 2.3, 2.7, .82, "dark");
+  for (let x = -6.2; x < 13.0; x += 2.1) box("receiver", x, x + 1.2, 2.7, 3.0, .77, "shell", 0, E.hi);
+  box("receiver", -4.2, -2.7, 3.0, 3.7, .6, "trim");
+  box("receiver", -3.8, -3.1, 3.2, 3.85, .3, "dark");
+
+  // Framed angled grip with inset dark rubber.
+  box("grip", -6.3, -.7, -4.4, -3.75, 1.18, "body", 0, E.both);
+  box("grip_handle", -5.6, -2.4, -10.75, -4.75, .95, "body", 0, E.both);
+  pair(s => {
+    box("grip_handle", -5.15, -2.9, -10.0, -5.5, .08, "dark", s * 1.0);
+    box("grip_handle", -5.55, -5.25, -10.4, -5.2, .08, "trim", s * 1.01);
+    box("grip_handle", -2.85, -2.55, -10.4, -5.2, .08, "trim", s * 1.01);
+  });
+  box("grip_handle", -5.9, -2.2, -11.25, -10.75, 1.05, "trim");
+  box("trigger", -.875, .25, -5.25, -3.5, .3, "trim");
+  box("trigger", -.875, -.25, -5.75, -5.25, .3, "trim");
+  box("mag_release", 2.0, 3.0, -2.5, -1.875, .35, "trim", -1.5);
+  box("bolt", .75, 3.75, .25, 1.25, .15, "dark", -1.6);
+
+  // Swept magazine on its unchanged moving bone and pivot.
+  box("magazine", 3.75, 8.8, -6.8, -3.0, .95, "body", 0, E.both);
+  beam("magazine", [6.25, -6.3], [6.8, -10.1], 4.8, .95, "body", 0, E.both);
+  pair(s => {
+    beam("magazine", [4.15, -3.7], [4.75, -10.3], .32, .08, "trim", s * 1.03);
+    beam("magazine", [8.4, -3.7], [9.0, -10.2], .32, .08, "trim", s * 1.03);
+    for (const x of [5.25, 7.0]) beam("magazine", [x, -4.3], [x + .55, -9.8], .28, .08, "dark", s * 1.04);
+    beam("magazine", [6.0, -4.6], [6.5, -9.3], .12, .08, "glow", s * 1.05);
+  });
+  box("magazine", 3.75, 9.8, -11.0, -10.15, 1.1, "trim");
+  box("magazine", 4.1, 9.4, -11.35, -11.0, 1.0, "dark");
+
+  // Vented handguard with broad flowing gold ribs and restrained emissive seams.
+  box("handguard", 12.0, 27.0, -1.8, 2.1, 1.30, "dark", 0, E.top);
+  pair(s => {
+    beam("handguard", [11.9, 1.9], [16.3, .75], .85, .12, "trim", s * 1.42);
+    beam("handguard", [16.3, .75], [23.4, .75], .85, .12, "trim", s * 1.42);
+    beam("handguard", [23.4, .75], [25.4, -1.0], .85, .12, "trim", s * 1.42);
+    beam("handguard", [13.0, -1.8], [21.8, -1.8], .65, .11, "body", s * 1.41, E.both);
+    for (const x of [15.0, 18.0, 21.0]) {
+      box("handguard", x, x + 2.1, -.8, .05, .10, "body", s * 1.43, E.both);
+      box("handguard", x + .23, x + 1.85, -.65, -.15, .11, "dark", s * 1.55, { keepDark: true });
     }
+    box("handguard", 15.3, 23.6, 1.62, 1.82, .07, "glow", s * 1.38);
+  });
+  box("handguard", 13.7, 25.5, 2.1, 2.45, .62, "trim");
+  box("handguard", 24.0, 25.0, 2.45, 3.1, .65, "trim");
+  box("handguard", 24.25, 24.75, 3.0, 3.7, .28, "dark");
+  box("handguard", 25.9, 27.2, -1.8, 2.1, 1.4, "trim");
+
+  // Faceted suppressor, with the original muzzle attachment position.
+  box("barrel", 27.0, 29.3, -.85, .85, .85, "dark", 0, { keepDark: true });
+  function collar(x0, x1, r, material) {
+    for (const angle of [0, 45]) m.cube("barrel", [x0, -r * .7071, -r * .7071], [x1 - x0, r * 1.4142, r * 1.4142], material,
+      { pivot: [(x0 + x1) / 2, 0, 0], rotation: [angle, 0, 0], keepDark: material === "dark" });
   }
-
-  // Edge flags read by gun-paint.js: "top" / "bottom" / "both" paint a thin gold edging on that side of
-  // the flank faces; "hi" lays a pale highlight on the up faces.
-  const E = { top: { edge: "top" }, both: { edge: "both" }, hi: { hi: true }, topHi: { edge: "top", hi: true } };
-
-  // ── stock: an open frame - butt column, a comb beam and a lower beam that hooks down to the grip ──
-  box("stock", -22.75, -21.5, -5.6, 2.6, 0.95, "shell", 0, E.both);                   // butt column
-  box("stock", -22.75, -22.5, -3.8, 1.6, 0.98, "dark");                               // butt pad
-  ramp("stock", -21.5, -7.5, 0.5, 0.3, 2.5, 2.2, 1.05, "shell", 14, E.both);                    // comb beam (1.5 thick)
-  ramp("stock", -21.5, -14.0, -6.9, -7.0, -5.0, -5.1, 1.05, "shell", 6, E.both);          // lower beam, rear half
-  ramp("stock", -14.0, -7.5, -7.0, -3.9, -5.1, -2.0, 1.05, "shell", 8, E.both);          // lower beam rising to the grip
-  for (let i = 0; i < 10; i++) box("stock", -17.5 + i * 0.72, -17.5 + i * 0.72 + 1.0, -5.2 + i * 0.62, -4.3 + i * 0.62, 0.7, "shell", 0, E.both); // diagonal brace
-  box("stock", -8.3, -7.5, -3.9, 2.3, 1.15, "shell", 0, E.both);                       // front post
-  box("stock", -22.0, -19.6, 2.6, 2.85, 0.7, "trim");                                  // small gold trim on the butt riser
-
-  // ── receiver: slim crimson/ivory body, lower at the front, with notched rails and a stepped mag well ──
-  box("receiver", -7.5, 9.5, -4.4, 2.3, 1.45, "body", 0, E.both);
-  ramp("receiver", 9.5, 14.4, -4.4, -2.3, 2.3, 2.3, 1.45, "body", 5);
-  for (const [a, b] of [[-7.5, -3.2], [-2.6, 2.0], [2.6, 7.2], [7.8, 11.4], [12.0, 14.4]]) box("receiver", a, b, 2.3, 2.7, 1.0, "dark", 0, E.hi);
-  box("receiver", -7.0, 0.0, 2.7, 3.2, 0.75, "shell", 0, E.hi);                         // rear rail
-  box("receiver", -2.6, -1.8, 3.2, 3.7, 0.3, "trim");                                  // rear sight nib
-  for (const [a, b] of [[0.6, 3.2], [3.8, 8.0], [8.6, 13.0]]) box("receiver", a, b, 2.7, 3.0, 0.5, "dark", 0, E.hi); // forward rail, notched
-  box("receiver", 3.5, 5.0, 3.0, 3.3, 0.4, "glow");
-  box("receiver", 3.2, 10.2, -5.9, -4.4, 1.5, "body", 0, E.both);                      // magazine well, wider than the body
-  box("receiver", 10.2, 11.3, -4.4, -3.2, 1.5, "dark", 0, E.top);                      // well front lip
-  box("receiver", 4.0, 9.0, -1.0, 0.8, 1.55, "dark", 0, E.both);                       // side panel
-  box("receiver", 4.5, 8.5, -0.5, 0.2, 1.6, "glow");
-  box("receiver", 9.5, 11.6, -1.2, 1.6, 1.58, "body", 0, E.both);                      // raised front panel
-  box("receiver", -6.0, -2.5, -2.0, 0.2, 1.55, "dark", 0, E.both);                     // ejection panel
-  box("receiver", -7.75, -7.25, -4.2, 2.5, 1.45, "shell", 0, E.both);
-  box("receiver", 10.75, 13.75, -2.2, 1.0, 1.55, "dark", 0, E.both);
-  // trigger guard
-  box("receiver", -3.75, 2.0, -6.3, -5.7, 0.5, "dark");
-  box("receiver", 1.375, 2.0, -5.7, -4.4, 0.5, "dark");
-  box("receiver", -3.75, -3.125, -5.7, -4.4, 0.5, "dark");
-
-  // ── grip: angled pistol grip ──
-  box("grip", -6.5, -0.5, -4.4, -3.75, 1.2, "shell");
-  box("grip_handle", -5.6, -2.4, -10.75, -4.75, 0.95, "shell", 0, E.both);
-  box("grip_handle", -5.9, -5.2, -10.2, -5.0, 1.0, "shell");
-  for (let i = 0; i < 3; i++) box("grip_handle", -2.9, -2.4, -9.5 + i * 1.6, -8.75 + i * 1.6, 1.0, "dark");
-  box("grip_handle", -5.9, -2.2, -11.25, -10.75, 1.05, "dark");
-
-  // ── trigger, magazine release, bolt cover ──
-  box("trigger", -0.875, 0.25, -5.25, -3.5, 0.3, "trim");
-  box("trigger", -0.875, -0.25, -5.75, -5.25, 0.3, "trim");
-  box("mag_release", 2.0, 3.0, -2.5, -1.875, 0.35, "trim", -1.5);
-  box("bolt", 0.75, 3.75, 0.25, 1.25, 0.15, "dark", -1.6);
-
-  // ── magazine: silver back, dark front, one gold cap ──
-  box("magazine", 3.75, 8.75, -10.0, -3.0, 0.95, "shell", 0, E.both);
-  box("magazine", 8.75, 9.5, -10.0, -3.0, 0.85, "dark");
-  box("magazine", 3.25, 3.75, -9.5, -3.5, 0.85, "shell");
-  for (let i = 0; i < 4; i++) box("magazine", 3.9, 8.6, -9.0 + i * 1.5, -8.7 + i * 1.5, 1.0, "dark");
-  box("magazine", 3.25, 9.75, -11.0, -10.0, 1.1, "trim");
-  box("magazine", 4.0, 9.0, -11.5, -11.0, 0.9, "dark");
-
-  // ── handguard: long and low, stepped down toward the muzzle with notches cut in its top ──
-  for (let i = 0; i < 5; i++) {
-    const x0 = 14.4 + i * 2.26, x1 = x0 + 2.26, top = 2.3 - i * 0.18, bottom = -2.3 + i * 0.16;
-    box("handguard", x0, x1 - 0.8, bottom, top, 1.35, "dark", 0, E.topHi);
-    box("handguard", x1 - 0.8, x1, bottom, top - 0.7, 1.35, "dark", 0, E.top);       // notch
-  }
-  ramp("handguard", 14.4, 20.5, -3.1, -2.3, -0.9, -0.9, 1.3, "body", 6);
-  for (let x = 15.5; x < 24.0; x += 2.2) box("handguard", x, x + 1.0, -1.0, 0.7, 1.4, "body");
-  box("handguard", 19.0, 27.0, 2.1, 2.45, 0.4, "trim");
-  box("handguard", 25.7, 26.3, -1.4, 1.4, 1.2, "dark", 0, E.both);
-
-  // ── barrel: a long, low shroud ending in stepped silver bands ──
-  box("barrel", 26.3, 37.0, -1.1, 1.0, 0.95, "dark", 0, E.topHi);
-  box("barrel", 26.8, 34.0, 1.0, 1.25, 0.5, "shell");
-  box("barrel", 35.5, 37.5, -1.5, 1.35, 1.05, "shell");
-  box("barrel", 37.5, 39.5, -1.4, 1.25, 1.0, "shell");
-  box("barrel", 39.5, 41.25, -1.3, 1.15, 0.95, "shell");
-  box("barrel", 38.2, 38.7, -1.45, 1.3, 1.08, "dark");
-  box("barrel", 40.75, 41.3, -0.6, 0.35, 0.55, "dark");
-
-  // ── charging handle: a small knob on the right ──
-  box("charge_handle", 16.5, 19.0, 1.8, 2.5, 0.5, "trim", 1.1);
-  box("charge_handle", 18.25, 19.25, 1.6, 2.7, 0.6, "trim", 1.75);
+  collar(29.0, 40.8, 1.28, "dark");
+  collar(29.0, 29.75, 1.34, "trim");
+  collar(31.0, 31.4, 1.32, "trim");
+  collar(40.55, 41.25, 1.30, "trim");
+  box("barrel", 41.25, 41.32, -.5, .5, .5, "dark");
+  pair(s => {
+    box("barrel", 32.2, 38.2, -.18, .02, .06, "body", s * 1.29);
+    box("barrel", 29.8, 30.8, -.12, .12, .06, "glow", s * 1.30);
+  });
+  box("charge_handle", 16.5, 19.0, 1.8, 2.5, .5, "trim", 1.1);
+  box("charge_handle", 18.25, 19.25, 1.6, 2.7, .6, "dark", 1.75, E.both);
   return m;
 }
 module.exports = { build };

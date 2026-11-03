@@ -1,6 +1,9 @@
 // 패치노트: written by hand from the merged pull requests of main (newest first), in plain words for players.
 // Add a new block at the top for each release; lastmod of the page and the sitemap follow the newest date.
 const RELEASES = [
+  { date: "2026-11-02", title: "챔피언스·칼·마을 디자인 개편",
+    better: ["챔피언스 팬텀에 진홍·금색 공격형과 상아·금색 수비형의 새 디자인을 적용했습니다. 마무리 생물의 금빛 장식과 몸·턱 움직임도 다듬었습니다.", "챔피언스 처치 1~5회, 살펴보기, 마무리 음악을 자체 곡 Aurora로 교체했습니다.", "마크X발로에 도로·횡단보도·보도·상가·카페·주택·정류장과 생활 소품을 더했습니다. 중앙 광장과 양쪽 우회로는 이어집니다.", "카람빗은 구리색 프레임과 곡선 칼날, 나비칼은 청록색 프레임과 은색 칼날로 다시 만들었습니다. 기존 돌리기·살펴보기·공격 모션은 유지합니다.", "본문과 체력·탄약·시간 숫자의 글꼴을 읽기 쉬운 고딕체로 정리했습니다."],
+    fix: ["방 입장과 종료 시 연결·권한 정리, 동시 방 등록과 화면에 표시하는 데이터의 검증을 보강했습니다."] },
   { date: "2026-11-01", title: "맵 정리",
     better: ["이벤트 맵 사막 마을을 뺐습니다. 맵 목록의 \"이벤트\" 칸도 함께 없앴습니다. 나머지 맵 22곳과 이번 주 맵은 그대로입니다."] },
   { date: "2026-10-31", title: "3차 업데이트: 이벤트 맵 사막 마을, AI 경쟁전, 클랜, 이모트",

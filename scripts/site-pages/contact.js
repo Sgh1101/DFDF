@@ -1,5 +1,5 @@
 module.exports = {
-  file: "contact.html", nav: "contact", lastmod: "2026-10-31",
+  file: "contact.html", nav: "contact", lastmod: "2026-11-01",
   title: "문의하기",
   description: "13에 대한 문의, 버그 신고, 제안, 후기, 개인정보 삭제 요청을 보내는 곳입니다. 로그인하지 않아도 보낼 수 있고, 답변은 같은 기기에서 다시 확인할 수 있습니다.",
   h1: "문의하기",
@@ -29,7 +29,7 @@ module.exports = {
 <p class="hint" id="cTextHint"><span id="cCount">0</span> / 2000자 · 5자 이상 적어 주세요. 버그라면 어느 모드와 맵에서, 어떤 기기와 브라우저로 했는지, 어떻게 하면 다시 나타나는지를 함께 적어 주세요.</p>
 <label for="cContact">답장 받을 연락처 (선택)</label>
 <input class="in" id="cContact" maxlength="80" autocomplete="off">
-<p class="hint">적지 않아도 됩니다. 답변은 이 페이지 아래 "내가 보낸 문의"에 올라옵니다. 연락처는 답장에만 쓰고 최대 90일 뒤에 함께 지워집니다.</p>
+<p class="hint">적지 않아도 됩니다. 답변은 이 페이지 아래 "내가 보낸 문의"에 올라옵니다. 연락처는 답장에만 쓰고 문의와 함께 마지막 저장·수정 이후 90일이 지나면 만료됩니다. 운영자가 답변이나 처리 상태를 저장하면 그 시점부터 90일을 다시 계산합니다.</p>
 <div class="row"><button class="btn go" id="cSend" type="submit">보내기</button><span class="hint" id="cWho"></span></div>
 <div class="msg" id="cMsg" role="status" aria-live="polite" hidden></div>
 <noscript><p class="msg err">문의 양식은 자바스크립트가 필요합니다. 켤 수 없다면 게임 첫 화면의 "문의 · 제안" 버튼을 이용해 주세요.</p></noscript>

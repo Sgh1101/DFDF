@@ -68,7 +68,7 @@ function fxTextures() {
 
 // ── kill banner: a diamond crest that gains ornaments with every kill ──
 function frame(level) {
-  const c = new Canvas(128, 128), gold = [232, 190, 102], pale = [244, 238, 226], grey = [150, 150, 160];
+  const c = new Canvas(128, 128), gold = [236, 190, 88], pale = [255, 237, 194], grey = [154, 111, 59];
   const diamond = (r, color, gap = 0) => {
     for (let t = 0; t < 4 * r; t++) {
       const side = Math.floor(t / r), k = t % r;
@@ -77,6 +77,12 @@ function frame(level) {
       c.set(x, y, color); c.set(x, y + 1, color); c.set(x + 1, y, color);
     }
   };
+  // Interlocked scale facets echo the new receiver, around a clear central crest.
+  for(const side of [-1,1])for(let i=0;i<level+1;i++){
+    const x=64+side*(23+i*4),y=49+i*3;
+    c.line(x,y,x+side*4,y+4,gold);c.line(x+side*4,y+4,x,y+8,gold);
+    c.line(x,128-y,x+side*4,124-y,gold);
+  }
   diamond(40, pale, level >= 2 ? 0 : 12);
   if (level >= 2) {
     diamond(34, grey, 9);

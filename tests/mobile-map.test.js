@@ -19,7 +19,9 @@ test('separate mobile pack keeps every collision byte, source reference and tran
  const source=fs.readFileSync(root+'geometry.bin'),mobile=fs.readFileSync(root+'mobile/geometry.bin'),palette=JSON.parse(fs.readFileSync(root+'mobile/palette.json')),manifest=JSON.parse(fs.readFileSync(root+'mobile/manifest.json'));
  const n=source.readUInt32LE(4),m=mobile.readUInt32LE(4);
  assert.equal(sha(source),manifest.sourceGeometrySha256);assert.equal(sha(mobile),manifest.geometrySha256);
- assert.equal(source.readUInt32LE(8),44380);assert.equal(mobile.readUInt32LE(8),44380);
+ const fullManifest=JSON.parse(fs.readFileSync(root+'manifest.json'));
+ assert.equal(source.readUInt32LE(8),fullManifest.colliders);assert.equal(mobile.readUInt32LE(8),fullManifest.colliders);
+ assert.equal(fullManifest.provenance.externalMapInput,false);
  assert.deepEqual(mobile.subarray(16+m*24),source.subarray(16+n*24),'all walls, slopes, steps and navigation supports are byte-identical');
  assert.ok(m<n*.6,'at least 40% fewer terrain quads');
  const cutouts=bin=>{const list=[];for(let i=0;i<bin.readUInt32LE(4);i++){const p=16+i*24;if(!palette.tiles[bin.readUInt16LE(p+21)].opaque)list.push(bin.subarray(p,p+24).toString('hex'));}return list.sort();};

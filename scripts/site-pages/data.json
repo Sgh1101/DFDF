@@ -1414,11 +1414,11 @@
   },
   {
    "key": "ascent_trial",
-   "name": "하늘섬 마을",
+   "name": "마크X발로",
    "size": 5,
    "cat": "full",
-   "width": 288,
-   "depth": 171,
+   "width": 120,
+   "depth": 140,
    "sites": [
     "A",
     "B"

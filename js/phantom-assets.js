@@ -73,7 +73,10 @@
     if (total > MAX) throw Error("원본 리소스가 너무 큽니다.");
     const out = Object.create(null);
     await Promise.all(files.map(async (file) => {
-      const result = await fetcher(base + file.name);
+        // An older installed worker caches assets before checking the network.
+        // Each content hash gets a new key, so an updated manifest cannot be
+        // paired with a previous release's geometry or texture bytes.
+        const result = await fetcher(base + file.name + "?revision=" + file.sha256);
       if (!result.ok) throw Error("원본 리소스를 불러오지 못했습니다: " + file.name);
       const bytes = new Uint8Array(await result.arrayBuffer());
       const sha256 = Array.from(new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", bytes)), (n) => n.toString(16).padStart(2, "0")).join("");

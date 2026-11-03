@@ -39,23 +39,23 @@ test('stairs and slabs preserve half steps, upside-down metadata and empty headr
 });
 test('shipped map binary matches its provenance manifest and bounded record layout',()=>{
  const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
- assert.equal(m.sourceSha256,'b987d994b5aa01e0b614b5e7d92a4b8f41f7cf6ecab1daddd5ba3fc4cf1b9c28');
- // the imported schematic is no longer shipped (the game reads only geometry.bin); its hash stays recorded as provenance
+ assert.equal(m.provenance.generator,'scripts/build-original-maps.js');assert.equal(m.provenance.externalMapInput,false);assert.equal(m.sourceSha256,undefined);
+ // The active map is an independently generated layout; no imported schematic is shipped.
  assert.ok(!fs.existsSync(path.join(__dirname,'../sources/maps/ascent-final2021.schematic')));
- assert.equal(m.nonAir,244407);assert.equal(crypto.createHash('sha256').update(b).digest('hex'),m.geometrySha256);
+ assert.ok(m.nonAir>10000);assert.equal(crypto.createHash('sha256').update(b).digest('hex'),m.geometrySha256);
  assert.equal(b.length,16+m.quads*24+m.colliders*12);
  for(let p=16+m.quads*24;p<b.length;p+=12)for(let a=0;a<3;a++){
   const lo=b.readUInt16LE(p+a*2),hi=b.readUInt16LE(p+(a+3)*2);assert.ok(lo<hi&&hi<=m.dimensions[a]*16);
  }
 });
-test('하늘섬 마을 uses its own flat-colour block textures and separate block-state materials',()=>{
+test('마크X발로 uses its own flat-colour block textures and separate block-state materials',()=>{
  const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),p=JSON.parse(fs.readFileSync(path.join(dir,m.textures))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
- assert.equal(m.name,'하늘섬 마을');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
+ assert.equal(m.name,'마크X발로');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
  assert.equal(p.source,'scripts/paint-block-textures.py');assert.equal(p.originalFiles,undefined);
  assert.ok(!fs.existsSync(path.join(dir,'vanilla'))&&!fs.existsSync(path.join(dir,'vanilla-atlas.png')),'no texture file from another game is shipped');
  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,m.atlas))).digest('hex'),m.atlasSha256);
  assert.notEqual(p.palette['1:0'].tiles[0],p.palette['1:1'].tiles[0],'stone and granite keep distinct tiles');
- const used=new Set();for(let i=0;i<m.quads;i++){const tile=b.readUInt16LE(16+i*24+21);assert.ok(tile<p.tiles.length);used.add(tile);}assert.ok(used.size>60);
+ const used=new Set();for(let i=0;i<m.quads;i++){const tile=b.readUInt16LE(16+i*24+21);assert.ok(tile<p.tiles.length);used.add(tile);}assert.ok(used.size>=12,'the original layout has distinct stone, wood, grass, glass and roof materials');
 });
 
 // a minimal PNG reader (8-bit RGBA, any scanline filter) so the atlases can be inspected without a dependency

@@ -87,7 +87,7 @@ const inspectNotes = require("../assets/champions-phantom/dfdf-1/audio/music-seq
     assert.deepEqual(settings, { muted: false, exclusive: false, count: kills[0], ability: false });
     await p.close();
     let attempts = 0;
-    const retry = await f.page('soundretry', { width: 844, height: 390 }, {}, { beforeLoad: p => p.route('**/audio/music-sequences.json', route => ++attempts <= 2 ? route.fulfill({ status: 503, body: 'test unavailable' }) : route.continue()) });
+    const retry = await f.page('soundretry', { width: 844, height: 390 }, {}, { beforeLoad: p => p.route('**/audio/music-sequences.json*', route => ++attempts <= 2 ? route.fulfill({ status: 503, body: 'test unavailable' }) : route.continue()) });
     await retry.waitForFunction(() => !!CHAMPIONS_AUDIO.error());
     await retry.locator('#go-armory').click();await retry.locator('#ar-tabs [data-tab="champions"]').click();
     await retry.locator('[data-phantom-demo="inspect"]').click();

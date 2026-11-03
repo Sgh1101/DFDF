@@ -72,14 +72,14 @@
   const report = state => root.dispatchEvent(new CustomEvent("champions-audio-state", { detail: state }));
   const enabled = () => typeof SETTINGS !== "object" || SETTINGS.sfx;
   const phantom = (id) => id === "champions_atk" || id === "champions_def";
-  async function json(file) { const r = await fetch(base + file); if (!r.ok) throw new Error(file + ": " + r.status); return r.json(); }
+  async function json(file) { const r = await fetch(base + file + "?v=aurora-2"); if (!r.ok) throw new Error(file + ": " + r.status); return r.json(); }
   function load() {
     if (loading) return loading;
     error = null;
     loading = (async () => {
       // The installed worker caches /assets by exact URL; the version query
       // keeps an older cached instrument list from being reused after an upgrade.
-      const [kills, songs, manifest] = await Promise.all([json("kill-sequences.json"), json("music-sequences.json"), json("samples.json?v=synth-1")]);
+      const [kills, songs, manifest] = await Promise.all([json("kill-sequences.json"), json("music-sequences.json"), json("samples.json")]);
       const context = GAME_AUDIO.context(), rendered = new Map();
       for (const [sound, meta] of Object.entries(manifest.samples || {})) {
         const data = render(meta, context.sampleRate), buffer = context.createBuffer(1, data.length, context.sampleRate);

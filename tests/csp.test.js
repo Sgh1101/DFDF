@@ -8,6 +8,20 @@ const { policy, inlineHashes, build, HEADER, MODE } = require("../scripts/build-
 
 const root = path.join(__dirname, "..");
 
+test("inline hashes match HTML parser newline normalization on every checkout", () => {
+  const crypto = require("node:crypto"), vm = require("node:vm");
+  const script = "window.example = 1;\nwindow.ready = true;\n";
+  const expected = "'sha256-" + crypto.createHash("sha256").update(script).digest("base64") + "'";
+  const generator = fs.readFileSync(require.resolve("../scripts/build-csp"), "utf8");
+  for (const newline of ["\n", "\r\n", "\r"]) {
+    const html = "<script>" + script.replace(/\n/g, newline) + "</script>";
+    const fakeFs = { readdirSync: () => ["sample.html"], readFileSync: () => html };
+    const sandbox = { module: { exports: {} }, __dirname: path.join(root, "scripts"), require: id => id === "node:fs" ? fakeFs : require(id) };
+    vm.runInNewContext(generator, sandbox);
+    assert.deepEqual(Array.from(sandbox.module.exports.inlineHashes().blocks), [expected], JSON.stringify(newline));
+  }
+});
+
 test("vercel.json, _headers and the Worker's header file carry the policy the pages call for", () => {
   const files = build();
   assert.deepEqual(files.map((f) => path.relative(root, f.file)), ["vercel.json", "_headers", path.join("cloudflare", "csp.mjs")]);

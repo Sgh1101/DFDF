@@ -40,19 +40,22 @@ const violations = async (page, seen) => [...new Set([...(await page.evaluate(()
     if (await game.locator("#sel-pick").isVisible()) await game.locator("#sel-pick").click();
     await game.locator("#sel-go").click();
     await game.waitForFunction(() => !!myActor(), null, { timeout: 120000 });
-    await game.waitForTimeout(3000);
+    await game.waitForFunction(() => !!myActor() && renderer.info.render.calls > 0);
     assert.deepEqual(await violations(game, seen), [], "the game: nothing of ours is blocked");
 
     // 2. injected script: blocked under "enforce", reported (and still run) under "report-only"
-    const injected = await game.evaluate(async () => {
+    await game.route('https://evil.example/x.js', route => route.fulfill({contentType:'text/javascript',body:'window.__external = 1'}));
+    await game.evaluate(() => {
       const s = document.createElement("script"); s.textContent = "window.__inline = 1"; document.head.append(s);
-      const d = document.createElement("div"); d.innerHTML = '<img src="data:image/png;base64,AAAA" onerror="window.__attr = 1">'; // not an image: the error event always comes document.body.append(d);
+      const d = document.createElement("div"); d.innerHTML = '<img src="data:image/png;base64,AAAA" onerror="window.__attr = 1">';
+      document.body.append(d); // Invalid image: wait for its error handler below.
       const x = document.createElement("script"); x.src = "https://evil.example/x.js"; document.head.append(x);
-      await new Promise((r) => setTimeout(r, 500));
-      return { inline: window.__inline, attr: window.__attr, log: window.__csp.slice() };
     });
+    await game.waitForFunction(enforce => __csp.some(l=>l.startsWith('script-src-elem inline')) && __csp.some(l=>l.startsWith('script-src-attr inline')) && __csp.some(l=>l.includes('evil.example')) && (enforce || (window.__inline===1&&window.__attr===1&&window.__external===1)), ENFORCE, {timeout:15000});
+    const injected = await game.evaluate(() => ({inline:window.__inline,attr:window.__attr,external:window.__external,log:__csp.slice()}));
     assert.equal(injected.inline, ENFORCE ? undefined : 1, ENFORCE ? "an injected inline script did not run" : "report-only blocks nothing");
     assert.equal(injected.attr, ENFORCE ? undefined : 1, ENFORCE ? "an injected event attribute did not run" : "report-only blocks nothing");
+    assert.equal(injected.external, ENFORCE ? undefined : 1, "the external probe is locally fulfilled, never sent over the network");
     // reported either way: "directive blockedURI sample"
     assert.ok(injected.log.some((l) => l.startsWith("script-src-elem inline")), "the inline script was reported: " + JSON.stringify(injected.log));
     assert.ok(injected.log.some((l) => l.startsWith("script-src-attr inline")), "the event attribute was reported: " + JSON.stringify(injected.log));
@@ -88,7 +91,7 @@ const violations = async (page, seen) => [...new Set([...(await page.evaluate(()
     }), [], "the owner's page");
 
     // 4. the site pages
-    for (const name of ["about", "guide", "controls", "modes", "maps", "agents", "patch-notes", "contact", "privacy"]) assert.deepEqual(await open("/" + name + ".html", async (p) => { await p.waitForLoadState("load"); }), [], name + ".html");
+    for (const name of ["about", "guide", "controls", "modes", "maps", "agents", "patch-notes", "contact", "privacy", "terms", "credits"]) assert.deepEqual(await open("/" + name + ".html", async (p) => { await p.waitForLoadState("load"); }), [], name + ".html");
     assert.deepEqual(f.errors, []);
     console.log("csp (" + POLICY.key + "): the game to a solo match, the home page, the owner's page and the site pages run under the policy with nothing " + (ENFORCE ? "blocked" : "reported") + "; injected inline script, an event attribute and another host's script are " + (ENFORCE ? "blocked" : "reported, not blocked"));
   } finally { await f.browser.close(); }

@@ -18,7 +18,7 @@ const attr = (s) => esc(s).replace(/'/g, "&#39;");
 function page(p) {
   const url = `${ORIGIN}/${p.file}`, full = `${p.title} | 13`;
   const nav = NAV.map(([f, label, key]) => `<a href="./${f}"${p.nav === key ? ' aria-current="page"' : ""}>${label}</a>`).join("");
-  const links = NAV.concat([["privacy.html", "개인정보처리방침", "privacy"]]).map(([f, label]) => `<a href="./${f}">${label}</a>`).join("");
+  const links = NAV.concat([["terms.html", "이용규칙", "terms"], ["credits.html", "제작·출처", "credits"], ["privacy.html", "개인정보처리방침", "privacy"], ["privacy.html#choices", "개인정보 설정", "choices"]]).map(([f, label]) => `<a href="./${f}">${label}</a>`).join("");
   return `<!doctype html>
 <!-- written by scripts/build-site-pages.js: change the page in scripts/site-pages/, not here -->
 <html lang="ko">
@@ -42,7 +42,7 @@ function page(p) {
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <link rel="stylesheet" href="./css/pages.css">
 </head>
 <body>

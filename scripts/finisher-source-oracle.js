@@ -17,6 +17,10 @@ module.exports=async function sourceOracle(page){
     for(const [name,geo]of Object.entries(raw)){
       const rig=figure.getObjectByName('original-'+name);if(!rig)continue;
       if(rig.userData.coordinates!=='geckolib-4.4.4')throw new Error('Legacy coordinate path '+name);
+      // Baking fidelity is checked in bind pose. Runtime breathing is checked
+      // separately; restore the exact live pose after measuring vertices.
+      const poses=[];rig.traverse(o=>{if(o.userData.sourcePivot)poses.push([o,o.position.clone(),o.quaternion.clone()]);});
+      GECKO_FINISHER_RIG.animate(rig,0);
       rig.updateWorldMatrix(true,true);const inverse=new T.Matrix4().copy(rig.matrixWorld).invert(),bones=new Map(geo.bones.map(b=>[b.name,b]));
       let count=0,maxError=0;const headVertices=[];
       for(const bone of geo.bones){
@@ -41,6 +45,7 @@ module.exports=async function sourceOracle(page){
       const eyes=name==='dragon_low'?[[-3.9383,6.9484,1.2611],[-3.6727,6.9484,.2518]]:[[3.5307,14.9521,.8355],[4.8021,14.9521,2.1622]];
       const eyeDistance=eyes.map(p=>Math.min(...headVertices.map(q=>Math.hypot(...q.map((v,i)=>v-p[i])))));
       results.push({name,count,maxError,eyeDistance});
+      for(const [o,position,rotation] of poses){o.position.copy(position);o.quaternion.copy(rotation);}rig.updateWorldMatrix(true,true);
     }
     return results;
   },raw);

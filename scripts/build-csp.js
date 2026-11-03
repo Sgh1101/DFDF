@@ -21,7 +21,8 @@ const sha = (text) => "'sha256-" + crypto.createHash("sha256").update(text, "utf
 function inlineHashes() {
   const blocks = new Set(), handlers = new Set();
   for (const file of fs.readdirSync(root).filter((f) => f.endsWith(".html")).sort()) {
-    const html = fs.readFileSync(path.join(root, file), "utf8");
+    // HTML parsers normalize CRLF and lone CR before computing inline script text.
+    const html = fs.readFileSync(path.join(root, file), "utf8").replace(/\r\n?/g, "\n");
     for (const m of html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/g)) {
       const type = /\btype="([^"]*)"/.exec(m[1]);
       if (type && !/^(text|application)\/(javascript|ecmascript)$|^module$/.test(type[1])) continue; // data blocks, not run
@@ -68,7 +69,7 @@ function build() {
   at < 0 ? config.headers.splice(1, 0, rule) : (config.headers[at] = rule);
   out.push({ file: vercel, text: render(config) });
   // _headers: the line sits in the "/*" rule, after Referrer-Policy
-  const headers = path.join(root, "_headers"), old = fs.readFileSync(headers, "utf8"), line = `  ${HEADER}: ${value}`;
+  const headers = path.join(root, "_headers"), old = fs.readFileSync(headers, "utf8").replace(/\r\n?/g, "\n"), line = `  ${HEADER}: ${value}`;
   out.push({ file: headers, text: /^  Content-Security-Policy(-Report-Only)?: .*$/m.test(old) ? old.replace(/^  Content-Security-Policy(-Report-Only)?: .*$/m, () => line) : old.replace(/^(  Referrer-Policy: .*)$/m, (m) => m + "\n" + line) });
   out.push({ file: path.join(root, "cloudflare", "csp.mjs"), text: `// Written by scripts/build-csp.js: the header the Worker puts on what it answers itself.\nexport const CSP = ${JSON.stringify([HEADER, value])};\n` });
   return out;

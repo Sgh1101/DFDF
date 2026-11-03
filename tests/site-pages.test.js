@@ -4,7 +4,7 @@ const fs = require("node:fs"), path = require("node:path");
 const { harness } = require("./api-harness");
 const { build, PAGES } = require("../scripts/build-site-pages");
 const { NAV } = require("../scripts/site-pages/layout");
-const root = path.resolve(__dirname, ".."), read = (f) => fs.readFileSync(path.join(root, f), "utf8");
+const root = path.resolve(__dirname, ".."), read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const data = JSON.parse(read("scripts/site-pages/data.json"));
 // the text of a page the way a reader gets it: no tags, entities undone, spaces squeezed
 const text = (html) => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
@@ -57,7 +57,7 @@ test("maps.html has every map of the pool with its size, and a picture", () => {
   for (const m of data.maps) {
     assert.ok(page.includes(m.name), "map " + m.name);
     assert.ok(page.includes(`${m.width}×${m.depth}m`), m.name + " footprint");
-    assert.ok(read("maps.html").includes(`src="./assets/site/maps/${m.key}.webp"`), m.name + " picture");
+    assert.ok([...read("maps.html").matchAll(/<img src="([^"]+)"/g)].some(x=>x[1].split('?')[0]===`./assets/site/maps/${m.key}.webp`), m.name + " picture");
     assert.ok(fs.existsSync(path.join(root, "assets/site/maps", m.key + ".webp")), "picture file of " + m.key);
     assert.ok(page.includes({ full: "5대5", small: "소규모 3대3", "1v1": "1대1" }[m.cat]), m.name + " size class");
   }
@@ -96,7 +96,7 @@ test("the patch notes are newest first and the page's date is the newest one", (
 test("privacy.html carries the advertising disclosures and the new effective date", () => {
   const html = read("privacy.html"), t = text(html);
   assert.ok(!t.includes("광고나 별도의 분석 도구는 사용하지 않습니다"), "the no-ads sentence is gone");
-  for (const s of ["제3자 공급업체", "Google", "쿠키", "이전에 방문한 기록", "다른 사이트", "https://adssettings.google.com", "https://www.aboutads.info/choices", "https://www.youronlinechoices.eu", "만 14세 미만", "방침의 변경", "시행일: 2026년 10월 31일"]) assert.ok(t.includes(s) || html.includes(s), s);
+  for (const s of ["제3자 공급업체", "Google", "쿠키", "이전에 방문한 기록", "다른 사이트", "https://adssettings.google.com", "https://www.aboutads.info/choices", "https://www.youronlinechoices.eu", "만 14세 미만", "방침의 변경", "시행일: 2026년 11월 1일"]) assert.ok(t.includes(s) || html.includes(s), s);
   assert.ok(html.includes('id="ads"'));
   assert.ok(html.includes('href="./contact.html"'), "links to the contact page for deletion requests");
 });

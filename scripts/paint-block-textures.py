@@ -1,4 +1,4 @@
-"""Paint the block textures of 하늘섬 마을 (the imported block map, internal id ascent_trial).
+"""Paint the block textures of 마크X발로 (the imported block map, internal id ascent_trial).
 
 Every tile is ONE flat colour: no noise, no pattern, no grain. The colour is picked for what the block is on this
 map's terrain (plaster white, terracotta roof, slate, weathered timber, warm sandstone, moss, water-blue glass...);

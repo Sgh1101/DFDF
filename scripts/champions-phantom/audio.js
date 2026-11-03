@@ -12,9 +12,9 @@ const INSTRUMENTS = {
   bass: { type: "pluck", base: 73.42, duration: 0.7, bright: 0.35, decay: 4.5, sub: 0.6 },
   guitar: { type: "pluck", base: 146.83, duration: 0.9, bright: 0.62, decay: 3.4, sub: 0.15 },
   harp: { type: "pluck", base: 440, duration: 1.1, bright: 0.8, decay: 3.0, sub: 0 },
-  chime: { type: "fm", base: 587.33, duration: 1.2, ratio: 4, index: 2.2, decay: 3.2 },
-  bell: { type: "fm", base: 587.33, duration: 1.6, ratio: 3.51, index: 3, decay: 2.4 },
-  flute: { type: "breath", base: 587.33, duration: 0.55, attack: 0.03, vibrato: 0.006, noise: 0.08 },
+  chime: { type: "fm", base: 587.33, duration: 1.05, ratio: 2, index: 1.4, decay: 4.2 },
+  bell: { type: "fm", base: 587.33, duration: 1.4, ratio: 3.0, index: 1.8, decay: 3.0 },
+  flute: { type: "breath", base: 587.33, duration: 0.42, attack: 0.018, vibrato: 0.003, noise: 0.035 },
 };
 // MIDI note of each instrument's base; every note must sit within an octave of it.
 const BASE = { bass: 38, guitar: 50, harp: 69, chime: 74, bell: 74, flute: 74 };
@@ -33,88 +33,69 @@ function ev(at, sound, name, volume) {
 const up = (name, k) => name.replace(/\d$/, (d) => String(+d + k));
 const sorted = (out) => out.sort((a, b) => a.at - b.at || a.sound.localeCompare(b.sound) || a.pitch - b.pitch);
 
-// ── kill cues: three quick steps, the harmony climbing with every kill ──
-const STEP = 0.1875;
-function killCue(chord, top, extra) {
-  const out = [ev(0, "kick", null, 0.6), ev(0, "guitar", up(chord[0], -1), 0.42)];
-  chord.forEach((n, i) => out.push(ev(i * STEP, "harp", n, 0.36 - i * 0.04)));
-  top.forEach((n, i) => out.push(ev(i * STEP, "flute", n, 0.3 + i * 0.05)));
-  out.push(ev(2 * STEP, "chime", top[2], 0.32), ...extra);
-  return sorted(out);
+// Aurora: an original E-minor motif. Short kills answer the same three-note
+// question higher each time; the fifth resolves with a major third.
+const STEP=.1875;
+function cue(root,notes){
+ const out=[ev(0,'kick',null,.3),ev(0,'guitar',root,.2)];
+ notes.forEach((n,i)=>out.push(ev(i*STEP,'flute',n,.23+i*.025)));
+ out.push(ev(2*STEP,'chime',notes[2],.23));return sorted(out);
 }
-const kill = {
-  kill_1: killCue(["D4", "F4", "A4"], ["A4", "D5", "F5"], []),
-  kill_2: killCue(["F4", "A4", "C5"], ["C5", "F5", "A5"], []),
-  kill_3: killCue(["G4", "Bb4", "D5"], ["D5", "G5", "Bb5"], [ev(STEP, "bell", "D5", 0.22), ev(2 * STEP, "bell", "G5", 0.26)]),
-  kill_4: killCue(["A4", "Db5", "E5"], ["E5", "A5", "Db6"], [ev(STEP, "bell", "E5", 0.24), ev(2 * STEP, "bell", "A5", 0.3)]),
-  kill_5: fanfare(),
+function fanfare(){
+ const out=[],roots=['E2','C2','G2','B1','E2'];
+ const chords=[['E4','G4','B4'],['C4','E4','G4'],['G4','B4','D5'],['B3','Eb4','Gb4'],['E4','Ab4','B4']];
+ const tune=['B4','E5','G5','E5','D5','G5','B5','A5','G5','Gb5','B5','Eb5','E5','Ab5','B5'];
+ for(let bar=0;bar<5;bar++){
+  const t=bar*3*STEP;out.push(ev(t,'bass',roots[bar],.32),ev(t,'kick',null,.32));
+  chords[bar].forEach((n,i)=>{out.push(ev(t+i*STEP,'harp',n,.17));out.push(ev(t,'bell',up(n,1),bar===4?.16:.09));});
+ }
+ tune.forEach((n,i)=>out.push(ev(i*STEP,'flute',n,.22),ev(i*STEP,'chime',n,.08)));
+ out.push(ev(14*STEP,'bell','E5',.35),ev(14*STEP,'chime','B5',.2));return sorted(out);
+}
+const kill={
+ kill_1:cue('E3',['B4','E5','G5']),kill_2:cue('G3',['D5','G5','B5']),
+ kill_3:cue('A3',['E5','A5','C6']),kill_4:cue('B3',['Gb5','B5','D6']),kill_5:fanfare()
 };
-// Fifth kill: a five-chord fanfare over 2.6 s that resolves to D major.
-function fanfare() {
-  const out = [ev(0, "kick", null, 0.8)];
-  const bars = [["D2", "D4", "F4", "A4"], ["Bb1", "Bb3", "D4", "F4"], ["C2", "C4", "E4", "G4"], ["A1", "A3", "Db4", "E4"], ["D2", "D4", "Gb4", "A4"]];
-  const melody = ["A4", "D5", "F5", "E5", "D5", "C5", "D5", "E5", "F5", "G5", "A5", "G5", "E5", "Db5", "D5"];
-  bars.forEach(([bass, ...chord], b) => {
-    const t = b * 3 * STEP, last = b === bars.length - 1;
-    out.push(ev(t, "bass", bass, 0.5));
-    if (!last) chord.forEach((n, i) => out.push(ev(t + i * STEP, "harp", n, 0.3)));
-    chord.forEach((n, i) => out.push(ev(t + (last ? 0 : i * STEP), "bell", up(n, 1), last ? 0.34 : 0.16 + i * 0.03)));
-  });
-  melody.forEach((n, i) => out.push(ev(i * STEP, "flute", n, 0.24 + (i % 3 === 0 ? 0.08 : 0))));
-  ["F5", "D5", "E5", "Db5", "Gb5"].forEach((n, i) => out.push(ev(i * 3 * STEP, "chime", n, 0.3)));
-  out.push(ev(14 * STEP, "kick", null, 0.7), ev(14 * STEP, "bell", "D6", 0.4), ev(14 * STEP, "chime", "A5", 0.36));
-  return sorted(out);
+const PROG=[['E2','E3','G3','B3'],['C2','C3','E3','G3'],['A1','A2','C3','E3'],['B1','B2','Eb3','Gb3']];
+const HOOK=['B4','E5',null,'G5','Gb5','E5','D5',null];
+function inspect(){
+ const beat=.6,out=[ev(0,'harp','E5',.09)];
+ PROG.forEach(([root,...chord],bar)=>{
+  const t=.6+bar*4*beat;
+  for(let b=0;b<4;b++){
+   if(b%2===0)out.push(ev(t+b*beat,'kick',null,.07),ev(t+b*beat,'bass',root,.12));
+   if(b%2)out.push(ev(t+b*beat,'hat',null,.035));
+   out.push(ev(t+b*beat+beat/2,'guitar',chord[(b+bar)%3],.075));
+  }
+  HOOK.forEach((n,k)=>{if(n)out.push(ev(t+k*beat/2,'flute',n,.055+(k===0?.02:0)));});
+  out.push(ev(t+3*beat,'chime',bar===3?'Eb5':'E5',.045));
+ });
+ return {loopStart:.6,loopEnd:10.2,events:sorted(out)};
 }
-
-// ── inspect: a laid-back four-bar groove at 100 BPM, loop 0.6..10.2 s ──
-function inspect() {
-  const beat = 0.6, out = [ev(0, "kick", null, 0.12), ev(0, "harp", "D5", 0.08)];
-  const prog = [["D2", "D3", "F3", "A3"], ["Bb1", "Bb2", "D3", "F3"], ["F2", "C3", "F3", "A3"], ["A1", "A2", "Db3", "E3"]];
-  const tune = ["A4", null, "C5", "D5", null, "F5", "E5", "D5", "F4", null, "A4", "Bb4", null, "D5", "C5", "A4", "C5", null, "D5", "F5", "E5", "D5", "C5", "A4", "Db5", null, "E5", null, "D5", "Db5", "A4", null];
-  prog.forEach(([root, ...chord], bar) => {
-    for (let b = 0; b < 4; b++) {
-      const t = beat + (bar * 4 + b) * beat;
-      out.push(ev(t, "kick", null, b % 2 ? 0.07 : 0.13));
-      out.push(ev(t, "bass", root, 0.14), ev(t + beat / 2, "bass", b === 3 ? up(chord[0], -1) : root, 0.09));
-      if (b % 2 === 1) chord.forEach((n, i) => out.push(ev(t + i * 0.02, "guitar", n, 0.07)));
-      if (b === 0) out.push(ev(t + beat / 2, "harp", up(chord[2], 1), 0.06));
-    }
-    for (let k = 0; k < 8; k++) {
-      const n = tune[bar * 8 + k];
-      if (n) out.push(ev(beat + bar * 4 * beat + k * beat / 2, "flute", n, 0.05 + (k % 4 === 0 ? 0.03 : 0)));
-    }
-  });
-  return { loopStart: 0.6, loopEnd: 10.2, events: sorted(out) };
-}
-// ── finisher theme: eight driving bars at 100 BPM (0..19.2 s) ──
-function finisher() {
-  const beat = 0.6, e = beat / 2, s = beat / 4, out = [];
-  const prog = [["D2", "D3", "F3", "A3"], ["D2", "D3", "F3", "A3"], ["Bb1", "Bb2", "D3", "F3"], ["C2", "C3", "E3", "G3"], ["D2", "D3", "F3", "A3"], ["G1", "G2", "Bb2", "D3"], ["A1", "A2", "Db3", "E3"], ["A1", "A2", "Db3", "E3"]];
-  const hook = ["D5", "F5", "A5", "G5", "F5", "E5", "D5", "E5"];
-  prog.forEach(([root, ...chord], bar) => {
-    const t0 = bar * 4 * beat;
-    for (let b = 0; b < 4; b++) {
-      const t = t0 + b * beat;
-      if (b % 2 === 0 || (bar % 2 && b === 3)) out.push(ev(t, "kick", null, 0.42));
-      if (b % 2 === 1) out.push(ev(t, "snare", null, 0.3));
-      out.push(ev(t + e, "hat", null, 0.2));
-      if (b === 3) out.push(ev(t + e + s, "hat", null, 0.16));
-      out.push(ev(t, "bass", root, 0.4), ev(t + e, "bass", b === 3 ? up(chord[0], -1) : root, 0.3));
-      for (let k = 0; k < 4; k++) out.push(ev(t + k * s, "guitar", chord[(b + k) % 3], 0.2 + (k === 0 ? 0.06 : 0)));
-    }
-    out.push(ev(t0, "chime", up(chord[2], 2), 0.3), ev(t0 + 2 * beat + e, "chime", up(chord[1], 2), 0.22));
-    if (bar % 2 === 0) out.push(ev(t0, "harp", up(chord[0], 1), 0.28), ev(t0 + beat, "harp", up(chord[1], 1), 0.24));
-    if (bar === 0) ["D4", "F4", "A4", "D5", "F5", "A5", "D5", "F5"].forEach((n, i) => out.push(ev(t0 + 0.9 + i * 0.15, "harp", n, 0.14 + i * 0.02))); // rising run into the first flash
-    if (bar >= 1) hook.forEach((n, i) => i % 2 === bar % 2 && out.push(ev(t0 + i * e, "flute", n, 0.26)));
-  });
-  return { loopStart: 0, loopEnd: 19.2, events: sorted(out) };
+function finisher(){
+ const beat=.6,out=[];
+ for(let bar=0;bar<8;bar++){
+  const [root,...chord]=PROG[bar%4],t=bar*4*beat;
+  for(let b=0;b<4;b++){
+   if(b===0||b===2)out.push(ev(t+b*beat,'kick',null,.29));
+   if(b%2)out.push(ev(t+b*beat,'snare',null,.18));
+   out.push(ev(t+b*beat,'bass',root,.24),ev(t+(b+.5)*beat,'bass',root,.12),ev(t+(b+.5)*beat,'hat',null,.08));
+   for(let k=0;k<4;k++)out.push(ev(t+(b+k/4)*beat,'guitar',chord[(b+k)%3],k===0?.12:.065));
+  }
+  const melody=bar%4===3?['B4','Eb5',null,'Gb5','A5','Gb5','Eb5',null]:HOOK;
+  melody.forEach((n,k)=>{if(n)out.push(ev(t+k*beat/2,'flute',n,.16));});
+  chord.forEach((n,i)=>out.push(ev(t+i*.035,'harp',up(n,1),.1)));
+  out.push(ev(t,'chime',bar%4===3?'Gb5':'E5',.19));
+  if(bar>=4)out.push(ev(t+2*beat,'bell',bar%4===3?'B5':'G5',.12));
+ }
+ return {loopStart:0,loopEnd:19.2,events:sorted(out)};
 }
 function build() {
   const generator = "scripts/champions-phantom/audio.js";
   return {
     samples: { generator, synthesized: true, samples: INSTRUMENTS },
     kill: { generator, profiles: Object.fromEntries(Object.entries(kill).map(([k, events]) => [k, { category: "PLAYERS", events }])) },
-    music: { generator, profiles: { inspect: { category: "RECORDS", ...inspect() }, finisher_music: { category: "RECORDS", ...finisher() } } },
+    music: { generator, composition: "DFDF Aurora / 2026-11-02", profiles: { inspect: { category: "RECORDS", ...inspect() }, finisher_music: { category: "RECORDS", ...finisher() } } },
   };
 }
 module.exports = { build, INSTRUMENTS };

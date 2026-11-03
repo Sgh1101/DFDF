@@ -1,0 +1,6 @@
+# Asset manifests verify exact bytes; Git must not rewrite JSON/text bytes on Windows.
+assets/** -text
+# Generated CSP outputs are compared byte-for-byte across Windows and Linux.
+vercel.json text eol=lf
+_headers text eol=lf
+cloudflare/csp.mjs text eol=lf

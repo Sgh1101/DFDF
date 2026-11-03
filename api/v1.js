@@ -2158,7 +2158,8 @@ A.room_up = async (q, b, req) => {
   if (!u) throw fail(401, "다시 로그인해 주세요");
   const code = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
   if (6 !== code.length) throw fail(400, "방 코드가 이상합니다");
-  const prev = await getJ("room:" + code);
+  const previousRoom = await redis(["GET", "room:" + code]);
+  const prev = previousRoom ? JSON.parse(previousRoom) : null;
   if (prev && !(await roomMine(prev, u))) throw fail(409, "다른 사람의 방입니다");
   // opening a new code writes a log line and a list entry; a room that is already open just beats its heart
   if (!prev && (await limited("roomnew:" + rlKey(u), ROOM_NEW_MAX, 600))) throw fail(429, "방을 너무 자주 열고 있습니다. 잠시 후 다시 시도해 주세요");
@@ -2196,10 +2197,11 @@ A.room_up = async (q, b, req) => {
   const checkAll = now() - room.banAt > 60000;
   checkAll && (room.banAt = now());
   const toCheck = checkAll ? players : fresh;
-  await pipe([
+  const savedRoom = await casMulti([["room:" + code, previousRoom]], [
     ["SET", "room:" + code, JSON.stringify(room), "EX", String(ROOM_TTL * 4)],
     ["ZADD", "rooms", String(now()), code],
   ]);
+  if (!savedRoom) throw fail(409, "방 등록 요청이 겹쳤습니다. 다시 시도해 주세요");
   prev || (await log("room", `방 열림 ${code} "${room.name}" (${u.id})`, { user: u.id, room: code }));
   // owner commands waiting for this room, and anyone banned who is in it
   const [cmds] = await pipe([

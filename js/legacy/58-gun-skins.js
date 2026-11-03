@@ -60,8 +60,8 @@
     { id: "flip", ko: "접이식 나이프", en: "Flip knife", rar: 2, only: "knife", model: "flip", body: [0xffffff, 0.32, 0.55], pat: "carbon", pal: ["#1a1d22", "#30353d", "#0b0c0e"], metal: [0xc9d1d9, 0.3, 0.7], dark: [0x101216, 0.6, 0.3], glow: 0x00e5ff },
     { id: "tanto", ko: "탄토", en: "Tanto", rar: 3, only: "knife", model: "tanto", body: [0x14161b, 0.72, 0.1], metal: [0xeef2f6, 0.3, 0.6], dark: [0x2a2e38, 0.6, 0.3], glow: 0xffffff },
     { id: "kukri", ko: "쿠크리", en: "Kukri", rar: 3, only: "knife", model: "kukri", keep: ["wood", "woodDark", "brass"], body: [0x5a3a22, 0.7, 0.05], metal: [0xd3dae2, 0.35, 0.7], dark: [0x2a1f1a, 0.7, 0.2], glow: 0xffb300 },
-    { id: "karambit", ko: "카람빗", en: "Karambit", rar: 4, only: "knife", model: "karambit", keep: ["chrome"], body: [0x15171c, 0.55, 0.3], metal: [0xa9b2bf, 0.4, 0.7], dark: [0x0b0c0f, 0.7, 0.2], glow: 0xff3d5a },
-    { id: "butterfly", ko: "발리송", en: "Butterfly knife", rar: 4, only: "knife", model: "butterfly", keep: ["chrome"], body: [0x7e7553, 0.78, 0.12], metal: [0x2c3038, 0.32, 0.8], dark: [0x14171c, 0.6, 0.3], glow: 0x40c4ff },
+    { id: "karambit", ko: "카람빗", en: "Karambit", rar: 4, only: "knife", model: "karambit", keep: ["chrome"], body: [0xb66c42, 0.38, 0.65], metal: [0xcbd6de, 0.27, 0.8], dark: [0x15232c, 0.65, 0.2], glow: 0xffbc73 },
+    { id: "butterfly", ko: "발리송", en: "Butterfly knife", rar: 4, only: "knife", model: "butterfly", keep: ["chrome"], body: [0x147e7b, 0.4, 0.55], metal: [0xd9e6ed, 0.25, 0.85], dark: [0x142c34, 0.6, 0.3], glow: 0x65dfcf },
     // the second set (after the knives: the numbers sent to a room stay the same)
     { id: "urban", ko: "도심 위장", en: "Urban camo", rar: 1, body: [0xffffff, 0.82, 0], pat: "digi", pal: ["#8d949c", "#5d646d", "#b9bec4", "#3a3f46"], metal: [0x6d737b, 0.4, 0.7], dark: [0x262a30, 0.75, 0.2], glow: 0xcfd8dc },
     { id: "navy", ko: "해군 위장", en: "Navy camo", rar: 1, body: [0xffffff, 0.84, 0], pat: "camo", pal: ["#2c3e5c", "#1b2840", "#4a6488", "#7d93b2"], metal: [0x3a4a62, 0.4, 0.7], dark: [0x121a28, 0.75, 0.2], glow: 0x82b1ff },
