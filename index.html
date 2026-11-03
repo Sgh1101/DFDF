@@ -476,7 +476,7 @@ const rankOf = (lv) => T[L].ranks[lv >= 50 ? 5 : lv >= 30 ? 4 : lv >= 20 ? 3 : l
 function drawMe() {
   if (!S) return;
   const u = S.user, lv = u.level || 1, k = Math.max(0, Math.min(1, (u.into || 0) / Math.max(1, u.need || 1)));
-  $("#meName").innerHTML = esc(u.guest && L === "en" ? u.id.replace(/^게스트/, "Guest") : u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold)">운영자 페이지 ›</a>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
+  $("#meName").innerHTML = esc(u.guest && L === "en" ? u.id.replace(/^게스트/, "Guest") : u.id) + (u.guest ? ` <span class="tag">${t("guestTag")}</span>` : "") + (u.owner ? ' <span class="tag" style="color:var(--gold)">OWNER</span> <a class="tag" href="/admin" style="color:var(--gold)">운영자 페이지 ›</a>' : u.operator ? ' <span class="tag" style="color:var(--gold)">운영자</span>' : u.admin ? ' <span class="tag" style="color:var(--gold)">ADMIN</span>' : "");
   $("#guestSignIn").textContent = L === "en" ? "Sign in / Sign up" : "로그인 / 가입";
   $("#meLv").textContent = lv;
   $("#meRank").textContent = (L === "ko" ? "레벨 칭호 · " : "Level title · ") + rankOf(lv);

@@ -92,6 +92,7 @@
     "measure:net-lag": "node scripts/net-lag-harness.js",
     "test:reload": "node scripts/browser-reload.js",
     "test:knife": "node scripts/browser-knife-tricks.js",
+    "test:operator-role": "node scripts/browser-operator-role.js",
     "test:aim": "node scripts/browser-aim.js",
     "test:admin": "node scripts/browser-admin-dash.js",
     "test:admin-defaults": "node scripts/browser-admin-defaults.js",

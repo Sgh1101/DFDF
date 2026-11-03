@@ -383,7 +383,9 @@
       localStorage.setItem("lgp_session", JSON.stringify(S));
       localStorage.setItem("lgp_name", j.user.id);
       window.ADMIN_GRANTED = !!j.user.admin;
-      window.IS_OWNER = !!j.user.owner;
+      // an operator (made one on the owner page) gets the owner's in-game panel; the host still asks the server before it
+      // takes orders from it (owner_ticket / owner_check), so this flag alone opens nothing in someone else's room
+      window.IS_OWNER = !!(j.user.owner || j.user.operator);
       S.atoken = j.atoken || "";
       localStorage.setItem("lgp_session", JSON.stringify(S));
     } catch (e) {
