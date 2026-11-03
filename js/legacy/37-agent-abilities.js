@@ -196,17 +196,10 @@
     scene.remove(m);
     addFx(m, life || 0.25, (o, t) => (o.material.opacity = 0.9 * (1 - t)));
   };
-  const eye = (c) => ({ x: c.pos.x, y: (c.y || 0) + 1.45, z: c.pos.z });
+  const eye = (c) => ({ x: c.pos.x, y: actorEye(c), z: c.pos.z });
   // a hit-scan line: the first enemy in it, or where it stops
   function scan(c, len, w, yawOff) {
-    const yaw = (c.yaw || 0) + (yawOff || 0),
-      dx = -Math.sin(yaw),
-      dz = -Math.cos(yaw),
-      e = eye(c),
-      L = clearLen(e.x, e.z, dx, dz, len, c.y);
-    const hit = onLine(foesOf(c), e.x, e.z, dx, dz, L, w).find((a) => losOK(c, a));
-    const end = hit ? { x: hit.pos.x, z: hit.pos.z, y: (hit.y || 0) + 1.1 } : { x: e.x + dx * L, z: e.z + dz * L, y: e.y - 0.2 };
-    return { hit, end, e, dx, dz, L };
+    return abilityAim(c, len, w, yawOff);
   }
   function ghostOf(c, op) {
     const f = buildFighter(teamHex(c), c.agent);
@@ -394,7 +387,7 @@
   H.x_silk_pull = () => {
     const c = player,
       s = scan(c, 30, 1.0);
-    tracer(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, 0xf5f5f5, 0.03, 0.4);
+    tracer(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, 0xf5f5f5, 0.03, 0.4);
     if (!s.hit) return;
     const e = s.hit;
     shove(e, c.pos.x - e.pos.x, c.pos.z - e.pos.z, Math.min(7, Math.max(0, dist2D(e, c.pos.x, c.pos.z) - 1.5)), 0.3);
@@ -542,30 +535,30 @@
   }
   H.x_boomerang = (d, f) => {
     const c = player,
-      e0 = eye(c),
-      L = clearLen(e0.x, e0.z, f.x, f.z, 25, c.y);
+      e0 = abilityOrigin(c),
+      aim = ultwAim(c, 0, 0),
+      end = aim.o.clone().addScaledVector(aim.dir, abilityRayLimit(aim.o, aim.dir, 25));
     const b = bladeMesh(0xff8fc0);
-    const pos = { x: e0.x, z: e0.z },
+    const pos = e0.clone(),
       hitOut = new Set(),
       hitBack = new Set();
+    b.position.copy(pos);
     let back = !1;
     live(3.2, (t, dt) => {
-      if (!back) {
-        pos.x += f.x * 32 * dt;
-        pos.z += f.z * 32 * dt;
-        if (Math.hypot(pos.x - e0.x, pos.z - e0.z) >= L) back = !0;
-      } else {
-        const dx = c.pos.x - pos.x,
-          dz = c.pos.z - pos.z,
-          D = Math.hypot(dx, dz);
-        if (D < 1.2) return !1;
-        pos.x += (dx / D) * 36 * dt;
-        pos.z += (dz / D) * 36 * dt;
-      }
-      b.position.set(pos.x, e0.y - 0.3, pos.z);
+      const target = back ? abilityOrigin(c) : end;
+      const delta = target.clone().sub(pos), distance = delta.length(), step = (back ? 36 : 32) * dt;
+      if (back && distance < 1.2) return !1;
+      if (distance <= step) { pos.copy(target); back = true; }
+      else pos.addScaledVector(delta, step / distance);
+      b.position.copy(pos);
       b.rotation.y += 22 * dt;
       const set = back ? hitBack : hitOut;
-      for (const e of within(foesOf(c), pos.x, pos.z, 1.4)) if (!set.has(e)) (set.add(e), hurt(e, 35, c), burst(e.pos.x, e.pos.z, 0.8, 0xff8fc0, 1.2));
+      for (const e of within(foesOf(c), pos.x, pos.z, 1.4)) {
+        const bodyY = e.y + (e.crouch ? 0.74 : 0.95) * BODY_K;
+        if (!set.has(e) && Math.abs(bodyY - pos.y) < (e.crouch ? 0.64 : 0.75) * BODY_K + 0.5) {
+          set.add(e); hurt(e, 35, c); burst(e.pos.x, e.pos.z, 0.8, 0xff8fc0, 1.2);
+        }
+      }
     }, () => drop(b));
   };
   H.x_shadow_cut = (d, f) => {
@@ -594,7 +587,7 @@
   H.x_mark_knife = () => {
     const c = player,
       s = scan(c, 40, 0.7);
-    tracer(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, 0xff5252, 0.04, 0.3);
+    tracer(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, 0xff5252, 0.04, 0.3);
     if (!s.hit) return;
     st(s.hit, "vuln", 5);
     st(s.hit, "revealed", 5);
@@ -740,7 +733,7 @@
   H.x_leech = () => {
     const c = player,
       s = scan(c, 35, 0.8);
-    tracer(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, 0x8bc34a, 0.05, 0.3);
+    tracer(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, 0x8bc34a, 0.05, 0.3);
     if (!s.hit) return;
     const e = s.hit,
       link = beamMesh(0xb71c1c, 0.03, 0.6),
@@ -1214,7 +1207,7 @@
     const c = player;
     for (const off of [-0.1, 0, 0.1]) {
       const s = scan(c, 40, 0.8, off);
-      tracer(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, 0xd7ccc8, 0.035, 0.3);
+      tracer(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, 0xd7ccc8, 0.035, 0.3);
       if (s.hit) (hurt(s.hit, 18, c), st(s.hit, "revealed", 4), burst(s.hit.pos.x, s.hit.pos.z, 0.6, 0xefebe9, 1.3));
     }
   };
@@ -1267,7 +1260,7 @@
     const c = player,
       s = scan(c, 25, 1.0),
       jet = beamMesh(0x4fc3f7, 0.22, 0.6);
-    placeBeam(jet, s.e.x, s.e.y - 0.25, s.e.z, s.end.x, s.end.y, s.end.z);
+    placeBeam(jet, s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z);
     live(0.35, (t) => (jet.material.opacity = 0.6 * (1 - t / 0.35)), () => drop(jet));
     burst(s.end.x, s.end.z, 1.4, 0x81d4fa, s.end.y, true);
     if (!s.hit) return;
@@ -1364,14 +1357,14 @@
   };
   // a thrown blob that lands exactly where it was aimed
   function lob(c, p, dur, h, col, size, land) {
-    const sx = c.pos.x,
-      sz = c.pos.z,
-      sy = (c.y || 0) + 1.4,
+    const start = abilityOrigin(c),
+      endY = abilityGroundY(p.x, p.z, p.y) + 0.2,
       m = new T.Mesh(new T.SphereGeometry(size, 10, 8), mat(col, 0.95));
+    m.position.copy(start);
     scene.add(m);
     live(dur, (t) => {
       const k = t / dur;
-      m.position.set(sx + (p.x - sx) * k, sy + (abilityGroundY(p.x, p.z, p.y) + 0.2 - sy) * k + Math.sin(k * Math.PI) * h, sz + (p.z - sz) * k);
+      m.position.set(start.x + (p.x - start.x) * k, start.y + (endY - start.y) * k + Math.sin(k * Math.PI) * h, start.z + (p.z - start.z) * k);
     }, () => drop(m), land);
   }
   H.x_ink_splash = () => {
@@ -1630,7 +1623,7 @@
   H.x_tracker_dart = () => {
     const c = player,
       s = scan(c, 45, 0.6);
-    tracer(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, 0xffab40, 0.03, 0.3);
+    tracer(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, 0xffab40, 0.03, 0.3);
     if (s.hit) return void (st(s.hit, "revealed", 10), headMark(s.hit, 0xffab40, 10, 0.4), tellTeam(c, "추적 다트 명중", "#ffab40"));
     const x = s.end.x - s.dx * 0.3,
       z = s.end.z - s.dz * 0.3,
@@ -1711,11 +1704,10 @@
   // 회로 — tech
   H.x_hack = (d, f) => {
     const c = player,
-      cands = inCone(foesOf(c), c.pos.x, c.pos.z, f.x, f.z, 40, 0.14).filter((a) => losOK(c, a)),
-      tg = nearest(cands, c.pos.x, c.pos.z, 41);
-    const e = eye(c);
-    if (!tg) return void fxBolt(e.x, e.y, e.z, e.x + f.x * 20, e.y, e.z + f.z * 20, 0x69f0ae, 0.25);
-    for (let i = 0; i < 3; i++) fxBolt(e.x, e.y, e.z, tg.pos.x, (tg.y || 0) + 1.3, tg.pos.z, 0x69f0ae, 0.35);
+      s = abilityAim(c, 40, 0.6, 0, 0.14),
+      tg = s.hit, e = s.from;
+    if (!tg) return void fxBolt(e.x, e.y, e.z, s.end.x, s.end.y, s.end.z, 0x69f0ae, 0.25);
+    for (let i = 0; i < 3; i++) fxBolt(e.x, e.y, e.z, s.end.x, s.end.y, s.end.z, 0x69f0ae, 0.35);
     st(tg, "silenced", 5);
     st(tg, "revealed", 5);
     headMark(tg, 0x69f0ae, 5, 0.5);
@@ -1825,12 +1817,14 @@
       hurtList = within(mates(c), c.pos.x, c.pos.z, 30).filter((a) => a.hp < 100).sort((a, b) => a.hp - b.hp),
       tg = hurtList[0] || c,
       flask = new T.Mesh(new T.SphereGeometry(0.18, 10, 8), mat(0x76ff03, 0.95, !0)),
-      sx = c.pos.x,
-      sz = c.pos.z;
+      start = abilityOrigin(c),
+      target = new T.Vector3(tg.pos.x, actorEye(tg) - 0.3, tg.pos.z);
+    flask.position.copy(start);
     scene.add(flask);
     live(0.5, (t) => {
       const k = t / 0.5;
-      groundPosition(flask, sx + (tg.pos.x - sx) * k, 1.4 + Math.sin(k * Math.PI) * 2.5, sz + (tg.pos.z - sz) * k);
+      flask.position.copy(start).lerp(target, k);
+      flask.position.y += Math.sin(k * Math.PI) * 2.5;
     }, () => drop(flask), () => {
       if (!tg.alive) return;
       heal(tg, 40);
@@ -1900,15 +1894,17 @@
   H.x_mortar = () => {
     const c = player,
       p = aimAt(60),
-      sx = c.pos.x,
-      sz = c.pos.z,
+      start = abilityOrigin(c),
+      target = new T.Vector3(p.x, abilityGroundY(p.x, p.z, p.y) + 0.2, p.z),
       shell = new T.Mesh(new T.SphereGeometry(0.22, 10, 8), mat(0x546e7a, 0.95)),
       warn = ring(p.x, p.z, 6, 0xff7043, 0.7, undefined, p.y);
     shell.add(glowDot(0xffab40, 0.6));
+    shell.position.copy(start);
     scene.add(shell);
     live(1.6, (t) => {
       const k = t / 1.6;
-      groundPosition(shell, sx + (p.x - sx) * k, 1.5 + Math.sin(k * Math.PI) * 20, sz + (p.z - sz) * k);
+      shell.position.copy(start).lerp(target, k);
+      shell.position.y += Math.sin(k * Math.PI) * 20;
       warn.material.opacity = 0.4 + 0.35 * Math.sin(t * 16);
     }, () => (drop(shell), drop(warn)), () => {
       burst(p.x, p.z, 6, 0xffab40, 0.8);
@@ -1986,7 +1982,7 @@
       s = scan(c, 60, 0.5),
       x = s.hit ? s.hit.pos.x : s.end.x,
       z = s.hit ? s.hit.pos.z : s.end.z;
-    tracer(s.e.x, s.e.y - 0.2, s.e.z, x, 1, z, 0xcfd8dc, 0.03, 0.35);
+    tracer(s.from.x, s.from.y, s.from.z, x, s.end.y, z, 0xcfd8dc, 0.03, 0.35);
     withCaster(c, () => makeSmokeAt(x, z, 4.5 / SMK(), 18, 0x90a4ae));
     for (const e of within(foesOf(c), x, z, 8)) st(e, "revealed", 3);
   };
