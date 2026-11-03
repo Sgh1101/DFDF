@@ -12,7 +12,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await p.waitForFunction(()=>GUN_SKINS.owns('scout','champions_atk')&&GUN_SKINS.owns('scout','champions_def'),null,{timeout:60000});
  await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===18,null,{timeout:120000});
  const previews={};
- for(const [key,name,mode] of [['scout','팬텀','자동'],['burst','점사소총','점사'],['bullpup','코멧 소총','자동']]){
+ for(const [key,name,mode] of [['scout','Vesper','자동'],['burst','Trinity','점사'],['bullpup','Vertex','자동']]){
   await p.locator('#shop-grid [data-key="'+key+'"]').hover();await p.waitForFunction(name=>document.getElementById('buy-name').textContent===name,name,{timeout:60000});
   assert.match(await p.locator('#buy-stats').innerText(),new RegExp(mode));
   previews[key]=await p.evaluate(key=>document.querySelector('#shop-grid [data-key="'+key+'"] img').src,key);
