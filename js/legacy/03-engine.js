@@ -15321,7 +15321,7 @@ function dropSpike(e, t) {
   ((o.mesh.userData.light.intensity = 0.8),
     o.mesh.userData.core && o.mesh.userData.core.scale.setScalar(1),
     SFX.drop(),
-    banner("스파이크 낙하", "#ff9a3c"));
+    banner("폭탄 낙하", "#ff9a3c"));
 }
 function pickupSpike(e) {
   const t = world.spike;
@@ -15343,7 +15343,7 @@ function pickupSpike(e) {
       ? ((player.hasSpike = !0),
         (t.carrier = "player"),
         SFX.pick(),
-        banner("스파이크 회수", "#ff3b4e"))
+        banner("폭탄 회수", "#ff3b4e"))
       : ((e.hasSpike = !0),
         (e.plantCd = 0),
         (t.carrier = e),
@@ -15413,7 +15413,7 @@ function defuseDone(e) {
       }),
     SFX.defused(),
     "player" === e && chargeUlt(2),
-    endRound("def", "player" === e ? "스파이크 해제" : "스파이크 해제됨"));
+    endRound("def", "player" === e ? "폭탄 해제" : "폭탄 해제됨"));
 }
 function detonate() {
   const e = world.spike;
@@ -15462,7 +15462,7 @@ function detonate() {
         (e.material.opacity = 1 - t));
     });
   }
-  endRound("atk", "스파이크 폭발");
+  endRound("atk", "폭탄 폭발");
 }
 function spikeUI(e, t, o, a, n) {
   $("spike").classList.add("on");
@@ -15538,8 +15538,8 @@ function handleSpike(e) {
         (player.plantAnchor = null),
         void spikeUI(
           "en" === window.GAME_LANG
-            ? `Carrying the spike · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
-            : `스파이크 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
+            ? `Carrying the bomb · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
+            : `폭탄 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
           "#8a97ab",
           0,
           "#5b6879",
@@ -15634,8 +15634,8 @@ function handleSpike(e) {
     return (
       spikeUI(
         "def" === player.team && player.alive && !o
-          ? `스파이크 작동 중 · ${a.toFixed(1)}초 — 접근해 F`
-          : `스파이크 작동 중 · ${a.toFixed(1)}초`,
+          ? `폭탄 작동 중 · ${a.toFixed(1)}초 — 접근해 F`
+          : `폭탄 작동 중 · ${a.toFixed(1)}초`,
         r ? "#ff3b4e" : "#ff6b4a",
         a / SPIKE.FUSE,
         r ? "#ff3b4e" : "#ff6b4a",
@@ -15646,7 +15646,7 @@ function handleSpike(e) {
   }
   "dropped" !== t.state || "atk" !== player.team
     ? $("spike").classList.remove("on")
-    : spikeUI("스파이크 낙하 — 회수 필요", "#ff9a3c", 0, "#ff9a3c");
+    : spikeUI("폭탄 낙하 — 회수 필요", "#ff9a3c", 0, "#ff9a3c");
 }
 function handleBotSpike(e, t) {
   const o = world.spike;
@@ -17374,7 +17374,7 @@ function actorSpike(e, t) {
               "function" == typeof banner &&
                 player &&
                 "def" === player.team &&
-                banner("스파이크 설치됨", "#ff3b4e")));
+                banner("폭탄 설치됨", "#ff3b4e")));
         } else ((e.planting = 0), (e.plantAnchor = null), (e._plantWarned = 0));
       }
     }
@@ -20416,7 +20416,7 @@ function updateTeam() {
       const s = t.querySelector(".tm-wep");
       s &&
         (e.hasSpike
-          ? ((s.textContent = "스파이크 소지"), (s.className = "tm-wep tm-spk"))
+          ? ((s.textContent = "폭탄 소지"), (s.className = "tm-wep tm-spk"))
           : ((s.textContent = e.weaponName || ""), (s.className = "tm-wep")));
       const i = t.querySelector(".tm-dist");
       if (e.alive) {

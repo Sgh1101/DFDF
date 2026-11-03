@@ -50,7 +50,7 @@
   window.addEventListener('kill-confirmed',({detail:e})=>{const me=myActor();if(e.killer===me?.id)metric(e.kind==='ability'?'ability':e.gun).kills++;
     if(e.victim===me?.id){const skin=GUN_SKINS.list.find(s=>s.id===e.skin);death.textContent=[WEAPONS[e.gun]?.name||L('능력','Ability'),skin&&e.skin!=='default'?(GAME_LANG==='en'?skin.en:skin.ko):'',Number.isFinite(e.distance)?Math.round(e.distance)+'m':'',Number.isFinite(e.armorAbsorbed)&&e.armorAbsorbed>0?L('방어구 흡수 ','Armor absorbed ')+Math.round(e.armorAbsorbed):'',e.head?L('헤드샷','Headshot'):e.kind==='ability'?L('능력 처치','Ability kill'):''].filter(Boolean).join(' · ');death.hidden=false;deathUntil=performance.now()+4000;}});
   const guide=document.createElement('section');guide.id='quick-guide';guide.hidden=true;
-  guide.innerHTML=`<div class="improve-card"><header><h2>${L('빠른 훈련','Quick training')}</h2><button data-close aria-label="닫기">✕</button></header><p>${L('표적장: 이동 → 장전 → 표적 3회 명중. 능력·스파이크는 별도 연습에서 배웁니다. 연습에서는 경기 보상을 지급하지 않습니다.','Range: move, reload, hit three targets. Practice abilities and the spike separately. Practice gives no match rewards.')}</p><div id="mode-guides"></div><footer><button id="guide-start">${L('표적장에서 배우기','Learn in the range')}</button></footer></div>`;
+  guide.innerHTML=`<div class="improve-card"><header><h2>${L('빠른 훈련','Quick training')}</h2><button data-close aria-label="닫기">✕</button></header><p>${L('표적장: 이동 → 장전 → 표적 3회 명중. 능력·폭탄은 별도 연습에서 배웁니다. 연습에서는 경기 보상을 지급하지 않습니다.','Range: move, reload, hit three targets. Practice abilities and the bomb separately. Practice gives no match rewards.')}</p><div id="mode-guides"></div><footer><button id="guide-start">${L('표적장에서 배우기','Learn in the range')}</button></footer></div>`;
   document.body.append(guide);guide.querySelector('[data-close]').onclick=()=>guide.hidden=true;
   const tips={std:'공격은 사이트 안에서 4 또는 F를 4초 누르고 있으면 설치(자동 아님), 수비는 F로 해제 7초. 반 해제 진행이 저장됩니다.',dm:'처치로 팀 점수를 올립니다. 사망 후 다시 출전합니다.',ctf:'적 깃발을 우리 깃발 자리로 가져오세요. 먼저 3점.',zone:'줄어드는 안전 구역 안에서 마지막 한 명까지 생존하세요.',gun:'주어진 무기로 처치하며 단계를 올립니다.',knife:'칼의 공격 거리와 타이밍을 연습하세요.',inf:'감염을 피하거나 상대를 감염시키세요.',hill:'여러 거점의 점유 상태를 보며 이동하세요.'};
   for(const [key,mode] of Object.entries(GAME_MODES)){const p=document.createElement('p');p.textContent=(mode.name||key)+' · '+(GAME_LANG==='en'?(mode.sub||mode.name||key):(tips[key]||mode.sub||'목표와 점수는 경기 상단에 표시됩니다.'));$('mode-guides').append(p);}
@@ -58,7 +58,7 @@
   const task=document.createElement('div');task.id='training-task';task.hidden=true;task.innerHTML='<span></span><button aria-label="훈련 건너뛰기">×</button>';document.body.append(task);
   task.querySelector('button').onclick=()=>{tutorial=null;task.hidden=true;};
   $('guide-start').onclick=()=>{guide.hidden=true;TARGET_RANGE.enter();tutorial={kind:'range',start:null,reload:false,cast:false,hits:TARGET_RANGE.RANGE.hits||0};task.hidden=false;};
-  button('guide-ability',L('능력 · 스파이크 연습','Ability & spike practice'),()=>{guide.hidden=true;room.mode='std';room.map='glacier';startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();tutorial={kind:'ability',cast:false,planted:false};task.hidden=false;},guide.querySelector('footer'));
+  button('guide-ability',L('능력 · 폭탄 연습','Ability & spike practice'),()=>{guide.hidden=true;room.mode='std';room.map='glacier';startGame(typeof picked!=='undefined'&&picked||AGENTS[0],true);closeShop();tutorial={kind:'ability',cast:false,planted:false};task.hidden=false;},guide.querySelector('footer'));
   const begin=startGame;startGame=function(){lifetime.reset();bots.clear();for(const k of Object.keys(weapons))delete weapons[k];tutorial=null;task.hidden=true;death.hidden=true;events.add('match-start',{map:room.map,mode:room.mode});reset();optional.reset();return begin.apply(this,arguments);};
   function applyOptional(){
     const p=GRAPHICS_SETTINGS.presets[quality],wasPost=GFX.post;
@@ -74,7 +74,7 @@
     if(deathUntil&&(performance.now()>deathUntil||myActor()?.alive)){death.hidden=true;deathUntil=0;}return r;};
   const tick=step;step=function(dt){const r=tick.apply(this,arguments);botClock+=dt;const held=myActor();if(world.phase==='live'&&held?.alive&&Number.isFinite(dt)&&dt>0&&dt<1)metric(actorWeaponKey(held)).heldSeconds+=dt;
     if(tutorial&&['menu','over'].includes(world.phase)){tutorial=null;task.hidden=true;}
-    if(tutorial?.kind==='ability'){const planted=world.spike?.state==='planted';tutorial.planted ||= planted;task.querySelector('span').textContent=!tutorial.cast?L('Q/E/C 능력을 사용하세요','Use Q, E or C'):!tutorial.planted?L('공격팀으로 사이트에 가서 4 또는 F를 4초 누르고 있어 스파이크 설치','As attacker, hold 4 or F on a site for 4 seconds to plant'):L('설치 완료! 수비팀은 F로 7초 해제합니다. 절반 진행은 저장됩니다.','Planted! Defenders hold F for 7s; half progress is saved.');}
+    if(tutorial?.kind==='ability'){const planted=world.spike?.state==='planted';tutorial.planted ||= planted;task.querySelector('span').textContent=!tutorial.cast?L('Q/E/C 능력을 사용하세요','Use Q, E or C'):!tutorial.planted?L('공격팀으로 사이트에 가서 4 또는 F를 4초 누르고 있어 폭탄 설치','As attacker, hold 4 or F on a site for 4 seconds to plant'):L('설치 완료! 수비팀은 F로 7초 해제합니다. 절반 진행은 저장됩니다.','Planted! Defenders hold F for 7s; half progress is saved.');}
     if(tutorial?.kind==='range'){const me=myActor();if(me?.pos){tutorial.start||={x:me.pos.x,z:me.pos.z};const moved=tutorial.moved ||= Math.hypot(me.pos.x-tutorial.start.x,me.pos.z-tutorial.start.z)>4;
       const hits=(TARGET_RANGE.RANGE.hits||0)-tutorial.hits,stage=!moved?0:!tutorial.reload?1:hits<3?2:3;
       task.querySelector('span').textContent=[L('4m 이동하세요','Move 4m'),L('발사 후 R 또는 장전 버튼','Fire, then reload'),L(`표적 명중 ${Math.max(0,hits)}/3`,`Target hits ${Math.max(0,hits)}/3`),L('훈련 완료! 모드를 골라 시작하세요.','Training complete! Choose a mode.')][stage];
@@ -86,7 +86,7 @@
       if(!diag.hidden)paintReport();
     }return r;};
   // A visible direct entry; the selected map still loads lazily via ASCENT_TRIAL.
-  const mapEntry=button('go-mark-valo','마크X발로 · '+L('블록 맵','Block map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
+  const mapEntry=button('go-mark-valo','하늘섬 마을 · '+L('블록 맵','Block map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
   const thumb=document.createElement('img');thumb.src='./assets/site/maps/ascent_trial.webp?v=neighborhood-2';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title=L('블록으로 쌓은 하늘섬 · 5대5 · A/B 거점','A floating island of blocks · 5v5 · sites A/B');
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){

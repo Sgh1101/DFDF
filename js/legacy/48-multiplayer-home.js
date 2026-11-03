@@ -18,7 +18,7 @@
   };
   const chMob = (id) => !!(chans().find((c) => c.id === id) || {}).mobile;
   const chName = (c) => (EN ? c.en || c.name : c.name);
-  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" };
+  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Bomb Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" };
   const modeName = (k) => (EN ? MODE_EN[k] : window.GAME_MODES && GAME_MODES[k] && GAME_MODES[k].name) || k || "";
   const mapName = (k) => {
     const m = "undefined" != typeof MAP_LIST && MAP_LIST.find((x) => x.key === k);
@@ -53,7 +53,7 @@
     (news.innerHTML = [
       [L("요원 36명 · 능력 144개", "36 agents · 144 abilities"), L("재밌는 요원만 남기고 능력을 전부 새로 만들었습니다. 같은 능력은 하나도 없습니다", "Only the fun ones stayed, every ability rebuilt. No two alike")],
       [L("같이 하기", "Play together"), L("서버별 방 목록 · 방 만들기 · 초대 코드가 한 화면에", "Rooms by server, make a room, invite code: one screen")],
-      [L("모드 11종", "11 modes"), L("신속플레이 · 스파이크 돌격 · 팀 데스매치 · 데스매치 · 칼 대난투 · 총기 순환 · 감염 · 점령전 · 깃발 탈취 · 축소전", "Swift · Spike Rush · Team Deathmatch · Deathmatch · Knife Fight · Gun Game · Infection · Conquest · Capture the Flag · Shrinking Zone")],
+      [L("모드 11종", "11 modes"), L("빠른 대전 · 폭탄 돌격 · 팀 데스매치 · 데스매치 · 칼 대난투 · 총기 순환 · 감염 · 점령전 · 깃발 탈취 · 축소전", "Swift · Bomb Rush · Team Deathmatch · Deathmatch · Knife Fight · Gun Game · Infection · Conquest · Capture the Flag · Shrinking Zone")],
     ]
       .map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`)
       .join(""));

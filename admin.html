@@ -604,7 +604,7 @@ async function openProfile(id, tab) {
 }
 const VIEWS = {};
 // ── the dashboard: what is going on at a glance, and the switches used most ──
-const MODE_KO = { std: "표준", swift: "신속", rush: "스파이크 러시", tdm: "팀 데스매치", dm: "데스매치" };
+const MODE_KO = { std: "표준", swift: "신속", rush: "폭탄 러시", tdm: "팀 데스매치", dm: "데스매치" };
 // on/off switches shown as chips at the top (warn: on is the alarming side)
 const QUICK_SW = [["game.maintenance", "점검 모드", !0], ["shop.on", "일일 상점"], ["shop.weekly.on", "주간 특가"], ["cos.on", "꾸미기 상점"], ["season.on", "시즌"], ["game.promoNotice", "홍보영상 공지"], ["game.registerOpen", "새 가입"], ["game.guestAllowed", "게스트 입장"], ["game.roomListOpen", "방 목록 공개"], ["aim.mobile", "모바일 에임 보정"], ["aim.pc", "PC 에임 보정"]];
 // numbers the owner tunes most: [path, name, min, max, step, note]
@@ -740,7 +740,7 @@ VIEWS.users = async () => {
       if (op === "level") { const v = prompt("레벨", row.level); if (v === null) return; p.level = +v || 1; }
       if (op === "password") { const v = prompt("새 비밀번호 (4자 이상)"); if (!v) return; p.pw = keysOf(v); }
       if (op === "note") { const v = prompt("메모", row.note || ""); if (v === null) return; p.note = v; }
-      if (op === "rr") { const v = prompt("티어 점수(TP)를 얼마로 할까요? 100마다 한 단계, 300마다 한 티어 (구리 1 = 0, 청동 1 = 300, 은빛 1 = 600, 금빛 1 = 900, 백금 1 = 1200, 비취 1 = 1500, 초월자 1 = 1800, 불멸 1 = 2100, 레디언트 = 2400). 현재 " + ((row.rank && row.rank.rr) || 0), (row.rank && row.rank.rr) || 0); if (v === null) return; p.rr = +v || 0; }
+      if (op === "rr") { const v = prompt("티어 점수(TP)를 얼마로 할까요? 100마다 한 단계, 300마다 한 티어 (구리 1 = 0, 청동 1 = 300, 은빛 1 = 600, 금빛 1 = 900, 백금 1 = 1200, 비취 1 = 1500, 홍옥 1 = 1800, 금강 1 = 2100, 왕좌 = 2400). 현재 " + ((row.rank && row.rank.rr) || 0), (row.rank && row.rank.rr) || 0); if (v === null) return; p.rr = +v || 0; }
       if (op === "gold") { const v = prompt("골드를 얼마로 할까요? (현재 " + (row.gold || 0) + ")", row.gold || 0); if (v === null) return; p.gold = +v || 0; }
       if (op === "delete" && !confirm(id + " 계정을 지울까요? 되돌릴 수 없습니다")) return;
       if (op === "devban" || op === "ipban") {

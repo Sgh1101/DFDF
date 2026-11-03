@@ -57,7 +57,7 @@
   for (const [id, ko, en] of [
     ["tb-fire", "사격", "Fire"], ["tb-fire2", "왼쪽 사격", "Left fire"],
     ["tb-ads", "조준", "Aim"], ["tb-jump", "점프", "Jump"], ["tb-crouch", "앉기", "Crouch"],
-    ["tb-rel", "장전", "Reload"], ["tb-use", "스파이크 설치 또는 해제", "Plant or defuse spike"],
+    ["tb-rel", "장전", "Reload"], ["tb-use", "폭탄 설치 또는 해제", "Plant or defuse bomb"],
     ["tb-shop", "무기 구매", "Buy weapons"], ["tb-menu", "설정", "Settings"],
     ["tb-board", "점수판", "Scoreboard"], ["tb-log", "전투 기록", "Combat log"],
   ]) { const button = $(id); if (button) button.setAttribute("aria-label", L(ko, en)); }
@@ -84,8 +84,8 @@
       inf: L('감염자는 생존자를 추적합니다. 잡힌 생존자는 감염팀이 됩니다. 제한 시간까지 살아남으세요.', 'Infected hunt survivors; caught players join them. Survive until time runs out.'),
       gun: L('처치할 때마다 다음 무기로 넘어갑니다. 마지막 칼 단계까지 완료하세요.', 'A kill advances your weapon. Finish the final knife stage.'),
     };
-    const goal = objectives[room.mode] || (mode.respawn ? L(`${target}킬 먼저 달성 또는 제한 시간 내 최다 처치. 사망 후 부활.`, `Reach ${target} kills first or lead when time expires. Respawn after death.`) : L(`${target}라운드 선승. 스파이크 설치·해제 또는 적 전멸. 라운드 내 자동 부활 없음.`, `First to ${target} rounds. Plant/defuse the spike or eliminate the enemy. No automatic respawn within a round.`));
-    const extra = mode.noAbil ? L(" 요원 능력 사용 불가.", " Agent abilities disabled.") : mode.rush ? L(" 전원 스파이크·무작위 무기.", " Everyone carries a spike; weapons are random.") : L(" 요원 능력 사용 가능.", " Agent abilities enabled.");
+    const goal = objectives[room.mode] || (mode.respawn ? L(`${target}킬 먼저 달성 또는 제한 시간 내 최다 처치. 사망 후 부활.`, `Reach ${target} kills first or lead when time expires. Respawn after death.`) : L(`${target}라운드 선승. 폭탄 설치·해제 또는 적 전멸. 라운드 내 자동 부활 없음.`, `First to ${target} rounds. Plant/defuse the bomb or eliminate the enemy. No automatic respawn within a round.`));
+    const extra = mode.noAbil ? L(" 요원 능력 사용 불가.", " Agent abilities disabled.") : mode.rush ? L(" 전원 폭탄·무작위 무기.", " Everyone carries a bomb; weapons are random.") : L(" 요원 능력 사용 가능.", " Agent abilities enabled.");
     modeText.textContent = `${mode.name} · ${team}. ${goal}${extra}`;
   }
   document.addEventListener("click", (event) => { if (event.target.closest("#sel-modes,#sel-maps,#go-play,#go-resume")) queueMicrotask(describeMode); });

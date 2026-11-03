@@ -62,7 +62,7 @@
     ["B로 가요", "Go B"],
     ["후퇴해요", "Fall back"],
     ["적 발견", "Enemy spotted"],
-    ["스파이크 설치", "Plant the spike"],
+    ["폭탄 설치", "Plant the bomb"],
     ["다시 모여요", "Regroup"],
     ["GG", "GG"],
   ];
