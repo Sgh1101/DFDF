@@ -638,7 +638,7 @@ $("#guestSignIn").onclick = () => {
 const authBack = document.createElement("button");
 authBack.id = "authBack"; authBack.type = "button"; authBack.className = "btn"; authBack.hidden = true;
 authBack.textContent = L === "en" ? "Back · keep guest session" : "돌아가기 · 게스트 유지";
-authBack.onclick = () => { authBack.hidden = true; S && enter(); };
+authBack.onclick = () => { if ($("#doAuth").disabled) return; authBack.hidden = true; S && enter(); };
 $("#doGuest").after(authBack);
 // ── the top bar's two menus: the guides, and one for the rest (the game's pages, feedback, language, sign out) ──
 const MENUS = [["#guideBtn", "#guideMenu"], ["#menuBtn", "#mainMenu"]];
@@ -717,7 +717,7 @@ addEventListener("storage", (e) => { if (e.key !== "lgp_session") return; const 
 function showBan(b) { view("ban"); $("#banWhy").textContent = (b.reason ? t("reason") + ": " + b.reason + " · " : "") + (b.until ? new Date(b.until).toLocaleString() + " " + t("until") : t("forever")); }
 async function auth(guest) {
   $("#aerr").textContent = "";
-  $("#doAuth").disabled = $("#doGuest").disabled = !0;
+  $("#doAuth").disabled = $("#doGuest").disabled = $("#authBack").disabled = !0;
   try {
     const j = guest ? await api("guest", { device }) : await api("auth", { id: $("#uid").value.trim(), pw: keysOf($("#upw").value), device });
     save({ token: j.token, user: j.user, atoken: j.atoken || "", hist: j.hist || [] });
@@ -732,7 +732,7 @@ async function auth(guest) {
       OFFLINE = !0; drawNotices(); return enter();
     }
     $("#aerr").textContent = e.message === "offline" ? t("offline") : e.message;
-  } finally { $("#doAuth").disabled = $("#doGuest").disabled = !1; }
+  } finally { $("#doAuth").disabled = $("#doGuest").disabled = $("#authBack").disabled = !1; }
 }
 $("#doAuth").onclick = () => auth(!1); $("#doGuest").onclick = () => auth(!0);
 $("#upw").onkeydown = (e) => { if (e.key === "Enter") auth(!1); };
