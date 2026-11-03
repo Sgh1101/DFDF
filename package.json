@@ -20,6 +20,7 @@
     "test:ice-report": "node scripts/browser-ice-report.js",
     "test:spider-silk": "node scripts/browser-spider-silk.js",
     "test:abilities": "node scripts/browser-ability-upgrade.js",
+    "test:ability-aim": "node scripts/browser-ability-aim.js",
     "test:abilities-online": "node scripts/browser-abilities-online.js",
     "test:phantom-carbine": "node scripts/browser-phantom-carbine.js",
     "test:champions-finish": "node scripts/browser-champions-finish.js",
