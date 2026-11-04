@@ -4,3 +4,5 @@ playwright-report
 docs
 tests
 scripts
+# the repository's own notes are not part of the site (as on Cloudflare: .assetsignore)
+*.md
