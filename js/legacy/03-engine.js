@@ -15343,7 +15343,7 @@ function setCarrierMark(e, t) {
     } else e.spikeMark && (e.spikeMark.visible = !1);
 }
 function spikeFloorMatches(actor) {
-  return !window.ASCENT_TRIAL?.active || ASCENT_TRIAL.sameSpikeFloor(actor);
+  return typeof ASCENT_TRIAL==='undefined'||!ASCENT_TRIAL.active||ASCENT_TRIAL.sameSpikeFloor(actor);
 }
 function siteAt(e, t) {
   for (const o of MAP.sites) if (dist2(e, t, o.x, o.z) < o.r * o.r) return o;
@@ -15480,7 +15480,7 @@ function defuseDone(e) {
 function detonate() {
   const e = world.spike;
   if (world.over) return;
-  const y = window.ASCENT_TRIAL?.active ? e.y||0 : 0;
+  const y = typeof ASCENT_TRIAL!=='undefined'&&ASCENT_TRIAL.active ? e.y||0 : 0;
   const t = e.x,
     o = e.z;
   ((e.state = "boom"),
@@ -15563,7 +15563,7 @@ function handleSpike(e) {
             t.timer < 12 ? 1.6 : 1,
             14,
             t.x,
-            (window.ASCENT_TRIAL?.active?t.y||0:0)+0.9,
+            (typeof ASCENT_TRIAL!=='undefined'&&ASCENT_TRIAL.active?t.y||0:0)+0.9,
             t.z,
             Math.min(0.3, 0.6 * o),
             2,
