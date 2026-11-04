@@ -1,0 +1,164 @@
+[
+  {
+    "name": "root",
+    "pivot": [
+      -3.5,
+      -3.25,
+      0
+    ]
+  },
+  {
+    "name": "mag_and_lefthand",
+    "pivot": [
+      6,
+      -5.5,
+      0
+    ],
+    "parent": "root"
+  },
+  {
+    "name": "magazine",
+    "pivot": [
+      6,
+      -5.5,
+      0
+    ],
+    "parent": "mag_and_lefthand",
+    "rotation": [
+      0,
+      0,
+      28
+    ]
+  },
+  {
+    "name": "gun_and_righthand",
+    "pivot": [
+      -3.5,
+      -3.25,
+      0
+    ],
+    "parent": "root"
+  },
+  {
+    "name": "gun",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "barrel",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun"
+  },
+  {
+    "name": "handguard",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun"
+  },
+  {
+    "name": "receiver",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun"
+  },
+  {
+    "name": "grip",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun"
+  },
+  {
+    "name": "stock",
+    "pivot": [
+      0,
+      0,
+      0
+    ],
+    "parent": "gun"
+  },
+  {
+    "name": "grip_handle",
+    "pivot": [
+      -4.5,
+      -4.25,
+      0
+    ],
+    "parent": "grip",
+    "rotation": [
+      0,
+      0,
+      24
+    ]
+  },
+  {
+    "name": "charge_handle",
+    "pivot": [
+      17.5,
+      2.25,
+      1.25
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "bolt",
+    "pivot": [
+      2.5,
+      0,
+      -1
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "trigger",
+    "pivot": [
+      -0.5,
+      -3,
+      0
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "mag_release",
+    "pivot": [
+      2.5,
+      -2.25,
+      -1.25
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "muzzle_pos",
+    "pivot": [
+      41.25,
+      0,
+      0
+    ],
+    "parent": "gun_and_righthand"
+  },
+  {
+    "name": "shell",
+    "pivot": [
+      2.5,
+      0,
+      -1.5
+    ],
+    "parent": "gun_and_righthand"
+  }
+]

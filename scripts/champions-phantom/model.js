@@ -56,6 +56,7 @@ class Model {
         const out = { origin: c.origin, size: c.size, uv: c.uv };
         if (c.rotation) { out.pivot = c.pivot.map(round); out.rotation = c.rotation.map(round); }
         if (c.inflate) out.inflate = c.inflate;
+        if (c.dfdf_mesh) out.dfdf_mesh = {...c.dfdf_mesh};
         return out;
       });
       return cubes.length ? { ...b, cubes } : { ...b };
@@ -68,7 +69,7 @@ const round = (n) => Math.round(n * 10000) / 10000;
 // The game's own BEDROCK_RIG, evaluated with Node's THREE so the painted atlas
 // matches the exact UV orientation the browser uses for the gun.
 function bedrock() {
-  const context = { window: {}, T: THREE };
+  const context = { window: {DFDF_SOLID_GEOMETRY:require('../../js/solid-geometry')}, T: THREE };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../js/bedrock-rig.js"), "utf8"), context);
   return context.window.BEDROCK_RIG;
 }
@@ -85,7 +86,7 @@ function paint(model, rigKind, shade, layers) {
     const boneName = mesh.parent.name.replace(/^phantom-bone-/, ""), cubes = model.cubes.filter((c) => c.bone === boneName);
     const pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv, nor = mesh.geometry.attributes.normal;
     for (let t = 0; t < pos.count; t += 3) {
-      const cube = cubes[Math.floor(t / 36)], face = faceOrder[Math.floor((t % 36) / 6)], rect = cube.uv[face];
+      const cube = cubes[mesh.geometry.attributes.dfdfCube?.getX(t)??Math.floor(t / 36)], face = faceOrder[mesh.geometry.attributes.dfdfFace?.getX(t)??Math.floor((t % 36) / 6)], rect = cube.uv[face];
       const P = [0, 1, 2].map((i) => new THREE.Vector3().fromBufferAttribute(pos, t + i).applyMatrix4(mesh.matrixWorld));
       const UV = [0, 1, 2].map((i) => [uv.getX(t + i) * W, (1 - uv.getY(t + i)) * H]);
       const n = new THREE.Vector3().fromBufferAttribute(nor, t).transformDirection(mesh.matrixWorld);
@@ -102,6 +103,12 @@ function paint(model, rigKind, shade, layers) {
       }
     }
   });
+  if(rigKind==='bedrock')require('./atlas-padding')(model,rig,canvases,shade);
+  const usedMaterials=new Set();rig.traverse(n=>{n.geometry?.dispose();if(n.material)for(const material of [].concat(n.material))usedMaterials.add(material);});for(const material of usedMaterials)material.dispose();
   return canvases;
 }
-module.exports = { Model, paint, bedrock, THREE };
+function vertexCount(geo){
+  const material=new THREE.MeshBasicMaterial(),rig=bedrock().build(geo,material);let count=0;
+  rig.traverse(n=>{if(n.geometry){count+=n.geometry.attributes.position.count;n.geometry.dispose();}});material.dispose();return count;
+}
+module.exports = { Model, paint, bedrock, THREE, vertexCount };

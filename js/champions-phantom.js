@@ -23,7 +23,7 @@
     if (!textures.has(name)) {
       const tex = new T.TextureLoader().load(url(name));
       tex.name = name;
-      tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
+      tex.colorSpace = name.endsWith('_surface.png')?T.NoColorSpace:T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
       textures.set(name, tex);
     }
     return textures.get(name);
@@ -38,7 +38,8 @@
     const side = variant(id), key = "weapon-" + side;
     if (!materials.has(key)) {
       const mask = "textures/item/phantom_" + side + "_glowmask.png";
-      materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.35, side: T.DoubleSide }));
+      const surface='textures/item/phantom_'+side+'_surface.png',physical=assets[surface]?texture(surface):null;
+      materials.set(key, new T.MeshStandardMaterial({ map: texture("textures/item/phantom_" + side + ".png"), alphaTest: 0.1, emissive: assets[mask] ? 0xffffff : 0, emissiveMap: assets[mask] ? texture(mask) : null, emissiveIntensity: 0.45, metalness: physical?1:0.55, roughness: physical?1:0.35, metalnessMap:physical, roughnessMap:physical, side: T.DoubleSide }));
     }
     const base = materials.get(key), mat = base.clone(), rig = buildGeo(model.geo, mat), wrapper = new T.Group(); let waveModel = null;
     mat.userData.phantomWaveOwn = true;
@@ -293,7 +294,7 @@
     const parsed = A.validate(next); // Validate before replacing a working pack.
     const revision = ++installRevision, stagedTextures = new Map(), stagedUrls = new Map(); let committed = false;
     try {
-      const weaponTextures = ["attacker", "defender"].flatMap(side => ["", "_glowmask"].map(suffix => `textures/item/phantom_${side}${suffix}.png`));
+      const weaponTextures = ["attacker", "defender"].flatMap(side => ["", "_glowmask", "_surface"].map(suffix => `textures/item/phantom_${side}${suffix}.png`));
       const finisherTextures = ["dragon_low_black", "dragon_low_white", "serpent_cream", "serpent_red"].map(name => `textures/finisher/${name}.png`);
       finisherTextures.push(...W.textures.map(name => 'textures/vfx/' + name + '.png'));
       finisherTextures.push(...PHANTOM_FINISHER_MOTION.textures.map(name => `textures/finisher/fx/${name}.png`));
@@ -303,7 +304,7 @@
         const tex = await new T.TextureLoader().loadAsync(address); stagedTextures.set(name, tex);
         tex.name = name;
         if (weaponTextures.includes(name) && (tex.image.naturalWidth !== parsed.geo.description.texture_width || tex.image.naturalHeight !== parsed.geo.description.texture_height)) throw Error("텍스처와 모델 크기가 맞지 않습니다.");
-        tex.colorSpace = T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
+        tex.colorSpace = name.endsWith('_surface.png')?T.NoColorSpace:T.SRGBColorSpace; tex.magFilter = T.NearestFilter;
       }));
       const failed = decoded.find((item) => item.status === "rejected"); if (failed) throw failed.reason;
       if (revision !== installRevision) return;
@@ -376,6 +377,7 @@
       // pvShow already measured the unparented model. A world-space box here
       // includes the temporary pop-in scale and can crop the gun once it grows.
       studio.fit = { ...studio.fit, w: 0.68, h: 0.62 };
+      studio.yaw=Math.PI+.35;studio.pitch=.24;
     }
     for (const b of document.querySelectorAll("[data-phantom-skin]")) b.setAttribute("aria-pressed", String(b.dataset.phantomSkin === selected));
   }

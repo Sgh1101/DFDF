@@ -1,142 +1,81 @@
-// The approved Champions concept in the game's native cube rig.
-// Units: 1/16 block. +X is the muzzle; animation pivots remain compatible.
-"use strict";
-const { Model } = require("./model");
-
-function build() {
-  const m = new Model("geometry.dfdf_champions_phantom", [512, 512]);
-  m.bone("root", null, [-3.5, -3.25, 0]);
-  m.bone("mag_and_lefthand", "root", [6, -5.5, 0]);
-  m.bone("magazine", "mag_and_lefthand", [6, -5.5, 0], [0, 0, 28]);
-  m.bone("gun_and_righthand", "root", [-3.5, -3.25, 0]);
-  m.bone("gun", "gun_and_righthand", [0, 0, 0]);
-  for (const name of ["barrel", "handguard", "receiver", "grip", "stock"]) m.bone(name, "gun", [0, 0, 0]);
-  m.bone("grip_handle", "grip", [-4.5, -4.25, 0], [0, 0, 24]);
-  m.bone("charge_handle", "gun_and_righthand", [17.5, 2.25, 1.25]);
-  m.bone("bolt", "gun_and_righthand", [2.5, 0, -1]);
-  m.bone("trigger", "gun_and_righthand", [-0.5, -3, 0]);
-  m.bone("mag_release", "gun_and_righthand", [2.5, -2.25, -1.25]);
-  m.bone("muzzle_pos", "gun_and_righthand", [41.25, 0, 0]);
-  m.bone("shell", "gun_and_righthand", [2.5, 0, -1.5]);
-
-  const E = { both: { edge: "both" }, top: { edge: "top" }, hi: { hi: true } };
-  const box = (bone, x0, x1, y0, y1, hz, material, cz = 0, extra) =>
-    m.cube(bone, [x0, y0, cz - hz], [x1 - x0, y1 - y0, hz * 2], material, extra);
-  // A real diagonal cuboid, rather than disconnected stair treads.
-  function beam(bone, a, b, thickness, hz, material, cz = 0, extra = {}) {
-    const x = (a[0] + b[0]) / 2, y = (a[1] + b[1]) / 2;
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    return m.cube(bone, [x - length / 2, y - thickness / 2, cz - hz], [length, thickness, hz * 2], material,
-      { ...extra, pivot: [x, y, cz], rotation: [0, 0, Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI] });
+// DFDF solid-body Champions rifle. Original animation bones remain unchanged.
+'use strict';
+const {Model}=require('./model');
+function build(){
+  const m=new Model('geometry.dfdf_champions_phantom',[512,512]);
+  m.bone('root',null,[-3.5,-3.25,0]);m.bone('mag_and_lefthand','root',[6,-5.5,0]);
+  m.bone('magazine','mag_and_lefthand',[6,-5.5,0],[0,0,28]);m.bone('gun_and_righthand','root',[-3.5,-3.25,0]);m.bone('gun','gun_and_righthand',[0,0,0]);
+  for(const name of ['barrel','handguard','receiver','grip','stock'])m.bone(name,'gun',[0,0,0]);
+  m.bone('grip_handle','grip',[-4.5,-4.25,0],[0,0,24]);m.bone('charge_handle','gun_and_righthand',[17.5,2.25,1.25]);
+  m.bone('bolt','gun_and_righthand',[2.5,0,-1]);m.bone('trigger','gun_and_righthand',[-.5,-3,0]);m.bone('mag_release','gun_and_righthand',[2.5,-2.25,-1.25]);
+  m.bone('muzzle_pos','gun_and_righthand',[41.25,0,0]);m.bone('shell','gun_and_righthand',[2.5,0,-1.5]);
+  const pair=fn=>[-1,1].forEach(fn),solid=r=>({dfdf_mesh:{type:'bevel',radius:r}});
+  const box=(bone,x0,x1,y0,y1,hz,material,cz=0,extra={})=>m.cube(bone,[x0,y0,cz-hz],[x1-x0,y1-y0,hz*2],material,extra);
+  function beam(bone,a,b,thick,hz,material,cz=0,extra={}){
+    const p=[(a[0]+b[0])/2,(a[1]+b[1])/2,cz],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    return m.cube(bone,[p[0]-length/2,p[1]-thick/2,cz-hz],[length,thick,hz*2],material,{...extra,pivot:p,rotation:[0,0,Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI]});
   }
-  const pair = (fn) => { for (const sign of [-1, 1]) fn(sign); };
-
-  // Hooked open stock with deliberate, unobstructed central negative space.
-  beam("stock", [-22.1, -5.2], [-22.1, 2.0], 1.5, 1.05, "body", 0, E.both);
-  beam("stock", [-22.1, 1.9], [-8.0, 1.3], 1.8, 1.08, "body", 0, E.both);
-  beam("stock", [-22.0, -5.7], [-17.6, -6.0], 1.55, 1.08, "body", 0, E.both);
-  beam("stock", [-17.6, -6.0], [-8.0, -2.5], 1.55, 1.08, "body", 0, E.both);
-  beam("stock", [-8.0, -2.5], [-8.0, 1.3], 1.65, 1.13, "dark", 0, E.both);
-  box("stock", -23.0, -22.75, -4.9, 1.4, 1.02, "dark");
-  pair(s => {
-    beam("stock", [-21.7, 2.35], [-8.4, 1.8], .32, .08, "trim", s * 1.16);
-    beam("stock", [-21.7, -6.15], [-17.6, -6.45], .32, .08, "trim", s * 1.16);
-    beam("stock", [-17.6, -6.45], [-8.1, -2.95], .32, .08, "trim", s * 1.16);
-    beam("stock", [-21.5, .95], [-18.0, .8], .16, .06, "glow", s * 1.18);
+  function cylinder(bone,x0,x1,r,material,extra={}){return m.cube(bone,[x0,-r,-r],[x1-x0,r*2,r*2],material,{...extra,dfdf_mesh:{type:'cylinder',segments:16,...extra.dfdf_mesh}});}
+  function pin(bone,x,y,z,r=.22){return m.cube(bone,[x-r,y-r,z-.075],[r*2,r*2,.15],'shell',{dfdf_mesh:{type:'cylinder',axis:'z',segments:8}});}
+  // Solid buttstock, raised cheek rest and rubber butt pad.
+  box('stock',-22,-11.1,-3.8,1.55,1.85,'dark',0,solid(.55));
+  box('stock',-21.5,-12.2,1.25,2.45,1.65,'body',0,solid(.32));
+  beam('stock',[-19.5,-3.45],[-10.4,-1.5],1.6,1.6,'dark',0,solid(.35));
+  box('stock',-23,-21.8,-4.7,2.3,1.95,'dark',0,{...solid(.32),finish:'rubber'});
+  box('stock',-21.8,-21.5,-4,1.5,1.9,'trim',0,solid(.08));cylinder('stock',-12.4,-7.1,1.24,'dark');
+  pair(s=>{
+    box('stock',-20.8,-12.8,-2.4,.85,.08,'body',s*1.87,solid(.07));box('stock',-20.1,-13.2,.9,1.15,.09,'trim',s*1.88);
+    box('stock',-20,-18.3,-1.3,-.7,.10,'dark',s*1.97,solid(.06));box('stock',-17.8,-15.1,-1.5,-1.3,.10,'glow',s*1.97);
+    pin('stock',-20.1,-1.95,s*1.99);pin('stock',-13.6,-1.95,s*1.99);
   });
-  box("stock", -22.9, -21.2, 1.5, 2.9, 1.15, "trim");
-  box("stock", -9.2, -7.4, -.7, 2.4, 1.25, "trim");
-  box("stock", -8.8, -7.0, -2.7, -.7, 1.23, "body", 0, E.both);
-
-  // Slim receiver with raised gold contours and an engraved scale panel.
-  box("receiver", -7.5, 10.2, -4.2, 2.3, 1.4, "body", 0, E.both);
-  beam("receiver", [9.3, -1.0], [13.4, .15], 4.0, 1.4, "body", 0, E.both);
-  pair(s => {
-    box("receiver", -5.5, 6.3, -.7, 1.7, .10, "trim", s * 1.52, { scales: true });
-    beam("receiver", [-6.7, 2.0], [-2.7, 1.75], .55, .13, "trim", s * 1.57);
-    beam("receiver", [-2.7, 1.75], [1.3, -.9], .60, .14, "trim", s * 1.57);
-    beam("receiver", [1.3, -.9], [7.0, -1.5], .60, .14, "trim", s * 1.57);
-    beam("receiver", [7.0, -1.5], [10.9, -3.15], .6, .14, "trim", s * 1.57);
-    beam("receiver", [-6.8, 2.65], [-2.4, 2.65], .45, .12, "trim", s * 1.50);
-    box("receiver", -6.1, -2.2, -3.5, -1.4, .13, "dark", s * 1.51, E.both);
-    box("receiver", -5.5, -2.9, -2.4, -2.05, .14, "glow", s * 1.67);
-    box("receiver", 7.3, 10.4, -.2, 1.25, .13, "dark", s * 1.53, E.both);
-    box("receiver", 7.9, 9.7, .35, .58, .14, "glow", s * 1.68);
-    for (const x of [-6.4, 10.7]) box("receiver", x, x + .55, -.9, -.35, .14, "shell", s * 1.61);
+  // Broad upper/lower receiver. Gold is trim, not a wire cage.
+  box('receiver',-8,13,-1.65,2.6,2.25,'dark',0,solid(.38));box('receiver',-6.8,10.8,-4.45,-1.25,1.95,'body',0,solid(.34));
+  box('receiver',2.9,10.1,-5.35,-3.15,1.75,'dark',0,solid(.24));
+  pair(s=>{
+    box('receiver',-6.8,10.7,-.8,1.75,.08,'body',s*2.26,solid(.07));box('receiver',-6.5,10.3,1.78,2.03,.07,'trim',s*2.30);
+    box('receiver',-4.6,-1.2,-.25,1.5,.10,'trim',s*2.35,{...solid(.08),scales:true});
+    box('receiver',-3.7,-2.2,.1,1.1,.11,'body',s*2.46,solid(.07));box('receiver',-3.15,-2.75,.35,.88,.12,'glow',s*2.48);
+    box('receiver',-6.2,-4.7,-2.85,-2.5,.10,'dark',s*1.99);pin('receiver',-5.7,-3.6,s*2.08,.24);pin('receiver',9.8,-2.6,s*2.08,.24);
   });
-  box("receiver", -7.5, -6.8, -4.0, 2.7, 1.48, "trim");
-  box("receiver", 2.9, 10.3, -5.7, -4.2, 1.55, "body", 0, E.both);
-  box("receiver", 10.3, 11.2, -5.3, -3.6, 1.5, "trim");
-  box("receiver", -3.75, 2.0, -6.3, -5.7, .5, "trim");
-  beam("receiver", [1.7, -6.0], [2.1, -4.2], .6, .5, "dark");
-  box("receiver", -3.75, -3.125, -5.7, -4.2, .5, "dark");
-  // Low segmented rail and small iron sights keep the unscoped silhouette.
-  box("receiver", -6.6, 13.8, 2.3, 2.7, .82, "dark");
-  for (let x = -6.2; x < 13.0; x += 2.1) box("receiver", x, x + 1.2, 2.7, 3.0, .77, "shell", 0, E.hi);
-  box("receiver", -4.2, -2.7, 3.0, 3.7, .6, "trim");
-  box("receiver", -3.8, -3.1, 3.2, 3.85, .3, "dark");
-
-  // Framed angled grip with inset dark rubber.
-  box("grip", -6.3, -.7, -4.4, -3.75, 1.18, "body", 0, E.both);
-  box("grip_handle", -5.6, -2.4, -10.75, -4.75, .95, "body", 0, E.both);
-  pair(s => {
-    box("grip_handle", -5.15, -2.9, -10.0, -5.5, .08, "dark", s * 1.0);
-    box("grip_handle", -5.55, -5.25, -10.4, -5.2, .08, "trim", s * 1.01);
-    box("grip_handle", -2.85, -2.55, -10.4, -5.2, .08, "trim", s * 1.01);
-  });
-  box("grip_handle", -5.9, -2.2, -11.25, -10.75, 1.05, "trim");
-  box("trigger", -.875, .25, -5.25, -3.5, .3, "trim");
-  box("trigger", -.875, -.25, -5.75, -5.25, .3, "trim");
-  box("mag_release", 2.0, 3.0, -2.5, -1.875, .35, "trim", -1.5);
-  box("bolt", .75, 3.75, .25, 1.25, .15, "dark", -1.6);
-
-  // Swept magazine on its unchanged moving bone and pivot.
-  box("magazine", 3.75, 8.8, -6.8, -3.0, .95, "body", 0, E.both);
-  beam("magazine", [6.25, -6.3], [6.8, -10.1], 4.8, .95, "body", 0, E.both);
-  pair(s => {
-    beam("magazine", [4.15, -3.7], [4.75, -10.3], .32, .08, "trim", s * 1.03);
-    beam("magazine", [8.4, -3.7], [9.0, -10.2], .32, .08, "trim", s * 1.03);
-    for (const x of [5.25, 7.0]) beam("magazine", [x, -4.3], [x + .55, -9.8], .28, .08, "dark", s * 1.04);
-    beam("magazine", [6.0, -4.6], [6.5, -9.3], .12, .08, "glow", s * 1.05);
-  });
-  box("magazine", 3.75, 9.8, -11.0, -10.15, 1.1, "trim");
-  box("magazine", 4.1, 9.4, -11.35, -11.0, 1.0, "dark");
-
-  // Vented handguard with broad flowing gold ribs and restrained emissive seams.
-  box("handguard", 12.0, 27.0, -1.8, 2.1, 1.30, "dark", 0, E.top);
-  pair(s => {
-    beam("handguard", [11.9, 1.9], [16.3, .75], .85, .12, "trim", s * 1.42);
-    beam("handguard", [16.3, .75], [23.4, .75], .85, .12, "trim", s * 1.42);
-    beam("handguard", [23.4, .75], [25.4, -1.0], .85, .12, "trim", s * 1.42);
-    beam("handguard", [13.0, -1.8], [21.8, -1.8], .65, .11, "body", s * 1.41, E.both);
-    for (const x of [15.0, 18.0, 21.0]) {
-      box("handguard", x, x + 2.1, -.8, .05, .10, "body", s * 1.43, E.both);
-      box("handguard", x + .23, x + 1.85, -.65, -.15, .11, "dark", s * 1.55, { keepDark: true });
-    }
-    box("handguard", 15.3, 23.6, 1.62, 1.82, .07, "glow", s * 1.38);
-  });
-  box("handguard", 13.7, 25.5, 2.1, 2.45, .62, "trim");
-  box("handguard", 24.0, 25.0, 2.45, 3.1, .65, "trim");
-  box("handguard", 24.25, 24.75, 3.0, 3.7, .28, "dark");
-  box("handguard", 25.9, 27.2, -1.8, 2.1, 1.4, "trim");
-
-  // Faceted suppressor, with the original muzzle attachment position.
-  box("barrel", 27.0, 29.3, -.85, .85, .85, "dark", 0, { keepDark: true });
-  function collar(x0, x1, r, material) {
-    for (const angle of [0, 45]) m.cube("barrel", [x0, -r * .7071, -r * .7071], [x1 - x0, r * 1.4142, r * 1.4142], material,
-      { pivot: [(x0 + x1) / 2, 0, 0], rotation: [angle, 0, 0], keepDark: material === "dark" });
+  box('receiver',3.2,10.1,.15,1.55,.10,'dark',-2.36,solid(.07));box('receiver',3,10.3,1.55,1.78,.12,'shell',-2.39);
+  box('bolt',3.6,8.65,.34,1.28,.11,'shell',-2.46,solid(.06));box('bolt',4.1,7.3,.53,.74,.12,'dark',-2.58);
+  box('receiver',-6.5,25.4,2.6,3.05,.85,'dark',0,solid(.1));
+  for(let x=-5.8;x<25;x+=3.2)box('receiver',x,x+1.5,3.05,3.38,.91,'shell',0,solid(.07));
+  box('receiver',-5.4,-3.9,3.38,4.12,.68,'dark',0,solid(.12));pair(s=>box('receiver',-5,-4.35,4,4.45,.15,'trim',s*.51,solid(.05)));
+  // Rearward leaning rubber grip, open guard and separate trigger.
+  box('grip',-6.3,-1.6,-4.8,-3.5,1.48,'body',0,solid(.25));
+  box('grip_handle',-5.75,-2.45,-10.8,-4.5,1.23,'dark',0,{...solid(.35),finish:'rubber'});
+  box('grip_handle',-5.7,-2.5,-11.3,-10.65,1.27,'dark',0,solid(.16));
+  pair(s=>{for(let y=-10;y<-5;y+=1.05)box('grip_handle',-5.25,-2.9,y,y+.18,.06,'body',s*1.24,{...solid(.04),finish:'rubber'});});
+  beam('grip',[-2.5,-4.45],[-2,-6],.44,.65,'dark',0,solid(.12));beam('grip',[-2,-6],[2.05,-5.75],.44,.65,'dark',0,solid(.12));
+  beam('grip',[2.05,-5.75],[2.55,-4.35],.44,.65,'dark',0,solid(.12));beam('trigger',[-.3,-3.9],[-.7,-5.4],.38,.32,'trim',0,solid(.1));
+  box('mag_release',1.9,3.1,-2.55,-1.75,.22,'trim',-2.03,solid(.13));
+  // Contiguous sweeps form a gently curved box magazine.
+  box('magazine',3.8,8.45,-6.8,-3.25,1.40,'body',0,solid(.28));
+  beam('magazine',[6.12,-6.4],[6.65,-9.05],4.55,1.35,'body',0,solid(.29));beam('magazine',[6.65,-9],[7.65,-11.65],4.3,1.28,'dark',0,solid(.28));
+  pair(s=>{
+    for(const x of [4.6,6.2,7.8])beam('magazine',[x,-4.3],[x+.85,-10.2],.23,.055,'dark',s*1.43,solid(.04));
+    beam('magazine',[4.2,-4.3],[5.3,-10.7],.18,.06,'trim',s*1.44);box('magazine',5.9,6.55,-6.05,-5.7,.06,'glow',s*1.45);
+  });box('magazine',5.1,10.1,-12.35,-11.6,1.38,'dark',0,solid(.18));
+  // Enclosed tapered handguard, recessed vents and low front sight.
+  box('handguard',11.5,16.7,-1.65,2.45,2.14,'body',0,solid(.35));box('handguard',16.1,22.4,-1.5,2.35,1.97,'body',0,solid(.34));
+  box('handguard',21.9,27.2,-1.3,2.15,1.79,'body',0,solid(.32));
+  pair(s=>{
+    for(const [x,z]of[[13.1,2.16],[18.25,2],[23.4,1.82]]){box('handguard',x,x+2.1,.15,1.07,.065,'dark',s*z,solid(.06));box('handguard',x+.15,x+1.95,.10,.23,.07,'shell',s*(z+.07));pin('handguard',x+.9,-.78,s*(z+.04),.15);}
+    beam('handguard',[12.1,-1.4],[25.9,-1.12],.23,.075,'trim',s*1.91);box('handguard',14.1,23.9,1.6,1.77,.07,'glow',s*2.02);
+  });box('handguard',24.1,25.8,3,3.6,.55,'dark',0,solid(.1));box('handguard',24.7,25.1,3.5,4.16,.18,'trim',0,solid(.06));
+  // Round suppressor with recessed open bore and thin metallic bands.
+  cylinder('barrel',26.9,29.3,.88,'dark',{keepDark:true});cylinder('barrel',28.5,29.4,1.52,'shell');
+  cylinder('barrel',29.3,40.35,1.48,'dark',{keepDark:true});cylinder('barrel',30,30.4,1.56,'trim',{dfdf_mesh:{type:'tube',bore:.9}});
+  cylinder('barrel',39.85,40.25,1.55,'trim',{dfdf_mesh:{type:'tube',bore:.9}});cylinder('barrel',40.2,41.25,1.48,'dark',{keepDark:true,dfdf_mesh:{type:'tube',bore:.49}});
+  pair(s=>box('barrel',32.1,36.8,-.12,.12,.04,'body',s*1.49));
+  box('charge_handle',-8.25,-5.4,1.6,2.35,.46,'shell',1.8,solid(.14));box('charge_handle',-8.25,-7.3,1.35,2.6,.65,'dark',2.7,solid(.16));
+  // Natural rake without changing any animation bone's rest pose.
+  for(const [bone,pivot,angle]of[['magazine',[6,-5.5],-20],['grip_handle',[-4.5,-4.25],-40]])for(const c of m.cubes.filter(c=>c.bone===bone)){
+    const [x,y,z]=c.origin.map((v,i)=>v+c.size[i]/2),a=angle*Math.PI/180,dx=x-pivot[0],dy=y-pivot[1];
+    const center=[pivot[0]+dx*Math.cos(a)-dy*Math.sin(a),pivot[1]+dx*Math.sin(a)+dy*Math.cos(a),z];
+    c.origin=center.map((v,i)=>v-c.size[i]/2);c.pivot=center;c.rotation=[0,0,(c.rotation?.[2]||0)+angle];
   }
-  collar(29.0, 40.8, 1.28, "dark");
-  collar(29.0, 29.75, 1.34, "trim");
-  collar(31.0, 31.4, 1.32, "trim");
-  collar(40.55, 41.25, 1.30, "trim");
-  box("barrel", 41.25, 41.32, -.5, .5, .5, "dark");
-  pair(s => {
-    box("barrel", 32.2, 38.2, -.18, .02, .06, "body", s * 1.29);
-    box("barrel", 29.8, 30.8, -.12, .12, .06, "glow", s * 1.30);
-  });
-  box("charge_handle", 16.5, 19.0, 1.8, 2.5, .5, "trim", 1.1);
-  box("charge_handle", 18.25, 19.25, 1.6, 2.7, .6, "dark", 1.75, E.both);
   return m;
 }
-module.exports = { build };
+module.exports={build};

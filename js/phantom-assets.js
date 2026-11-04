@@ -62,7 +62,7 @@
   async function bundled(fetcher = fetch, base = "./assets/champions-phantom/dfdf-1/") {
     // The previous service worker cached this unversioned list forever. The
     // revision also bypasses that worker on the first visit after this update.
-    const response = await fetcher(base + "manifest.json?revision=dfdf-own-design-20261104", {cache:"no-cache"});
+    const response = await fetcher(base + "manifest.json?revision=dfdf-solid-rifle-20261104", {cache:"no-cache"});
     if (!response.ok) throw Error("스킨 리소스 목록을 불러오지 못했습니다.");
     const manifest = await response.json(), files = manifest.files;
     if (!Array.isArray(files) || !files.length || files.length > 128) throw Error("스킨 리소스 목록이 올바르지 않습니다.");

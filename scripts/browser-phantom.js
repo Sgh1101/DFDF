@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), { fixture } = require("./browser-fixture");
-const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json")["minecraft:geometry"][0].bones.reduce((n, b) => n + (b.cubes?.length || 0), 0);
+const gunVertices = require('./champions-phantom/model').vertexCount(require("../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json")["minecraft:geometry"][0]);
 (async () => {
   const f = await fixture(), dir = process.env.SHOT_DIR || path.resolve("test-results/phantom"); fs.mkdirSync(dir, { recursive: true });
   try {
@@ -26,7 +26,7 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
       rig.traverse((part) => { if (part.isMesh) { vertices += part.geometry.attributes.position.count; for (const tex of [part.material.map, part.material.emissiveMap]) if (tex) dimensions.push([tex.image.naturalWidth, tex.image.naturalHeight]); } });
       return { vertices, dimensions };
     });
-    assert.equal(originalPreview.vertices, gunCubes * 36, "every bundled cube is present before any manual JAR import");
+    assert.equal(originalPreview.vertices, gunVertices, "every generated solid is present in the bundled preview");
     assert.ok(originalPreview.dimensions.length > 0 && originalPreview.dimensions.every(([w, h]) => w === 512 && h === 512), "bundled 512×512 textures are decoded before showing the gun");
     await p.screenshot({ path: path.join(dir, "bundled-original-attack.png") });
     await p.locator('[data-phantom-skin="champions_def"]').click();

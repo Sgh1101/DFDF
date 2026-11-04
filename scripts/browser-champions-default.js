@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture');
-const expected=require('../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json')['minecraft:geometry'][0].bones.reduce((n,b)=>n+(b.cubes?.length||0),0)*36;
+const expected=require('./champions-phantom/model').vertexCount(require('../assets/champions-phantom/dfdf-1/geo/phantom_champions_2026.geo.json')['minecraft:geometry'][0]);
 (async()=>{const f=await fixture();try{
   const p=await f.page('champsdefault',{width:1100,height:720});
   await p.waitForFunction(()=>CHAMPIONS_PHANTOM.loaded());

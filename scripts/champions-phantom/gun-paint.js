@@ -7,7 +7,7 @@ const { hash } = require("./png");
 
 // [body, trim, dark, glow] — the same groups js/phantom-gun-wave.js reads.
 const PALETTES = {
-  // Attack: dark crimson body, silver furniture. Defense: ivory body, graphite furniture.
+  // Crimson/ivory enamel with restrained gold trim.
   attacker: {
     body: [0x1a060c, 0x2a0a14, 0x3c1020, 0x52182c, 0x6c2238, 0x8a2e48],
     trim: [0x6a4012, 0x8e5e1c, 0xb47e2a, 0xd49e3c, 0xecbe58, 0xfcdc88],
@@ -26,20 +26,11 @@ const PALETTES = {
 };
 // Gold crest veins on the side panels, as polylines in (x, y) model units.
 const VEINS = [
-  [[-6.9, 1.95], [9.5, 1.95], [14.2, 1.95]],                       // thin gold top edge of the crimson body
-  [[9.6, -4.2], [12.0, -3.2], [14.2, -2.3]],                       // lower diagonal of the front wedge
-  [[2.6, -3.9], [2.6, -1.7], [8.9, -1.7], [8.9, -3.9]],            // panel outline above the magazine well
-  [[-6.8, -3.6], [-4.6, -1.6], [-6.8, 0.2]],
-  [[-6.2, 0.9], [-3.6, -0.7], [-0.6, 0.8]],
-  [[0.4, -4.0], [0.4, -2.2], [2.2, -2.2]],
-  [[9.8, 0.7], [11.4, -0.7], [13.8, 0.7]],
-  [[14.8, -1.5], [18.0, -0.2], [21.0, -1.3], [24.8, 0.2]],         // handguard zig-zag
-  [[15.0, 1.3], [22.6, 1.3]],
-  [[15.4, -2.1], [20.4, -2.1]],
-  [[27.2, -0.6], [30.0, 0.5], [33.0, -0.5], [35.2, 0.5]],          // barrel marking
+  [[-6.3,1.85],[10.3,1.85]],
+  [[12,-1.3],[25.6,-1.1]],
 ];
 // Glowing seams cut through the upper receiver.
-const SEAMS = [[[-5.6, 1.3], [-0.6, 1.3]], [[1.0, 1.0], [3.4, 1.5]], [[5.6, 1.3], [12.4, 1.3]], [[16.2, 0.4], [22.4, 0.4]]];
+const SEAMS = [];
 // Engraved facets on the silver stock.
 const FACETS = [[[-21.2, -5.0], [-17.6, -1.2], [-13.6, -4.4]], [[-13.6, -4.4], [-9.4, -2.2]]];
 
@@ -69,7 +60,6 @@ function painter(side) {
     if (veinable && flank) {
       if (near([x, y], VEINS, 0.3)) { group = "trim"; shade = 4 + (grain > 0.6 ? 1 : 0); }
       else if (near([x, y], VEINS, 0.5)) { if (pal.accent) group = "accent"; else shade = Math.min(shade, 2); }
-      if (pal.accent && group === "body" && y < -1.6 && y > -4.3 && x > -6 && x < 9.4) group = "accent"; // brown recess under the ivory shell
       if (near([x, y], SEAMS, 0.24)) { group = "glow"; glow = true; }
     }
     if (material === "shell" && flank) {
@@ -90,11 +80,13 @@ function painter(side) {
     if (material === "trim" && (up || v === 0)) shade = Math.max(shade, 4);
     if (material === "dark" && group === "dark") shade = Math.min(shade, 4);
     const colors = pal[group];
+    const response=cube.finish==='rubber'?[.86,.02]:group==='trim'?[.25,.94]:group==='shell'?[.31,.87]:group==='body'||group==='accent'?[.43,.26]:group==='glow'?[.3,.1]:[.48,.52];
+    const surface=(255<<16)|(Math.round(response[0]*255)<<8)|Math.round(response[1]*255);
     if (group === "glow") {
       const color = colors[grain > 0.5 || up ? 1 : 0];
-      return { base: color, mask: color };
+      return { base: color, mask: color, surface };
     }
-    return { base: colors[clampShade(shade)], mask: glow ? colors[0] : null };
+    return { base: colors[clampShade(shade)], mask: glow ? colors[0] : null, surface };
   };
 }
 module.exports = { PALETTES, painter };

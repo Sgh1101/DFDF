@@ -3,13 +3,15 @@
   const rad = Math.PI / 180;
   // Preserve every source cube, UV face and bone; merge only within a bone.
   function geometry(cubes, pivot, desc) {
-    const positions = [], normals = [], uv = [];
+    const positions = [], normals = [], uv = [], cubeIds = [], faceIds = [];
     const faces = ["east", "west", "up", "down", "south", "north"];
-    for (const cube of cubes) {
+    for (const [cubeIndex,cube] of cubes.entries()) {
       const size = cube.size.map((v) => Math.max(v, 0.001)), inflation = Number(cube.inflate) || 0;
-      const g = new T.BoxGeometry(...size.map((v) => Math.max(0.001, v + inflation * 2)));
+      const solid=cube.dfdf_mesh;
+      if(solid&&!window.DFDF_SOLID_GEOMETRY)throw Error('DFDF solid geometry is unavailable');
+      const g = solid?window.DFDF_SOLID_GEOMETRY.build(T,{...cube,size:size.map(v=>Math.max(.001,v+inflation*2))},desc):new T.BoxGeometry(...size.map((v) => Math.max(0.001, v + inflation * 2)));
       const coords = g.getAttribute("uv"), indices = g.index;
-      for (let face = 0; face < 6; face++) {
+      for (let face = 0; !solid && face < 6; face++) {
         let spec = cube.uv?.[faces[face]];
         if (Array.isArray(cube.uv)) {
           const [u, v] = cube.uv, [x, y, z] = size;
@@ -32,12 +34,14 @@
         g.translate(...p);
       }
       g.translate(...pivot.map((v) => -v));
-      const flat = g.toNonIndexed();
+      const flat = g.index?g.toNonIndexed():g;
       positions.push(...flat.attributes.position.array); normals.push(...flat.attributes.normal.array); uv.push(...flat.attributes.uv.array);
-      flat.dispose(); g.dispose();
+      for(let i=0;i<flat.attributes.position.count;i++){cubeIds.push(cubeIndex);faceIds.push(flat.attributes.dfdfFace?.getX(i)??Math.floor(i/6));}
+      if(flat!==g)flat.dispose();g.dispose();
     }
     const merged = new T.BufferGeometry();
     merged.setAttribute("position", new T.Float32BufferAttribute(positions, 3)); merged.setAttribute("normal", new T.Float32BufferAttribute(normals, 3)); merged.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+    merged.setAttribute('dfdfCube',new T.Float32BufferAttribute(cubeIds,1));merged.setAttribute('dfdfFace',new T.Float32BufferAttribute(faceIds,1));
     return merged;
   }
   function buildGeo(geo, mat) {

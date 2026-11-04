@@ -10,7 +10,7 @@ test("bundled Phantom loads DFDF's own generated model, finisher and full-resolu
   assert.ok(cubes(geo) > 60, "the gun is a full cube model");
   for (const bone of ["magazine", "mag_and_lefthand", "charge_handle", "bolt", "trigger", "mag_release", "muzzle_pos"]) assert.ok(geo.bones.some((b) => b.name === bone), bone + " attachment/motion bone");
   for (const clip of ["idle", "draw", "shoot", "shoot_aim", "reload_tactical", "inspect"]) assert.ok(clips[clip], clip + " clip");
-  assert.equal(manifest.files.length, 39);
+  assert.equal(manifest.files.length, 41);
   for (const name of ["dragon_low", "serpent_red", "serpent_cream"]) {
     const model = JSON.parse(new TextDecoder().decode(assets[`geo/finisher/${name}.geo.json`]))["minecraft:geometry"][0];
     assert.ok(cubes(model) > 100, name + " has a full body");
@@ -21,7 +21,7 @@ test("bundled Phantom loads DFDF's own generated model, finisher and full-resolu
     assert.equal(bytes.length, file.size); assert.equal(sha256(bytes), file.sha256);
     assert.match(file.name, /^(geo|animations|textures)\//);
   }
-  for (const side of ["attacker", "defender"]) for (const suffix of ["", "_glowmask"]) {
+  for (const side of ["attacker", "defender"]) for (const suffix of ["", "_glowmask", "_surface"]) {
     const png = Buffer.from(assets[`textures/item/phantom_${side}${suffix}.png`]);
     assert.equal(png.readUInt32BE(16), 512); assert.equal(png.readUInt32BE(20), 512);
   }
