@@ -1,7 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const policy=require('../js/advertising-policy');
+const rawPolicy=require('../js/advertising-policy');
+// Synthetic operator approval only. This is not the site's live review record.
+const grant={webUse:true,modification:true,redistribution:true,adMonetization:true};
+const review={schemaVersion:1,site:{status:'approved',publisherId:'ca-pub-1234567890123456'},applicant:{adultConfirmed:true},audience:{classification:'general',underAgeHandlingReviewed:true},consent:{regionalPolicyReviewed:true,cmpProvider:'fixture',certificationVerified:true,withdrawalTested:true},inventory:{status:'reviewed',evidenceRef:'fixture'},assets:rawPolicy.requiredAssets.map(id=>({id,status:'verified',grant,evidenceRef:'fixture',files:[{path:'fixture.bin',sha256:'a'.repeat(64)}]}))};
+const policy={evaluate:(c,p,s)=>rawPolicy.evaluate(c,p,s,review)};
 const ready={enabled:true,publisherId:'ca-pub-1234567890123456',siteApproved:true,audience:'general',cmpReady:true,rightsReviewed:true,format:'display'};
-const consent={advertising:true,cmpVerified:true,underAge:false};
+const consent={advertising:true,cmpVerified:true,underAge:false,status:'ready',expiresAt:Date.now()+60000};
 test('advertising is default-off and incomplete external readiness cannot enable it',()=>{
  const configured=require('../ads-config.json');
  assert.equal(policy.evaluate(configured,'/guide.html',consent).allowed,false);

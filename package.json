@@ -154,6 +154,7 @@
     "test:full": "node scripts/run-browser-suite.js --full",
     "test:improvements": "node scripts/browser-improvements.js",
     "check:assets": "node scripts/check-assets.js",
+    "check:ads": "node scripts/check-ad-readiness.js",
     "test:pwa": "node scripts/browser-pwa.js",
     "test:ability-floors": "node scripts/browser-ability-floors.js",
     "test:zone-owner": "node scripts/browser-zone-owner.js",
