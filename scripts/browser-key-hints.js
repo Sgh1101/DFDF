@@ -79,7 +79,7 @@ const dir = process.env.SHOT_DIR || "test-results/key-hints";
     h = await hints();
     assert.match(h.tips, /T 재장전/); assert.doesNotMatch(h.tips, /R 재장전/); assert.match(h.tips, /I 또는 K 길게 — 설치/); assert.match(h.tips, /K 길게 — 해제/); assert.match(h.tips, /O 상점/);
     assert.match(h.tips, /↑ASD 이동/, "the moving keys: " + h.tips);
-    assert.match(h.spike, /사이트 안에서 I 또는 K를 눌러 설치/, "the spike hint names the bound keys: " + h.spike);
+    assert.match(h.spike, /사이트 안에서 I 또는 K를 눌러 설치/, "the bomb hint names the bound keys: " + h.spike);
     await page.evaluate(() => toggleBigMap(true));
     assert.match(await page.textContent("#bm-hint"), /(^|· )U (·|닫기)/, "the big map's hint: " + await page.textContent("#bm-hint"));
     await page.screenshot({ path: `${dir}/bigmap-rebound.png` });

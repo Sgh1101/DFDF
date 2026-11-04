@@ -19,7 +19,7 @@
   const DURATION = 3500, // PREMATCH_DURATION (ms) in the page makes it longer, for a screenshot
     dur = () => Math.max(1000, +window.PREMATCH_DURATION || DURATION),
     GRACE = 300; // input in the first moments does not close it (the key or tap that started the match)
-  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Spike Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" };
+  const MODE_EN = { std: "Standard", swift: "Swift", rush: "Bomb Rush", tdm: "Team DM", dm: "Deathmatch", knife: "Knife Fight", gun: "Gun Game", range: "Target Range", hill: "Conquest", ctf: "Capture the Flag", zone: "Shrinking Zone", inf: "Infection" };
   const modeDef = () => (window.GAME_MODES && GAME_MODES[room.mode]) || {};
   const modeName = () => (EN ? MODE_EN[room.mode] : modeDef().name) || modeDef().name || "";
   const mapName = () => {
