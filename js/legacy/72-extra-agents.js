@@ -716,8 +716,8 @@
   // ── the ultimate: a map; where I touch it, I am ──
   // A spot I can stand on: the floor there, or the raised floor or heaven at
   // that spot, or the nearest free floor around it.
-  function standAt(x, z) {
-    if (window.ASCENT_TRIAL?.active) return ASCENT_TRIAL.standAt(x, z);
+  function standAt(x, z, y) {
+    if (window.ASCENT_TRIAL?.active) return ASCENT_TRIAL.standAt(x, z, y);
     const B = MAP.bounds;
     const ok = (x, z, y) => x > B.minX + 1 && x < B.maxX - 1 && z > B.minZ + 1 && z < B.maxZ - 1 && !collideXZ(x, z, y, 0.45);
     for (let r = 0; r <= 8; r += 0.75)
@@ -884,7 +884,7 @@
       goal = goal || { x: c.pos.x, z: c.pos.z };
       later(1, () => {
         if (!c.alive || !(c.__warpT > 0)) return;
-        const at = standAt(goal.x + (Math.random() - 0.5) * 10, goal.z + (Math.random() - 0.5) * 10);
+        const at = standAt(goal.x + (Math.random() - 0.5) * 10, goal.z + (Math.random() - 0.5) * 10, goal.y??c.y);
         if (!at) return;
         const from = [c.pos.x, c.y || 0, c.pos.z];
         warpTo(c, at);
@@ -1240,7 +1240,7 @@
         const a = (world.actors || []).find((x) => x.ctrl === peer);
         if (!a || !a.alive || !(a.__warpT > 0)) return;
         if (m.cancel) return void ((a.__warpT = 0), (a.ultCharge = a.ultMax || 7));
-        const at = standAt(m.x / 100, m.z / 100);
+        const at = standAt(m.x / 100, m.z / 100, Number.isFinite(m.y)?m.y/100:a.y);
         if (!at) return;
         const from = [a.pos.x, a.y || 0, a.pos.z];
         warpTo(a, at);

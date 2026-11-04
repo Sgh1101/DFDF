@@ -3,9 +3,9 @@
   'use strict';
   const trial=new URLSearchParams(location.search).get('ascent-trial')==='1';
   const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null};
-  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','하늘섬 마을 불러오기');
+  const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','황혼 지구 불러오기');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
-  const title=document.createElement('strong');title.textContent='하늘섬 마을';
+  const title=document.createElement('strong');title.textContent='황혼 지구';
   const msg=document.createElement('p');msg.setAttribute('role','status');msg.textContent='지형을 준비하는 중…';msg.style.margin='8px 0';
   const start=document.createElement('button');start.textContent='이 맵으로 연습 시작';start.disabled=true;start.className='btn';
   const exit=document.createElement('a');exit.href='./play.html';exit.textContent='기존 게임으로';exit.style.cssText='color:#a8dcd6;margin-left:12px;display:inline-block;min-height:32px;line-height:32px;padding:0 6px';
@@ -33,17 +33,17 @@
     if(r&&r.width){Object.assign(panel.style,{left:Math.max(8,Math.round(r.left))+'px',top:'auto',bottom:Math.round(innerHeight-r.top+8)+'px',transform:'none'});}
     else Object.assign(panel.style,{left:'50%',top:'calc(env(safe-area-inset-top,0px) + 6px)',bottom:'auto',transform:'translateX(-50%)'});
   };
-  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'하늘섬 마을',size:5,walls:[],graphicsStatic:true};
-  const entry={key:KEY,name:'하늘섬 마을',size:5};
+  MAPS[KEY]={...MAPS.glacier,key:KEY,name:'황혼 지구',size:5,walls:[],graphicsStatic:true};
+  const entry={key:KEY,name:'황혼 지구',size:5};
   (window.MAP_EXTRA||=[]).push(entry);
   if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else{MAP_LIST.push(entry);dispatchEvent(new CustomEvent('maps-changed',{detail:{count:MAP_LIST.length}}));}
   let pending=null,startRevision=0,loadRevision=0;
   let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
   const renderAssets=new Map(),assetLoads=new Map();let graphicsRevision=0,renderProfile=null;
   const profileFor=mode=>mode==='mobile'?'mobile':'original';
-  const flows=new Map();
   const on=()=>S.active&&CUR_MAP_KEY===KEY;
-  const sourcePoint=(x,z)=>({x:(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*S.meta.scale,z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*S.meta.scale});
+  const horizontalScale=()=>S.meta.horizontalScale||S.meta.scale;
+  const sourcePoint=(x,z,y=7.5)=>({x:(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*horizontalScale(),z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*horizontalScale(),y});
   function nearby(x,z,r=PR) {
     if (CHASH.dirty||!CHASH.buckets) chashBuild();
     const found=new Set(), out=[];
@@ -61,7 +61,7 @@
     for(const c of candidates) if(!collideXZ(x,z,c.h+.02,r)) return c.h;
     return NaN;
   }
-  S.standAt=(x,z)=>{const p=safe({x,z});return Math.hypot(p.x-x,p.z-z)<=8&&!collideXZ(p.x,p.z,p.y,PR)?p:null;};
+  S.standAt=(x,z,y=player.y||7.5)=>{try{const p=safe({x,z,y});return Math.hypot(p.x-x,p.z-z)<=8&&!collideXZ(p.x,p.z,p.y,PR)?p:null;}catch{return null;}};
   // groundAt, the wall rays and sight lines all read the engine's hash now (11-walls-must-stop-bullets-and-bodies.js);
   // this map's boxes are told apart there by ascentOn
   S.rayT=(ox,oy,oz,dx,dy,dz,max,skip)=>WALL_T(ox,oy,oz,dx,dy,dz,max,skip);
@@ -100,17 +100,18 @@
   }
   function clear() {
     graphicsRevision++;clearMeshes();S.graphicsMessage='';S.graphicsStatus='idle';
-    if(S.active)floor.visible=true;
-    S.active=false;navHeight=null;navEdges=null;S.nav=null;flows.clear();
+    if(S.active){floor.visible=true;window.SITE_ZONES?.clear();delete world.spike.y;}
+    S.active=false;navHeight=null;navEdges=null;S.nav=null;
     if(previousNav){NAV.length=0;NAV.push(...previousNav);GRID.cell=previousCell;previousNav=null;}
   }
   const oldClear=clearMapGeometry;
   clearMapGeometry=function(){clear();return oldClear.apply(this,arguments);};
   function geometry(asset,collisions=false) {
     buffer=asset.buffer;palette=asset.palette;atlasTexture=asset.texture;atlasTexture.needsUpdate=true;
-    const mobile=asset.profile==='mobile',chunkSize=mobile?64:40;
+    const mobile=asset.profile==='mobile',chunkSize=mobile?32*horizontalScale():40;
     const d=new DataView(buffer),n=d.getUint32(4,true),count=d.getUint32(8,true),s=S.meta.scale/16,dim=S.meta.dimensions;
-    const origin=[-dim[0]*S.meta.scale/2,0,-dim[2]*S.meta.scale/2],chunks=new Map();
+    const units=[horizontalScale()/16,s,horizontalScale()/16];
+    const origin=[-dim[0]*horizontalScale()/2,0,-dim[2]*horizontalScale()/2],chunks=new Map();
     function atlasMaterial(transparent){
       const width=palette.width,height=palette.height;
       const m=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide,map:atlasTexture,alphaTest:.05,transparent,depthWrite:!transparent});
@@ -126,7 +127,7 @@
     material=palette?atlasMaterial(false):new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
     glassMaterial=palette?atlasMaterial(true):null;
     for(let i=0;i<n;i++) {
-      const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*s),tile=palette?d.getUint16(p+21,true):0,info=palette?.tiles[tile],transparent=!!info?.transparent,k=Math.floor(q[0]/chunkSize)+','+Math.floor(q[2]/chunkSize)+','+Math.floor(q[1]/chunkSize)+','+transparent;
+      const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*units[a%3]),tile=palette?d.getUint16(p+21,true):0,info=palette?.tiles[tile],transparent=!!info?.transparent,k=Math.floor(q[0]/chunkSize)+','+Math.floor(q[2]/chunkSize)+','+Math.floor(q[1]/chunkSize)+','+transparent;
       if(!chunks.has(k))chunks.set(k,{pos:[],normal:[],color:[],uv:[],atlas:[],indices:[],transparent});
       const c=chunks.get(k),base=c.pos.length/3,u=q.slice(3,6),v=q.slice(6,9),normal=new T.Vector3(...u).cross(new T.Vector3(...v)).normalize();
       const color=new T.Color((d.getUint8(p+18)<<16)|(d.getUint8(p+19)<<8)|d.getUint8(p+20));
@@ -134,7 +135,7 @@
         for(let j=0;j<3;j++)c.pos.push(q[j]+a*u[j]+b*v[j]+origin[j]);
         c.normal.push(normal.x,normal.y,normal.z);c.color.push(color.r,color.g,color.b);
         if(palette){
-          const pos=q.slice(0,3).map((x,j)=>(x+a*u[j]+b*v[j])/S.meta.scale),n=normal;
+          const pos=q.slice(0,3).map((x,j)=>(x+a*u[j]+b*v[j])/(units[j]*16)),n=normal;
           let uv=Math.abs(n.y)>.9?[pos[0],n.y>0?-pos[2]:pos[2]]:Math.abs(n.x)>.9?[n.x>0?-pos[2]:pos[2],pos[1]]:[n.z>0?pos[0]:-pos[0],pos[1]];
           if(Math.abs(n.x)>.1&&Math.abs(n.z)>.1)uv=[a,b];
           c.uv.push(...uv);
@@ -153,100 +154,146 @@
     if(!collisions)return;
     let p=16+n*24;
     for(let i=0;i<count;i++,p+=12) {
-      const b=Array.from({length:6},(_,a)=>d.getUint16(p+a*2,true)*s+origin[a%3]);
+      const b=Array.from({length:6},(_,a)=>d.getUint16(p+a*2,true)*units[a%3]+origin[a%3]);
       COLLIDERS.push({minX:b[0],y0:b[1],minZ:b[2],maxX:b[3],h:b[4],maxZ:b[5],mesh:null,hp:Infinity,destructible:false,temp:false,ascent:true});
     }
     CHASH.dirty=true;chashBuild();
   }
-  function buildNav() {
-    GRID.cell=S.meta.scale/2;GRID.minX=MAP.bounds.minX;GRID.minZ=MAP.bounds.minZ;
-    GRID.cols=Math.ceil((MAP.bounds.maxX-GRID.minX)/GRID.cell);GRID.rows=Math.ceil((MAP.bounds.maxZ-GRID.minZ)/GRID.cell);
-    GRID.walk=new Uint8Array(GRID.cols*GRID.rows);navHeight=new Float32Array(GRID.walk.length);navHeight.fill(NaN);
-    for(let z=0;z<GRID.rows;z++)for(let x=0;x<GRID.cols;x++) {
-      const p=cellCenter(x,z),h=surface(p.x,p.z,19,.8),i=z*GRID.cols+x;
-      if(Number.isFinite(h)){navHeight[i]=h;GRID.walk[i]=1;}
-    }
-    // Cardinal links sampled with the actual body movement/step solver.
-    navEdges=new Uint8Array(GRID.walk.length);
-    for(let z=0;z<GRID.rows;z++)for(let x=0;x<GRID.cols;x++) {
-      const i=z*GRID.cols+x;if(!GRID.walk[i])continue;
-      const p=cellCenter(x,z);
-      for(const [dx,dz,bit] of [[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]]) {
-        const X=x+dx,Z=z+dz,j=Z*GRID.cols+X;if(X<0||Z<0||X>=GRID.cols||Z>=GRID.rows||!GRID.walk[j])continue;
-        if(navHeight[j]-navHeight[i]>STEP_H||navHeight[i]-navHeight[j]>2)continue;
-        const pos={x:p.x,z:p.z},y=moveWithSlide(pos,dx*GRID.cell,dz*GRID.cell,navHeight[i],PR);
-        if(Math.hypot(pos.x-p.x-dx*GRID.cell,pos.z-p.z-dz*GRID.cell)<.01&&y-navHeight[i]<=STEP_H+.001)navEdges[i]|=bit;
-      }
-    }
-    // Keep match spawns and objectives on the largest connected street network.
-    const component=new Int32Array(GRID.walk.length);component.fill(-1);const groups=[];
-    for(let begin=0;begin<GRID.walk.length;begin++) {
-      if(!GRID.walk[begin]||component[begin]>=0)continue;
-      const id=groups.length,q=[begin];component[begin]=id;
-      for(let head=0;head<q.length;head++)for(const [step,bit,reverse] of [[1,1,2],[-1,2,1],[GRID.cols,4,8],[-GRID.cols,8,4]]){
-        const i=q[head],j=i+step;if((navEdges[i]&bit)&&(navEdges[j]&reverse)&&component[j]<0){component[j]=id;q.push(j);}
-      }
-      groups.push(q);
-    }
-    const main=groups.reduce((a,b)=>a.length>b.length?a:b,[]);
-    S.nav={height:navHeight,edges:navEdges,component,main,groups:groups.map(a=>a.length).sort((a,b)=>b-a)};
-    for(const p of [MAP.attackSpawn,MAP.defendSpawn,...MAP.sites,...Object.values(MAP.nodes)]) {
-      let best=null,d=Infinity;
-      for(const i of main){const c=cellCenter(i%GRID.cols,Math.floor(i/GRID.cols)),dist=(p.x-c.x)**2+(p.z-c.z)**2;if(dist<d){d=dist;best={...c,y:navHeight[i]};}}
-      if(best)Object.assign(p,best);
-    }
-  }
-  // the cell of component id nearest grid cell (cx, cz), ring by ring out to 48 cells; -1 if none
-  function nearestOn(id,cx,cz) {
-    for(let r=1;r<=48;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx+=Math.abs(dz)===r?1:2*r) {
-      const x=cx+dx,z=cz+dz;if(x>=0&&z>=0&&x<GRID.cols&&z<GRID.rows&&S.nav.component[z*GRID.cols+x]===id)return z*GRID.cols+x;
-    }
-    return -1;
-  }
-  const oldFind=findPath;
-  findPath=function(x,z,X,Z) {
-    if(!on())return oldFind.apply(this,arguments);
-    const [sx,sz]=nearestWalkable(gx(x),gz(z)),[ex,ez]=nearestWalkable(gx(X),gz(Z)),begin=sz*GRID.cols+sx;let end=ez*GRID.cols+ex;
-    if(!GRID.walk[begin]||!GRID.walk[end])return [];
-    // A goal off the bot's own street network (a roof, a ledge, a shut yard: a bot's spot on a site is up to 6 m off
-    // its centre) has no way to it, and the bot stood still: the nearest cell of that network instead.
-    if(S.nav&&S.nav.component[end]!==S.nav.component[begin]&&(end=nearestOn(S.nav.component[begin],ex,ez))<0)return [];
-    if(!flows.has(end)){
-      const q=[end],next=new Int32Array(GRID.walk.length);next.fill(-1);next[end]=end;
-      for(let head=0;head<q.length;head++) {
-        const i=q[head],cx=i%GRID.cols,cz=Math.floor(i/GRID.cols);
-        for(const [dx,dz,bit] of [[1,0,2],[-1,0,1],[0,1,8],[0,-1,4]]) {
-          const x=cx+dx,z=cz+dz,j=z*GRID.cols+x;
-          if(x>=0&&z>=0&&x<GRID.cols&&z<GRID.rows&&(navEdges[j]&bit)&&next[j]<0){next[j]=i;q.push(j);}
+  // A street under a bridge and the bridge deck are separate navigation nodes.
+  // Sampling just one height per x/z disconnected the supplied map's real lanes.
+  const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],REVERSE=[1,0,3,2];
+  function nodePoint(n,i){const c=n.cells[i];return {...cellCenter(c%GRID.cols,Math.floor(c/GRID.cols)),y:n.ys[i]};}
+  function nearestNode(n,x,z,y=7.5,onlyMain=false,max=12){
+    const cx=gx(x),cz=gz(z);let best=-1,score=Infinity;
+    for(let r=0;r<=Math.ceil(max/GRID.cell);r++){
+      for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx+=Math.abs(dz)===r?1:2*r||1){
+        const X=cx+dx,Z=cz+dz;if(X<0||Z<0||X>=GRID.cols||Z>=GRID.rows)continue;
+        const c=Z*GRID.cols+X;
+        for(let j=n.start[c];j<n.start[c+1];j++){
+          if(onlyMain&&n.nodeComponent[j]!==n.mainId)continue;
+          const p=nodePoint(n,j),d=(p.x-x)**2+(p.z-z)**2,dy=n.ys[j]-y,v=d+dy*dy*4;
+          if(d<=max*max&&v<score){score=v;best=j;}
         }
       }
-      if(flows.size>=12)flows.delete(flows.keys().next().value);flows.set(end,next);
+      if(best>=0&&score<=(r*GRID.cell)**2)break;
     }
-    const next=flows.get(end);if(next[begin]<0)return [];
-    const path=[];for(let i=begin;i!==end;){i=next[i];path.push({...cellCenter(i%GRID.cols,Math.floor(i/GRID.cols)),y:navHeight[i]});}
-    return path;
+    return best;
+  }
+  function buildNav() {
+    GRID.cell=horizontalScale()/2;GRID.minX=MAP.bounds.minX+GRID.cell/2;GRID.minZ=MAP.bounds.minZ+GRID.cell/2;
+    GRID.cols=Math.ceil((MAP.bounds.maxX-GRID.minX)/GRID.cell);GRID.rows=Math.ceil((MAP.bounds.maxZ-GRID.minZ)/GRID.cell);
+    const size=GRID.cols*GRID.rows,start=new Int32Array(size+1),ys=[],cells=[];
+    for(let c=0;c<size;c++){
+      start[c]=ys.length;const p=cellCenter(c%GRID.cols,Math.floor(c/GRID.cols)),seen=new Set();
+      for(const b of nearby(p.x,p.z,.3)){
+        if(b.h>19||p.x+.3<=b.minX||p.x-.3>=b.maxX||p.z+.3<=b.minZ||p.z-.3>=b.maxZ||collideXZ(p.x,p.z,b.h+.02,.3))continue;
+        const h=groundAt(p.x,p.z,b.h);if(seen.has(h)||collideXZ(p.x,p.z,h+.02,.3))continue;
+        seen.add(h);ys.push(h);cells.push(c);
+      }
+    }
+    start[size]=ys.length;
+    const Y=Float32Array.from(ys),C=Int32Array.from(cells),edges=new Int32Array(ys.length*4).fill(-1);
+    for(let i=0;i<Y.length;i++){
+      const c=C[i],x=c%GRID.cols,z=Math.floor(c/GRID.cols),p=cellCenter(x,z),y=Y[i];
+      for(let d=0;d<4;d++){
+        const [dx,dz]=DIRS[d],X=x+dx,Z=z+dz;if(X<0||Z<0||X>=GRID.cols||Z>=GRID.rows)continue;
+        const c2=Z*GRID.cols+X;let best=-1,delta=Infinity;
+        for(let j=start[c2];j<start[c2+1];j++){const dy=Y[j]-y;if(dy>STEP_H+.001||dy< -2)continue;if(Math.abs(dy)<delta){delta=Math.abs(dy);best=j;}}
+        if(best<0)continue;
+        const q={x:p.x,z:p.z},ny=moveWithSlide(q,dx*GRID.cell,dz*GRID.cell,y,PR),ty=Y[best];
+        if(Math.hypot(q.x-p.x-dx*GRID.cell,q.z-p.z-dz*GRID.cell)>.01)continue;
+        if(ty>=y-.05?Math.abs(ny-ty)>.05:ny-y>.05)continue;
+        edges[i*4+d]=best;
+      }
+    }
+    const component=new Int32Array(Y.length).fill(-1),groups=[];
+    for(let i=0;i<Y.length;i++){
+      if(component[i]>=0)continue;const id=groups.length,q=[i];component[i]=id;
+      for(let h=0;h<q.length;h++)for(let d=0;d<4;d++){const j=edges[q[h]*4+d];if(j>=0&&component[j]<0&&edges[j*4+REVERSE[d]]===q[h]){component[j]=id;q.push(j);}}
+      groups.push(q);
+    }
+    const n=S.nav={start,ys:Y,cells:C,links:edges,nodeComponent:component,mainId:0,flows:new Map()};
+    const spawn=nearestNode(n,MAP.attackSpawn.x,MAP.attackSpawn.z,7.5,false,3);
+    if(spawn<0)throw Error('공격 시작 구역에 이동 가능한 바닥이 없어');
+    n.mainId=component[spawn];n.groups=groups.map(g=>g.length).sort((a,b)=>b-a);
+    // Compatibility projection for the minimap and generic walkable-cell queries.
+    GRID.walk=new Uint8Array(size);navHeight=new Float32Array(size).fill(NaN);navEdges=new Uint8Array(size);n.component=new Int32Array(size).fill(-1);n.main=[];
+    for(let c=0;c<size;c++){
+      let best=-1;for(let j=start[c];j<start[c+1];j++)if(best<0||component[j]===n.mainId&&component[best]!==n.mainId||component[j]===component[best]&&Math.abs(Y[j]-7.5)<Math.abs(Y[best]-7.5))best=j;
+      if(best<0)continue;GRID.walk[c]=1;navHeight[c]=Y[best];n.component[c]=component[best];if(component[best]===n.mainId)n.main.push(c);
+      for(let d=0;d<4;d++)if(edges[best*4+d]>=0)navEdges[c]|=1<<d;
+    }
+    n.height=navHeight;n.edges=navEdges;n.anchorAdjustments=[];
+    for(const p of [MAP.attackSpawn,MAP.defendSpawn,...MAP.sites,...Object.values(MAP.nodes)]){
+      const i=nearestNode(n,p.x,p.z,p.y,true,3);
+      if(i<0)throw Error('맵 시작/설치 구역이 실제 이동 경로에 연결되지 않았어');
+      const q=nodePoint(n,i);n.anchorAdjustments.push(Math.hypot(q.x-p.x,q.z-p.z));Object.assign(p,q);
+    }
+    const rs=new Int32Array(Y.length+1);for(const j of edges)if(j>=0)rs[j+1]++;for(let i=0;i<Y.length;i++)rs[i+1]+=rs[i];
+    const rl=new Int32Array(rs[Y.length]),fill=rs.slice(0,Y.length);for(let i=0;i<edges.length;i++)if(edges[i]>=0)rl[fill[edges[i]]++]=Math.floor(i/4);n.rs=rs;n.rl=rl;
+  }
+  const oldFind=findPath;
+  const objectiveY=(x,z)=>[MAP.attackSpawn,MAP.defendSpawn,...MAP.sites,...Object.values(MAP.nodes)].find(p=>Math.hypot(p.x-x,p.z-z)<8)?.y??7.5;
+  findPath=function(x,z,X,Z,y,Y) {
+    if(!on())return oldFind.apply(this,arguments);
+    y??=objectiveY(x,z);Y??=objectiveY(X,Z);
+    const n=S.nav;if(!n)return[];
+    const begin=nearestNode(n,x,z,y,false,8),end=nearestNode(n,X,Z,Y,true,8);if(begin<0||end<0)return[];
+    let next=n.flows.get(end);
+    if(!next){next=new Int32Array(n.ys.length).fill(-1);next[end]=end;const q=[end];for(let h=0;h<q.length;h++){const i=q[h];for(let k=n.rs[i];k<n.rs[i+1];k++){const j=n.rl[k];if(next[j]<0){next[j]=i;q.push(j);}}}if(n.flows.size>=12)n.flows.delete(n.flows.keys().next().value);n.flows.set(end,next);}
+    if(next[begin]<0)return[];
+    const path=[];for(let i=begin;i!==end;){i=next[i];path.push(nodePoint(n,i));}return path;
   };
   const oldNext=navNext;
-  navNext=function(a,x,z,dt) {
+  navNext=function(a,x,z,dt,y) {
     if(!on())return oldNext.apply(this,arguments);
+    y??=objectiveY(x,z);
     const n=a.ai;n.repathCd2=(n.repathCd2||0)-dt;
-    if(!n.path||n.repathCd2<=0||!n.pathGoal||Math.hypot(n.pathGoal.x-x,n.pathGoal.z-z)>3){
-      n.path=findPath(a.pos.x,a.pos.z,x,z);n.pathIdx=0;n.pathGoal={x,z};n.repathCd2=2;
+    if(!n.path||n.repathCd2<=0||!n.pathGoal||Math.hypot(n.pathGoal.x-x,n.pathGoal.z-z)>3||Math.abs((n.pathGoal.y??y)-y)>.3){
+      n.path=findPath(a.pos.x,a.pos.z,x,z,a.y,y);n.pathIdx=0;n.pathGoal={x,z,y};n.repathCd2=2;
     }
-    while(n.pathIdx<n.path.length&&Math.hypot(a.pos.x-n.path[n.pathIdx].x,a.pos.z-n.path[n.pathIdx].z)<.3)n.pathIdx++;
-    return n.path[n.pathIdx]||{x,z};
+    while(n.pathIdx<n.path.length&&Math.hypot(a.pos.x-n.path[n.pathIdx].x,a.pos.z-n.path[n.pathIdx].z)<.3&&Math.abs(a.y-n.path[n.pathIdx].y)<.7)n.pathIdx++;
+    return n.path[n.pathIdx]||{x,z,y};
   };
+  function goalHeight(goal){
+    if(Number.isFinite(goal.y))return goal.y;
+    const sp=world.spike;
+    if(['planted','dropped'].includes(sp.state)&&Math.hypot(goal.x-sp.x,goal.z-sp.z)<.1)return sp.y??objectiveY(goal.x,goal.z);
+    const site=[...MAP.sites,...Object.values(MAP.nodes)].find(p=>Math.hypot(p.x-goal.x,p.z-goal.z)<.1);if(site)return site.y;
+    const a=world.actors.find(a=>a.alive&&Math.hypot(a.pos.x-goal.x,a.pos.z-goal.z)<.1);
+    return a?.y??objectiveY(goal.x,goal.z);
+  }
+  const oldGoal=aiGoal,oldBotGoal=botGoal;
+  aiGoal=function(){const p=oldGoal.apply(this,arguments);return on()&&p?{...p,y:goalHeight(p)}:p;};
+  botGoal=function(){const p=oldBotGoal.apply(this,arguments);return on()&&p?{...p,y:goalHeight(p)}:p;};
+  const oldSite=siteAt;
+  siteAt=function(x,z,y){const site=oldSite.apply(this,arguments);if(on()&&site&&Number.isFinite(y)&&Math.abs(y-groundAt(x,z,site.y))>.85)return null;return site;};
+  const spikeGround=(x,z,y)=>groundAt(x,z,Number.isFinite(y)?y:objectiveY(x,z));
+  S.sameSpikeFloor=a=>Math.abs((a.y||0)-(world.spike.y??spikeGround(world.spike.x,world.spike.z)))<=1.25;
+  function syncSpike(){
+    const sp=world.spike;if(!on()||!['planted','dropped'].includes(sp.state))return;
+    sp.y=Number.isFinite(sp.y)?sp.y:spikeGround(sp.x,sp.z);
+    if(!sp.mesh)sp.mesh=makeSpikeMesh();if(!sp.mesh.parent)scene.add(sp.mesh);sp.mesh.visible=true;
+    const t=sp.mesh.userData.deployT??1,n=1-Math.pow(1-t,3);
+    sp.mesh.position.set(sp.x,sp.y+(sp.state==='planted'?.25*(1-n):0),sp.z);
+  }
+  const oldPlant=plantSpike,oldDrop=dropSpike,oldSpikeTick=tickSpikeMesh,oldSnapshot=buildSnapshot,oldApplySnapshot=applySnapshot;
+  plantSpike=function(x,z,site){const r=oldPlant.apply(this,arguments);if(on()){world.spike.y=spikeGround(x,z,site?.y);syncSpike();}return r;};
+  dropSpike=function(x,z){const c=world.spike.carrier,ref=c==='player'?player.y:c?.y;const r=oldDrop.apply(this,arguments);if(on()){world.spike.y=spikeGround(x,z,ref);syncSpike();}return r;};
+  tickSpikeMesh=function(dt,sp){if(!on()||!sp.mesh||!['planted','dropped'].includes(sp.state))return oldSpikeTick.apply(this,arguments);const y=sp.y??spikeGround(sp.x,sp.z);sp.mesh.position.y-=y;try{return oldSpikeTick.apply(this,arguments);}finally{sp.mesh.position.y+=y;}};
+  buildSnapshot=function(){const r=oldSnapshot.apply(this,arguments);if(on())r.sk[5]=Q.pos(world.spike.y??spikeGround(world.spike.x,world.spike.z));return r;};
+  applySnapshot=function(message){const prev=world.spike.state,r=oldApplySnapshot.apply(this,arguments);if(on()){
+    const sp=world.spike;sp.y=Number.isFinite(message.sk?.[5])?Q.unpos(message.sk[5]):spikeGround(sp.x,sp.z);
+    if(sp.state==='planted'&&prev!=='planted'&&sp.mesh)spikeDeployFx(sp.mesh);
+    syncSpike();if(sp.mesh&&!['planted','dropped'].includes(sp.state))sp.mesh.visible=false;
+  }return r;};
   const oldSteer=steerToward;
   steerToward=function(a,x,z,dt,rate) {
     if(!on())return oldSteer.apply(this,arguments);
     a.yaw=Math.atan2(-(x-a.pos.x),-(z-a.pos.z));return 0;
   };
   function safe(p,index=0) {
-    if(S.nav){
-      let best=null,d=Infinity;
-      for(const i of S.nav.main){const c=cellCenter(i%GRID.cols,Math.floor(i/GRID.cols)),dist=(p.x-c.x)**2+(p.z-c.z)**2;if(dist<d&&!collideXZ(c.x,c.z,navHeight[i]+.02,PR+.1)){d=dist;best={...c,y:navHeight[i]};}}
-      if(best)return best;
-    }
+    if(S.nav){const i=nearestNode(S.nav,p.x,p.z,p.y??7.5,true,8);if(i>=0){const q=nodePoint(S.nav,i);if(!collideXZ(q.x,q.z,q.y+.02,PR))return q;}throw Error('근처에 연결된 안전한 바닥이 없어');}
     for(let r=0;r<20;r+=.625)for(let a=0;a<(r?24:1);a++) {
       const x=p.x+Math.cos(a*Math.PI/12+index)*r,z=p.z+Math.sin(a*Math.PI/12+index)*r,y=surface(x,z);
       if(Number.isFinite(y)&&!collideXZ(x,z,y+.02,PR+.15))return{x,z,y};
@@ -258,7 +305,7 @@
     if(!on())return oldSpawn.apply(this,arguments);
     const p=team==='atk'?MAP.attackSpawn:MAP.defendSpawn,other=team==='atk'?MAP.defendSpawn:MAP.attackSpawn;
     const yaw=Math.atan2(-(other.x-p.x),-(other.z-p.z));
-    return {...safe({x:p.x+Math.cos(yaw)*(index-2)*3,z:p.z-Math.sin(yaw)*(index-2)*3},index),yaw};
+    return {...safe({x:p.x+Math.cos(yaw)*(index-2)*3,z:p.z-Math.sin(yaw)*(index-2)*3,y:p.y},index),yaw};
   };
   function placeActors() {
     const counts={atk:0,def:0};
@@ -281,12 +328,11 @@
     }
     clearMapGeometry();previousNav=NAV.slice();previousCell=GRID.cell;CUR_MAP_KEY=KEY;S.active=true;
     applyMapData(MAPS[KEY]);THEME.cur=THEMES.glacier;THEME.key='glacier';applyMapMood(MAPS[KEY]);
-    // Neutral daylight keeps vanilla stone/wool colors intact rather than
-    // applying another map's blue cinematic tint to the supplied blocks.
-    POST.tint=[1,1,1];POST.lift=[0,0,0];POST.sat=1;POST.contrast=1;POST.vignette=.12;
-    hemi.color.setHex(0xffffff);hemi.groundColor.setHex(0xbcbcbc);hemi.intensity=.9;
-    sun.color.setHex(0xfff4df);sun.intensity=1.1;renderer.toneMappingExposure=1;
-    geometry(renderAssets.get(profileFor(SETTINGS.quality))||renderAssets.values().next().value,true);floor.visible=false;buildNav();
+    // Warm sunlight with a cool sky keeps the authored copper/slate palette readable.
+    POST.tint=[1.02,1,.98];POST.lift=[0,0,0];POST.sat=.96;POST.contrast=1;POST.vignette=.12;
+    hemi.color.setHex(0xdceaf4);hemi.groundColor.setHex(0xa59388);hemi.intensity=1;
+    sun.color.setHex(0xffd7ae);sun.intensity=1.05;renderer.toneMappingExposure=1;
+    geometry(renderAssets.get(profileFor(SETTINGS.quality))||renderAssets.values().next().value,true);floor.visible=false;buildNav();window.SITE_ZONES?.rebuild();
     S.applyGraphics(SETTINGS.quality);
     NAV.length=0;NAV.push(...Object.values(MAP.nodes));
     if(VM.root&&!VM.root.parent)scene.add(VM.root);
@@ -309,11 +355,11 @@
     if(renderAssets.has(profile))return renderAssets.get(profile);
     if(assetLoads.has(profile))return assetLoads.get(profile);
     const promise=(async()=>{
-      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version='neighborhood-2';
+      const base='./assets/maps/ascent/'+(profile==='mobile'?'mobile/':''),version='district-ascent-1';
       const mr=profile==='mobile'?await fetch(base+'manifest.json?v='+version):null;
       if(mr&&!mr.ok)throw Error('휴대폰용 맵 목록을 불러오지 못했어');
       const meta=mr?await mr.json():S.meta;
-      if(profile==='mobile'&&(meta.sourceGeometrySha256!==S.meta.geometrySha256||meta.colliders!==S.meta.colliders||meta.scale!==S.meta.scale||JSON.stringify(meta.dimensions)!==JSON.stringify(S.meta.dimensions)))throw Error('휴대폰용 맵 버전이 맞지 않아');
+      if(profile==='mobile'&&(meta.sourceGeometrySha256!==S.meta.geometrySha256||meta.colliders!==S.meta.colliders||meta.scale!==S.meta.scale||meta.horizontalScale!==S.meta.horizontalScale||JSON.stringify(meta.layout)!==JSON.stringify(S.meta.layout)||JSON.stringify(meta.dimensions)!==JSON.stringify(S.meta.dimensions)))throw Error('휴대폰용 맵 버전이 맞지 않아');
       const br=await fetch(base+'geometry.bin?v='+version);if(!br.ok)throw Error('지형 파일을 불러오지 못했어');
       const bytes=await br.arrayBuffer(),v=new DataView(bytes);
       if(bytes.byteLength<16||bytes.byteLength>64000000||![0x41534331,0x41534332].includes(v.getUint32(0,false))||![1,2].includes(meta.version)||meta.quads!==v.getUint32(4,true)||meta.colliders!==v.getUint32(8,true)||bytes.byteLength!==16+meta.quads*24+meta.colliders*12)throw Error('지형 데이터가 맞지 않아');
@@ -356,18 +402,18 @@
     try {
       // Full-quality files keep their existing URLs; the separate mobile pack
       // is fetched only for mobile, and never replaces cached original assets.
-      const mr=await fetch('./assets/maps/ascent/manifest.json?v=neighborhood-2');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
+      const mr=await fetch('./assets/maps/ascent/manifest.json?v=district-ascent-1');if(!mr.ok)throw Error('맵 목록을 불러오지 못했어');
       const meta=S.meta=await mr.json();
       await loadAsset(profileFor(SETTINGS.quality));
       MAPS[KEY]={graphicsStatic:true,
-        key:KEY,name:'하늘섬 마을',size:5,theme:'glacier',fog:.002,
-        bounds:{minX:-meta.dimensions[0]*meta.scale/2,maxX:meta.dimensions[0]*meta.scale/2,minZ:-meta.dimensions[2]*meta.scale/2,maxZ:meta.dimensions[2]*meta.scale/2},
+        key:KEY,name:'황혼 지구',size:5,theme:'glacier',fog:.002,previewHeight:meta.dimensions[1]*meta.scale,
+        bounds:{minX:-meta.dimensions[0]*horizontalScale()/2,maxX:meta.dimensions[0]*horizontalScale()/2,minZ:-meta.dimensions[2]*horizontalScale()/2,maxZ:meta.dimensions[2]*horizontalScale()/2},
         attackSpawn:sourcePoint(...meta.layout.attackSpawn),defendSpawn:sourcePoint(...meta.layout.defendSpawn),
-        sites:meta.layout.sites.map(([id,x,z])=>({id,label:id+' 거점',...sourcePoint(x,z),r:6})),
+        sites:meta.layout.sites.map(([id,x,z,y])=>({id,label:id+' 거점',...sourcePoint(x,z,y),r:8})),
         nodes:Object.fromEntries(Object.entries(meta.layout.nodes).map(([k,p])=>[k,sourcePoint(...p)])),walls:[],
       };
       S.status='ready';start.disabled=false;
-      msg.textContent='하늘섬 마을 준비 완료 · 블록 재질은 이 게임에서 직접 그린 것입니다.';
+      msg.textContent='황혼 지구 준비 완료 · 블록 재질은 이 게임에서 직접 그린 것입니다.';
       if(!trial)panel.hidden=true;
       return true;
     }catch(e){S.status='error';msg.textContent=e.message;start.textContent='다시 불러오기';start.disabled=false;notice(true);return false;}
