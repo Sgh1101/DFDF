@@ -1,0 +1,183 @@
+[
+  {
+    "key": "ascent_trial",
+    "spawns": [
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      },
+      {
+        "finite": true,
+        "free": true
+      }
+    ],
+    "routes": [
+      {
+        "length": 340,
+        "reached": 340,
+        "endDistance": 0.048304236178097426,
+        "endY": 13.75,
+        "goalY": 13.75,
+        "lastY": 13.75
+      },
+      {
+        "length": 420,
+        "reached": 420,
+        "endDistance": 0.08753983354477725,
+        "endY": 5,
+        "goalY": 5,
+        "lastY": 5
+      },
+      {
+        "length": 232,
+        "reached": 232,
+        "endDistance": 0.1429124844592451,
+        "endY": 13.75,
+        "goalY": 13.75,
+        "lastY": 13.75
+      },
+      {
+        "length": 214,
+        "reached": 214,
+        "endDistance": 0.08753919110244039,
+        "endY": 5,
+        "goalY": 5,
+        "lastY": 5
+      }
+    ],
+    "wall": {
+      "blocked": true,
+      "ray": 0.9500000000000028,
+      "distance": 0.9500000000000028,
+      "enemyHP": 100
+    },
+    "stats": {
+      "profile": "original",
+      "quads": 302566,
+      "meshes": 146,
+      "atlasWidth": 320,
+      "atlasHeight": 300,
+      "geometryBytes": 66564520
+    },
+    "walk": 104786,
+    "sites": [
+      {
+        "id": "A",
+        "label": "A 거점",
+        "x": -110.25,
+        "z": 30.625,
+        "y": 13.75,
+        "r": 8
+      },
+      {
+        "id": "B",
+        "label": "B 거점",
+        "x": 117.25,
+        "z": 35.875,
+        "y": 5,
+        "r": 8
+      }
+    ],
+    "adjust": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "dimensions": [
+      360.5,
+      390.25
+    ],
+    "anchors": [
+      {
+        "x": 29.75,
+        "z": -126.875,
+        "y": 7.5
+      },
+      {
+        "x": -5.25,
+        "z": 100.625,
+        "y": 11.25
+      },
+      {
+        "id": "A",
+        "label": "A 거점",
+        "x": -110.25,
+        "z": 30.625,
+        "y": 13.75,
+        "r": 8
+      },
+      {
+        "id": "B",
+        "label": "B 거점",
+        "x": 117.25,
+        "z": 35.875,
+        "y": 5,
+        "r": 8
+      },
+      {
+        "x": 29.75,
+        "z": -126.875,
+        "y": 7.5
+      },
+      {
+        "x": -5.25,
+        "z": 100.625,
+        "y": 11.25
+      },
+      {
+        "x": 3.5,
+        "z": -13.125,
+        "y": 10
+      },
+      {
+        "x": -110.25,
+        "z": 30.625,
+        "y": 13.75
+      },
+      {
+        "x": 117.25,
+        "z": 35.875,
+        "y": 5
+      }
+    ],
+    "stacked": true
+  }
+]

@@ -1,0 +1,87 @@
+{
+  "first": {
+    "profile": "mobile",
+    "quads": 166330,
+    "meshes": 78,
+    "atlasWidth": 256,
+    "atlasHeight": 180,
+    "geometryBytes": 36592600,
+    "ratio": 1,
+    "width": 852,
+    "height": 393,
+    "viewport": [
+      852,
+      393
+    ],
+    "triangles": 375716,
+    "calls": 300,
+    "geometries": 348,
+    "sameCollision": true,
+    "sameHash": true,
+    "sameNav": true,
+    "sameActor": true,
+    "loads": 1,
+    "ground": 7.5,
+    "terrainTriangles": 339022,
+    "terrainCalls": 97
+  },
+  "original": {
+    "profile": "original",
+    "quads": 302566,
+    "meshes": 146,
+    "atlasWidth": 320,
+    "atlasHeight": 300,
+    "geometryBytes": 66564520,
+    "ratio": 0.9,
+    "width": 766,
+    "height": 353,
+    "viewport": [
+      852,
+      393
+    ],
+    "triangles": 610526,
+    "calls": 370,
+    "geometries": 395,
+    "sameCollision": true,
+    "sameHash": true,
+    "sameNav": true,
+    "sameActor": true,
+    "loads": 1,
+    "ground": 7.5,
+    "terrainTriangles": 573832,
+    "terrainCalls": 167
+  },
+  "back": {
+    "profile": "mobile",
+    "quads": 166330,
+    "meshes": 78,
+    "atlasWidth": 256,
+    "atlasHeight": 180,
+    "geometryBytes": 36592600,
+    "ratio": 1,
+    "width": 852,
+    "height": 393,
+    "viewport": [
+      852,
+      393
+    ],
+    "triangles": 375716,
+    "calls": 300,
+    "geometries": 340,
+    "sameCollision": true,
+    "sameHash": true,
+    "sameNav": true,
+    "sameActor": true,
+    "loads": 1,
+    "ground": 7.5,
+    "terrainTriangles": 339022,
+    "terrainCalls": 97
+  },
+  "leaks": {
+    "before": 147,
+    "active": false,
+    "meshes": 0,
+    "remaining": 0,
+    "floor": true
+  }
+}

@@ -97,11 +97,12 @@ function convert(s, options = {}) {
     offset+=24;
   }
   for (const b of boxes) { for(let a=0;a<6;a++) bin.writeUInt16LE(b[a],offset+a*2);offset+=12; }
-  return {bin,meta:{version:palette?2:1,name:'하늘섬 마을',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants,...(palette?{textures:'blocks-palette.json',atlas:palette.atlas,atlasSha256:palette.atlasSha256}: {})}};
+  return {bin,meta:{version:palette?2:1,name:'황혼 지구',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants,...(palette?{textures:'blocks-palette.json',atlas:palette.atlas,atlasSha256:palette.atlasSha256}: {})}};
 }
 if (require.main===module) {
-  const [input,out=path.join(__dirname,'../assets/maps/ascent')]=process.argv.slice(2);
-  if (!input) throw Error('Usage: node scripts/import-ascent.js <source.schematic> [output-directory]');
+  const [input,out]=process.argv.slice(2);
+  if (!input||!out) throw Error('Usage: node scripts/import-ascent.js <source.schematic> <scratch-output-directory>; active map: npm run import:ascent -- <source.schematic>');
+  if(path.resolve(out)===path.resolve(__dirname,'../assets/maps/ascent'))throw Error('Use build-ascent-district.js to preserve the active map contract');
   const source=fs.readFileSync(input),palettePath=path.join(out,'blocks-palette.json');
   const result=convert(readSchematic(source),{palette:fs.existsSync(palettePath)?JSON.parse(fs.readFileSync(palettePath)):null});
   result.meta.sourceFile=path.basename(input);result.meta.sourceSha256=crypto.createHash('sha256').update(source).digest('hex');

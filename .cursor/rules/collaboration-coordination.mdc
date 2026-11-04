@@ -1,0 +1,16 @@
+---
+description: Codex and Claude must inspect each other's current work before every project task
+alwaysApply: true
+---
+
+# 모든 작업 전 공동 작업 확인
+
+사용자의 명시적 지시다. **Codex와 Claude 모두** 코드·문서·에셋·설정 수정, 검사, 병합, 배포를 시작하거나 중단된 작업을 재개하기 전에 아래를 수행한다.
+
+1. 현재 checkout의 `AGENTS.md`, `CLAUDE.md`, `docs/AGENT_WORK_STATUS.md`와 공유 상위 폴더의 `AGENT_WORK_STATUS.md`가 있으면 읽는다. 없는 기록은 실제 Git 확인 결과로 만든다. 사용자 최신 지시와 실제 Git 상태가 오래된 기록보다 우선한다.
+2. `git status --short`, 현재 브랜치/커밋, `git worktree list`를 확인한다. 관련 worktree도 각각 상태를 읽어 상대가 아직 커밋하지 않은 파일까지 파악한다.
+3. `git fetch origin --prune` 후 main 및 `claude/*`, `codex/*` 원격 브랜치의 최근 커밋과 열린 PR을 확인한다. Codex는 Claude의 작업을, Claude는 Codex의 작업을 반드시 포함해 확인한다. GitHub CLI가 있으면 `gh pr list --state open`을 사용한다. 원격 확인이 실패하면 확인한 시점/범위를 기록하고 최신 상태를 확인했다고 표현하지 않는다.
+4. 이번에 바꿀 파일과 겹치는 상대의 커밋·PR·미반영 변경을 실제 diff로 읽는다. 확인한 기준 커밋과 유지할 상대 작업을 작업 기록에 남긴 뒤 구현한다. 다른 worktree의 미반영 변경은 원래 위치에 보존한다.
+5. `docs/AGENT_WORK_STATUS.md`에 담당 도구, 작업 목적, branch/worktree, 기준 커밋, 담당 파일, 진행 상태, 실제 검사, 다음 작업/막힌 점을 갱신한다. 공유 상위 폴더의 `AGENT_WORK_STATUS.md`가 있으면 자기 작업 상태도 그곳에 남긴다. 시작·중요 변경·종료 시 남기고, 상대 기록을 삭제하거나 확인하지 않은 완료 상태를 쓰지 않는다. 새 담당자는 이 기록과 실제 Git 상태를 함께 대조한다.
+
+상대 변경을 가져올 필요가 있으면 필요한 diff만 검토해 통합하고 관련 검사를 다시 수행한다. 공동 작업 확인은 상대 PR의 자동 병합·배포 승인이 아니다. 병합·배포에는 기존 `deployment-coordination.mdc`와 사용자 승인을 적용한다.

@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  assert.deepEqual(await p.evaluate(()=>({desert:!!MAPS.desert_town,loader:!!window.KOUR_MAP,event:!!document.getElementById('sel-event')})),{desert:false,loader:false,event:false},'Claude removal remains in effect');
  assert.equal(await p.evaluate(()=>performance.getEntriesByType('resource').filter(r=>/\/assets\/maps\/(ascent|desert|kour)\//.test(r.name)).length),0,'ordinary entry does not load either map');
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();
- await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});
+ await p.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  for(const [key,global] of [['ascent_trial','ASCENT_TRIAL']]){
   await p.evaluate(async({key,global})=>{await window[global].ensure();room.map=key;room.mode='std';await startGame(AGENTS[0],true);closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;},{key,global});
@@ -29,10 +29,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
     wall={blocked:q.x+PR<=c.minX+.001,ray,distance,enemyHP:enemy.hp};break;
    }
    a.pos.set(start.x,start.y,start.z);a.y=start.y;a.input.mv=[0,0];a.input.btn=0;a.vel.set(0,0,0);
-   return {key,spawns,routes,wall,stats:s.renderStats,walk:GRID.walk.reduce((a,b)=>a+b,0),sites:MAP.sites};
+   const anchors=[MAP.attackSpawn,MAP.defendSpawn,...MAP.sites,...Object.values(MAP.nodes)];
+   return {key,spawns,routes,wall,stats:s.renderStats,walk:GRID.walk.reduce((a,b)=>a+b,0),sites:MAP.sites,adjust:s.nav.anchorAdjustments,dimensions:[MAP.bounds.maxX-MAP.bounds.minX,MAP.bounds.maxZ-MAP.bounds.minZ],anchors,stacked:Array.from(s.nav.start).some((v,i,a)=>i&&v-a[i-1]>1)};
   },{key,global});
   console.log(JSON.stringify(data));results.push(data);fs.writeFileSync('test-results/original-maps/results.json',JSON.stringify(results,null,2));
-  assert.ok(data.spawns.every(s=>s.finite&&s.free),key+' safe starts');assert.ok(data.walk>1000);
+  assert.ok(data.spawns.every(s=>s.finite&&s.free),key+' safe starts');assert.ok(data.walk>1000);assert.deepEqual(data.dimensions,[360.5,390.25]);assert.ok(data.adjust.every(d=>d<.01),'source anchors stay in their actual district');assert.ok(data.stacked,'bridge and ground are separate nodes');assert.deepEqual(data.sites.map(s=>s.y),[13.75,5]);
   for(const r of data.routes){assert.ok(r.length>0);assert.equal(r.reached,r.length,'body traverses each complete route');assert.ok(r.endDistance<1.5);assert.ok(Math.abs(r.endY-r.goalY)<.15,'route arrives on the objective floor');}
   assert.ok(data.wall?.blocked);assert.ok(Math.abs(data.wall.ray-data.wall.distance)<.05);assert.equal(data.wall.enemyHP,100,'wall blocks bullets');
   const refs=await p.evaluate(({global})=>{const s=window[global];window.originalRefs={actor:myActor(),nav:s.nav,colliders:COLLIDERS.slice()};return {loads:s.loads};},{global});
