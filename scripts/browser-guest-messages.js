@@ -1,6 +1,6 @@
 // What a guest can make the host do, and how a leaver is announced: lobby messages are ignored once the match runs, malformed
 // messages throw nothing, a weapon key must be a string, a peer id of "me" / "ai" / "dead" is refused, a guest plants and
-// defuses the spike, the host leaving says so, and a guest that quits has its body handed to a bot.
+// defuses the bomb, the host leaving says so, and a guest that quits has its body handed to a bot.
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
 const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
@@ -87,12 +87,12 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     await B.evaluate(() => { keys.f = true; });
     await host.waitForFunction(() => world.spike.state === "planted", null, { timeout: (setup.plant + 8) * 1000 });
     await B.evaluate(() => { keys.f = false; });
-    console.log("a guest planted the spike");
+    console.log("a guest planted the bomb");
     await host.evaluate((p) => { const g = world.actors.find((a) => a.ctrl === p); g.team = "def"; g.hasSpike = false; world.spike.x = g.pos.x + 0.5; world.spike.z = g.pos.z; world.spike.timer = 9999; world.spike.halfDefused = false; for (const a of world.actors) a.planting = 0; }, peerB);
     await B.evaluate(() => { keys.f = true; });
     await host.waitForFunction(() => world.spike.state === "defused", null, { timeout: (setup.defuse + 10) * 1000 });
     await B.evaluate(() => { keys.f = false; });
-    console.log("a guest defused the spike");
+    console.log("a guest defused the bomb");
 
     // 6. a guest that quits: the host gives its body to a bot at once
     const bodyA = await host.evaluate((p) => world.actors.find((a) => a.ctrl === p).id, peerA);

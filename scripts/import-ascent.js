@@ -97,7 +97,7 @@ function convert(s, options = {}) {
     offset+=24;
   }
   for (const b of boxes) { for(let a=0;a<6;a++) bin.writeUInt16LE(b[a],offset+a*2);offset+=12; }
-  return {bin,meta:{version:palette?2:1,name:'마크X발로',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants,...(palette?{textures:'blocks-palette.json',atlas:palette.atlas,atlasSha256:palette.atlasSha256}: {})}};
+  return {bin,meta:{version:palette?2:1,name:'하늘섬 마을',sourceDimensions:[W,H,L],sourceCropMin:min,dimensions:dims,scale:1.25,nonAir,quads:quads.length,colliders:boxes.length,histogram,variants,...(palette?{textures:'blocks-palette.json',atlas:palette.atlas,atlasSha256:palette.atlasSha256}: {})}};
 }
 if (require.main===module) {
   const [input,out=path.join(__dirname,'../assets/maps/ascent')]=process.argv.slice(2);

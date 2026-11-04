@@ -89,7 +89,7 @@
     "function" == typeof window[name] && (window[name] = scaled(window[name]));
 
   // the bots' walking grid shrinks with the map, so a lane that was wide enough for them still is. It is set
-  // once the old map is cleared: clearing a map that set its own cell (the 마크X발로 import) puts that map's
+  // once the old map is cleared: clearing a map that set its own cell (the 하늘섬 마을 import) puts that map's
   // previous cell back, which must not win over this one.
   const CELL = GRID.cell;
   const _bmg = buildMapGeometry;

@@ -2,7 +2,7 @@
 (() => {
   // Plant zones made visible: a glowing ring and light curtain on the ground at
   // exactly the radius where planting works, a soft fill inside, both maps
-  // shading the zone, and a prompt while you stand in one with the spike.
+  // shading the zone, and a prompt while you stand in one with the bomb.
   const COL = 0xff3b4e;
   const FX = { list: [], t: 0 };
   function gradTex(w, h, stops, radial) {
@@ -71,7 +71,7 @@
     build();
   } catch (e) {}
 
-  // prompt while standing in a zone with the spike
+  // prompt while standing in a zone with the bomb
   const hint = document.createElement("div");
   hint.id = "plant-hint";
   hint.hidden = !0;
@@ -92,7 +92,7 @@
     for (const s of FX.list) {
       const here = inSite === s.site,
         plantedHere = planted && siteAt(sp.x, sp.z) === s.site;
-      // brighter while you carry the spike, brightest in the zone you stand in
+      // brighter while you carry the bomb, brightest in the zone you stand in
       let want = planted ? (plantedHere ? 1 : 0.12) : carrying ? (here ? 1.25 : 0.85) : here ? 0.7 : 0.45;
       s.k += (want - s.k) * Math.min(1, 5 * dt);
       const pulse = 0.82 + 0.18 * Math.sin(FX.t * (plantedHere ? 7 : carrying ? 3.2 : 1.6) + s.site.x);
@@ -101,7 +101,7 @@
       s.fill.material.opacity = 0.55 * s.k;
       s.group.visible = s.k > 0.02;
     }
-    // the spike plants itself once you are inside a zone; guide the carrier in
+    // the bomb plants itself once you are inside a zone; guide the carrier in
     let near = null;
     if (carrying && !inSite && "live" === world.phase)
       for (const s of MAP.sites) {
@@ -110,7 +110,7 @@
       }
     const show = !!near;
     if (show) {
-      const txt = `<b>${near.s.id} 사이트</b>빛나는 원 안으로 들어가면 스파이크가 설치됩니다`;
+      const txt = `<b>${near.s.id} 사이트</b>빛나는 원 안으로 들어가면 폭탄이 설치됩니다`;
       hint.dataset.t !== txt && ((hint.innerHTML = txt), (hint.dataset.t = txt));
     }
     hint.hidden = !show;

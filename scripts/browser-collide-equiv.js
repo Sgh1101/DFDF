@@ -177,13 +177,13 @@ const HELPERS = () => {
       assert.ok(w.walked < w.calls, key + ": the queries do not loop over the colliders: " + JSON.stringify(w));
       await page.context().close();
     }
-    // ── 마크X발로: 44k colliders, its own box rules ──
+    // ── 하늘섬 마을: 44k colliders, its own box rules ──
     {
       const page = await f.page("equivascent", { width: 1280, height: 720 }, {}, { bootTimeout: 120000 });
       await page.evaluate(HELPERS);
       await page.locator("#go-play").click();
       if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click();
-      await page.locator("#sel-maps button").filter({ hasText: /^마크X발로$/ }).click();
+      await page.locator("#sel-maps button").filter({ hasText: /^하늘섬 마을$/ }).click();
       await page.waitForFunction(() => ASCENT_TRIAL.status === "ready");
       await page.locator("#sel-go").click({ timeout: 120000 });
       await page.waitForFunction(() => ASCENT_TRIAL.active && !!myActor(), null, { timeout: 120000 });
