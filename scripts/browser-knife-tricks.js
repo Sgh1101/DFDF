@@ -18,7 +18,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       const skins = GUN_SKINS, res = {};
       player.slot = Object.keys(player.weapons).find((s) => player.weapons[s] === "knife");
       const names = {};
-      for (const id of ["", "butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
+      for (const id of ["", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
         skins.set("knife", id || "default");
         for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k];
         updateViewmodel(true);
@@ -68,7 +68,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       { const A = (s) => KNIFE_TRICKS.sample("idle", "", s).A.pitch; res.flick = { cock: +A(0.17).toFixed(3), flick: +A(0.3).toFixed(3) }; }
       // the idle trick, as a phone sees it (no inspect key): each knife does one when held still
       res.idle = {};
-      for (const id of ["butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
+      for (const id of ["karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"]) {
         skins.set("knife", id || "default"); for (const k in VM.cache) /^knife\|/.test(k) && delete VM.cache[k]; updateViewmodel(true);
         const a2 = VM.current, pv2 = KNIFE_PIVOT.of(a2), kp = KNIVES.parts(a2); let moved = 0, arm = 0;
         M.insp.t = -1; M.knife.t = -1; M.draw.t = -1; KNIVES.idle.anim = -1; tickViewmodel(0.016); const q0 = a2.quaternion.clone(); KNIVES.idle.t = 0; KNIVES.idle.anim = 0;
@@ -105,7 +105,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return res;
     });
     console.log(JSON.stringify(out));
-    const ALL = ["default", "butterfly", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"];
+    const ALL = ["default", "karambit", "flip", "tanto", "kukri", "bayonet", "gut", "bowie", "kunai", "stiletto"];
     for (const k of ALL) {
       const r = out[k];
       assert.ok(r && r.pivot, k + " has a pivot");
@@ -132,7 +132,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(out.karambit.ringDist < 0.01, "the karambit turns about its ring (" + out.karambit.ringDist + ")");
     assert.equal(out.karambit.ghosts, 3);
     assert.ok(out.karambit.reach.rx >= 6 && out.karambit.reach.ry >= 3.5 && out.karambit.reach.py >= 0.12, "the karambit chain: spins, a flat helicopter, a toss " + JSON.stringify(out.karambit.reach));
-    assert.ok(out.butterfly.reach.hA >= 3.5 && out.butterfly.reach.rz >= 1.9, "the balisong fans its handles and rolls over");
+    // RGX retains its supplied source motion and is checked by browser-rgx-firefly.js.
     assert.ok(out.flip.reach.blade >= 0.95, "the flipper shuts and opens");
     assert.ok(out.tanto.reach.rx >= 1.9, "the tanto goes into a reverse grip and back");
     assert.ok(out.run.trail > 0.1 && out.run.maxY > 0.12 && out.run.ended && !out.run.err, "the karambit run shows trails and a toss: " + JSON.stringify(out.run));

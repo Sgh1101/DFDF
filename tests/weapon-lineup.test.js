@@ -8,11 +8,11 @@ test('18 firearms plus a knife share the server catalog; the removed pack knives
  for(const key of Object.keys(D.names))assert.equal(D.canonical(key),key,'supplied weapons and carbine stay active');
  for(const target of Object.values(D.aliases))assert.ok(c.guns.includes(target),'every retired weapon maps directly to an active weapon');
 });
-test('Phantom is the automatic rifle; recon and burst keep distinct fire modes',()=>{
+test('Vesper is the automatic rifle; recon and burst keep distinct fire modes',()=>{
  assert.equal(D.profiles.scout.auto,true);assert.equal(D.profiles.scout.burst,0);assert.equal(D.profiles.scout.mag,30);assert.equal(D.profiles.scout.rpm,660);
  assert.equal(D.profiles.carbine.auto,false);assert.equal(D.profiles.carbine.mag,15);
- assert.equal(D.profiles.bullpup.auto,true);assert.equal(D.names.bullpup,'코멧 소총');assert.equal(D.canonical('bullpup'),'bullpup');
- assert.equal(D.championsWeapon,'scout');assert.equal(D.names.scout,'팬텀','the Champions skin names the gun it is for');
+ assert.equal(D.profiles.bullpup.auto,true);assert.equal(D.names.bullpup,'Vertex');assert.equal(D.canonical('bullpup'),'bullpup');
+ assert.equal(D.championsWeapon,'scout');assert.equal(D.names.scout,'Vesper','renaming the gun retains the Champions weapon key');
 });
 test('consolidation preserves owned skins and equipped choices; duplicate compensation is once only',async()=>{
  const h=harness(),p=await h.api('auth',{id:'collector',pw:'password',device:'test-packs'}),u=h.user('collector');
@@ -21,7 +21,7 @@ test('consolidation preserves owned skins and equipped choices; duplicate compen
  assert.deepEqual(after.own.smg,['lava','snow','dragon']);assert.ok(!after.own.vector);assert.deepEqual(after.weaponArchive.vector,['dragon','lava']);assert.equal(after.skins.m.smg,'snow');assert.equal(after.skins.m.scout,'champions_atk');assert.ok(!after.skins.m.vector);assert.deepEqual(after.wish,['smg|dragon']);assert.equal(after.gold,gold+900);
  await h.api('skins',{token:p.token});assert.equal(h.user('collector').gold,after.gold);
 });
-test('restoring firearms including the new Comet returns archived skins once and preserves current equipment and compensation',async()=>{
+test('restoring firearms including Vertex returns archived skins once and preserves current equipment and compensation',async()=>{
  const h=harness(),p=await h.api('auth',{id:'oldbuyer',pw:'password',device:'oldbuyer-packs'}),u=h.user('oldbuyer');
  u.own={pistol:['lava','snow','dragon'],autoshot:['snow','gold'],rifle:['lava','gold'],scout:['champions_def'],machpist:['gold']};
  u.weaponArchive={machpist:['lava','snow'],whisper:['dragon'],shotgun:['gold'],burst:['gold'],scout:['snow'],bullpup:['lava']};
