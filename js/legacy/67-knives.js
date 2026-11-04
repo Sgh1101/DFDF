@@ -229,6 +229,62 @@
       return o;
     };
   }
+  // ── the cuts ──
+  // Each is one curve c over the cut (k from 0 to 1): 0 at rest, -1 wound up (the hand drawn back the other way),
+  // +1 at the end of the stroke, a little past it as the arm follows through, and back to rest. Each part of the
+  // arm goes [wound up, stroke] with it, so the wind-up, the fast stroke and the follow-through all come from it.
+  const kf = (K, x) => {
+    const n = K.length;
+    if (x <= K[0][0]) return K[0][1];
+    if (x >= K[n - 1][0]) return K[n - 1][1];
+    let i = 0;
+    while (x > K[i + 1][0]) i++;
+    const m = (j) => (0 === j || j === n - 1 ? 0 : (K[j + 1][1] - K[j - 1][1]) / (K[j + 1][0] - K[j - 1][0]));
+    const t0 = K[i][0],
+      h = K[i + 1][0] - t0,
+      u = (x - t0) / h,
+      u2 = u * u,
+      u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * K[i][1] + (u3 - 2 * u2 + u) * h * m(i) + (-2 * u3 + 3 * u2) * K[i + 1][1] + (u3 - u2) * h * m(i + 1);
+  };
+  // rx (+ tip up), ry (+ tip left), rz (roll), px, py, pz (metres); spin: half turns of the karambit round its ring
+  const CUTS = {
+    // right to left, the edge leading
+    slash: { c: [[0, 0], [0.16, -1], [0.44, 1], [0.56, 1.12], [1, 0]], ry: [-0.35, 0.8], px: [0.07, -0.16], rz: [-0.3, 0.5], pz: [0.02, -0.05] },
+    // drawn back a little, driven straight in, pulled out
+    stab: { c: [[0, 0], [0.2, -1], [0.42, 1], [0.58, 0.95], [1, 0]], pz: [0.05, -0.3], rx: [0.1, -0.22], py: [0.01, 0.015] },
+    hook: { c: [[0, 0], [0.18, -1], [0.46, 1], [0.6, 1.1], [1, 0]], ry: [-0.4, 1.1], rz: [-0.2, 0.6], px: [0.08, -0.17], py: [0.02, -0.02], spin: 0.5 },
+    rip: { c: [[0, 0], [0.2, -1], [0.45, 1], [0.6, 1.05], [1, 0]], pz: [0.04, -0.22], py: [0.03, -0.1], rx: [0.25, -0.6], spin: 1 },
+    // raised high, brought down hard, the weight carrying it on
+    chop: { c: [[0, 0], [0.3, -1], [0.55, 1], [0.66, 1.1], [1, 0]], rx: [0.85, -0.75], py: [0.1, -0.08], pz: [0.02, -0.08] },
+    cleave: { c: [[0, 0], [0.22, -1], [0.5, 1], [0.62, 1.1], [1, 0]], ry: [-0.55, 1.0], px: [0.1, -0.22], rz: [-0.2, 0.45], py: [0.03, -0.02] },
+    // a rising backhand cut
+    upper: { c: [[0, 0], [0.2, -1], [0.48, 1], [0.6, 1.08], [1, 0]], rx: [-0.5, 0.55], py: [-0.1, 0.1], px: [-0.06, 0.05], rz: [-0.15, 0.4] },
+    // a wide heavy swing right to left
+    sweep: { c: [[0, 0], [0.24, -1], [0.54, 1], [0.66, 1.12], [1, 0]], ry: [-0.7, 1.2], px: [0.14, -0.24], rz: [-0.4, 0.5], py: [0.02, 0.03] },
+    // two quick jabs
+    jab: { c: [[0, 0], [0.08, -0.6], [0.2, 1], [0.33, 0.05], [0.42, -0.5], [0.56, 1], [0.7, 0.9], [1, 0]], pz: [0.03, -0.2], rx: [0.05, -0.15] },
+    // a long thrust, twisted at the end
+    lunge: { c: [[0, 0], [0.22, -1], [0.46, 1], [0.66, 1], [1, 0]], pz: [0.06, -0.38], py: [-0.01, 0.03], rx: [0.12, -0.2], twist: 0.7 },
+    // left to right, backhand
+    cut: { c: [[0, 0], [0.18, -1], [0.45, 1], [0.58, 1.1], [1, 0]], ry: [0.35, -0.7], px: [-0.06, 0.14], rz: [0.2, -0.4] },
+  };
+  function cut(kind, k, a, spin) {
+    const C = CUTS[kind];
+    if (!C || !a) return;
+    const c = kf(C.c, k),
+      R = a.rotation,
+      P = a.position,
+      v = (wb) => (wb ? (c < 0 ? -c * wb[0] : c * wb[1]) : 0);
+    R.x += v(C.rx);
+    R.y += v(C.ry);
+    R.z += v(C.rz);
+    P.x += v(C.px);
+    P.y += v(C.py);
+    P.z += v(C.pz);
+    C.twist && (R.z += C.twist * Math.sin(PI * c01((k - 0.4) / 0.45)));
+    C.spin && spin && (spin.rotation.x += C.spin * PI * Math.max(0, c));
+  }
   const IDLE = { t: 0, next: 5, anim: -1 };
   function pose(dt) {
     const a = VM.current,
@@ -260,8 +316,9 @@
     }
     // drawn
     if (M.draw.t >= 0) {
+      // (it comes in a little past its place and settles back, as a hand does)
       const k = c01(M.draw.t / M.draw.D),
-        e = ezO(k),
+        e = 1 + 1.8 * Math.pow(k - 1, 3) + 0.8 * Math.pow(k - 1, 2),
         r = 1 - e;
       if ("butterfly" === m) {
         hA && (hA.rotation.x = 3 * PI * r);
@@ -307,81 +364,9 @@
         R.z -= 0.2 * r;
       }
     }
-    // inspect: the arm only raises the knife into view and lowers it again; the knife's own
-    // tricks (it turns on its pivot, hand and arm stay) are in the knife-tricks module
-    if (M.insp.t >= 0) {
-      const s = M.insp.t,
-        D = window.KNIVES && KNIVES.inspD ? KNIVES.inspD(m) : 2.6,
-        up = ezS(seg(s, 0, 0.4)) * (1 - ezS(seg(s, D - 0.5, D)));
-      P.x -= 0.08 * up;
-      P.y += 0.06 * up;
-      P.z += 0.12 * up;
-      R.x += 0.2 * up;
-    }
+    // inspect: the arm and the knife move together in the knife-tricks module (83)
     // the cut
-    if (M.knife.t >= 0) {
-      const k = c01(M.knife.t / M.knife.D),
-        e = ezS(k),
-        sn = Math.sin(k * PI),
-        kind = M.knife.kind;
-      if ("slash" === kind) {
-        R.y += 0.7 - 1.5 * e;
-        P.x += 0.12 - 0.3 * e;
-        R.z += -0.5 + 0.8 * e;
-      } else if ("stab" === kind) {
-        P.z -= 0.3 * sn;
-        R.x -= 0.25 * sn;
-      } else if ("hook" === kind) {
-        R.y += 0.5 - 1.7 * e;
-        R.z += 0.6 * sn;
-        P.x += 0.1 - 0.26 * e;
-        spin && (spin.rotation.x += PI * sn * 0.5);
-      } else if ("rip" === kind) {
-        P.z -= 0.22 * sn;
-        P.y -= 0.1 * sn;
-        R.x -= 0.6 * sn;
-        spin && (spin.rotation.x += PI * e);
-      } else if ("chop" === kind) {
-        const up = seg(k, 0, 0.3),
-          dn = seg(k, 0.3, 0.75),
-          bk = seg(k, 0.75, 1);
-        R.x += 0.9 * ezS(up) - 1.6 * ezS(dn) + 0.7 * ezS(bk);
-        P.y += 0.12 * ezS(up) - 0.18 * ezS(dn) + 0.06 * ezS(bk);
-        P.z -= 0.1 * ezS(dn) * (1 - ezS(bk));
-      } else if ("cleave" === kind) {
-        R.y += 1.0 - 2.0 * e;
-        P.x += 0.16 - 0.34 * e;
-        R.z += 0.4 * sn;
-      } else if ("upper" === kind) {
-        // a rising backhand cut
-        R.x += -0.6 + 1.1 * e;
-        P.y += -0.12 + 0.22 * e;
-        P.x += -0.08 + 0.12 * e;
-        R.z += 0.45 * sn;
-      } else if ("sweep" === kind) {
-        // a wide heavy swing right to left
-        R.y += 1.25 - 2.5 * e;
-        P.x += 0.2 - 0.42 * e;
-        P.y += 0.04 * sn;
-        R.z += -0.5 + 0.9 * e;
-      } else if ("jab" === kind) {
-        // two quick jabs
-        const j = Math.abs(Math.sin(k * 2 * PI));
-        P.z -= 0.2 * j;
-        P.x -= 0.03 * j * (k < 0.5 ? 1 : -1);
-        R.x -= 0.15 * j;
-      } else if ("lunge" === kind) {
-        // a long thrust with a twist at the end
-        P.z -= 0.38 * sn;
-        P.y += 0.03 * sn;
-        R.x -= 0.2 * sn;
-        R.z += 0.7 * ezS(seg(k, 0.3, 0.6)) * (1 - ezS(seg(k, 0.7, 1)));
-      } else if ("cut" === kind) {
-        R.y += -0.6 + 1.2 * e;
-        P.x += -0.1 + 0.22 * e;
-        R.z += -0.3 * sn;
-      }
-    }
+    if (M.knife.t >= 0) cut(M.knife.kind, c01(M.knife.t / M.knife.D), a, spin);
     // held still: the knife's own idle trick now and then
     const still = Math.hypot(player.vel.x, player.vel.z) < 0.5 && !keys.fire && M.knife.t < 0 && M.draw.t < 0 && M.insp.t < 0;
     if (!still) IDLE.t = 0;
@@ -410,5 +395,5 @@
     } catch (e) {}
     return r;
   };
-  window.KNIVES = { build: BUILD, drawD: (m) => DRAW_D[m] || 0.4, attack: (m, i) => { const l = ATTACK[m] || ATTACK.flip; return l[i % l.length]; }, model, parts, idle: IDLE, hand: HAND, grip: GRIP, rest: REST, size: SIZE };
+  window.KNIVES = { build: BUILD, cut, cuts: CUTS, drawD: (m) => DRAW_D[m] || 0.4, attack: (m, i) => { const l = ATTACK[m] || ATTACK.flip; return l[i % l.length]; }, model, parts, idle: IDLE, hand: HAND, grip: GRIP, rest: REST, size: SIZE };
 })();

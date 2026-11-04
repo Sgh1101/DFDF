@@ -41,6 +41,56 @@
       return "";
     }
   };
+  // every knife's inspect (the stock one too) is done by the knife-tricks module, arm and all
+  const knifeOwn = () => "knife" === key() && !!window.KNIFE_TRICKS;
+  // the Champions Phantom keeps the inspect it has always had (its music runs with it)
+  const champions = () => {
+    try {
+      return !!(window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(GS.of(key()).id));
+    } catch (e) {
+      return !1;
+    }
+  };
+  const inspD = () => ("knife" === key() && window.KNIVES && KNIVES.inspD ? KNIVES.inspD(typed()) : champions() ? 2.6 : GUN_D);
+  // ── how a hand moves a gun to look at it ──
+  // keyframes [[t, v], ...]: a smooth curve through them (Catmull-Rom; flat at the first and last)
+  const kf = (K, x) => {
+    const n = K.length;
+    if (x <= K[0][0]) return K[0][1];
+    if (x >= K[n - 1][0]) return K[n - 1][1];
+    let i = 0;
+    while (x > K[i + 1][0]) i++;
+    const m = (j) => (0 === j || j === n - 1 ? 0 : (K[j + 1][1] - K[j - 1][1]) / (K[j + 1][0] - K[j - 1][0]));
+    const t0 = K[i][0],
+      h = K[i + 1][0] - t0,
+      u = (x - t0) / h,
+      u2 = u * u,
+      u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * K[i][1] + (u3 - 2 * u2 + u) * h * m(i) + (-2 * u3 + 3 * u2) * K[i + 1][1] + (u3 - u2) * h * m(i + 1);
+  };
+  // a small dip first, the gun swung up and over to show its left side (it carries a little past and settles),
+  // held, turned the other way and rolled to show the right side and the top, held, and brought back down
+  // (a touch past rest as the weight settles). Never quite still while it is held up.
+  const GUN_D = 3.3;
+  const GUN = {
+    x: [[0, 0], [0.55, -0.1], [0.7, -0.104], [1.35, -0.095], [1.95, -0.06], [2.55, -0.065], [3.05, 0.004], [3.3, 0]],
+    y: [[0, 0], [0.22, -0.012], [0.6, 0.055], [0.75, 0.05], [1.35, 0.052], [1.95, 0.07], [2.55, 0.066], [2.85, 0.012], [3.05, -0.008], [3.3, 0]],
+    z: [[0, 0], [0.6, 0.09], [1.35, 0.085], [1.95, 0.06], [2.55, 0.06], [3.05, 0], [3.3, 0]],
+    rx: [[0, 0], [0.22, -0.04], [0.62, 0.22], [1.35, 0.2], [2.0, 0.12], [2.6, 0.14], [3.0, -0.015], [3.3, 0]],
+    ry: [[0, 0], [0.22, -0.05], [0.62, 0.85], [0.78, 0.8], [1.35, 0.74], [2.0, -0.5], [2.15, -0.46], [2.6, -0.42], [3.0, 0.03], [3.3, 0]],
+    rz: [[0, 0], [0.62, -0.3], [1.35, -0.26], [2.0, 0.55], [2.15, 0.5], [2.6, 0.48], [3.0, -0.03], [3.3, 0]],
+  };
+  function gunInspect(a, s) {
+    const P = a.position,
+      R = a.rotation,
+      held = c01(s / 0.6) * c01((GUN_D - 0.3 - s) / 0.5);
+    P.x += kf(GUN.x, s) + held * 0.0025 * Math.sin(s * 3.1);
+    P.y += kf(GUN.y, s) + held * 0.0035 * Math.sin(s * 2.3 + 1);
+    P.z += kf(GUN.z, s);
+    R.x += kf(GUN.rx, s) + held * 0.012 * Math.sin(s * 2.7 + 2);
+    R.y += kf(GUN.ry, s) + held * 0.01 * Math.sin(s * 1.6 + 3);
+    R.z += kf(GUN.rz, s) + held * 0.015 * Math.sin(s * 1.9 + 0.5);
+  }
   const me = () => {
     try {
       return "function" == typeof myActor ? myActor() : null;
@@ -122,9 +172,10 @@
       else {
         M.insp.t += dt;
         const s = M.insp.t;
-        if (s >= (window.KNIVES && KNIVES.inspD && typed() ? KNIVES.inspD(typed()) : 2.6)) M.insp.t = -1;
-        else if (own) {
-        } else {
+        if (s >= inspD()) M.insp.t = -1;
+        else if (own || knifeOwn()) {
+        } else if (!champions()) gunInspect(a, s);
+        else {
           const up = ezS(c01(s / 0.4)) * (1 - ezS(c01((s - 2.1) / 0.5)));
           a.position.x -= 0.1 * up;
           a.position.y += 0.06 * up;
@@ -141,18 +192,14 @@
       const k = c01(M.knife.t / M.knife.D);
       if (k >= 1) M.knife.t = -1;
       else if (own) {
-      } else if ("spin" === M.knife.kind) {
-        window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "y", 2 * Math.PI * ezS(k)) : (a.rotation.y += 2 * Math.PI * ezS(k));
-        a.position.x += 0.1 * Math.sin(k * Math.PI);
-      } else if ("slash" === M.knife.kind) {
-        const e = ezS(k);
-        a.rotation.y += 0.6 - 1.4 * e;
-        a.position.x += 0.12 - 0.3 * e;
-        a.rotation.z += -0.5 + 0.8 * e;
-      } else {
-        const s = Math.sin(k * Math.PI);
-        a.position.z -= 0.28 * s;
-        a.rotation.x -= 0.25 * s;
+      } else if (window.KNIVES && KNIVES.cut) {
+        // the same cuts as the other knives (wind-up, stroke, follow-through); the legendary one spins in the hand
+        // as it slashes, flicked round fast and caught
+        if ("spin" === M.knife.kind) {
+          KNIVES.cut("slash", k, a);
+          const f = 1 - Math.pow(1 - c01((k - 0.12) / 0.6), 3);
+          window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "y", 2 * Math.PI * f) : (a.rotation.y += 2 * Math.PI * f);
+        } else KNIVES.cut(M.knife.kind, k, a);
       }
     }
     // a guest's knife: the host swings it for real, but the hand here moves as soon as the button goes down
@@ -174,11 +221,19 @@
       }
       if (M.twirl.t >= 0) {
         M.twirl.t += dt;
-        const k = c01(M.twirl.t / 0.6);
+        const k = c01(M.twirl.t / 0.95);
         if (k >= 1) M.twirl.t = -1;
         else {
-          window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "x", 2 * Math.PI * ezS(k)) : (a.rotation.x += 2 * Math.PI * ezS(k));
-          a.position.y += 0.03 * Math.sin(k * Math.PI);
+          // the wrist cocks, flicks the knife round the fingers and gives a little on the catch
+          const tw = window.KNIFE_TRICKS && KNIFE_TRICKS.sample("idle", "", 0.95 * k);
+          if (tw) {
+            window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "x", tw.T.rx) : (a.rotation.x += tw.T.rx);
+            a.rotation.x += tw.A.pitch;
+            a.position.y += tw.A.y;
+          } else {
+            window.KNIFE_PIVOT ? KNIFE_PIVOT.spin(a, "x", 2 * Math.PI * ezS(k)) : (a.rotation.x += 2 * Math.PI * ezS(k));
+            a.position.y += 0.03 * Math.sin(k * Math.PI);
+          }
         }
       }
     } else M.twirl.t = -1;
