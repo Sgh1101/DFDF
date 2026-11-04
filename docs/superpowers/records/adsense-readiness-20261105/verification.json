@@ -1,0 +1,146 @@
+{
+  "recordedAt": "2026-11-04T15:05:07.880Z",
+  "codeCommit": "849e36604dc33dae1a62d139417d08efc281e93d",
+  "upstreamMain": "165caf3",
+  "localUnit": {
+    "tests": 523,
+    "passed": 521,
+    "skipped": 2,
+    "failed": 0,
+    "skipReason": "Optional real Redis unavailable locally"
+  },
+  "syntaxScripts": 207,
+  "assetFingerprints": 50,
+  "generatedPagesAndCsp": "current",
+  "browser": [
+    {
+      "name": "test:public-entry",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "e29a8dae45b4f9ac50adbb93b162cd98b8501e097bc20952b23ecb056fc40e0c",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 18,
+      "passed": true
+    },
+    {
+      "name": "test:landing",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "55da9dc689eaa9ee6b70aaffee76262495e16be558a3a8b00f0552c5aeb113b3",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 76,
+      "passed": true
+    },
+    {
+      "name": "test:guest-signin",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "24b7bdfad88b95faa173fd8c51f64cea100694bd8fba66a44b269f8df8bdaa77",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 3,
+      "passed": true
+    },
+    {
+      "name": "test:keep-login",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "37705d8c743e9eb07119cd6fd441145b684807009b7e5bd5e1dbf044e8f1dc49",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 14,
+      "passed": true
+    },
+    {
+      "name": "test:ads-readiness",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "52fd517824b16316800abfedf01780874204dfad6433814141a8344ba843e8da",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 3,
+      "passed": true
+    },
+    {
+      "name": "test:site-pages",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "b718212d65f662765a8bfbddf31bbde40718b7c47f958f6df8084909bedd3fd5",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 46,
+      "passed": true
+    },
+    {
+      "name": "test:csp",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "442398c382f7398bf7922002fcc5164382a635a356bb8377e3bb3d27e5f6eaee",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 30,
+      "passed": true
+    },
+    {
+      "name": "test:browser",
+      "sha": "849e36604dc33dae1a62d139417d08efc281e93d",
+      "gameTreeSha256": "57a6e544eabf450ec70cc585cb8d0aad2339513035a22a41556181c83d31d5f0",
+      "testSha256": "fc6777f97c59793422f58028ac95699d38110f8a53b9e7f0e534f106bf404f6a",
+      "code": 0,
+      "signals": 0,
+      "sourceChanged": false,
+      "seconds": 25,
+      "passed": true
+    }
+  ],
+  "advertising": {
+    "ready": false,
+    "gateChecksPass": true,
+    "reasons": [
+      "disabled",
+      "site-not-approved",
+      "audience-unreviewed",
+      "cmp-not-ready",
+      "rights-unreviewed",
+      "review-site-not-approved",
+      "applicant-unconfirmed",
+      "age-handling-unreviewed",
+      "cmp-review-incomplete",
+      "inventory-unreviewed",
+      "asset-unverified:dusk-layout",
+      "asset-unverified:sgh-butterfly-retained"
+    ],
+    "assetErrors": [],
+    "adIntegrations": [],
+    "unexpectedIntegration": false
+  },
+  "review": {
+    "reviewedCommits": "e104bcf..5b2176f plus integration through849e366",
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "limits": [
+      "External permissions, applicant identity, account approval and CMP certification unavailable",
+      "Approved upstream features preserved, not independently re-audited"
+    ]
+  },
+  "notRun": [
+    "Android/iOS physical devices",
+    "WAN multiplayer",
+    "Real advertising requests/clicks",
+    "Real payment/store purchases",
+    "New deep security scan"
+  ],
+  "pullRequest": "https://github.com/Sgh1101/DFDF/pull/131",
+  "mainMerged": false,
+  "productionDeployed": false
+}

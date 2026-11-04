@@ -54,4 +54,4 @@ Files: `docs/advertising-setup.md`, `docs/asset-provenance.md`, `scripts/site-pa
 
 - [x] Correct stale SGH attribution; state known versus unverified rights and actual current ad state; add practical operator checklist with official policy links.
 - [x] Rebuild pages/CSP; run full unit, syntax, asset, page freshness and relevant public browser checks. Record actual versus unverified environments separately.
-- [ ] Fresh whole-branch review, fix material findings, create a reviewable PR. Keep main and production untouched pending this task's approval.
+- [x] Fresh whole-branch review, fix material findings, create a reviewable PR. Keep main and production untouched pending this task's approval.
