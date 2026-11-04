@@ -39,8 +39,8 @@ test('stairs and slabs preserve half steps, upside-down metadata and empty headr
 });
 test('shipped map binary matches its provenance manifest and bounded record layout',()=>{
  const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
- assert.equal(m.provenance.generator,'scripts/build-original-maps.js');assert.equal(m.provenance.externalMapInput,false);assert.equal(m.sourceSha256,undefined);
- // The active map is an independently generated layout; no imported schematic is shipped.
+ assert.equal(m.provenance.generator,'scripts/build-ascent-district.js');assert.equal(m.provenance.externalMapInput,true);assert.equal(m.sourceSha256,require('../scripts/ascent-contract').CONTRACT.sourceSha256);
+ // Converted terrain is shipped; raw schematic / world-edit tile payloads are not.
  assert.ok(!fs.existsSync(path.join(__dirname,'../sources/maps/ascent-final2021.schematic')));
  assert.ok(m.nonAir>10000);assert.equal(crypto.createHash('sha256').update(b).digest('hex'),m.geometrySha256);
  assert.equal(b.length,16+m.quads*24+m.colliders*12);
@@ -48,9 +48,9 @@ test('shipped map binary matches its provenance manifest and bounded record layo
   const lo=b.readUInt16LE(p+a*2),hi=b.readUInt16LE(p+(a+3)*2);assert.ok(lo<hi&&hi<=m.dimensions[a]*16);
  }
 });
-test('하늘섬 마을 uses its own flat-colour block textures and separate block-state materials',()=>{
+test('황혼 지구 uses its own flat-colour block textures and separate block-state materials',()=>{
  const dir=path.join(__dirname,'../assets/maps/ascent'),m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'))),p=JSON.parse(fs.readFileSync(path.join(dir,m.textures))),b=fs.readFileSync(path.join(dir,'geometry.bin'));
- assert.equal(m.name,'하늘섬 마을');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
+ assert.equal(m.name,'황혼 지구');assert.equal(m.version,2);assert.equal(p.tiles.length,239);
  assert.equal(p.source,'scripts/paint-block-textures.py');assert.equal(p.originalFiles,undefined);
  assert.ok(!fs.existsSync(path.join(dir,'vanilla'))&&!fs.existsSync(path.join(dir,'vanilla-atlas.png')),'no texture file from another game is shipped');
  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,m.atlas))).digest('hex'),m.atlasSha256);

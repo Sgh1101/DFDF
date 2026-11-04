@@ -23,22 +23,31 @@
   const visible = () => !sel.hidden;
   const canLoad = (k) => "undefined" != typeof world && world && "menu" === world.phase && MAPS[k] && !MAPS[k].graphicsStatic;
 
-  function shoot(key) {
-    const m = MAPS[key];
-    if (!m || !m.bounds) return null;
+  function frameCamera(cam,m,aspect) {
     const b = m.bounds, w = b.maxX - b.minX, d = b.maxZ - b.minZ, cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
     // from behind the attackers' spawn toward the middle, so the picture reads the way the attack goes
     const a = m.attackSpawn || { x: cx, z: b.maxZ };
     let ux = cx - a.x, uz = cz - a.z;
     const ul = Math.hypot(ux, uz) || 1;
     (ux /= ul), (uz /= ul);
-    const canvas = renderer.domElement, aspect = canvas.width / canvas.height || 16 / 9;
     // far enough that the whole footprint fits, seen 50 degrees down
-    const el = (50 * Math.PI) / 180, span = Math.max(w, d), dist = span * (aspect < 1.5 ? 1.15 : 0.95);
+    const el = (50 * Math.PI) / 180, span = Math.max(w, d), height=m.previewHeight||0,cy=m.graphicsStatic?height/3:0;
+    let dist = span * (m.graphicsStatic ? 1.2 : aspect < 1.5 ? 1.15 : 0.95);
     cam.aspect = aspect;
     cam.updateProjectionMatrix();
-    cam.position.set(cx - ux * dist * Math.cos(el), dist * Math.sin(el), cz - uz * dist * Math.cos(el));
-    cam.lookAt(cx, 0, cz);
+    const corners=[];for(const x of [b.minX,b.maxX])for(const y of [0,height])for(const z of [b.minZ,b.maxZ])corners.push(new T.Vector3(x,y,z));
+    for(let i=0;i<30;i++){
+      cam.position.set(cx-ux*dist*Math.cos(el),cy+dist*Math.sin(el),cz-uz*dist*Math.cos(el));cam.lookAt(cx,cy,cz);cam.updateMatrixWorld();
+      if(!m.graphicsStatic||corners.every(p=>{const q=p.clone().project(cam);return Math.abs(q.x)<.94&&Math.abs(q.y)<.94&&q.z>-1&&q.z<1;}))break;
+      dist*=1.08;
+    }
+    return corners;
+  }
+  function shoot(key) {
+    const m = MAPS[key];
+    if (!m || !m.bounds) return null;
+    const canvas=renderer.domElement,aspect=canvas.width/canvas.height||16/9;
+    frameCamera(cam,m,aspect);
     // the fog is thinned, not removed: taking it away would recompile every material's shader (seconds of stall)
     const fog = scene.fog, f0 = fog && { d: fog.density, n: fog.near, f: fog.far }, vm = "undefined" != typeof VM && VM.root, vmOn = vm && vm.visible;
     fog && (void 0 !== fog.density ? (fog.density = 0) : ((fog.near = 1e6), (fog.far = 2e6)));
@@ -138,5 +147,5 @@
   sel.addEventListener("click", (e) => e.target.closest && e.target.closest(".lb-map") && setTimeout(check, 0));
   addEventListener("resize", place);
 
-  window.SELECT_MAPSHOT = { cache: CACHE, shoot, take, check, camera: cam, warmed };
+  window.SELECT_MAPSHOT = { cache: CACHE, shoot, take, check, camera: cam, frameCamera, warmed };
 })();

@@ -51,12 +51,13 @@
       const cur = new T.Mesh(new T.CylinderGeometry(r, r, 1.8, 120, 1, !0), glowMat(TEX.curtain, 0.45));
       cur.position.y = 0.9;
       [ring, fill, cur].forEach((m) => ((m.renderOrder = 2), (m.userData.noMerge = !0), g.add(m)));
-      g.position.set(site.x, 0, site.z);
+      g.position.set(site.x, site.y||0, site.z);
       g.userData.siteFx = !0;
       scene.add(g);
       FX.list.push({ site, group: g, ring, fill, cur, k: 0.5 });
     }
   }
+  window.SITE_ZONES={rebuild:build,clear:clearSites};
   const _lm = loadMap;
   loadMap = function () {
     const r = _lm.apply(this, arguments);
@@ -88,7 +89,7 @@
       sp = world.spike,
       carrying = !!(me && me.alive && me.hasSpike && "carried" === sp.state && "atk" === me.team),
       planted = "planted" === sp.state;
-    const inSite = me && me.alive ? siteAt(me.pos.x, me.pos.z) : null;
+    const inSite = me && me.alive ? siteAt(me.pos.x, me.pos.z, me.y) : null;
     for (const s of FX.list) {
       const here = inSite === s.site,
         plantedHere = planted && siteAt(sp.x, sp.z) === s.site;
