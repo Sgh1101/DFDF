@@ -516,7 +516,7 @@ function achAward(u, win, mode, agent) {
 }
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), ai: aiView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || u.operator || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, operator: !!(u.operator && !u.owner), adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), ai: aiView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -948,15 +948,19 @@ A.owner_ticket = async (q, b) => {
   if (!ownerScope(b.room, b.p)) throw fail(400, "방 또는 연결 정보가 이상합니다");
   // cheats are shut in a ranked room for everyone but the operator, whose matches count for RR as usual
   const rmo = await getJ("room:" + roomOf(b.room));
-  if (!(u.owner && isOwnerId(u.id) && u._s.o === 1)) return rmo && rmo.ranked ? { ticket: null, ranked: !0 } : { ticket: null };
+  const boss = u.owner && isOwnerId(u.id) && u._s.o === 1,
+    // an account the owner made an operator gets the owner's in-game powers too, but not in a ranked room
+    operator = !boss && !u.guest && !!u.operator && !(rmo && rmo.ranked);
+  if (!boss && !operator) return rmo && rmo.ranked ? { ticket: null, ranked: !0 } : { ticket: null };
   const exp = Math.min(u._s.exp, now() + 5 * 60000);
-  return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp }), exp };
+  return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp, ...(operator ? { op: 1 } : {}) }), exp };
 };
 A.owner_check = async (q, b) => {
   const s = verify(b.ticket);
-  if (!ownerScope(b.room, b.p) || !s || s.k !== "owner" || s.room !== b.room || s.p !== b.p || !isOwnerId(s.id)) return { owner: false, id: null };
+  if (!ownerScope(b.room, b.p) || !s || s.k !== "owner" || s.room !== b.room || s.p !== b.p || !(s.op || isOwnerId(s.id))) return { owner: false, id: null };
   const u = await getJ(userKey(s.id));
-  const owner = !!(u && u.owner && u.sessionVersion === s.v);
+  // an operator's ticket counts only while the account still is one (read fresh: taking it away counts at once), and not when banned
+  const owner = !!(u && u.sessionVersion === s.v && (s.op ? u.operator && !u.owner && !(await banOf(u, u.dev, u.lastIp)) : u.owner));
   return { owner, id: owner ? u.id : null, exp: owner ? s.exp : 0 };
 };
 // A guest with cheats opened for its account shows them to the room host
@@ -2307,7 +2311,7 @@ ADMIN.summary = async () => {
     S.matches += u.matches || 0;
     S.kills += u.kills || 0;
     S.wins += u.wins || 0;
-    (u.owner || (u.adminUntil && u.adminUntil > t)) && S.admins++;
+    (u.owner || u.operator || (u.adminUntil && u.adminUntil > t)) && S.admins++;
     activePerm(u) && S.perms++;
     const a = aimOf(u);
     a.pc && S.aimPc++;
@@ -2384,8 +2388,8 @@ function adminCheats(u) {
   }
 }
 // the owner's changes to an account, as its own log shows them
-const OP_KO = { ban: "차단", unban: "차단 해제", admin: "관리자 모드", xp: "경험치 설정", level: "레벨 설정", password: "비밀번호 변경", note: "메모", perm: "치트 권한", aim: "에임 보정", gold: "골드 설정", rr: "티어 점수 설정", grant: "스킨 지급" };
-const opNote = (b, u, was) => ("ban" === b.op ? (b.days > 0 ? ` ${b.days}일` : " 영구") + (b.reason ? ` (${String(b.reason).slice(0, 60)})` : "") : "gold" === b.op ? ` ${was.gold ?? 0} → ${u.gold}` : "rr" === b.op ? ` ${was.rr || 0} → ${u.rr}` : "grant" === b.op ? (b.remove ? " 회수 " : " ") + (Array.isArray(b.items) ? b.items.length + "개" : b.item === "all" ? "전부" : String(b.item || "").slice(0, 40)) : "level" === b.op || "xp" === b.op ? ` ${was.xp || 0} → ${u.xp} xp` : "");
+const OP_KO = { operator: "운영자 권한", ban: "차단", unban: "차단 해제", admin: "관리자 모드", xp: "경험치 설정", level: "레벨 설정", password: "비밀번호 변경", note: "메모", perm: "치트 권한", aim: "에임 보정", gold: "골드 설정", rr: "티어 점수 설정", grant: "스킨 지급" };
+const opNote = (b, u, was) => ("operator" === b.op ? (b.on ? " 줌" : " 뺌") : "ban" === b.op ? (b.days > 0 ? ` ${b.days}일` : " 영구") + (b.reason ? ` (${String(b.reason).slice(0, 60)})` : "") : "gold" === b.op ? ` ${was.gold ?? 0} → ${u.gold}` : "rr" === b.op ? ` ${was.rr || 0} → ${u.rr}` : "grant" === b.op ? (b.remove ? " 회수 " : " ") + (Array.isArray(b.items) ? b.items.length + "개" : b.item === "all" ? "전부" : String(b.item || "").slice(0, 40)) : "level" === b.op || "xp" === b.op ? ` ${was.xp || 0} → ${u.xp} xp` : "");
 ADMIN.user_set = async (q, b) => {
   const id = cleanId(b.id),
     u = await getJ(userKey(id));
@@ -2424,6 +2428,11 @@ ADMIN.user_set = async (q, b) => {
       break;
     case "note":
       u.note = String(b.note || "").slice(0, 300);
+      break;
+    case "operator":
+      // the owner's in-game panel (every cheat, room-wide settings, the player tab), not the owner page
+      if (u.guest) throw fail(400, "게스트는 운영자로 만들 수 없습니다");
+      b.on ? (u.operator = !0) : delete u.operator;
       break;
     case "perm":
       // what the owner page edits are the account's own cheats, also while admin mode lends it the full set
@@ -2555,7 +2564,7 @@ ADMIN.user_profile = async (q, b) => {
     level: lv.level, xp: u.xp || 0, into: lv.into, need: lv.need, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0,
     pulls: u.pulls || 0, bought: u.bought || 0, cosBought: u.cosBought || 0, spent: u.spent || 0, refunded: u.refunded || 0,
     kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0,
-    owner: !!u.owner, admin: !!(u.owner || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
+    owner: !!u.owner, operator: !!u.operator, admin: !!(u.owner || u.operator || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
     permActive: !!activePerm(u), permLegacy: !!(isObj(u.perm) && u.perm.on && !permMarked(u.perm)), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
     rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
