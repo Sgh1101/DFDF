@@ -66,3 +66,10 @@
 - 전체 단위 로컬517통과·2선택Redis제외, GitHub CI41805604486 실제Redis 포함519전부 통과·제외0. 구문206파일/자산50지문 통과. 최종 코드 고정 상태의 브라우저13종 재시도 없이 전부 통과(실행 중 소스 변경0). 실제Android/WAN/실결제 미검증.
 - 상세 결과/전체 지도는 docs/superpowers/records/ascent-layout-20261104 . 총/스킨#126/#128과 기존 미커밋 worktree는 보존한다. #126은 새SGH 모델과 Claude#128 중복 작업을 다음 담당자가 다시 대조해야 한다.
 - 이번 맵은 아직 main 미병합·운영 미배포. 별도 사용자 승인 후 최신 공동 작업/배포 규칙을 다시 확인한다.
+
+## 2026-11-04 · Codex · AdSense 심사 준비 구현 중
+
+- 기준 e104bcf, branch codex/adsense-compliance-20261104, 별도 sibling worktree. 내장 worktree 도구가 repo 경로를 허용하지 않아 git worktree로 생성. 기존 평가 메모와 Claude#128/#129·Codex#126 및 미커밋 작업은 보존.
+- 범위: 홈 소개/가이드 우선 배치, 현재 자산 지문에 묶인 광고 준비 점검, 미확인 허가·신청/연령/CMP 항목 분리, 실제 문서 정합성. 챔스 미수정, 광고 OFF.
+- 이전 맵 구조/나비칼 모션 유지 요청과 권리 미확인을 구분한다. 허가 질문은 답변 대기이며 임의로 승인 또는 전면 교체하지 않는다. 기본 단위 517통과/선택Redis2제외.
+- 계획 docs/superpowers/plans/2026-11-04-adsense-readiness.md. main 병합/운영 배포 승인 없음.

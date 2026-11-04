@@ -28,11 +28,11 @@ function audit(root=path.resolve(__dirname,'..')){
  scan(path.join(root,'js'));
  reasons.push(...assetErrors);
  const ready=reasons.length===0,unexpectedIntegration=adIntegrations.length>0&&!ready;
- const releaseSafe=!assetErrors.length&&!reasons.some(r=>r.endsWith('-unreadable'))&&!unexpectedIntegration&&(config.enabled===false||ready);
- return {ready,releaseSafe,reasons:[...new Set(reasons)],assetErrors,adIntegrations,unexpectedIntegration};
+ const gateChecksPass=!assetErrors.length&&!reasons.some(r=>r.endsWith('-unreadable'))&&!unexpectedIntegration&&(config?.enabled===false||ready);
+ return {ready,gateChecksPass,reasons:[...new Set(reasons)],assetErrors,adIntegrations,unexpectedIntegration};
 }
 if(require.main===module){
  const result=audit();console.log(JSON.stringify(result,null,2));
- if(!result.releaseSafe||process.argv.includes('--require-ready')&&!result.ready)process.exitCode=1;
+ if(!result.gateChecksPass||process.argv.includes('--require-ready')&&!result.ready)process.exitCode=1;
 }
 module.exports={audit};
