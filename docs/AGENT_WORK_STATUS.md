@@ -85,3 +85,12 @@
 - 담당 파일: `assets/rgx-firefly/v1/manifest.json`(sourcePack 표기만), `assets/CREDITS.md`(SGH 절), `scripts/package-rgx-firefly.js`(표기·안내), `.vercelignore`(`*.md`를 Cloudflare와 같이 비공개).
 - 실제 검사: 단위 517 통과, 자산 50지문, CSP 일치. GitHub CI는 진행 중이다.
 - 다음: CI 통과 후 병합한다(사용자 승인 받음).
+
+## 2026-11-04 · Claude · 부엉이(silenced) 소음권총 실총형 재제작 — 사용자 검토 대기
+
+- 사용자 요청: 기본 총 18종 순차 재제작 중 2번째. 부엉이를 풀사이즈 폴리머 스트라이커 9mm + 긴 원통형 소음기로 다시 만든다. 사용자 승인 후 다음 총으로 넘어간다.
+- 작업 브랜치/worktree: `worktree-agent-ae9fe0e89f0548e03`(로컬, 미푸시). 기준: 승인된 참새 권총 `claude/quirky-fermat-11wa1b`, 이후 origin/main `165caf3`(#128·#129·#130 포함) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR #126(Codex 챔스 입체 소총)·#129를 대조했다. #126은 play.html의 다른 줄(solid-geometry.js 추가)만 겹치고 충돌 없음. 미병합 codex 브랜치는 #126과 10월 15일의 `codex/reliability-home-skins`(오래됨, 열린 PR 없음)뿐이며 이번 변경 파일과 실제로 겹치는 미반영 작업은 없다.
+- 담당 파일: `js/gun-model-silenced.js`(새 파일), `play.html`(스크립트 한 줄). 03-engine·54·58·챔피언스 파일·스킨 목록·무기 수치는 변경하지 않았다.
+- 실제 검사(로컬): 단위 517 통과·2 Redis 선택 제외, 구문, 자산 50지문, 사이트 페이지, 브라우저 legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload·render-cost·gun-template-memory·drop-skins. 실기기/Android 미검증.
+- 다음: 사용자 외형 승인 후 병합 여부 결정. 미배포.
