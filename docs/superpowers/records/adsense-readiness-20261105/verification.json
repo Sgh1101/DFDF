@@ -142,5 +142,35 @@
   ],
   "pullRequest": "https://github.com/Sgh1101/DFDF/pull/131",
   "mainMerged": false,
-  "productionDeployed": false
+  "productionDeployed": false,
+  "browserLocaleCorrection": {
+    "reason": "CI starts with en-US; the original test assumed initial Korean and expected the wrong result after toggling.",
+    "runtimeChanged": false,
+    "locales": [
+      "en-US",
+      "ko-KR"
+    ],
+    "viewports": [
+      [
+        360,
+        640
+      ],
+      [
+        375,
+        800
+      ],
+      [
+        1280,
+        700
+      ],
+      [
+        844,
+        390
+      ]
+    ],
+    "testSha256": "e070c0a1ff00c6b24f5ac0d6df1c3ac2bb04dfd80002d75579bc6017a151eff2",
+    "localResult": "passed; no-JS plus four explicit-locale viewport flows",
+    "ciRunBeforeCorrection": "41854048122",
+    "ciBeforeCorrection": "All core and other browser shards passed; public-entry language assumption failed. Final CI must run against the correction."
+  }
 }
