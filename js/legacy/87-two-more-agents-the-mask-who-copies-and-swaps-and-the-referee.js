@@ -23,37 +23,11 @@
     while (t < len && !collideXZ(x + dx * (t + 0.4), z + dz * (t + 0.4), (y || 0) + 0.8, 0.15)) t += 0.4;
     return Math.min(t, len);
   };
-  const eye = (c) => ({ x: c.pos.x, y: (c.y || 0) + 1.45, z: c.pos.z });
+  const eye = (c) => ({ x: c.pos.x, y: actorEye(c), z: c.pos.z });
   // the enemy an aimed ability goes to: the one in the line, or the nearest one
   // seen inside a narrow cone around it
   function pick(c, len) {
-    const yaw = c.yaw || 0,
-      dx = -Math.sin(yaw),
-      dz = -Math.cos(yaw),
-      e = eye(c),
-      L = clearLen(e.x, e.z, dx, dz, len, c.y);
-    let hit = null,
-      nearest = 1e9;
-    for (const a of foesOf(c)) {
-      const px = a.pos.x - e.x,
-        pz = a.pos.z - e.z,
-        t = px * dx + pz * dz,
-        off = Math.abs(px * dz - pz * dx);
-      t >= -0.5 && t <= L && off <= 0.8 && t < nearest && losOK(c, a) && ((hit = a), (nearest = t));
-    }
-    if (!hit) {
-      let bd = 9;
-      for (const a of foesOf(c)) {
-        const px = a.pos.x - e.x,
-          pz = a.pos.z - e.z,
-          d = Math.hypot(px, pz);
-        if (d > len || d < 0.5) continue;
-        const ang = Math.acos(Math.max(-1, Math.min(1, (px * dx + pz * dz) / d)));
-        ang < 0.22 && ang < bd && losOK(c, a) && ((bd = ang), (hit = a));
-      }
-    }
-    const end = hit ? { x: hit.pos.x, z: hit.pos.z, y: (hit.y || 0) + 1.1 } : { x: e.x + dx * L, z: e.z + dz * L, y: e.y - 0.2 };
-    return { hit, end, e };
+    return abilityAim(c, len, 0.8, 0, 0.22);
   }
   const live = (life, upd, dispose) => {
     let t = 0;
@@ -385,7 +359,7 @@
   H.y_gunswap = () => {
     const c = player,
       s = pick(c, 25);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, CRIM, 0.03, 0.25);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, CRIM, 0.03, 0.25);
     if (!isHost()) return;
     const e = s.hit,
       mk = gunOf(c),
@@ -431,7 +405,7 @@
   H.y_ult_lifeswap = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, CRIM, 0.05, 0.35);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, CRIM, 0.05, 0.35);
     if (!isHost()) return;
     const e = s.hit;
     if (!e) {
@@ -486,7 +460,7 @@
   H.y_yellow = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, YEL, 0.03, 0.25);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, YEL, 0.03, 0.25);
     if (!isHost()) return;
     if (!s.hit) {
       try {
@@ -645,7 +619,7 @@
   H.y_ult_red = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, RED, 0.05, 0.35);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, RED, 0.05, 0.35);
     if (!isHost()) return;
     if (!s.hit) {
       giveUltBack(c);

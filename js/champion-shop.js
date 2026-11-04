@@ -1,12 +1,13 @@
 (() => {
   const GS = window.GUN_SKINS, ids = ["champions_atk", "champions_def"];
+  const championGunName = VALORANT_DATA.names[VALORANT_DATA.championsWeapon];
   const $ = (id) => document.getElementById(id), L = (ko, en) => window.GAME_LANG === "en" ? en : ko;
   const session = () => window.ACCOUNT?.session(), token = () => session()?.token || "";
   const state = { token: "", coins: null, ready: false, busy: false, armed: "", message: "" };
   let sequence = 0;
   const box = document.createElement("section"); box.id = "champion-shop";
   box.innerHTML = `<div class="champion-heading"><h3>${L("챔피언스 구매", "Buy Champions")}</h3><b id="champion-coins" aria-live="polite"></b></div>
-    <p>${L("장착 대상: 팬텀 · 경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "Equips on the Phantom · 1 Transcendent coin per completed match · 700 per skin")}</p>
+    <p>${L("장착 대상: " + championGunName + " · 경기 완료마다 초월 코인 1개 · 스킨 한 종류당 700개", "Equips on " + championGunName + " · 1 Transcendent coin per completed match · 700 per skin")}</p>
     <div class="champion-offers">${ids.map((id, i) => `<button type="button" data-champion-buy="${id}" disabled><strong>${i ? L("수비 · 상아빛", "Defense · Ivory") : L("공격 · 붉은빛", "Attack · Crimson")}</strong><span></span></button>`).join("")}</div>
     <progress id="champion-progress" max="700" value="0" aria-label="700코인 구매 진행"></progress><p id="champion-shop-status" role="status"></p>`;
   $("phantom-panel").before(box);
