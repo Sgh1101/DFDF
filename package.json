@@ -122,6 +122,7 @@
     "test:details": "node scripts/browser-details.js",
     "test:hospital-bots": "node scripts/browser-hospital-bots.js",
     "test:landing": "node scripts/browser-landing-layout.js",
+    "test:public-entry": "node scripts/browser-public-entry.js",
     "test:gunshots": "node scripts/browser-gunshots.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
     "test:soft-fonts": "node scripts/browser-soft-fonts.js",

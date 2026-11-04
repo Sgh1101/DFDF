@@ -9,7 +9,8 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
-<meta name="description" content="5대5 전술 FPS · 5v5 tactical shooter in the browser">
+<meta name="description" content="설치 없이 즐기는 5대5 전술 FPS 13. 요원 능력과 폭탄 설치로 팀 대전을 하고, AI 연습과 친구 초대 코드로 컴퓨터·모바일에서 무료로 시작하세요.">
+<link rel="canonical" href="https://13fps.xyz/">
 <meta property="og:title" content="13">
 <meta property="og:description" content="브라우저에서 바로 하는 5대5 전술 교전 · 5v5 tactical shooter, right in the browser">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -237,6 +238,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 .banned{max-width:420px;margin:60px auto;text-align:center}
 .banned b{font-size:22px;color:#ff9aa5}
 </style>
+<link rel="stylesheet" href="./css/home-intro.css">
 <script src="./js/client-request.js"></script>
 <script src="./js/feedback.js"></script>
 <script src="./js/promo.js"></script>
@@ -246,7 +248,8 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 <script src="./js/progression-text.js"></script>
 <script src="./js/home-clan.js"></script>
 </head>
-<body>
+<body class="public-entry">
+<a class="entry-skip" href="#content" data-t="skipContent">본문으로 건너뛰기</a>
 <div class="bg"><div class="bg-grid"></div></div>
 <div class="wrap">
   <!-- the top bar: the logo, one guide menu, and on the right the records (signed in) and one menu for the rest -->
@@ -268,12 +271,29 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
       </div>
     </div>
   </div>
+  <main id="content" tabindex="-1">
   <div id="notices"></div>
+  <section id="publicIntro" class="public-intro" aria-labelledby="publicHeading">
+    <div class="entry-copy">
+      <p class="entry-kicker" data-t="entryKicker">설치 없이 · 무료로 · 함께</p>
+      <h1 id="publicHeading" data-t="entryHeading">능력으로 길을 여는 5대5 전술 FPS</h1>
+      <p class="entry-lead" data-t="entryLead">공격 팀은 폭탄을 설치하고, 수비 팀은 이를 막거나 해제합니다. 네 가지 요원 능력으로 팀의 길을 만들고, 혼자서는 AI와 연습하거나 친구를 초대해 함께 겨뤄 보세요.</p>
+      <div class="entry-actions"><a class="btn go" id="publicStart" href="#v-auth" data-t="entryStart">무료로 시작하기</a><a class="btn" id="publicGuide" href="./guide.html" data-t="entryGuide">게임 방식 알아보기</a></div>
+      <a id="publicLogin" class="entry-login" href="#v-auth" data-t="entryLogin">이미 계정이 있나요? 로그인 / 가입</a>
+      <noscript><p class="entry-lead">게임 플레이에는 자바스크립트가 필요합니다. 게임 소개와 조작법은 켜지 않아도 읽을 수 있습니다.</p></noscript>
+    </div>
+    <figure class="entry-picture"><img src="./assets/site/maps/pogu.webp" width="960" height="540" alt="포구 맵의 골목과 건물, 두 사이트를 보여 주는 실제 게임 지도" fetchpriority="high"><figcaption data-t="entryCaption">직접 만든 전장 ‘포구’의 실제 게임 지도. 건물 안팎과 옥상으로 이어지는 경로를 선택하세요.</figcaption></figure>
+    <ol class="entry-steps">
+      <li><b data-t="entryStep1">01 · 조작부터 익히기</b><span data-t="entryDetail1">컴퓨터는 키보드·마우스, 휴대폰은 터치 조작. 연습장에서 움직임과 사격을 익힐 수 있어요.</span></li>
+      <li><b data-t="entryStep2">02 · 역할을 나눠 플레이</b><span data-t="entryDetail2">구매 시간에 무기와 방어구를 고르고, 요원 능력으로 진입하거나 사이트를 지키세요.</span></li>
+      <li><b data-t="entryStep3">03 · 친구와 한 팀으로</b><span data-t="entryDetail3">방을 만들고 초대 코드를 공유하세요. 게스트는 혼자 하기와 코드 참가부터 시작할 수 있어요.</span></li>
+    </ol>
+  </section>
 
   <div class="stage">
   <div class="hero" id="hero"><h1>13</h1><div class="sub">TACTICAL SHOOTER</div><p data-t="lead"></p></div>
   <div class="views">
-  <div id="v-auth" hidden>
+  <div id="v-auth" tabindex="-1" hidden>
     <div class="box auth">
       <h3 data-t="signin"></h3>
       <div class="d" data-t="signinDesc"></div>
@@ -351,6 +371,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
     <p>13 is a 5v5 tactical shooter that runs right in your browser, with nothing to install. Attackers plant the bomb, defenders stop them, and every agent opens the map with different abilities. Play solo against AI or with friends by invite code, on a computer or a phone. New here? Start with the guide and the controls, then read about each mode, map and agent. These pages are in Korean.</p>
     <nav class="ilinks" aria-label="Game guides"><a href="./guide.html">Guide</a><a href="./controls.html">Controls</a><a href="./modes.html">Modes</a><a href="./maps.html">Maps</a><a href="./agents.html">Agents</a></nav>
   </section>
+  </main>
   <footer>
     <nav class="fnav" aria-label="사이트 메뉴"><a href="./guide.html" data-t="pgGuide"></a><a href="./controls.html" data-t="pgControls"></a><a href="./modes.html" data-t="pgModes"></a><a href="./maps.html" data-t="pgMaps"></a><a href="./agents.html" data-t="pgAgents"></a><a href="./patch-notes.html" data-t="pgPatch"></a><a href="./about.html" data-t="pgAbout"></a><a href="./contact.html" data-t="pgContact"></a><a href="./terms.html" data-t="pgTerms">이용규칙</a><a href="./credits.html" data-t="pgCredits">제작·출처</a><a href="./privacy.html" data-t="privacy"></a><a href="./privacy.html#choices" data-t="pgPrivacyChoices">개인정보 설정</a></nav>
     13
@@ -362,6 +383,7 @@ html[lang=en] .intro[lang=ko],html:not([lang=en]) .intro[lang=en]{display:none}
 const API = "/api/v1";
 const T = {
   ko: {
+    skipContent:"본문으로 건너뛰기",entryKicker:"설치 없이 · 무료로 · 함께",entryHeading:"능력으로 길을 여는 5대5 전술 FPS",entryLead:"공격 팀은 폭탄을 설치하고, 수비 팀은 이를 막거나 해제합니다. 네 가지 요원 능력으로 팀의 길을 만들고, 혼자서는 AI와 연습하거나 친구를 초대해 함께 겨뤄 보세요.",entryStart:"무료로 시작하기",entryGuide:"게임 방식 알아보기",entryLogin:"이미 계정이 있나요? 로그인 / 가입",entryCaption:"직접 만든 전장 ‘포구’의 실제 게임 지도. 건물 안팎과 옥상으로 이어지는 경로를 선택하세요.",entryStep1:"01 · 조작부터 익히기",entryDetail1:"컴퓨터는 키보드·마우스, 휴대폰은 터치 조작. 연습장에서 움직임과 사격을 익힐 수 있어요.",entryStep2:"02 · 역할을 나눠 플레이",entryDetail2:"구매 시간에 무기와 방어구를 고르고, 요원 능력으로 진입하거나 사이트를 지키세요.",entryStep3:"03 · 친구와 한 팀으로",entryDetail3:"방을 만들고 초대 코드를 공유하세요. 게스트는 혼자 하기와 코드 참가부터 시작할 수 있어요.",
     lead: "다섯 명이 한 팀. 요원의 능력으로 각을 열고, 폭탄으로 승부를 낸다. 설치 없이 브라우저에서 바로.",
     signin: "로그인", signinDesc: "아이디와 비밀번호를 정해서 넣고 누르면 끝. 처음 쓰는 아이디면 바로 가입됩니다. 인증 없음.",
     idPh: "아이디 (2~16자)", pwPh: "비밀번호 (새 가입은 8자 이상)", signinBtn: "로그인 / 가입", keep: "이 기기에서 로그인 유지", or: "또는", guestBtn: "게스트로 시작",
@@ -379,6 +401,7 @@ const T = {
     feat: ["<b>모드 11종</b> — 일반전·신속전·폭탄 돌격·팀 데스매치·데스매치·칼 대난투·총기 순환·감염·점령전·깃발 탈취·축소전", "<b>요원 28명</b> — 능력 112개가 전부 다릅니다. 같은 능력을 가진 요원은 없습니다", "<b>상시 전장 22곳</b> — 5대5 11곳 · 소규모 3대3 8곳 · 1대1 3곳{wk}. 2층이 있는 포구, 밤의 항구, 옥상이 이어진 도시", "<b>총 18종 · 나이프 · 수류탄</b> — RPG까지, 전부 다른 모양과 소리", "<b>총 스킨 뽑기</b> — 경기마다 골드, 공통 뽑기 스킨 30종 × 총 18종. 칼·전용 스킨까지 전체 수집 601종. 등급이 높을수록 모션과 연출이 화려해집니다", "<b>같이 하기</b> — 서버별 방 목록, 방 만들기, 초대 코드", "<b>모바일</b> — 터치 조작, 앱 설치, 폰 전용 서버"],
   },
   en: {
+    skipContent:"Skip to content",entryKicker:"No install · Free to play · Play together",entryHeading:"Open the way with abilities in a 5v5 tactical FPS",entryLead:"Attackers plant the bomb. Defenders stop them or defuse it. Use four agent abilities to open routes for your team, practise solo against AI, or invite friends to play together.",entryStart:"Start for free",entryGuide:"How to play (Korean)",entryLogin:"Have an account? Sign in / Sign up",entryCaption:"An actual in-game map view of our original Pogu battlefield. Take routes through buildings and across rooftops.",entryStep1:"01 · Learn the controls",entryDetail1:"Use a keyboard and mouse on a computer, or touch controls on a phone. Practise movement and shooting in the range.",entryStep2:"02 · Play your role",entryDetail2:"Buy weapons and armour between rounds. Use agent abilities to enter or defend a site.",entryStep3:"03 · Team up with friends",entryDetail3:"Create a room and share its invite code. Guests can start with solo play and code-based room entry.",
     lead: "Five to a team. Open angles with your agent's abilities and settle it with the bomb. No install — right in the browser.",
     signin: "Sign in", signinDesc: "Pick an ID and a password and press the button. A new ID signs you up on the spot. No e-mail, no verification.",
     idPh: "ID (2-16 characters)", pwPh: "Password (8+ to sign up)", signinBtn: "Sign in / Sign up", keep: "Keep me signed in on this device", or: "or", guestBtn: "Play as guest",
@@ -426,6 +449,7 @@ function paintLang() {
 }
 $("#fbOpen").onclick = () => FEEDBACK.open();
 $("#lang").onclick = () => { L = L === "ko" ? "en" : "ko"; localStorage.setItem("lgp_lang", L); paintLang(); };
+for(const [link,target]of [["#publicStart","#doGuest"],["#publicLogin","#uid"]])$(link).onclick=e=>{e.preventDefault();$("#v-auth").scrollIntoView({block:"start"});$(target).focus({preventScroll:true});};
 
 // a password typed with the Korean keyboard on counts as the keys pressed (한글 = gksrmf)
 const CHO = "r R s e E f a q Q t T d w W c z x v g".split(" "), JUNG = "k o i O j p u P h hk ho hl y n nj np nl b m ml l".split(" "), JONG = ",r,R,rt,s,sw,sg,e,f,fr,fa,fq,ft,fx,fv,fg,a,q,qt,t,T,d,w,c,z,x,v,g".split(",");
@@ -452,6 +476,8 @@ const inside = () => !$("#v-dash").hidden || !$("#v-rec").hidden;
 const REC_RE = /^#records(?:-(stats|mast|rew|clan))?$/;
 function view(v) {
   const signedIn = v === "dash" || v === "rec";
+  $("#publicIntro").hidden = v !== "auth" || !!S;
+  document.body.classList.toggle("public-entry", v === "auth" && !S);
   if (!signedIn) $("#histList").replaceChildren();
   ["auth", "dash", "rec", "ban"].forEach((x) => ($("#v-" + x).hidden = x !== v));
   $("#recOpen").hidden = !signedIn || !S;
