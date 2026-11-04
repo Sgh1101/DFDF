@@ -1,4 +1,5 @@
-// Import only the RGX butterfly data and sounds explicitly retained by the user.
+// Import only the butterfly data and sounds explicitly retained by the user. Afterwards run
+// node scripts/build-sgh-butterfly.js: the SGH butterfly's own shape and texture replace the imported ones.
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const source=process.argv[2];if(!source)throw Error('Pass the provided Knife Pack directory');
@@ -14,5 +15,5 @@ copy('textures/melee/future_butterfly_uv.png','texture.png');
 const soundDir=path.join(source,'assets/wtyj/tacz_sounds/melee/future_butterfly');
 for(const name of fs.readdirSync(soundDir).sort())if(/^future_butterfly_[a-z_0-9]+\.ogg$/.test(name))copy('tacz_sounds/melee/future_butterfly/'+name,'sounds/'+name);
 files.sort((a,b)=>a.name.localeCompare(b.name));
-fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({version:1,sourceItem:'future_butterfly',sourceLabel:'RGX 11z Firefly',sourcePack:'Provided Valorant Knife Pack-0.1.0',files},null,2)+'\n');
+fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({version:1,sourceItem:'future_butterfly',sourceLabel:'SGH나비칼',sourcePack:'Provided knife pack 0.1.0',files},null,2)+'\n');
 console.log('RGX Firefly:',files.length,'selected data/image/sound files,',files.reduce((n,f)=>n+f.size,0),'bytes');
