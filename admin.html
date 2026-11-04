@@ -251,6 +251,7 @@ function permTag(u) {
 const ADMIN_KNOBS = [["run", "이동 속도 (모두)"], ["roundT", "라운드 시간"], ["buyT", "구매 시간"], ["matchT", "데스매치 경기 시간"], ["jumpV", "점프 높이"], ["gravity", "중력"], ["aiSpeed", "봇 속도 배율"], ["infAll", "모든 능력 무제한"], ["freezeAI", "봇 정지"]];
 const allowParts = (a) => ADMIN_KNOBS.filter(([k]) => !a || a[k] !== !1).map(([, n]) => n);
 function adminTag(u) {
+  if (u.operator) return ` <span class="tag gold" title="게임 안에서 소유자와 같은 설정 패널을 씁니다 (운영자 페이지는 못 들어옵니다)">운영자</span>`;
   if (!u.admin) return "";
   const parts = allowParts(u.adminAllow);
   const what = parts.length === ADMIN_KNOBS.length ? "전체 설정 전부" : parts.length ? parts.join(" · ") : "아무 항목도 안 엶";
@@ -725,7 +726,7 @@ VIEWS.users = async () => {
       <td>${when(u.lastSeen)}</td><td>${u.kills}킬 · ${u.wins}승 / ${u.matches}판</td><td>${when(u.created)}</td>
       <td class="muted">${esc(u.lastIp)}<br>${esc((u.dev || "").slice(0, 14))}</td>
       <td><div class="acts">${(u.ban && (!u.ban.until || u.ban.until > Date.now())) ? '<button data-op="unban">차단 풀기</button>' : '<button class="bad" data-op="ban">차단</button>'}
-        <button data-op="perm" class="gold">권한</button><button data-op="aim">에임 보정</button><button data-op="admin">관리자 모드</button><button data-op="level">레벨</button><button data-op="password">비번 변경</button><button data-op="note">메모</button>
+        <button data-op="perm" class="gold">권한</button><button data-op="aim">에임 보정</button><button data-op="admin">관리자 모드</button>${u.guest ? "" : `<button data-op="operator" class="gold">${u.operator ? "운영자 빼기" : "운영자 주기"}</button>`}<button data-op="level">레벨</button><button data-op="password">비번 변경</button><button data-op="note">메모</button>
         <button data-op="gold" class="gold">골드</button><button data-op="rr">티어</button><button data-op="skins" class="gold">스킨 지급·회수</button>
         <button data-op="devban" class="bad">기기 차단</button><button data-op="ipban" class="bad">IP 차단</button><button data-op="delete" class="bad">삭제</button></div></td></tr>`).join("")}</table>`;
     $("#ul").onclick = async (e) => {
@@ -734,6 +735,10 @@ VIEWS.users = async () => {
       const p = { id, op };
       if (op === "perm") { permEditor(row, load); return; }
       if (op === "admin") { adminEditor(row, load); return; }
+      if (op === "operator") {
+        p.on = !row.operator;
+        if (!confirm(p.on ? id + " 계정에 운영자 권한을 줄까요?\n게임 안에서 소유자와 똑같은 설정 패널(모든 치트, 방 전체 설정, 플레이어 탭)을 씁니다. 운영자 페이지는 들어올 수 없고, 랭크 방에서는 쓸 수 없습니다." : id + " 계정의 운영자 권한을 뺄까요?")) return;
+      }
       if (op === "skins") { skinEditor(row, load); return; }
       if (op === "aim") { aimEditor(row, load); return; }
       if (op === "ban") { const d = days(id + " 차단"); if (d === null) return; p.days = d; p.reason = prompt("사유", "") || ""; }
