@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sourceItem": "future_butterfly",
-  "sourceLabel": "RGX 11z Firefly",
+  "sourceLabel": "SGH나비칼",
   "sourcePack": "Provided Valorant Knife Pack-0.1.0",
   "files": [
     {
@@ -11,8 +11,8 @@
     },
     {
       "name": "model.json",
-      "size": 98600,
-      "sha256": "e1b4a336d013b8094e776e3094ea1c46d02ae6279320dc25f16cee05c3079d80"
+      "size": 46471,
+      "sha256": "d7fb9f3cba42703436252cb543271933494fbc7ffff16d2d2d4718d79d9289a6"
     },
     {
       "name": "sounds/future_butterfly_draw.ogg",
@@ -56,8 +56,9 @@
     },
     {
       "name": "texture.png",
-      "size": 38391,
-      "sha256": "414eec0e3075d556ba9e2bdbf48768fd42ced82670606fda00b18b322dadf639"
+      "size": 4046,
+      "sha256": "8d3fec620a662ebe51e0b9b35b7d30b81946c17e8f279830094912371f6cdcd7"
     }
-  ]
+  ],
+  "design": "SGH butterfly: model geometry and texture drawn by scripts/build-sgh-butterfly.js; the retained rig bones, animations and sounds are unchanged"
 }
