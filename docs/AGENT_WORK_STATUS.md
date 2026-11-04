@@ -66,3 +66,12 @@
 - 전체 단위 로컬517통과·2선택Redis제외, GitHub CI41805604486 실제Redis 포함519전부 통과·제외0. 구문206파일/자산50지문 통과. 최종 코드 고정 상태의 브라우저13종 재시도 없이 전부 통과(실행 중 소스 변경0). 실제Android/WAN/실결제 미검증.
 - 상세 결과/전체 지도는 docs/superpowers/records/ascent-layout-20261104 . 총/스킨#126/#128과 기존 미커밋 worktree는 보존한다. #126은 새SGH 모델과 Claude#128 중복 작업을 다음 담당자가 다시 대조해야 한다.
 - 이번 맵은 아직 main 미병합·운영 미배포. 별도 사용자 승인 후 최신 공동 작업/배포 규칙을 다시 확인한다.
+
+## 2026-11-04 · Claude · 총 디자인 개편(1/18 참새) · 챔피언의 물결 · 챔스 총 B형 자체 제작 — PR #128, 병합 승인 대기
+
+- 사용자 요청: 초월 등급을 뺀 총 18종을 실제 총처럼 하나씩 다시 만들고, 한 자루씩 검토·승인 후 다음으로 간다. 챔피언의 물결(전설) 전체 개편. 챔스 팬텀 총은 사용자가 원본 JAR(B, #115 시점) 모양을 자체 제작으로 재현하는 안을 골랐다.
+- 브랜치: `claude/quirky-fermat-11wa1b` (PR #128). 기준: main `e104bcf`(#130 황혼 지구, 1d189e7 공동 작업 지침)까지 병합.
+- 상대 작업 확인: Codex 열린 PR #126(챔스 입체 소총)은 #128의 챔스 총과 같은 파일(`scripts/champions-phantom/`, `assets/champions-phantom/`, `js/phantom-gun-wave.js`)을 고친다. 두 PR 중 하나만 병합해야 하며 사용자에게 선택을 요청했다. #129(Claude, 공개 파일 문구)·#130(Codex, 맵)과는 겹치지 않는다.
+- 담당 파일: `js/gun-model-pistol.js`(새), `play.html`, `js/legacy/54-reload-animation.js`, `js/legacy/58-gun-skins.js`·`62-kill-banners.js`·`80-skin-sound-packs-…`·`96-…`·`97-…`(champion 키트만), `scripts/browser-champion.js`, `scripts/champions-phantom/gun.js`·`gun-paint.js`, 재생성 자산, `docs/CHAMPIONS_PHANTOM.md`.
+- 실제 검사: 단위 517 통과, check·자산·사이트 페이지 통과, 로컬 브라우저 champion/phantom/champions-finish/phantom-kill-wave/legacy-models/weapon-shop/reload 통과, GitHub CI 7개 통과(main 병합 전 커밋 51c36eb). 실기기·실결제 미검증.
+- 진행 중: 2/18 부엉이(silenced) — worktree `agent-ae9fe0e89f0548e03`, 미커밋.
