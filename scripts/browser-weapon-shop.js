@@ -14,7 +14,7 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  const filled=async()=>p.evaluate(()=>[...document.querySelectorAll('#shop-grid .shop-col')].map(c=>{const r=c.getBoundingClientRect(),last=c.lastElementChild.getBoundingClientRect();return Math.abs(r.bottom-last.bottom)<2;}));
  assert.ok((await filled()).every(Boolean),'desktop categories fill the available column height');
  const carbine=p.locator('#shop-grid [data-kind="weapon"][data-key="carbine"]');
- await carbine.hover();await p.waitForFunction(()=>document.getElementById('buy-name').textContent==='정찰 소총');
+ await carbine.hover();await p.waitForFunction(()=>document.getElementById('buy-name').textContent==='Parallax');
  assert.ok(await p.evaluate(()=>{let found=false;WEAPON_SHOP.preview().obj.traverse(n=>{if(n.userData.weaponModel==='recon')found=true;});return found;}),'detail uses the scoped recon rifle');
  const cost=await p.evaluate(()=>WEAPONS.carbine.cost);await carbine.click();
  assert.deepEqual(await p.evaluate(()=>({key:myActor().weapons.primary,credits:myActor().credits})),{key:'carbine',credits:10000-cost});

@@ -1,0 +1,122 @@
+// The single source-pack exception requested by the user: RGX 11z Firefly.
+(() => {
+  'use strict';
+  const D=window.RGX_FIREFLY_DATA,GS=window.GUN_SKINS,MODEL='rgx_butterfly',BASE='./assets/rgx-firefly/v1/';
+  if(!D||!GS||!window.KNIVES||!window.BEDROCK_RIG)return;
+  const EN=window.GAME_LANG==='en',status=document.createElement('button');
+  status.className='rgx-load-status';status.type='button';status.setAttribute('role','status');status.textContent=EN?'Preparing RGX butterfly…':'RGX 나비칼 준비 중…';
+  status.style.cssText='position:fixed;right:12px;bottom:10px;z-index:61;padding:6px 10px;border:1px solid #5f8e7a;background:#101b1eef;color:#d4efdf;border-radius:8px;font:12px sans-serif';
+  document.body.append(status);
+  const S=window.RGX_FIREFLY={state:'loading',ready:null,bytes:new Map(),voices:new Set(),clip:null};
+  const bindings=new WeakMap(),buffers=new Map();let model,clips,texture,materials,manifest,clock=0,current=null,drawAt=0,attackAt=-100,attackSerial=0,audioGeneration=0;
+  function stop(){audioGeneration++;for(const voice of S.voices)try{voice.stop();}catch{}S.voices.clear();}
+  function bounds(root){
+    root.updateWorldMatrix(true,true);const box=new T.Box3();
+    root.traverseVisible(node=>{if(!node.isMesh||!node.geometry||Math.abs(node.matrixWorld.determinant())<1e-12)return;node.geometry.computeBoundingBox();box.union(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));});
+    return box;
+  }
+  function create(){
+    if(S.state!=='ready'){
+      const placeholder=new T.Group(),mesh=new T.Mesh(new T.BoxGeometry(.03,.05,.4),new T.MeshBasicMaterial({color:0x647d77,wireframe:true}));
+      placeholder.userData.rgxLoading=true;placeholder.add(mesh);return placeholder;
+    }
+    const rig=D.prepareRig(BEDROCK_RIG.build(D.renderGeometry(model),materials.body)),wrapper=new T.Group();rig.userData.rgxRig=true;
+    rig.traverse(node=>{if(node.isMesh){node.userData.live=true;if(/illuminated/.test(node.parent.userData.rgxBone||''))node.material=materials.glow;}});
+    D.pose(rig,clips,'static_idle',0);
+    // The armory presents the assembled blade. In play the original hand/weapon ancestors animate again.
+    let node=rig.getObjectByName('phantom-bone-weapon');
+    for(;node&&node!==rig;node=node.parent)if(node.userData.rgxRest){node.position.fromArray(node.userData.rgxRest.p);node.quaternion.fromArray(node.userData.rgxRest.q);}
+    rig.scale.setScalar(.072);wrapper.add(rig);
+    const box=bounds(wrapper),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
+    rig.position.set(-center.x,-center.y+.03,-center.z+.25-size.z/2);
+    wrapper.userData.rgxItem='future_butterfly';return wrapper;
+  }
+  const handMatrix=new T.Matrix4(),handScale=new T.Vector3(),armUp=new T.Vector3(0,1,0);
+  function handTransform(root,hand,out){
+    const chain=[];for(let n=hand;n&&n!==root;n=n.parent)chain.push(n);out.identity();
+    for(const n of chain.reverse()){
+      handScale.copy(n.scale);for(const axis of ['x','y','z'])if(Math.abs(handScale[axis])<1e-8)handScale[axis]=1;
+      out.multiply(handMatrix.compose(n.position,n.quaternion,handScale));
+    }
+    return out;
+  }
+  function bindHand(root,rig){
+    const hand=rig.getObjectByName('phantom-bone-righthand');if(!hand)return;
+    D.pose(rig,clips,'static_idle',0);
+    const parts=root.children.filter(n=>n.userData.armPart),[sleeve,cuff,wrist,fist]=parts;if(!sleeve||!fist)return;
+    const grip=fist.position.clone(),axis=sleeve.position.clone().sub(grip).normalize(),length=2*(sleeve.position.distanceTo(grip)-.03),elbow=grip.clone().addScaledVector(axis,length);
+    // Preview centring is not a grip anchor. Translate the held rig once so the
+    // source idle socket meets the game's existing wrist before following it.
+    root.updateWorldMatrix(true,true);
+    const target=rig.parent.worldToLocal(root.localToWorld(grip.clone())),source=rig.parent.worldToLocal(hand.getWorldPosition(new T.Vector3()));
+    rig.position.add(target.sub(source));root.updateWorldMatrix(true,true);
+    const inverseIdle=handTransform(root,hand,new T.Matrix4()).invert();
+    const group=new T.Group();group.name='rgx-agent-hand';group.matrixAutoUpdate=false;root.add(group);
+    for(const child of root.children.slice())if(![sleeve,cuff,wrist].includes(child)&&(child.userData.armPart||child===root.userData.fist||child===root.userData.fingers||child===root.userData.ringFinger))group.add(child);
+    const binding={hand,group,inverseIdle,sleeve,cuff,wrist,grip,elbow,length,matrix:new T.Matrix4(),target:new T.Vector3(),position:new T.Vector3(),rotation:new T.Quaternion(),scale:new T.Vector3(),axis:new T.Vector3()};
+    bindings.set(root,binding);return binding;
+  }
+  function followHand(root,b){
+    handTransform(root,b.hand,b.matrix);b.target.setFromMatrixPosition(b.matrix);b.matrix.multiply(b.inverseIdle);b.matrix.decompose(b.position,b.rotation,b.scale);
+    b.position.copy(b.grip).applyQuaternion(b.rotation).negate().add(b.target);b.group.matrix.compose(b.position,b.rotation,b.scale.set(1,1,1));b.group.matrixWorldNeedsUpdate=true;
+    const wrist=b.position.copy(b.grip).applyMatrix4(b.group.matrix),axis=b.axis.subVectors(b.elbow,wrist),length=Math.max(.05,axis.length());axis.normalize();
+    b.sleeve.position.copy(wrist).addScaledVector(axis,length/2+.03);b.sleeve.quaternion.setFromUnitVectors(armUp,axis);b.sleeve.scale.y=length/b.length;
+    for(const [part,offset]of[[b.cuff,.075],[b.wrist,.045]]){part.position.copy(wrist).addScaledVector(axis,offset);part.quaternion.copy(b.sleeve.quaternion);}
+  }
+  async function sound(effect){
+    if(!SETTINGS.sfx||document.hidden)return;
+    const generation=audioGeneration,name='sounds/'+effect.split('/').at(-1)+'.ogg',bytes=S.bytes.get(name),ctx=window.GAME_AUDIO?.context?.();if(!bytes||!ctx)return;
+    if(!buffers.has(name))buffers.set(name,ctx.decodeAudioData(bytes.slice(0)));
+    const cancelled=()=>generation!==audioGeneration||!SETTINGS.sfx||document.hidden||curWeaponKey()!=='knife'||GS.of('knife').id!=='butterfly';
+    const buffer=await buffers.get(name);if(cancelled())return;
+    if(ctx.state==='suspended')await ctx.resume();
+    if(cancelled())return;
+    const voice=ctx.createBufferSource(),gain=ctx.createGain();voice.buffer=buffer;gain.gain.value=.5;voice.connect(gain);gain.connect(GAME_AUDIO.output);S.voices.add(voice);
+    voice.onended=()=>{S.voices.delete(voice);voice.disconnect();gain.disconnect();};voice.start();
+  }
+  async function load(){
+    S.state='loading';status.hidden=false;status.disabled=true;
+    try{
+      const response=await fetch(BASE+'manifest.json?revision=rgx-only-20261104',{cache:'no-cache'});if(!response.ok)throw Error('RGX manifest');manifest=await response.json();
+      if(manifest.sourceItem!=='future_butterfly'||!Array.isArray(manifest.files)||manifest.files.length>16)throw Error('RGX package');
+      const staged=new Map();
+      await Promise.all(manifest.files.map(async file=>{
+        if(!/^(model\.json|animation\.json|texture\.png|sounds\/future_butterfly_[a-z_0-9]+\.ogg)$/.test(file.name)||!Number.isInteger(file.size)||file.size>2*1024*1024)throw Error('RGX file');
+        const response=await fetch(BASE+file.name+'?sha256='+file.sha256),bytes=await response.arrayBuffer();if(!response.ok)throw Error('RGX load');
+        const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),n=>n.toString(16).padStart(2,'0')).join('');if(hash!==file.sha256||bytes.byteLength!==file.size)throw Error('RGX fingerprint');staged.set(file.name,bytes);
+      }));
+      model=D.parse(new TextDecoder().decode(staged.get('model.json')))['minecraft:geometry'][0];clips=D.parse(new TextDecoder().decode(staged.get('animation.json'))).animations;
+      const url=URL.createObjectURL(new Blob([staged.get('texture.png')],{type:'image/png'}));
+      try{texture=await new T.TextureLoader().loadAsync(url);}finally{URL.revokeObjectURL(url);}
+      texture.name='rgx-firefly-original';texture.colorSpace=T.SRGBColorSpace;texture.magFilter=T.NearestFilter;
+      materials={body:new T.MeshStandardMaterial({map:texture,roughness:.45,metalness:.2,alphaTest:.05,side:T.DoubleSide}),glow:new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:0xffffff,emissiveIntensity:.65,roughness:.4,metalness:.2,alphaTest:.05,side:T.DoubleSide})};
+      for(const material of Object.values(materials))material.userData.shared=true;
+      S.bytes=staged;S.state='ready';status.hidden=true;window.refreshSkinAssets?.();return true;
+    }catch(error){S.state='error';S.error=error.message;status.disabled=false;status.textContent=EN?'RGX butterfly failed to load · Retry':'RGX 나비칼을 불러오지 못했어 · 재시도';return false;}
+  }
+  status.onclick=()=>{S.ready=load();};
+  KNIVES.build[MODEL]=create;
+  const inspectD=KNIVES.inspD,drawD=KNIVES.drawD;
+  KNIVES.inspD=m=>m===MODEL?(clips?.inspect.animation_length||6.5):inspectD(m);
+  KNIVES.drawD=m=>m===MODEL?(clips?.draw.animation_length||2):drawD(m);
+  const bake=bakeDeep;bakeDeep=function(root){let imported=false;root.traverse(n=>{if(n.userData.rgxRig)imported=true;});return imported?root:bake.apply(this,arguments);};
+  const kick=viewmodelFireKick;viewmodelFireKick=function(){const r=kick.apply(this,arguments);attackAt=clock;attackSerial++;return r;};
+  const tick=tickViewmodel;tickViewmodel=function(dt){
+    const r=tick.apply(this,arguments);clock+=dt||.016;
+    if(S.state!=='ready'||curWeaponKey()!=='knife'||GS.of('knife').model!==MODEL||player.ultW){current=null;if(S.clip){stop();S.clip=null;}return r;}
+    const root=VM.current;let rig;root?.traverse(n=>{if(n.userData.rgxRig)rig=n;});if(!rig)return r;
+    if(current!==root){current=root;drawAt=clock;attackAt=-100;S.clip=null;stop();}
+    const M=window.SKIN_PERKS?.state,blocked=!player.alive||!VM.root.visible||!root.visible||player.ads||['menu','over','end'].includes(world.phase)||window.ARMS?.hold?.state?.on||['shop','pause','armory'].some(id=>{const el=document.getElementById(id);return el&&!el.hidden;});
+    if(blocked){if(M)M.insp.t=-1;stop();S.clip=null;return r;}
+    let clip='static_idle',time=0,serial=0;const attack='melee_'+(1+(attackSerial-1)%3);
+    if(M?.insp.t>=0){clip='inspect';time=M.insp.t;}
+    else if(clock-attackAt<(clips[attack]?.animation_length||0)){clip=attack;time=clock-attackAt;serial=attackSerial;}
+    else if(clock-drawAt<clips.draw.animation_length){clip='draw';time=clock-drawAt;}
+    const binding=bindings.get(root)||bindHand(root,rig);D.pose(rig,clips,clip,time);if(binding)followHand(root,binding);
+    const previous=S.clip===clip&&S.serial===serial&&time>=S.time?S.time:-1;if(S.clip!==clip)stop();
+    for(const [at,event]of Object.entries(clips[clip]?.sound_effects||{}))if(+at>previous&&+at<=time)sound(event.effect).catch(()=>{});
+    S.clip=clip;S.time=time;S.serial=serial;return r;
+  };
+  Object.assign(S,{create,pose:(rig,clip,time)=>D.pose(rig,clips,clip,time),bounds,stop,loaded:()=>S.state==='ready',animations:()=>clips});
+  S.ready=load();
+})();
