@@ -141,7 +141,7 @@
     return PLAN.def.get(e.id) || _ag.apply(this, arguments);
   };
 
-  // only the planter walks in with the spike as its priority; the rest fight
+  // only the planter walks in with the bomb as its priority; the rest fight
   const _at = aiThink;
   aiThink = function (e) {
     if (PLAN.on && e && "atk" === e.team && e.hasSpike && e.id !== PLAN.planter && "carried" === world.spike.state && !respawnMode()) {

@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  const p=await f.page('mobileterrain',{width:852,height:393},{isMobile:true,hasTouch:true,deviceScaleFactor:3},{quality:false,bootTimeout:120000,beforeLoad:async page=>page.on('request',r=>requests.push(r.url()))});
  p.setDefaultTimeout(120000);
  assert.equal(await p.evaluate(()=>SETTINGS.quality),'mobile');
- await p.locator('#go-play').click();await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();
+ await p.locator('#go-play').click();await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();
  await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click();
  await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor()&&ASCENT_TRIAL.graphicsStatus==='ready');
  await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;for(const a of world.actors)a.invuln=999;
@@ -58,7 +58,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  const race=await f.page('mobilerace',{width:960,height:600},{},{bootTimeout:120000,beforeLoad:async page=>{
   await page.route('**/assets/maps/ascent/geometry.bin?*',async route=>{requested();await gate;if(fail)await route.fulfill({status:503,body:'retry'});else await route.continue();});
  }});
- await race.locator('#go-play').click();await race.locator('#sel-maps button').filter({hasText:/^마크X발로$/}).click();await race.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await race.locator('#sel-go').click();await race.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
+ await race.locator('#go-play').click();await race.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();await race.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await race.locator('#sel-go').click();await race.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());
  await race.evaluate(()=>{closeShop();ADMIN.freezeAI=true;togglePause(true);render=()=>{};});await race.locator('#pause [data-tab="gfx"]').click();
  await race.locator('#st-quality [data-quality="perf"]').click();await requestedPromise;
  await race.locator('#st-quality [data-quality="mobile"]').click();release();

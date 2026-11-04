@@ -2,8 +2,8 @@
 (() => {
   const MODES = {
     std: { name: "일반전", sub: "13선승 · 12:12면 서든데스" },
-    swift: { name: "신속플레이", sub: "5선승 짧은 한 판", win: 5 },
-    rush: { name: "스파이크 돌격", sub: "4선승 · 전원 스파이크 · 무작위 총", win: 4, rush: !0 },
+    swift: { name: "빠른 대전", sub: "5선승 짧은 한 판", win: 5 },
+    rush: { name: "폭탄 돌격", sub: "4선승 · 전원 폭탄 · 무작위 총", win: 4, rush: !0 },
     tdm: { name: "팀 데스매치", sub: "먼저 100킬 · 부활 · 모든 무기", respawn: !0, team: !0, kills: 100, time: 570 },
     dm: { name: "데스매치", sub: "개인전 40킬 · 능력 없음", respawn: !0, ffa: !0, kills: 40, time: 540, noAbil: !0 },
     // the two below are run by the knife-fight-and-gun-game module

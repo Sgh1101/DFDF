@@ -19,7 +19,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(await page.locator("#sel-grid .acard:visible").count(), await page.evaluate(() => picked.role === "감시자" ? 1 : 0));
     await page.locator('#sel-roles [data-role=""]').click();
     if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click(); // small landscape: map and mode live in a sheet
-    await page.locator("#mode-guide summary").click(); assert.match(await page.locator("#mode-guide p").textContent(), /스파이크/);
+    await page.locator("#mode-guide summary").click(); assert.match(await page.locator("#mode-guide p").textContent(), /폭탄/);
     await page.locator("#sel-back").click(); await page.locator("#go-armory").click();
     assert.equal(await page.locator("#armory").getAttribute("role"), "dialog");
     await page.evaluate(() => { const items = [...document.querySelectorAll('#armory button,input,select,textarea,a[href],summary,[tabindex]')].filter((e) => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length); items.at(-1).focus(); });

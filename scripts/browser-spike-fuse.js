@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 // A defender holding F on the planted spike used to keep it from going off: the fuse was only looked at when nobody
-// was defusing, so a defuse that began with 2 s left (7 s needed) ended in a defuse 5 s after the spike should have
+// was defusing, so a defuse that began with 2 s left (7 s needed) ended in a defuse 5 s after the bomb should have
 // blown. The fuse now ends the round the moment it runs out, defuser or not; a defuse that finishes in time still wins.
 (async () => {
   const f = await fixture();
@@ -30,7 +30,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return { late: run(2, true), early: run(30, true) };
     });
     console.log(JSON.stringify(out));
-    assert.equal(out.late.state, "boom", "the spike goes off on time with a defuser holding F");
+    assert.equal(out.late.state, "boom", "the bomb goes off on time with a defuser holding F");
     assert.deepEqual([out.late.atk, out.late.def], [1, 0], "the attackers take the round");
     assert.ok(out.late.t < 2.5, "it blew when the fuse ran out, not when the defuse would have finished: " + out.late.t);
     assert.equal(out.early.state, "defused", "a defuse that finishes in time still wins");

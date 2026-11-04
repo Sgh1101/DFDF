@@ -22,7 +22,7 @@
     A("ability3", "ability", "능력 3", "Ability 3", ["KeyC"]),
     A("ability4", "ability", "궁극기", "Ultimate", ["KeyX"]),
     A("use", "other", "사용 · 해제 · 줍기", "Use / defuse / pick up", ["KeyF"], ["f"]),
-    A("plant", "other", "스파이크 설치", "Plant spike", ["Digit4", "Numpad4"], ["4"]),
+    A("plant", "other", "폭탄 설치", "Plant bomb", ["Digit4", "Numpad4"], ["4"]),
     A("shop", "other", "상점", "Shop", ["KeyB"]),
     A("scoreboard", "other", "점수판", "Scoreboard", ["Tab"]),
     A("combatlog", "other", "전투 기록", "Combat log", ["KeyN"]),
