@@ -32,7 +32,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
       let cubes=0,maps=true,finite=true;root.traverse(n=>{if(n.userData.rgxRig)n.traverse(m=>{if(m.isMesh){cubes+=m.geometry.attributes.position.count/36;maps&&=m.material.map?.name==='rgx-firefly-original'&&m.material.color.getHex()===0xffffff;for(const v of m.geometry.attributes.position.array)finite&&=Number.isFinite(v);}});});
       return {model:KNIVES.model(),gap:grip?sourceGrip.distanceTo(grip):null,cubes,maps,finite,bound:!!root.getObjectByName('rgx-agent-hand'),clip:RGX_FIREFLY.clip};
     });
-    console.log('held',JSON.stringify(held));assert.equal(held.model,'rgx_butterfly');assert.ok(held.gap!==null&&held.gap<.005,'the idle source socket must meet the existing agent grip');assert.ok(held.bound&&held.maps&&held.finite&&held.cubes>150);
+    console.log('held',JSON.stringify(held));assert.equal(held.model,'rgx_butterfly');assert.ok(held.gap!==null&&held.gap<.005,'the idle source socket must meet the existing agent grip');assert.ok(held.bound&&held.maps&&held.finite&&held.cubes>120,'the SGH butterfly model (not the loading placeholder) is held: '+held.cubes+' cubes');
     const motion=await p.evaluate(()=>{
       const root=VM.current,handle=root.getObjectByName('phantom-bone-up'),idle=handle.quaternion.clone();let travel=0,finite=true;
       SKIN_PERKS.state.insp.t=0;for(let i=0;i<340;i++){tickViewmodel(.02);travel=Math.max(travel,idle.angleTo(handle.quaternion));root.traverse(n=>{if(n.userData.rgxBone)finite&&=[...n.position.toArray(),...n.quaternion.toArray()].every(Number.isFinite);});}

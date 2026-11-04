@@ -37,3 +37,24 @@
 - 별도 코드 리뷰에서 목표 층 높이 유실·폭탄/구역 높이 누락을 찾아 수정했다. 수동 설치·해제/다른 층 차단/폭발·미리보기 경계/13.75↔18.75m 재탐색과 실제 추적 회귀 검사를 추가했다. 로컬 WebRTC에서A/B폭탄 높이와 참가자 순간이동의 선택 층을 확인한다. 실제Android/WAN/실결제 미검증.
 - 원격 main이bcdec21로 전진하며 Claude#127 SGH나비칼이 승인 병합된 것을 확인했다. 해당 diff(모델/텍스처/표시·설명/검사)를 유지해 이 feature branch에 통합한다. 열린#126 Codex 팬텀과#128 Claude 총/스킨 변경은 이 맵 PR에 합치지 않는다. #126은 새SGH모델 해시 및#128 중복 작업과 다시 대조해야 한다.
 - 최종 통합 커밋에서 전체 단위·구문·자산·관련 브라우저 검사를 재실행한 뒤 별도 PR로 제시한다. main병합 승인 없음.
+
+## 2026-11-04 · Claude · SGH나비칼 (RGX 나비칼의 모양·텍스처·이름 교체) — PR 대기
+
+- 사용자 요청: RGX 나비칼의 모션과 손잡이 돌아가는 동작은 그대로 두고, 이름과 디자인만 자체 것으로 바꾼다. 이름은 "SGH나비칼"이고 소리는 유지한다.
+- 작업 브랜치: `claude/sgh-butterfly`. 기준은 `e0733ac`(main)이다.
+- 상대 작업 확인: Codex #124(RGX 도입, 칼 10종, 챔스 자체 디자인)와 #125가 main에 들어가 있다. 열린 PR #126(챔스 입체 소총, 공동 작업 지침)의 diff를 읽었다. 겹치는 파일은 이 기록 파일뿐이다.
+- 주의: #126의 `tests/champions-solid.test.js`에는 "retained source RGX positions, normals and UVs are byte-identical" 검사가 있다. 이 PR이 RGX 모델의 큐브를 바꾸므로, 둘 다 병합되면 그 검사의 해시를 새 모델 기준으로 갱신해야 한다. 먼저 병합되는 쪽을 기준으로 나중 쪽에서 맞춘다.
+- 담당 파일:
+  - `assets/rgx-firefly/v1/{model.json,texture.png,manifest.json}`
+  - `scripts/build-sgh-butterfly.js`(새 파일)
+  - `js/rgx-firefly.js`(표시 문구)
+  - `js/legacy/58-gun-skins.js`(이름)
+  - `scripts/site-pages/credits.js`, `credits.html`
+  - `tests/sgh-butterfly.test.js`, `scripts/browser-rgx-firefly.js`(큐브 수 기준)
+- 구현: 뼈대 27개의 이름·부모·피벗·회전과 `animation.json`·소리 8개는 바이트 그대로다(테스트로 고정). 칼날·손잡이 두 쪽·발광 부위의 큐브와 128px 텍스처만 생성 스크립트로 새로 만든다. 저장 키 `butterfly`와 모델 키 `rgx_butterfly`는 유지한다.
+- 실제 검사:
+  - 단위 517개 통과, 자산 50해시 통과
+  - 로컬 브라우저: RGX(손 위치, 원본 inspect 6.5초, 재장착, 3번째 공격), 칼 모션, 사이트 페이지, 모바일 스킨 미리보기, 무기 상점 통과
+  - 살펴보기 프레임과 확대 렌더를 직접 확인했다
+- 다음: PR, CI, 사용자 병합 승인.
+
