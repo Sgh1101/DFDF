@@ -1,5 +1,6 @@
 // Champions Phantom asset loader: the bundled DFDF pack (assets/champions-phantom/dfdf-1,
-// assembled by scripts/champions-phantom/ with the supplied original gun) plus a data-only JAR reader for a local override.
+// generated from DFDF's own geometry and atlas painters). The data-only ZIP utility
+// remains for format tests; the game offers no local model override.
 // Java classes, nested JARs and shaders are never loaded.
 (function (root) {
   "use strict";
@@ -61,10 +62,10 @@
   async function bundled(fetcher = fetch, base = "./assets/champions-phantom/dfdf-1/") {
     // The previous service worker cached this unversioned list forever. The
     // revision also bypasses that worker on the first visit after this update.
-    const response = await fetcher(base + "manifest.json?revision=dfdf-1", {cache:"no-cache"});
-    if (!response.ok) throw Error("원본 리소스 목록을 불러오지 못했습니다.");
+    const response = await fetcher(base + "manifest.json?revision=dfdf-own-design-20261104", {cache:"no-cache"});
+    if (!response.ok) throw Error("스킨 리소스 목록을 불러오지 못했습니다.");
     const manifest = await response.json(), files = manifest.files;
-    if (!Array.isArray(files) || !files.length || files.length > 128) throw Error("원본 리소스 목록이 올바르지 않습니다.");
+    if (!Array.isArray(files) || !files.length || files.length > 128) throw Error("스킨 리소스 목록이 올바르지 않습니다.");
     const names = new Set(); let total = 0;
     for (const file of files) {
       if (typeof file.name !== "string" || !/^(geo|animations|textures)\/[a-zA-Z0-9_./-]+\.(png|json)$/.test(file.name) || file.name.includes("..") || names.has(file.name) || !Number.isSafeInteger(file.size) || file.size <= 0 || file.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(file.sha256)) throw Error("원본 리소스 항목이 올바르지 않습니다.");

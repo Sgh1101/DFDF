@@ -64,6 +64,10 @@
 
 ## 챔피언스 및 권리 확인 상태
 
-2026-11-03: 사용자가 원본 제작자라고 밝히며 제공한 `ChampionsPhantom2026-0.1.0.jar`의 총 외형·비율·색상을 요청했습니다. 총 형상 JSON과 공격·수비 기본/발광 텍스처는 원본 바이트를 보존하며 `scripts/champions-phantom/source-gun/provenance.json`에 해시와 출처를 기록합니다. 나머지 마무리·배너·음악은 DFDF 생성 코드의 결과입니다.
+2026-11-04: 사용자의 정정에 따라 챔피언스 총은 원본을 참고한 자체 디자인으로 생성합니다. `scripts/champions-phantom/gun.js`와 `gun-paint.js`가 형상·공격/수비 텍스처를 만들며 JAR 총 파일을 기본 패키지에 복사하지 않습니다. 마무리·배너·음악도 DFDF 생성 코드의 결과입니다. 이전 원본 복사본은 현행 트리에서 제거했으며 비교용 지문만 `docs/superpowers/records/2026-11-04-champions-reference-hashes.json`에 남깁니다.
 
-`assets/champions-phantom/dfdf-1/SOURCE-NOTICE.txt`와 생성 스크립트가 총 원본 및 나머지 연출의 제작 경로를 구분해 기록합니다. 광고 설정은 별도입니다. 전체 기록은 `docs/asset-provenance.md`를 확인하세요.
+`assets/champions-phantom/dfdf-1/SOURCE-NOTICE.txt`와 생성 스크립트가 제작 경로를 기록합니다. 광고 설정은 별도입니다. 전체 기록은 `docs/asset-provenance.md`를 확인하세요.
+
+## RGX 나비칼과 자체 칼
+
+사용자가 예외로 유지하도록 지정한 RGX 11z Firefly는 제공된 `Valorant Knife Pack-0.1.0`의 `future_butterfly` 모델·텍스처·애니메이션·관련 소리 11개 파일만 선별합니다. `assets/rgx-firefly/v1/manifest.json`에 원본 지문과 크기를 기록합니다. RGX는 DFDF의 자체 창작물로 표시하지 않습니다. 다른 외부 칼/총 파일은 이 패키지에 포함하지 않습니다. 나머지 칼 10종은 `js/knife-designs.js`에서 생성하며 기존 손·피벗·모션을 유지합니다.

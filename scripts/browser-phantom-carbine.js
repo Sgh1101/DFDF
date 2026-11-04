@@ -15,12 +15,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     }, { stamp, oldOwned }) });
     await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && GUN_SKINS.owns("scout", "champions_def") && GUN_SKINS.of("scout").id === "champions_def");
     assert.equal(await p.evaluate(() => GUN_SKINS.of("rifle").id), "default");
-    assert.deepEqual(await p.evaluate(() => [WEAPONS.carbine.name, WEAPONS.scout.name, GUN_SKINS.of("carbine").id]), ["정찰 소총", "팬텀", "default"]);
+    assert.deepEqual(await p.evaluate(() => [WEAPONS.carbine.name, WEAPONS.scout.name, GUN_SKINS.of("carbine").id]), ["Parallax", "Vesper", "default"]);
     const cached = await p.evaluate(() => JSON.parse(localStorage.getItem("lgp_skins:carbinemove")));
     assert.equal(cached.m.scout, "champions_def"); assert.equal(cached.m.rifle, undefined); assert.equal(cached.m.carbine, undefined);
     assert.equal(f.h.user("carbinemove").championCoins, 123); assert.equal(f.h.user("carbinemove").gold, 456);
     await p.locator("#go-armory").click(); await p.locator('#ar-tabs [data-tab="champions"]').click();
-    assert.match(await p.locator("#champion-shop").innerText(), /장착 대상: 팬텀/);
+    assert.match(await p.locator("#champion-shop").innerText(), /장착 대상: Vesper/);
     await p.locator('[data-champion-buy="champions_def"]').click();
     assert.equal(await p.evaluate(() => GUN_SKINS.of("scout").id), "champions_def");
     await p.evaluate(() => GUN_SKINS.open("scout", "gun"));

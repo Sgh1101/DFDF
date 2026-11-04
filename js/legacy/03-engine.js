@@ -5145,7 +5145,10 @@ function castAbility(e, t) {
           Math.hypot(r.x - a.pos.x, r.y - (a.y + 1.1), r.z - a.pos.z) < 1.1 &&
             (hurtFighter(a, 80, !1, "player"), (o = !0));
         }),
-          addTracer(e, player.yaw, player.pitch, 120),
+          (() => {
+            const hand = abilityOrigin(player), end = e.clone().addScaledVector(t, 120);
+            fxTracer(hand.x, hand.y, hand.z, end.x, end.y, end.z, 14737632);
+          })(),
           banner(o ? "관통 명중" : "관통 사격", o ? "#e0e0e0" : "#5b6879"));
         break;
       }
@@ -7189,6 +7192,70 @@ function ultwAim(e, t, o) {
   }
   return { o: s, dir: r, hand: i };
 }
+// Aim damage from the actor's eyes; render/launch from that actor's casting hand.
+// Viewmodel/world-rig transforms are visual only and must never select a hit target.
+function abilityRayLimit(origin, direction, maximum) {
+  let limit = maximum;
+  if (direction.y < 0) limit = Math.min(limit, Math.max(0, -origin.y / direction.y));
+  const ray = new T.Ray(origin, direction), box = new T.Box3(), at = new T.Vector3();
+  // Movement collision reserves 2.3m above the sample. A thin laser must instead
+  // intersect the actual wall/floor/ceiling, including very thin upper slabs.
+  for (const collider of COLLIDERS) {
+    box.min.set(collider.minX, collider.y0 || 0, collider.minZ);
+    box.max.set(collider.maxX, collider.h, collider.maxZ);
+    if (box.containsPoint(origin)) return 0;
+    if (ray.intersectBox(box, at)) limit = Math.min(limit, origin.distanceTo(at));
+  }
+  if (DOMES.length) limit = Math.min(limit, domeBlockT(origin, direction, limit));
+  return limit;
+}
+function abilityOrigin(actor) {
+  const { o, dir } = ultwAim(actor, 0, 0);
+  let hand = null;
+  if (actor === myActor() && VM_CAST.t > 0 && VM_CAST.grp && VM_CAST.hand) {
+    tickVmCast(0);
+    VM_CAST.grp.updateWorldMatrix(true, false);
+    hand = VM_CAST.grp.localToWorld(VM_CAST.hand.clone());
+  } else if (actor !== myActor() && actor.model?.armL?.fore) {
+    const fore = actor.model.armL.fore;
+    fore.updateWorldMatrix(true, false);
+    hand = fore.localToWorld(new T.Vector3(0, -0.24, 0));
+  }
+  const yaw = actor.yaw || 0, pitch = actor.pitch || 0;
+  const right = new T.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const up = new T.Vector3(Math.sin(yaw) * Math.sin(pitch), Math.cos(pitch), Math.cos(yaw) * Math.sin(pitch));
+  if (!hand || ![hand.x, hand.y, hand.z].every(Number.isFinite) || hand.distanceTo(o) > 2.5) {
+    hand = o.clone().addScaledVector(right, -0.25).addScaledVector(up, -0.25).addScaledVector(dir, 0.45);
+  }
+  // A casting wrist behind a nearby wall must not launch through that wall.
+  const distance = hand.distanceTo(o);
+  if (distance > 0.001 && abilityRayLimit(o, hand.clone().sub(o).normalize(), distance) < distance - 0.001) return o;
+  return hand;
+}
+function abilityAim(actor, length, width = 0.6, yawOffset = 0, cone = 0) {
+  const { o, dir } = ultwAim(actor, yawOffset, 0);
+  const padding = Math.max(0, width - 0.56 * BODY_K);
+  const limit = abilityRayLimit(o, dir, length);
+  // legacy/22 already scales ultwRay's length; these callers specify final metres.
+  const ray = ultwRay(actor, o, dir, limit / (window.AB_D || 1), true, false, padding);
+  let hit = ray.hits[0]?.e || null;
+  let end = o.clone().addScaledVector(dir, ray.endT);
+  if (!hit && cone > 0) {
+    let best = cone;
+    for (const target of world.actors) {
+      if (!target.alive || target === actor || target.team === actor.team) continue;
+      const at = new T.Vector3(target.pos.x, target.y + (target.crouch ? 0.74 : 0.95) * BODY_K, target.pos.z);
+      const delta = at.clone().sub(o), distance = delta.length();
+      if (distance < 0.5 || distance > length) continue;
+      const direction = delta.multiplyScalar(1 / distance);
+      const angle = Math.acos(Math.max(-1, Math.min(1, direction.dot(dir))));
+      if (angle >= best || rayBlocked(o.x, o.y, o.z, at.x, at.y, at.z)) continue;
+      if (abilityRayLimit(o, direction, distance) < distance - 0.001) continue;
+      best = angle; hit = target; end = at;
+    }
+  }
+  return { e: o, from: abilityOrigin(actor), dir, dx: dir.x, dy: dir.y, dz: dir.z, L: ray.endT, hit, end };
+}
 function ultwRay(e, t, o, a, n, r, s) {
   let i = a;
   if (!n) {
@@ -8441,15 +8508,7 @@ function throwProjectile(e, t, o) {
     new T.MeshBasicMaterial({ color: new T.Color(e).multiplyScalar(2) }),
   );
   ((r.rotation.x = Math.PI / 2), a.add(r));
-  const s = Math.cos(player.yaw),
-    i = -Math.sin(player.yaw),
-    l = -Math.sin(player.yaw),
-    c = -Math.cos(player.yaw),
-    d = new T.Vector3(
-      player.pos.x + 0.28 * s + 0.5 * l,
-      player.y + eyeHeight() / BODY_K - 0.22,
-      player.pos.z + 0.28 * i + 0.5 * c,
-    );
+  const d = abilityOrigin(player);
   (a.position.copy(d), scene.add(a));
   const h = new T.Vector3(
       -Math.sin(player.yaw) * Math.cos(player.pitch),

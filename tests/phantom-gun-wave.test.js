@@ -6,8 +6,8 @@ test('source kill sweep starts at zero, preserves the previous sweep and keeps t
   assert.equal(W.sample(first,18.69).hold,.6);assert.ok(W.sample(first,18.8).hold>0);assert.equal(W.sample(first,19.04).hold,0);
   assert.equal(W.sample(first,10.2).flame,0);assert.ok(W.sample(first,10.35).flame>0);assert.equal(W.sample(first,10.5).flame,1);
 });
-test('the kill-coat palettes in the runtime file match the supplied original gun',()=>{
-  const {wavePalettes}=require('../scripts/champions-phantom/source-gun/provenance.json'),source=require('node:fs').readFileSync(require.resolve('../js/phantom-gun-wave'),'utf8');
-  const group=side=>JSON.stringify(wavePalettes[side]);
+test('the kill-coat palettes in the runtime file match our painted gun',()=>{
+  const {PALETTES}=require('../scripts/champions-phantom/gun-paint'),source=require('node:fs').readFileSync(require.resolve('../js/phantom-gun-wave'),'utf8');
+  const group=side=>JSON.stringify([PALETTES[side].body,PALETTES[side].trim,PALETTES[side].dark,PALETTES[side].glow]);
   assert.ok(source.includes('const palettes=attacker?'+group('attacker')+':'+group('defender')+';'),'run node scripts/champions-phantom/build.js to sync the palettes');
 });
