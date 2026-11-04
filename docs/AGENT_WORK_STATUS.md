@@ -38,7 +38,7 @@
 - 원격 main이bcdec21로 전진하며 Claude#127 SGH나비칼이 승인 병합된 것을 확인했다. 해당 diff(모델/텍스처/표시·설명/검사)를 유지해 이 feature branch에 통합한다. 열린#126 Codex 팬텀과#128 Claude 총/스킨 변경은 이 맵 PR에 합치지 않는다. #126은 새SGH모델 해시 및#128 중복 작업과 다시 대조해야 한다.
 - 최종 통합 커밋에서 전체 단위·구문·자산·관련 브라우저 검사를 재실행한 뒤 별도 PR로 제시한다. main병합 승인 없음.
 
-## 2026-11-04 · Claude · SGH나비칼 (RGX 나비칼의 모양·텍스처·이름 교체) — PR 대기
+## 2026-11-04 · Claude · SGH나비칼 (RGX 나비칼의 모양·텍스처·이름 교체) — 병합·배포 완료
 
 - 사용자 요청: RGX 나비칼의 모션과 손잡이 돌아가는 동작은 그대로 두고, 이름과 디자인만 자체 것으로 바꾼다. 이름은 "SGH나비칼"이고 소리는 유지한다.
 - 작업 브랜치: `claude/sgh-butterfly`. 기준은 `e0733ac`(main)이다.
@@ -56,7 +56,8 @@
   - 단위 517개 통과, 자산 50해시 통과
   - 로컬 브라우저: RGX(손 위치, 원본 inspect 6.5초, 재장착, 3번째 공격), 칼 모션, 사이트 페이지, 모바일 스킨 미리보기, 무기 상점 통과
   - 살펴보기 프레임과 확대 렌더를 직접 확인했다
-- 다음: PR, CI, 사용자 병합 승인.
+- 결과: PR #127은 사용자 승인으로 `bcdec21`에 병합됐다. main CI와 Workers Builds 통과, Vercel 운영 배포 READY, 운영 manifest에서 새 model/texture 지문을 확인했다.
+- 남은 조정: #126의 RGX 바이트 동일 검사는 새 SGH 모델 기준으로 갱신이 필요하다(#126 담당).
 
 
 ## 2026-11-04 · Codex · 황혼 지구 검증 완료 / 병합 승인 대기
@@ -73,3 +74,27 @@
 - 범위: 홈 소개/가이드 우선 배치, 현재 자산 지문에 묶인 광고 준비 점검, 미확인 허가·신청/연령/CMP 항목 분리, 실제 문서 정합성. 챔스 미수정, 광고 OFF.
 - 이전 맵 구조/나비칼 모션 유지 요청과 권리 미확인을 구분한다. 허가 질문은 답변 대기이며 임의로 승인 또는 전면 교체하지 않는다. 기본 단위 517통과/선택Redis2제외.
 - 계획 docs/superpowers/plans/2026-11-04-adsense-readiness.md. main 병합/운영 배포 승인 없음.
+
+## 2026-11-04 · Claude · 총 디자인 개편(1/18 참새) · 챔피언의 물결 · 챔스 총 B형 자체 제작 — PR #128, 병합 승인 받음
+
+- 사용자 요청: 초월 등급을 뺀 총 18종을 실제 총처럼 하나씩 다시 만들고, 한 자루씩 검토·승인 후 다음으로 간다. 챔피언의 물결(전설) 전체 개편. 챔스 팬텀 총은 사용자가 원본 JAR(B, #115 시점) 모양을 자체 제작으로 재현하는 안을 골랐다.
+- 브랜치: `claude/quirky-fermat-11wa1b` (PR #128). 기준: main `e104bcf`(#130 황혼 지구, 1d189e7 공동 작업 지침)까지 병합.
+- 상대 작업 확인: Codex 열린 PR #126(챔스 입체 소총)은 #128의 챔스 총과 같은 파일(`scripts/champions-phantom/`, `assets/champions-phantom/`, `js/phantom-gun-wave.js`)을 고친다. 두 PR 중 하나만 병합해야 하며, 사용자가 #128(원본 B 모양)을 골랐다. Codex는 #126에서 챔스 총 부분을 빼거나 닫아야 한다. #129(Claude, 공개 파일 문구)·#130(Codex, 맵)과는 겹치지 않는다.
+- 담당 파일: `js/gun-model-pistol.js`(새), `play.html`, `js/legacy/54-reload-animation.js`, `js/legacy/58-gun-skins.js`·`62-kill-banners.js`·`80-skin-sound-packs-…`·`96-…`·`97-…`(champion 키트만), `scripts/browser-champion.js`, `scripts/champions-phantom/gun.js`·`gun-paint.js`, 재생성 자산, `docs/CHAMPIONS_PHANTOM.md`.
+- 실제 검사: 단위 517 통과, check·자산·사이트 페이지 통과, 로컬 브라우저 champion/phantom/champions-finish/phantom-kill-wave/legacy-models/weapon-shop/reload 통과, GitHub CI 7개 통과(main 병합 전 커밋 51c36eb). 실기기·실결제 미검증.
+- 진행 중: 2/18 부엉이(silenced) — worktree `agent-ae9fe0e89f0548e03`, 미커밋.
+
+## 2026-11-04 · Claude · 공개 파일의 출처 표기 정리 (PR #129) — 병합 대기
+
+- 사용자 요청: 공개 manifest에 남은 다른 게임 이름 표기를 정리.
+- 브랜치: `claude/manifest-label`. 기준은 `bcdec21`이고, 이후 main `e104bcf`(Codex #130 황혼 지구)를 합쳤다.
+- 상대 작업 확인: fetch 후 main 최근 커밋, 열린 PR #126(Codex 챔스 소총)과 #128(다른 Claude 세션의 참새 권총·챔스 물결)을 확인했다. 겹치는 파일은 `assets/CREDITS.md` 하나(#130)였다. 충돌은 SGH 설명과 #130의 "황혼 지구 구조 복원" 절을 둘 다 남겨 풀었다. #126·#128과 겹치는 파일은 없다.
+- 담당 파일: `assets/rgx-firefly/v1/manifest.json`(sourcePack 표기만), `assets/CREDITS.md`(SGH 절), `scripts/package-rgx-firefly.js`(표기·안내), `.vercelignore`(`*.md`를 Cloudflare와 같이 비공개).
+- 실제 검사: 단위 517 통과, 자산 50지문, CSP 일치. GitHub CI는 진행 중이다.
+- 다음: CI 통과 후 병합한다(사용자 승인 받음).
+
+## 2026-11-04 · Codex · AdSense 분기 최신 main 통합
+- 작업 중 origin/main이165caf3(#128/#129승인병합)로 전진했다. 겹친 .vercelignore와 이 기록은 양쪽을 유지했다. 참새·챔스 모델/음향/연출과 SGH공개문구는 main의 바이트 그대로 보존한다. 우리 변경은 광고준비/홈/안내뿐이다.
+- 광고점검기가 실제 SGH manifest 문구 변경을 asset-changed로 차단함을 확인했다. 해당지문만 갱신하고 허가미확인·광고OFF는 그대로 유지했다. 전체권리검토도미완료다. #126은 #128과 겹치므로 이 PR에서 합치지 않으며 별도정리가필요하다.
+- 통합후 단위/구문/자산/CSP 및 관련브라우저검사를 다시 진행한다. main병합승인 없음. 클로드의 부엉이 미반영 작업은 건드리지 않는다.
+

@@ -739,6 +739,13 @@
     }
   }
 
+  // a pistol slide cycles with each shot: straight back with the kick, then home as the kick dies away
+  function cycle(rl) {
+    if (!rl.actions || !rl.actions.length) return;
+    const f = Math.min(1, Math.max(0, (VM.kick || 0) / 0.85));
+    if (!f) return;
+    for (const action of rl.actions) if (action.kind === "slide") action.node.position.z = action.position.z + (action.node.userData.travel || 0.06) * Math.pow(f, 2.5);
+  }
   const _tick = tickViewmodel;
   tickViewmodel = function (dt) {
     const r = _tick.apply(this, arguments);
@@ -755,7 +762,7 @@
       if (!rel) RL.on = !1;
       RL.last = rel ? player.reloading : 0;
       if (!a || !rl || !rl.style) return r;
-      if (!RL.on || RL.key !== rl.key) return rest(rl), r;
+      if (!RL.on || RL.key !== rl.key) return rest(rl), cycle(rl), r;
       if (!player.alive || !VM.root.visible || !a.visible) return r; // not posed this frame
       const k = Math.min(1, Math.max(0, 1 - player.reloading / RL.D));
       const o = pose(a, rl, k);
@@ -764,6 +771,8 @@
         action.node.rotation.copy(action.rotation);
         if (action.kind === "break") action.node.rotation.x -= .55 * sm(seg(k, .1, .2)) * (1 - sm(seg(k, .63, .72)));
         if (action.kind === "pump") action.node.position.z += .065 * Math.sin(Math.PI * seg(k, .78, .94));
+        // a pistol slide: pulled back once the fresh magazine is in, then let go
+        if (action.kind === "slide") action.node.position.z += (action.node.userData.travel || .06) * sm(seg(k, .55, .6)) * (1 - sm(seg(k, .61, .64)));
       }
       a.position.y -= o.dy;
       a.position.x += o.dx;

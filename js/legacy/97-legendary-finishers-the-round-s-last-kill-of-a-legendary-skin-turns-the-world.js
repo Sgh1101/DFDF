@@ -24,7 +24,9 @@
     synth: { world: 0x3a0a5a, glow: "255,60,200", fig: "grid", c: [0xff3fd0, 0x3ff3ff] },
     opal: { world: 0x30284a, glow: "220,200,255", fig: "serpent", c: [0xffa6e8, 0x9ff3ff], rainbow: !0 },
     laurel: { world: 0x4a3a08, glow: "255,215,90", fig: "laurel", c: [0xf2c94c, 0xfff3b0] },
-    champion: { world: 0x2a0f58, glow: "190,110,255", fig: "serpent", c: [0xb35bff, 0xffc24d], extra: "waves" },
+    // 챔피언의 물결: rings of light rising like ripples up a column, three ribbons of flame (purple, pink, gold) winding up around
+    // it; a softer world tint and screen edge (vig, tint) and a gold-lit column (soft) so the fight stays in view
+    champion: { world: 0x24104a, glow: "190,110,255", fig: "ripple", c: [0xb35bff, 0xffc24d], mid: 0xff4fb8, soft: !0, vig: 0.55, tint: 0.7 },
     karambit: { world: 0x5a0a22, glow: "255,60,100", fig: "slash", c: [0xff3b6b, 0xffffff] },
     butterfly: { world: 0x083a5a, glow: "60,200,255", fig: "slash", c: [0x3fd0ff, 0xffffff] },
     stiletto: { world: 0x241a40, glow: "170,130,255", fig: "slash", c: [0xb18bff, 0xffffff] },
@@ -60,16 +62,18 @@
       document.body.appendChild(el);
     }
     const wc = `${(th.world >> 16) & 255},${(th.world >> 8) & 255},${th.world & 255}`;
-    el.style.background = `radial-gradient(ellipse at center, rgba(${th.glow},.08) 0%, rgba(${wc},.2) 45%, rgba(${wc},.6) 100%)`;
-    el.style.boxShadow = `inset 0 0 340px 70px rgba(${th.glow},.78)`;
+    const vig = th.vig || 1;
+    el.style.background = `radial-gradient(ellipse at center, rgba(${th.glow},.08) 0%, rgba(${wc},${0.2 * vig}) 45%, rgba(${wc},${0.6 * vig}) 100%)`;
+    el.style.boxShadow = `inset 0 0 340px 70px rgba(${th.glow},${0.78 * vig})`;
     const ctl = new T.Group();
     ctl.userData.noCollide = !0;
     addFx(ctl, life, (o, t) => {
       if (tint !== base) return; // a newer finisher or a new round took over
       let k = hold(t, 0.12, 0.7);
       th.flicker && (k *= 0.7 + 0.3 * Math.abs(Math.sin(t * 38) * Math.sin(t * 11)));
-      scene.background && scene.background.copy && scene.background.copy(base.bg).lerp(target, 0.9 * k);
-      scene.fog && scene.fog.color.copy(base.fog).lerp(target, 0.9 * k);
+      const tn = th.tint || 0.9;
+      scene.background && scene.background.copy && scene.background.copy(base.bg).lerp(target, tn * k);
+      scene.fog && scene.fog.color.copy(base.fog).lerp(target, tn * k);
       el.style.opacity = String(Math.min(1, k * 1.1));
       if (t > 0.985) restore();
     });
@@ -307,7 +311,62 @@
       });
     };
   }
-  const FIG = { serpent, wings, bolts, stars, grid, laurel, slash };
+  function ripple(g, th) {
+    // rings of light rise one after another up a column, widening as they go; three ribbons of flame (purple, pink, gold)
+    // wind up round it, head first, thinning to a tail
+    const rings = [],
+      nr = Math.round(8 * q()) + 3,
+      A = hex(th.c[0]),
+      M = hex(th.mid || th.c[0]),
+      B = hex(th.c[1]),
+      col = new T.Color(),
+      rgeo = new T.TorusGeometry(1, 0.055, 6, 56);
+    for (let i = 0; i < nr; i++) {
+      const r = new T.Mesh(rgeo, mat([th.c[0], th.mid || th.c[0], th.c[1]][i % 3], 0, !0));
+      r.rotation.x = Math.PI / 2;
+      r.userData.at = 0.04 + (i / nr) * 0.5;
+      g.add(r);
+      rings.push(r);
+    }
+    const beads = [],
+      per = Math.round(8 * q()) + 7,
+      bgeo = new T.SphereGeometry(1, 8, 6);
+    for (let r = 0; r < 3; r++)
+      for (let j = 0; j < per; j++) {
+        const m = new T.Mesh(bgeo, mat(th.c[0], 1, !0));
+        m.userData.r = r;
+        m.userData.j = j;
+        g.add(m);
+        beads.push(m);
+      }
+    return (t) => {
+      const open = hold(t, 0.08, 0.72);
+      rings.forEach((r) => {
+        const k = (t - r.userData.at) / 0.42;
+        r.visible = k > 0 && k < 1;
+        if (!r.visible) return;
+        r.position.y = 0.1 + k * 3.4;
+        r.scale.setScalar(0.9 + 1.3 * Math.sin(k * Math.PI * 0.5));
+        r.material.opacity = 0.95 * (1 - k * k * k);
+      });
+      const lead = t * 4.6;
+      beads.forEach((m) => {
+        const { r, j } = m.userData,
+          s = lead - j * 0.11;
+        if (s < 0) return void (m.visible = !1);
+        const ang = s * 3.6 + (r * Math.PI * 2) / 3,
+          rad = 1.05 + 0.3 * Math.sin(s * 2 + r),
+          f = j / per;
+        m.visible = !0;
+        m.position.set(Math.cos(ang) * rad, Math.min(3.6, s * 1.05), Math.sin(ang) * rad);
+        m.scale.setScalar((j ? 0.17 : 0.24) * (1 - 0.65 * f));
+        f < 0.5 ? col.copy(A).lerp(M, f * 2) : col.copy(M).lerp(B, f * 2 - 1);
+        m.material.color.copy(col);
+        m.material.opacity = 0.95 * open * (1 - 0.4 * f);
+      });
+    };
+  }
+  const FIG = { serpent, wings, bolts, stars, grid, laurel, slash, ripple };
 
   // ── what every legendary adds around its figure: a white flash, shockwaves running out over the ground, a
   //    pillar of light, a fountain of sparks that fall back, and a turning crown of diamonds overhead ──
@@ -326,7 +385,8 @@
     }
     const pillar = new T.Mesh(new T.CylinderGeometry(1, 1, 28, 24, 1, !0), mat(th.c[1], 0.45));
     pillar.geometry.translate(0, 14, 0);
-    const core = new T.Mesh(new T.CylinderGeometry(0.32, 0.32, 28, 12, 1, !0), mat(0xffffff, 0.85));
+    const soft = !!th.soft,
+      core = new T.Mesh(new T.CylinderGeometry(0.32, 0.32, 28, 12, 1, !0), mat(soft ? th.c[1] : 0xffffff, soft ? 0.55 : 0.85));
     core.geometry.translate(0, 14, 0);
     g.add(pillar, core);
     const sparks = [],
@@ -365,9 +425,9 @@
       });
       const open = hold(t, 0.04, 0.55);
       pillar.scale.set(0.5 + open * 1.1, open, 0.5 + open * 1.1);
-      pillar.material.opacity = 0.42 * open;
+      pillar.material.opacity = (soft ? 0.24 : 0.42) * open;
       core.scale.set(1, open, 1);
-      core.material.opacity = 0.85 * open * (0.75 + 0.25 * Math.sin(sec * 40));
+      core.material.opacity = (soft ? 0.55 : 0.85) * open * (0.75 + 0.25 * Math.sin(sec * 40));
       sparks.forEach((sp) => {
         const v = sp.userData.v,
           y = v[1] * sec - 7 * sec * sec;
