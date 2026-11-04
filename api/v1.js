@@ -671,6 +671,16 @@ function ensureWallet(u, c) {
     const wish = [...new Set(u.wish.map(value => { if (typeof value !== 'string') return value; const [g,s] = value.split('|'); return VALORANT.canonical(g) + '|' + s; }))];
     if (JSON.stringify(wish) !== JSON.stringify(u.wish)) { u.wish = wish; changed = true; }
   }
+  // The user retained the RGX butterfly. Preserve a still-owned legacy key before
+  // refunding the other removed pack knives; the active butterfly key stays stable.
+  if (Array.isArray(u.own.knife) && u.own.knife.includes('vp_future_butterfly')) {
+    u.own.knife = [...new Set(u.own.knife.map(s => s === 'vp_future_butterfly' ? 'butterfly' : s))];
+    if (u.skins?.m?.knife === 'vp_future_butterfly') { u.skins.m.knife = 'butterfly'; u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; }
+    changed = true;
+  }
+  if (Array.isArray(u.wish) && u.wish.includes('knife|vp_future_butterfly')) {
+    u.wish = [...new Set(u.wish.map(w => w === 'knife|vp_future_butterfly' ? 'knife|butterfly' : w))]; changed = true;
+  }
   for (const g in u.own) {
     if (!Array.isArray(u.own[g])) continue;
     const pack = (s) => VALORANT.retiredKnives.includes(s);

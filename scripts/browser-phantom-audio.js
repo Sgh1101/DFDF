@@ -42,7 +42,7 @@ const inspectNotes = require("../assets/champions-phantom/dfdf-1/audio/music-seq
     await p.evaluate(() => { __audio.sources.length = 0; __audio.rms = 0; });
     await p.locator('[data-phantom-demo="inspect"]').click();
     await p.waitForFunction(n => __audio.sources.length === n && __audio.rms > .001, inspectNotes);
-    assert.match(await p.locator('#phantom-audio-status').innerText(), /원본 연주/);
+    assert.match(await p.locator('#phantom-audio-status').innerText(), /전용 음악 재생/);
     await p.locator("#phantom-stop").click();
     await p.evaluate(() => { __audio.sources.length = 0; __audio.rms = 0; });
     await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded());
