@@ -28,7 +28,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('../j
  await p.reload({waitUntil:'domcontentloaded'});await p.waitForFunction(()=>!document.documentElement.dataset.gameLoading);
  assert.equal(await p.evaluate(()=>SETTINGS.quality),'visual');assert.equal(await p.evaluate(()=>GFX.msaa),2,'stored mode applies before play');
  await p.locator('#go-set').click();await p.locator('#pause .pz-tabs [data-tab="gfx"]').click();await p.locator('#st-quality [data-quality="mobile"]').click();await p.locator('#pz-close').click();
- await p.locator('#go-play').click();await p.locator('#sel-maps button').filter({hasText:/^하늘섬 마을$/}).click();
+ await p.locator('#go-play').click();await p.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();
  await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor(),null,{timeout:120000});
  await p.evaluate(()=>{closeShop();ADMIN.freezeAI=true;world.phase='live';world.roundTime=999;togglePause(true);window.gfxBefore={loads:ASCENT_TRIAL.loads,pos:myActor().pos.toArray(),hp:myActor().hp};window.gfxColliders=COLLIDERS.slice();window.gfxNav=ASCENT_TRIAL.nav;});
  await p.locator('#pause .pz-tabs [data-tab="gfx"]').click();

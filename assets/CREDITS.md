@@ -54,13 +54,11 @@
 - Google Fonts: https://fonts.google.com
 - SIL Open Font License 1.1: https://openfontlicense.org
 
-## 하늘섬 마을 (DFDF 자체 지형)
+## 황혼 지구 (제공된 어센트 구조 / 자체 블록 표현)
 
-2026-11-01 광고 준비 작업에서 `scripts/build-original-maps.js`의 독립적인 배치로 교체했습니다. 스폰·사이트 좌표는 `js/original-map-layouts.js`, 모델·충돌 생성은 위 생성 스크립트가 기준입니다. 외부 게임의 지형·UV·재질·이미지·schematic은 생성 입력이 아닙니다. 각 패키지 manifest에 생성 경로와 해시를 기록합니다.
+사용자가 제공한 `ascent-final2021.schematic`의 구조를 `scripts/build-ascent-district.js`가 변환합니다. source SHA `b987d994b5aa01e0b614b5e7d92a4b8f41f7cf6ecab1daddd5ba3fc4cf1b9c28`, 좌표와 불변 지문은 `scripts/ascent-contract.js`가 기록합니다. 가로·세로1.75, 높이1.25로 넓히며 길·엄폐물·계단 배치를 바꾸지 않습니다. 현행 입력이 외부 구조임을 구분하고 제공 사실을 제3자 재배포·광고 허가 확인으로 표시하지 않습니다.
 
-기존 Kour.io 맵 7의 파일과 원본 schematic에서 만든 형상은 현행 배포 자산에서 제거했습니다. 과거 자료는 Git 이력에 남아 있으므로 그 이력의 출처 설명을 현행 자산의 사용 허가로 해석하지 마세요. `ascent_trial` 내부 이름은 저장 데이터와 연동을 위한 호환 이름입니다. 사막 마을과 전용 이벤트 기능은 클로드의 최신 삭제 작업을 유지합니다.
-
-하늘섬의 블록 텍스처는 `scripts/paint-block-textures.py`가 그린 자체 이미지입니다. 기본 Minecraft 텍스처를 추출한 파일이 아닙니다. 클로드가 적용한 재료별 단색 텍스처를 그대로 사용합니다.
+블록239개 타일과 투명 실루엣은 `scripts/paint-block-textures.py` 및 `scripts/block-shapes.json`에서 만듭니다. Claude의 단색/마스크 표현을 유지하고 구리색·슬레이트·푸른 석재와 조명을 자체 조정했습니다. Minecraft/Riot 원본 텍스처 묶음은 포함하지 않습니다. 이전 자체 마을 생성 코드는 폐기하고 사막 맵 삭제를 유지합니다. 상세는 `docs/ASCENT_TRIAL.md`와 `docs/asset-provenance.md`를 참고하세요.
 
 ## 챔피언스 및 권리 확인 상태
 
@@ -71,3 +69,7 @@
 ## RGX 나비칼과 자체 칼
 
 사용자가 예외로 유지하도록 지정한 RGX 11z Firefly는 제공된 `Valorant Knife Pack-0.1.0`의 `future_butterfly` 모델·텍스처·애니메이션·관련 소리 11개 파일만 선별합니다. `assets/rgx-firefly/v1/manifest.json`에 원본 지문과 크기를 기록합니다. RGX는 DFDF의 자체 창작물로 표시하지 않습니다. 다른 외부 칼/총 파일은 이 패키지에 포함하지 않습니다. 나머지 칼 10종은 `js/knife-designs.js`에서 생성하며 기존 손·피벗·모션을 유지합니다.
+
+## 황혼 지구 구조 복원 (2026-11-04)
+
+사용자의 최신 지시로 위 독립 배치 교체 설명은 황혼 지구에 대해서 대체합니다. `ascent-final2021.schematic` 제공본의 구조를 `scripts/build-ascent-district.js`로 변환하고, 자체239개 단색 타일/투명 마스크/조명으로 표현합니다. 원본 출처·SHA와 자체 외형을 구분하며 원본 텍스처는 포함하지 않습니다. 높이 배율1.25를 유지하고 가로·세로만1.75로 넓혔습니다. 이전 자체 마을 생성 코드는 원본을 덮어쓰지 못합니다. 제공 사실을 제3자의 허가 확인으로 표시하지 않습니다. 상세는 `docs/ASCENT_TRIAL.md`, `docs/asset-provenance.md`를 확인하세요.

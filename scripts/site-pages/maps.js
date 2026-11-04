@@ -25,7 +25,7 @@ const TEXT = {
   d01: ["서리 낀 결투장", "서리가 낀 하얀 푸른 줄무늬 벽의 1대1 결투장입니다. 가운데에 구조물이 하나 있고 양옆에 큰 블록이 있어서 돌아가는 길이 두 갈래입니다.", "1대1에서는 발소리가 가장 큰 정보입니다. 방향이 들리니 귀를 열어 두세요."],
   d03: ["분홍 네온의 링", "분홍빛 네온 벽으로 둘러싸인 1대1 결투장입니다. 가운데에 아치형 엄폐물이 세 개 있고 양옆에 큰 블록이 있습니다. 멀리 도시의 불빛이 비칩니다.", "아치 사이로 시야가 겹칩니다. 한 곳에서 쏘고 바로 자리를 옮기세요."],
   d04: ["달빛 마당", "모래색 바닥에 가로로 넓은 1대1 마당입니다. 가운데에 돌 단상이 있고 지붕이 어두운 전각 네 채가 대각선으로 놓여 있습니다.", "가로로 넓어 측면에서 돌아 들어가기 쉽습니다. 단상을 차지하면 양쪽이 보입니다."],
-  ascent_trial: ["도로와 골목이 이어진 블록 마을", "시장 골목·정류장 광장·중앙 산책로·주택가로 나뉜 5대5 마을입니다. 횡단보도와 보도가 있는 도로를 따라 상점 차양·카페·벽돌집·벤치·가로등이 놓여 있습니다. 두 거점은 서로 다른 마당이며 중앙 돌다리의 위아래와 건물 사이 골목이 우회로를 만듭니다.", "중앙 도로는 시야가 길게 열립니다. 보도와 상점 뒤 통로를 이용하고, 다리 위와 아래를 함께 확인하세요."],
+  ascent_trial: ["넓은 중앙과 두 설치 구역을 잇는 황혼 지구", "사용자가 제공한 어센트 구조의 블록 맵을 바탕으로 길·엄폐물·높낮이를 복원한 5대5 지구입니다. 중앙 광장, 양쪽 주 진입로, A/B 설치 구역과 뒤쪽 연결로를 유지하며 가로·세로를 넓혔습니다. 자체 구리색 지붕·푸른 석재·밝은 벽과 따뜻한 조명으로 외관을 구분합니다.", "중앙 시야를 잡으면 양쪽 구역으로 길을 나눌 수 있습니다. 계단과 높은 길, 건물 안 통로의 위아래를 확인하고 팀과 함께 진입하세요."],
 };
 module.exports = (d) => {
   const has = new Set(d.mapImages || []);
@@ -33,7 +33,7 @@ module.exports = (d) => {
   const card = (m) => {
     const t = TEXT[m.key] || ["", "", ""], [kn, kc] = KIND[m.cat] || ["", ""];
     return `<section class="map" id="map-${esc(m.key)}">
-${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp" alt="${attr(m.name)} 맵을 위에서 본 모습" width="960" height="540" loading="lazy">` : ""}
+${has.has(m.key) ? `<img src="./assets/site/maps/${esc(m.key)}.webp${m.key==='ascent_trial'?'?v=district-ascent-1':''}" alt="${attr(m.name)} 맵을 위에서 본 모습" width="960" height="540" loading="lazy">` : ""}
 <div class="body"><h3>${esc(m.name)}</h3>
 <p class="facts"><span class="tag ${kc}">${esc(kn)}</span><span class="tag">${m.width}×${m.depth}m</span><span class="tag">사이트 ${esc(m.sites.join(" · "))}</span>${t[0] ? `<span class="tag gold">${esc(t[0])}</span>` : ""}</p>
 <p>${esc(t[1])}</p>${t[2] ? `<p><b>팁</b> ${esc(t[2])}</p>` : ""}</div>
