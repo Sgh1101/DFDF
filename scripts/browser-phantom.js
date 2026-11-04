@@ -20,7 +20,7 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     await p.locator('[data-phantom-skin="champions_atk"]').click();
     await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"));
     assert.equal(await p.locator("#phantom-model-notice").isVisible(), false);
-    assert.match(await p.locator("#phantom-status").innerText(), /자동 적용/);
+    assert.match(await p.locator("#phantom-status").innerText(), /자체 디자인 적용/);
     const originalPreview = await p.evaluate(() => {
       const rig = GUN_SKINS._pv().obj.getObjectByName("phantom-rig"); let vertices = 0; const dimensions = [];
       rig.traverse((part) => { if (part.isMesh) { vertices += part.geometry.attributes.position.count; for (const tex of [part.material.map, part.material.emissiveMap]) if (tex) dimensions.push([tex.image.naturalWidth, tex.image.naturalHeight]); } });
@@ -88,18 +88,16 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 1);
     await p.locator("#phantom-stop").click();
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
-    if (process.env.PHANTOM_JAR) {
-      await p.locator("#phantom-file").setInputFiles(process.env.PHANTOM_JAR);
-      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && !document.getElementById('phantom-file').disabled && document.getElementById('phantom-status').textContent.includes('불러온 JAR'), null, { timeout: 60000 });
+    {
       await p.waitForFunction(() => { const rig = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-rig"); let n = 0; rig?.traverse((m) => { if (m.isMesh && m.material.map?.image?.complete) n++; }); return n > 5; });
       assert.ok(await p.evaluate(() => { let n = 0; GUN_SKINS._pv().obj.traverse((m) => { if (m.isMesh) n++; }); return n < 30; }), "source cubes are merged per bone");
-      await p.screenshot({ path: path.join(dir, "original-attack.png") });
+      await p.screenshot({ path: path.join(dir, "custom-attack.png") });
       await p.locator('[data-phantom-demo="kill"]').click();
       assert.match(await p.locator("#killfx").getAttribute("style"), /blob:/);
       await p.locator("#phantom-stop").click();
       await p.locator('[data-phantom-skin="champions_def"]').click();
       await p.waitForFunction(() => GUN_SKINS.of("scout").id === "champions_def");
-      await p.screenshot({ path: path.join(dir, "original-defense.png") });
+      await p.screenshot({ path: path.join(dir, "custom-defense.png") });
       await p.locator('[data-phantom-demo="reload"]').click();
       await p.waitForFunction(() => { const bone = GUN_SKINS._pv()?.obj?.getObjectByName("phantom-bone-mag_and_lefthand"); return !!bone; });
       await p.locator("#phantom-stop").click();
@@ -125,8 +123,8 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
         SETTINGS.motion = 0; const reduced = FINISHERS.play({ mode: "std", last: true, kind: "gun", killer: 1, victim: 2, skin: "champions_def", x: 0, y: 0, z: 0 }); SETTINGS.motion = 1;
         return { rig, moved, event, count, dragon, afterReplay, reduced };
       });
-      console.log("original combat", combat);
-      assert.equal(combat.rig, true); assert.ok(combat.moved > 0.01, "the original magazine moves during the game's reload");
+      console.log("custom combat", combat);
+      assert.equal(combat.rig, true); assert.ok(combat.moved > 0.01, "the custom magazine moves during the game's reload");
       assert.equal(combat.event.skin, "champions_def"); assert.equal(combat.event.finisher, true);
       assert.equal(combat.count, 1); assert.equal(combat.dragon, true); assert.equal(combat.afterReplay, 1); assert.equal(combat.reduced, false);
       await p.reload({ waitUntil: "domcontentloaded" });
@@ -139,7 +137,7 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
         drop.userData.skinDone = 1; drop.add(drop.userData.spin); scene.add(drop);
       });
       await p.locator("#phantom-remove").click();
-      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && document.getElementById("phantom-status").textContent.includes("자동 적용"));
+      await p.waitForFunction(() => CHAMPIONS_PHANTOM.loaded() && document.getElementById("phantom-status").textContent.includes("자체 디자인 적용"));
       assert.equal(await p.evaluate(() => !!scene.getObjectByName("phantom-test-drop").getObjectByName("phantom-rig")), true, "restoring the supplied original keeps dropped weapons on the real model");
       assert.equal(await p.evaluate(() => new Promise((resolve, reject) => {
         const request = indexedDB.open("dfdf-phantom", 1); request.onerror = () => reject(request.error);
@@ -165,6 +163,6 @@ const gunCubes = require("../assets/champions-phantom/dfdf-1/geo/phantom_champio
     await p.evaluate(() => GUN_SKINS.close());
     assert.equal(await p.evaluate(() => FINISHERS.active.size), 0);
     assert.deepEqual(f.errors, []);
-    console.log("Phantom: bundled DFDF model by default without JAR import, every cube and 512px textures, separate Champions purchase tab, shared pull chance, tab isolation and coin link, tier guide, earned coin, 700-coin confirmed purchase, ownership, attack/defense equipment, banner, finisher cleanup, balance, landscape and portrait" + (process.env.PHANTOM_JAR ? ", JAR override, merged geometry, reload persistence and original restoration" : " (set PHANTOM_JAR to check local overrides)"));
+    console.log("Phantom: custom DFDF model, every cube and 512px textures, separate Champions purchase tab, shared pull chance, earned coin, 700-coin confirmed purchase, ownership, equipment persistence, banner, magazine motion, finisher cleanup, default restoration, balance, landscape and portrait");
   } finally { await f.browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

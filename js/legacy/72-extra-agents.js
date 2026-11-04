@@ -33,34 +33,14 @@
       .filter((o) => o.t >= -0.5 && o.t <= len && o.off <= w)
       .sort((p, q) => p.t - q.t)
       .map((o) => o.a);
-  const eye = (c) => ({ x: c.pos.x, y: (c.y || 0) + 1.45, z: c.pos.z });
+  const eye = (c) => ({ x: c.pos.x, y: actorEye(c), z: c.pos.z });
   function scan(c, len, w) {
-    const yaw = c.yaw || 0,
-      dx = -Math.sin(yaw),
-      dz = -Math.cos(yaw),
-      e = eye(c),
-      L = clearLen(e.x, e.z, dx, dz, len, c.y);
-    const hit = onLine(foesOf(c), e.x, e.z, dx, dz, L, w).find((a) => losOK(c, a));
-    const end = hit ? { x: hit.pos.x, z: hit.pos.z, y: (hit.y || 0) + 1.1 } : { x: e.x + dx * L, z: e.z + dz * L, y: e.y - 0.2 };
-    return { hit, end, e, dx, dz, L };
+    return abilityAim(c, len, w);
   }
   // the enemy a targeted ability goes to: the one in the line, or the nearest
   // one seen inside a narrow cone around it
   function pick(c, len) {
-    const s = scan(c, len, 0.8);
-    if (s.hit) return s;
-    let best = null,
-      bd = 9;
-    for (const a of foesOf(c)) {
-      const px = a.pos.x - s.e.x,
-        pz = a.pos.z - s.e.z,
-        d = Math.hypot(px, pz);
-      if (d > len || d < 0.5) continue;
-      const ang = Math.acos(Math.max(-1, Math.min(1, (px * s.dx + pz * s.dz) / d)));
-      ang < 0.22 && ang < bd && losOK(c, a) && ((bd = ang), (best = a));
-    }
-    best && ((s.hit = best), (s.end = { x: best.pos.x, z: best.pos.z, y: (best.y || 0) + 1.1 }));
-    return s;
+    return abilityAim(c, len, 0.8, 0, 0.22);
   }
   const live = (life, upd, dispose, end) => {
     let t = 0,
@@ -239,7 +219,7 @@
   H.y_time_brand = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, GOLD, 0.04, 0.3);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, GOLD, 0.04, 0.3);
     if (!s.hit) return sparks(s.end.x, s.end.y, s.end.z, GOLD, 6, 3);
     const e = s.hit;
     e.__brandT = 3;
@@ -301,7 +281,7 @@
   H.y_backstep = () => {
     const c = player,
       s = pick(c, 35);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, CYAN, 0.035, 0.3);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, CYAN, 0.035, 0.3);
     if (!s.hit) return sparks(s.end.x, s.end.y, s.end.z, CYAN, 6, 3);
     const e = s.hit,
       past = histAt(e, 3);
@@ -489,7 +469,7 @@
   H.y_ult_banish = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, VIO, 0.06, 0.4);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, VIO, 0.06, 0.4);
     if (!s.hit) return sparks(s.end.x, s.end.y, s.end.z, VIO, 10, 4);
     const e = s.hit,
       x = e.pos.x,
@@ -561,7 +541,7 @@
   H.y_bounty = () => {
     const c = player,
       s = pick(c, 50);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, AMB, 0.03, 0.3);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, AMB, 0.03, 0.3);
     if (!s.hit) {
       try {
         CAST_REFUND = !0;
@@ -590,7 +570,7 @@
   H.y_ult_duel = () => {
     const c = player,
       s = pick(c, 40);
-    beam(s.e.x, s.e.y - 0.2, s.e.z, s.end.x, s.end.y, s.end.z, ORG, 0.05, 0.35);
+    beam(s.from.x, s.from.y, s.from.z, s.end.x, s.end.y, s.end.z, ORG, 0.05, 0.35);
     if (!s.hit) return sparks(s.end.x, s.end.y, s.end.z, ORG, 8, 3);
     const e = s.hit,
       x = (c.pos.x + e.pos.x) / 2,

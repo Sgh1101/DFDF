@@ -4,7 +4,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
 //  1. every Korean text the code hands to banner / bannerMe / tellTeam / announce / spikeUI / netAlert / netLoading /
 //     pill / pushKill (read from the sources) comes out in English;
 //  2. a real match on the English page: the banners and messages that show up while the round starts, ends, switches
-//     sides, the spike is planted and defused, someone dies, the pause, change-agent, admin and cheat screens are opened;
+//     sides, the bomb is planted and defused, someone dies, the pause, change-agent, admin and cheat screens are opened;
 //  3. server errors: a wrong login, the limit on matches started, and a few more through GAME_REQUEST;
 //  4. the Korean page keeps its Korean texts.
 // All failures are listed together.
@@ -109,21 +109,21 @@ function literalsOfCalls() {
     const bannerHas = async (re, what) => { const b = await en.evaluate(() => window.__banners.concat(window.__calls)); check(b.some((t) => re.test(t)), "English banner missing: " + what + " (saw " + JSON.stringify(b.slice(-8)) + ")"); };
     await bannerHas(/^Round 1 · Buy phase$/, "round 1 buy phase");
     // round ends, each reason
-    for (const [reason, side, re] of [["수비팀 전멸", "atk", /^Round (won|lost) · Defenders eliminated$/], ["공격팀 전멸", "def", /^Round (won|lost) · Attackers eliminated$/], ["시간 초과", "def", /^Round (won|lost) · Time ran out$/], ["스파이크 폭발", "atk", /^Round (won|lost) · Spike detonated$/]]) {
+    for (const [reason, side, re] of [["수비팀 전멸", "atk", /^Round (won|lost) · Defenders eliminated$/], ["공격팀 전멸", "def", /^Round (won|lost) · Attackers eliminated$/], ["시간 초과", "def", /^Round (won|lost) · Time ran out$/], ["폭탄 폭발", "atk", /^Round (won|lost) · Bomb detonated$/]]) {
       await en.evaluate(([r, s]) => { world.over = false; world.phase = "live"; clearTimeout(roundEndTimer); endRound(s, r); clearTimeout(roundEndTimer); }, [reason, side]);
       await bannerHas(re, "round end, " + reason);
     }
-    // the spike
+    // the bomb
     await en.evaluate(() => { cancelRoundEnd(); world.over = false; world.phase = "live"; closeShop(); plantSpike(player.pos.x, player.pos.z, MAP.sites[0], true); });
     await en.waitForTimeout(400);
-    await bannerHas(/^Spike planted at site /, "spike planted");
+    await bannerHas(/^Bomb planted at site /, "spike planted");
     await en.evaluate(() => { world.spike.timer = 20; });
     await en.waitForTimeout(600);
     await en.evaluate(() => { world.spike.timer = 5; player.team = "def"; player.defusing = 0; });
     await en.waitForTimeout(500);
     await left("spike planted");
     await en.evaluate(() => { defuseDone("player"); clearTimeout(roundEndTimer); });
-    await bannerHas(/^Round (won|lost) · Spike defused$/, "spike defused");
+    await bannerHas(/^Round (won|lost) · Bomb defused$/, "spike defused");
     // half time: sides swap once the last round of the first half (round halfTime()) is over
     await en.evaluate(() => { world.over = false; world.phase = "live"; world.scoreAtk = 0; world.scoreDef = 0; world.round = halfTime(); endRound("atk", "수비팀 전멸"); });
     await en.waitForFunction(() => window.__calls.some((t) => /Switching sides/.test(t)), null, { timeout: 15000 }).catch(() => {});

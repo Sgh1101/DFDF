@@ -42,12 +42,12 @@
   };
 
   const guide = document.createElement("details"); guide.className = "home-guide";
-  guide.innerHTML = `<summary>${L("처음 플레이하시나요?", "First time playing?")}</summary><p>${L("사격장에서 이동·사격·요원 능력을 먼저 익혀 보세요. 일반전은 스파이크 설치/해제를 두고 싸우며, 데스매치는 처치 수로 승부합니다.", "Try movement, shooting and abilities in the range. Standard fights over planting and defusing the spike; deathmatch is decided by kills.")}</p>`;
+  guide.innerHTML = `<summary>${L("처음 플레이하시나요?", "First time playing?")}</summary><p>${L("사격장에서 이동·사격·요원 능력을 먼저 익혀 보세요. 일반전은 폭탄 설치/해제를 두고 싸우며, 데스매치는 처치 수로 승부합니다.", "Try movement, shooting and abilities in the range. Standard fights over planting and defusing the bomb; deathmatch is decided by kills.")}</p>`;
   const train = document.createElement("button"); train.className = "btn"; train.textContent = L("사격장 열기", "Open range"); train.onclick = () => $("go-range").click(); guide.append(train); menu.append(guide);
   function counts() {
     const data = GAME_CATALOG.counts(), n = data.maps;
     $("go-play").querySelector("small").textContent = L(`AI 대전 · 모드 ${data.modes}종 · 맵 ${n}종`, `Versus AI · ${data.modes} modes · ${n} maps`);
-    title.querySelector(".title-desc").textContent = L(`사이트를 두고 벌이는 전술 교전. ${data.agents}명 요원의 능력으로 각을 열고, 연막과 스파이크로 승부를 냅니다.`, `Fight for the site with ${data.agents} agents, abilities, smoke and the spike.`);
+    title.querySelector(".title-desc").textContent = L(`사이트를 두고 벌이는 전술 교전. ${data.agents}명 요원의 능력으로 각을 열고, 연막과 폭탄으로 승부를 냅니다.`, `Fight for the site with ${data.agents} agents, abilities, smoke and the bomb.`);
     const skins = data.skins;
     title.querySelector(".title-foot").textContent = L(`요원 ${data.agents}명 · 총 ${data.guns}종 + 나이프 · 맵 ${n}종 · 스킨 ${skins}종`, `${data.agents} agents · ${data.guns} guns + knife · ${n} maps · ${skins} skins`);
     paintRecent();

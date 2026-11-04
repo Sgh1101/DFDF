@@ -51,7 +51,7 @@ const data = JSON.parse(fs.readFileSync(path.join(__dirname, "site-pages", "data
 
     // ── the text is in the HTML, not made by scripts ──
     const noJs = await f.browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 800 } });
-    for (const [p, need] of [["guide", ["스파이크", "구매 시간", "랭크전", "초대 코드"]], ["controls", ["Enter", "F8", "키 설정", "터치"]], ["modes", data.modes.map((m) => m.name)], ["maps", data.maps.map((m) => m.name)], ["agents", data.agents.map((a) => a.name)], ["patch-notes", ["패치노트"]], ["about", ["무료", "공정"]], ["privacy", ["Google", "쿠키"]]]) {
+    for (const [p, need] of [["guide", ["폭탄", "구매 시간", "랭크전", "초대 코드"]], ["controls", ["Enter", "F8", "키 설정", "터치"]], ["modes", data.modes.map((m) => m.name)], ["maps", data.maps.map((m) => m.name)], ["agents", data.agents.map((a) => a.name)], ["patch-notes", ["패치노트"]], ["about", ["무료", "공정"]], ["privacy", ["Google", "쿠키"]]]) {
       const page = await noJs.newPage(); await page.route("https://fonts.*/**", (r) => r.abort());
       await page.goto(`${BASE}/${p}.html`, { waitUntil: "domcontentloaded" });
       const t = await page.locator("main").innerText();

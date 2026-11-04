@@ -31,7 +31,7 @@
     if (sp.carrier && sp.carrier.pos) return sp.carrier;
     return (world.actors || world.entities || []).find((a) => a.alive && a.hasSpike) || null;
   };
-  // where the spike is right now, and who may know it
+  // where the bomb is right now, and who may know it
   function spikeInfo() {
     const sp = world.spike,
       m = me();
@@ -49,18 +49,18 @@
     return null;
   }
 
-  // 2. the spike box under the timer names the site and the distance, and a
-  //    marker sits on the spike itself (at the screen edge when it is off
+  // 2. the bomb box under the timer names the site and the distance, and a
+  //    marker sits on the bomb itself (at the screen edge when it is off
   //    screen or behind you, pointing the way)
   const _sui = spikeUI;
   spikeUI = function (txt) {
     try {
       const inf = spikeInfo(),
         m = me();
-      if (inf && m && typeof txt == "string" && /^스파이크 (작동 중|낙하)/.test(txt)) {
+      if (inf && m && typeof txt == "string" && /^폭탄 (작동 중|낙하)/.test(txt)) {
         const d = Math.round(Math.hypot(inf.x - m.pos.x, inf.z - m.pos.z));
         const a = [...arguments];
-        a[0] = inf.kind === "planted" ? txt.replace(/^스파이크 작동 중/, `${inf.site || "?"} 사이트 · 스파이크 작동 중`) + ` · ${d}m` : txt + ` · ${d}m`;
+        a[0] = inf.kind === "planted" ? txt.replace(/^폭탄 작동 중/, `${inf.site || "?"} 사이트 · 폭탄 작동 중`) + ` · ${d}m` : txt + ` · ${d}m`;
         return _sui.apply(this, a);
       }
     } catch (e) {}
@@ -300,7 +300,7 @@
     }
     $("bm-name").textContent = MAP.name || CUR_MAP_KEY || "";
     const sEl = $("bm-spk"),
-      st = !inf ? "" : inf.kind === "planted" ? `스파이크: ${inf.site || "?"} 사이트에 설치됨` : inf.kind === "dropped" ? "스파이크: 떨어져 있음" : `스파이크: ${inf.who || "아군"} 소지`;
+      st = !inf ? "" : inf.kind === "planted" ? `폭탄: ${inf.site || "?"} 사이트에 설치됨` : inf.kind === "dropped" ? "폭탄: 떨어져 있음" : `폭탄: ${inf.who || "아군"} 소지`;
     sEl.textContent = st;
     sEl.className = inf ? inf.kind : "";
   }

@@ -48,6 +48,7 @@ Worker의 **Settings → Variables and Secrets**에 아래 값을 **Secret**으�
    - 이렇게 하면 다음 단계 동안에도 사이트가 Vercel에서 그대로 열립니다.
 2. 호스팅케이알 도메인 관리에서 네임서버를 Cloudflare의 2개로 바꿉니다. Cloudflare에서 도메인이 **Active**가 될 때까지 몇 분에서 몇 시간을 기다립니다.
 3. Worker의 **Settings → Domains & Routes → Add → Custom domain**에 `13fps.xyz`를 넣습니다. 기존 A 레코드를 바꾸겠냐고 물으면 바꿉니다. 이때부터 Cloudflare에서 서비스됩니다.
+4. 도메인의 **SSL/TLS → Edge Certificates → Always Use HTTPS**를 켭니다. 정적 파일은 Worker보다 먼저 응답되므로, `http://` 주소 전체를 `https://`로 넘기려면 이 설정이 필요합니다. Worker가 직접 응답하는 `/`, `/admin`, API는 Worker 코드에서도 `http://` 요청을 301로 넘깁니다.
 
 ## 주의
 - **데이터베이스:** Upstash는 Vercel 통합으로 만들어졌습니다. Vercel 계정이나 그 통합을 지우면 데이터가 같이 지워질 수 있습니다. 데이터베이스를 따로 옮기기 전까지 Vercel은 사이트 프로젝트만 정리하고, 통합은 지우지 마세요.

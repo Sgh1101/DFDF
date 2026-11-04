@@ -12,7 +12,7 @@
     roles: ["모든 역할의 승자", "Every role", "타격대·감시자·척후대·전략가로 각각 승리하기", "Win with a Duelist, Sentinel, Initiator and Controller"],
     modes: ["모든 모드 정복", "Every mode", "표적 사격을 뺀 모든 모드에서 승리하기", "Win a match in every mode but the target range"],
   };
-  const MODE = { std: ["일반전", "Standard"], swift: ["신속플레이", "Swift"], rush: ["스파이크 돌격", "Spike Rush"], tdm: ["팀 데스매치", "Team DM"], dm: ["데스매치", "Deathmatch"], knife: ["칼 대난투", "Knife Fight"], gun: ["총기 순환", "Gun Game"], hill: ["점령전", "Conquest"], ctf: ["깃발 탈취", "Capture the Flag"], zone: ["축소전", "Shrinking Zone"], inf: ["감염", "Infection"] };
+  const MODE = { std: ["일반전", "Standard"], swift: ["빠른 대전", "Swift"], rush: ["폭탄 돌격", "Bomb Rush"], tdm: ["팀 데스매치", "Team DM"], dm: ["데스매치", "Deathmatch"], knife: ["칼 대난투", "Knife Fight"], gun: ["총기 순환", "Gun Game"], hill: ["점령전", "Conquest"], ctf: ["깃발 탈취", "Capture the Flag"], zone: ["축소전", "Shrinking Zone"], inf: ["감염", "Infection"] };
   const ROLE = { duelist: ["타격대", "Duelist"], sentinel: ["감시자", "Sentinel"], initiator: ["척후대", "Initiator"], controller: ["전략가", "Controller"] };
   const pick = (t, k) => (t[k] ? t[k][en() ? 1 : 0] : k);
   // 로 / 으로 after a Korean name

@@ -5145,7 +5145,10 @@ function castAbility(e, t) {
           Math.hypot(r.x - a.pos.x, r.y - (a.y + 1.1), r.z - a.pos.z) < 1.1 &&
             (hurtFighter(a, 80, !1, "player"), (o = !0));
         }),
-          addTracer(e, player.yaw, player.pitch, 120),
+          (() => {
+            const hand = abilityOrigin(player), end = e.clone().addScaledVector(t, 120);
+            fxTracer(hand.x, hand.y, hand.z, end.x, end.y, end.z, 14737632);
+          })(),
           banner(o ? "관통 명중" : "관통 사격", o ? "#e0e0e0" : "#5b6879"));
         break;
       }
@@ -7189,6 +7192,70 @@ function ultwAim(e, t, o) {
   }
   return { o: s, dir: r, hand: i };
 }
+// Aim damage from the actor's eyes; render/launch from that actor's casting hand.
+// Viewmodel/world-rig transforms are visual only and must never select a hit target.
+function abilityRayLimit(origin, direction, maximum) {
+  let limit = maximum;
+  if (direction.y < 0) limit = Math.min(limit, Math.max(0, -origin.y / direction.y));
+  const ray = new T.Ray(origin, direction), box = new T.Box3(), at = new T.Vector3();
+  // Movement collision reserves 2.3m above the sample. A thin laser must instead
+  // intersect the actual wall/floor/ceiling, including very thin upper slabs.
+  for (const collider of COLLIDERS) {
+    box.min.set(collider.minX, collider.y0 || 0, collider.minZ);
+    box.max.set(collider.maxX, collider.h, collider.maxZ);
+    if (box.containsPoint(origin)) return 0;
+    if (ray.intersectBox(box, at)) limit = Math.min(limit, origin.distanceTo(at));
+  }
+  if (DOMES.length) limit = Math.min(limit, domeBlockT(origin, direction, limit));
+  return limit;
+}
+function abilityOrigin(actor) {
+  const { o, dir } = ultwAim(actor, 0, 0);
+  let hand = null;
+  if (actor === myActor() && VM_CAST.t > 0 && VM_CAST.grp && VM_CAST.hand) {
+    tickVmCast(0);
+    VM_CAST.grp.updateWorldMatrix(true, false);
+    hand = VM_CAST.grp.localToWorld(VM_CAST.hand.clone());
+  } else if (actor !== myActor() && actor.model?.armL?.fore) {
+    const fore = actor.model.armL.fore;
+    fore.updateWorldMatrix(true, false);
+    hand = fore.localToWorld(new T.Vector3(0, -0.24, 0));
+  }
+  const yaw = actor.yaw || 0, pitch = actor.pitch || 0;
+  const right = new T.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const up = new T.Vector3(Math.sin(yaw) * Math.sin(pitch), Math.cos(pitch), Math.cos(yaw) * Math.sin(pitch));
+  if (!hand || ![hand.x, hand.y, hand.z].every(Number.isFinite) || hand.distanceTo(o) > 2.5) {
+    hand = o.clone().addScaledVector(right, -0.25).addScaledVector(up, -0.25).addScaledVector(dir, 0.45);
+  }
+  // A casting wrist behind a nearby wall must not launch through that wall.
+  const distance = hand.distanceTo(o);
+  if (distance > 0.001 && abilityRayLimit(o, hand.clone().sub(o).normalize(), distance) < distance - 0.001) return o;
+  return hand;
+}
+function abilityAim(actor, length, width = 0.6, yawOffset = 0, cone = 0) {
+  const { o, dir } = ultwAim(actor, yawOffset, 0);
+  const padding = Math.max(0, width - 0.56 * BODY_K);
+  const limit = abilityRayLimit(o, dir, length);
+  // legacy/22 already scales ultwRay's length; these callers specify final metres.
+  const ray = ultwRay(actor, o, dir, limit / (window.AB_D || 1), true, false, padding);
+  let hit = ray.hits[0]?.e || null;
+  let end = o.clone().addScaledVector(dir, ray.endT);
+  if (!hit && cone > 0) {
+    let best = cone;
+    for (const target of world.actors) {
+      if (!target.alive || target === actor || target.team === actor.team) continue;
+      const at = new T.Vector3(target.pos.x, target.y + (target.crouch ? 0.74 : 0.95) * BODY_K, target.pos.z);
+      const delta = at.clone().sub(o), distance = delta.length();
+      if (distance < 0.5 || distance > length) continue;
+      const direction = delta.multiplyScalar(1 / distance);
+      const angle = Math.acos(Math.max(-1, Math.min(1, direction.dot(dir))));
+      if (angle >= best || rayBlocked(o.x, o.y, o.z, at.x, at.y, at.z)) continue;
+      if (abilityRayLimit(o, direction, distance) < distance - 0.001) continue;
+      best = angle; hit = target; end = at;
+    }
+  }
+  return { e: o, from: abilityOrigin(actor), dir, dx: dir.x, dy: dir.y, dz: dir.z, L: ray.endT, hit, end };
+}
 function ultwRay(e, t, o, a, n, r, s) {
   let i = a;
   if (!n) {
@@ -8441,15 +8508,7 @@ function throwProjectile(e, t, o) {
     new T.MeshBasicMaterial({ color: new T.Color(e).multiplyScalar(2) }),
   );
   ((r.rotation.x = Math.PI / 2), a.add(r));
-  const s = Math.cos(player.yaw),
-    i = -Math.sin(player.yaw),
-    l = -Math.sin(player.yaw),
-    c = -Math.cos(player.yaw),
-    d = new T.Vector3(
-      player.pos.x + 0.28 * s + 0.5 * l,
-      player.y + eyeHeight() / BODY_K - 0.22,
-      player.pos.z + 0.28 * i + 0.5 * c,
-    );
+  const d = abilityOrigin(player);
   (a.position.copy(d), scene.add(a));
   const h = new T.Vector3(
       -Math.sin(player.yaw) * Math.cos(player.pitch),
@@ -15321,7 +15380,7 @@ function dropSpike(e, t) {
   ((o.mesh.userData.light.intensity = 0.8),
     o.mesh.userData.core && o.mesh.userData.core.scale.setScalar(1),
     SFX.drop(),
-    banner("스파이크 낙하", "#ff9a3c"));
+    banner("폭탄 낙하", "#ff9a3c"));
 }
 function pickupSpike(e) {
   const t = world.spike;
@@ -15343,7 +15402,7 @@ function pickupSpike(e) {
       ? ((player.hasSpike = !0),
         (t.carrier = "player"),
         SFX.pick(),
-        banner("스파이크 회수", "#ff3b4e"))
+        banner("폭탄 회수", "#ff3b4e"))
       : ((e.hasSpike = !0),
         (e.plantCd = 0),
         (t.carrier = e),
@@ -15413,7 +15472,7 @@ function defuseDone(e) {
       }),
     SFX.defused(),
     "player" === e && chargeUlt(2),
-    endRound("def", "player" === e ? "스파이크 해제" : "스파이크 해제됨"));
+    endRound("def", "player" === e ? "폭탄 해제" : "폭탄 해제됨"));
 }
 function detonate() {
   const e = world.spike;
@@ -15462,7 +15521,7 @@ function detonate() {
         (e.material.opacity = 1 - t));
     });
   }
-  endRound("atk", "스파이크 폭발");
+  endRound("atk", "폭탄 폭발");
 }
 function spikeUI(e, t, o, a, n) {
   $("spike").classList.add("on");
@@ -15538,8 +15597,8 @@ function handleSpike(e) {
         (player.plantAnchor = null),
         void spikeUI(
           "en" === window.GAME_LANG
-            ? `Carrying the spike · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
-            : `스파이크 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
+            ? `Carrying the bomb · press ${KEYMAP.name("plant")} or ${KEYMAP.name("use")} inside a site to plant`
+            : `폭탄 소지 · 사이트 안에서 ${KEYMAP.name("plant")} 또는 ${KEYMAP.eul(KEYMAP.name("use"))} 눌러 설치`,
           "#8a97ab",
           0,
           "#5b6879",
@@ -15634,8 +15693,8 @@ function handleSpike(e) {
     return (
       spikeUI(
         "def" === player.team && player.alive && !o
-          ? `스파이크 작동 중 · ${a.toFixed(1)}초 — 접근해 F`
-          : `스파이크 작동 중 · ${a.toFixed(1)}초`,
+          ? `폭탄 작동 중 · ${a.toFixed(1)}초 — 접근해 F`
+          : `폭탄 작동 중 · ${a.toFixed(1)}초`,
         r ? "#ff3b4e" : "#ff6b4a",
         a / SPIKE.FUSE,
         r ? "#ff3b4e" : "#ff6b4a",
@@ -15646,7 +15705,7 @@ function handleSpike(e) {
   }
   "dropped" !== t.state || "atk" !== player.team
     ? $("spike").classList.remove("on")
-    : spikeUI("스파이크 낙하 — 회수 필요", "#ff9a3c", 0, "#ff9a3c");
+    : spikeUI("폭탄 낙하 — 회수 필요", "#ff9a3c", 0, "#ff9a3c");
 }
 function handleBotSpike(e, t) {
   const o = world.spike;
@@ -17374,7 +17433,7 @@ function actorSpike(e, t) {
               "function" == typeof banner &&
                 player &&
                 "def" === player.team &&
-                banner("스파이크 설치됨", "#ff3b4e")));
+                banner("폭탄 설치됨", "#ff3b4e")));
         } else ((e.planting = 0), (e.plantAnchor = null), (e._plantWarned = 0));
       }
     }
@@ -20416,7 +20475,7 @@ function updateTeam() {
       const s = t.querySelector(".tm-wep");
       s &&
         (e.hasSpike
-          ? ((s.textContent = "스파이크 소지"), (s.className = "tm-wep tm-spk"))
+          ? ((s.textContent = "폭탄 소지"), (s.className = "tm-wep tm-spk"))
           : ((s.textContent = e.weaponName || ""), (s.className = "tm-wep")));
       const i = t.querySelector(".tm-dist");
       if (e.alive) {
