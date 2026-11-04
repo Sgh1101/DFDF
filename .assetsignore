@@ -16,6 +16,7 @@ tests
 test-results
 sources
 docs
+monetization-review.json
 *.md
 package.json
 package-lock.json

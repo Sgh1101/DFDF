@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-04",
+  "site": {
+    "status": "in-review",
+    "publisherId": "ca-pub-3446698746925219"
+  },
+  "applicant": {
+    "adultConfirmed": false
+  },
+  "audience": {
+    "classification": "unreviewed",
+    "underAgeHandlingReviewed": false
+  },
+  "consent": {
+    "regionalPolicyReviewed": false,
+    "cmpProvider": "",
+    "certificationVerified": false,
+    "withdrawalTested": false
+  },
+  "inventory": {
+    "status": "unreviewed",
+    "evidenceRef": ""
+  },
+  "assets": [
+    {
+      "id": "dusk-layout",
+      "description": "Provided schematic layout; own colors and materials do not establish layout monetization permission.",
+      "status": "unverified",
+      "grant": {
+        "webUse": false,
+        "modification": false,
+        "redistribution": false,
+        "adMonetization": false
+      },
+      "evidenceRef": "",
+      "files": [
+        {
+          "path": "assets/maps/ascent/manifest.json",
+          "sha256": "0acd9f8655e5fe0fbe0a70bc2ed0f67a73e3b9cd58a94468f9bfdc2482f94204"
+        },
+        {
+          "path": "assets/maps/ascent/geometry.bin",
+          "sha256": "5a1bce1adbc90ea3af5a76b16024ad65b2b431499792b375cb7313c883c41cd8"
+        },
+        {
+          "path": "assets/maps/ascent/mobile/manifest.json",
+          "sha256": "3cd49df9a6c35428757c81cf270139e307f1b91f8002327c1355cc25b076bc13"
+        },
+        {
+          "path": "assets/maps/ascent/mobile/geometry.bin",
+          "sha256": "8e60a007eb910dbc0bcee5a18d4e8c3a51ad97b7cdc6d3a6d5287cff4887810e"
+        }
+      ]
+    },
+    {
+      "id": "sgh-butterfly-retained",
+      "description": "Own cubes and texture; retained source bones, animation and eight sounds need scope verification.",
+      "status": "unverified",
+      "grant": {
+        "webUse": false,
+        "modification": false,
+        "redistribution": false,
+        "adMonetization": false
+      },
+      "evidenceRef": "",
+      "files": [
+        {
+          "path": "assets/rgx-firefly/v1/manifest.json",
+          "sha256": "8ae4e63c718e4a63a490063c64881e40e3a2efafbe1364380c70664755c614bb"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/animation.json",
+          "sha256": "d415254c87f8310ca4bcc23fea57ecd17e3bc12f3ea010a24862fc320e58bd79"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/model.json",
+          "sha256": "d7fb9f3cba42703436252cb543271933494fbc7ffff16d2d2d4718d79d9289a6"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_draw.ogg",
+          "sha256": "ec3d7414482e7cc0e518f7bff26082e8218e992f03e0fdba3b40f04f657a1849"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_inspect.ogg",
+          "sha256": "f747a0959437d599439041d61cddf8966ef8c99f2b56148d5bf1687b40a9b701"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_melee_1.ogg",
+          "sha256": "b9a2342a108cb7bd4c222794b2d5025d258f9e49eeeb7d4ef5718af040b2d814"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_melee_2.ogg",
+          "sha256": "89718f7b38bca04ee6eb2a1b8fc2f81fbfee74fc462045bec5efa67b98b7fe9b"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_melee_3.ogg",
+          "sha256": "e35a35b659e33954609cabe43962755bd42358a72327b9623bbfcfbad3326a40"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_rotate_1.ogg",
+          "sha256": "ff5fb0d353bb5b28fe094fc9e55faa1bba3cf0bf04ac7dbe7c6480991e4c84ab"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_rotate_2.ogg",
+          "sha256": "b680936fed8dd21da33b420ed9ff19f529944821732b243685f065ffae0e969f"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/sounds/future_butterfly_rotate_3.ogg",
+          "sha256": "69dbbc337726d05633ed6306ca8250deda2d2313e63f319400cae1c536c65c07"
+        },
+        {
+          "path": "assets/rgx-firefly/v1/texture.png",
+          "sha256": "8d3fec620a662ebe51e0b9b35b7d30b81946c17e8f279830094912371f6cdcd7"
+        }
+      ]
+    }
+  ]
+}
