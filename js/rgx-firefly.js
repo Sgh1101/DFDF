@@ -1,10 +1,11 @@
-// The single source-pack exception requested by the user: RGX 11z Firefly.
+// SGH나비칼 (SGH Butterfly): the knife's own shape and texture (scripts/build-sgh-butterfly.js) on the butterfly rig the
+// user retained from a source pack; that rig's bones, animations and sounds play unchanged.
 (() => {
   'use strict';
   const D=window.RGX_FIREFLY_DATA,GS=window.GUN_SKINS,MODEL='rgx_butterfly',BASE='./assets/rgx-firefly/v1/';
   if(!D||!GS||!window.KNIVES||!window.BEDROCK_RIG)return;
   const EN=window.GAME_LANG==='en',status=document.createElement('button');
-  status.className='rgx-load-status';status.type='button';status.setAttribute('role','status');status.textContent=EN?'Preparing RGX butterfly…':'RGX 나비칼 준비 중…';
+  status.className='rgx-load-status';status.type='button';status.setAttribute('role','status');status.textContent=EN?'Preparing SGH Butterfly…':'SGH나비칼 준비 중…';
   status.style.cssText='position:fixed;right:12px;bottom:10px;z-index:61;padding:6px 10px;border:1px solid #5f8e7a;background:#101b1eef;color:#d4efdf;border-radius:8px;font:12px sans-serif';
   document.body.append(status);
   const S=window.RGX_FIREFLY={state:'loading',ready:null,bytes:new Map(),voices:new Set(),clip:null};
@@ -92,7 +93,7 @@
       materials={body:new T.MeshStandardMaterial({map:texture,roughness:.45,metalness:.2,alphaTest:.05,side:T.DoubleSide}),glow:new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:0xffffff,emissiveIntensity:.65,roughness:.4,metalness:.2,alphaTest:.05,side:T.DoubleSide})};
       for(const material of Object.values(materials))material.userData.shared=true;
       S.bytes=staged;S.state='ready';status.hidden=true;window.refreshSkinAssets?.();return true;
-    }catch(error){S.state='error';S.error=error.message;status.disabled=false;status.textContent=EN?'RGX butterfly failed to load · Retry':'RGX 나비칼을 불러오지 못했어 · 재시도';return false;}
+    }catch(error){S.state='error';S.error=error.message;status.disabled=false;status.textContent=EN?'SGH Butterfly failed to load · Retry':'SGH나비칼을 불러오지 못했어 · 재시도';return false;}
   }
   status.onclick=()=>{S.ready=load();};
   KNIVES.build[MODEL]=create;
