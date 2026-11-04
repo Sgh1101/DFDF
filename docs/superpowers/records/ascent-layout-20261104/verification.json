@@ -1,0 +1,102 @@
+{
+  "testedCommit": "394603d8aab9144782217db0623e56101f75323e",
+  "localProductHash": "e6303d5b152da098c3eb23550fc7848c43c3f8c7c86bd45a69a6015168171b5e",
+  "localUnit": {
+    "pass": 517,
+    "fail": 0,
+    "skip": 2,
+    "skipped": "optional Redis; CI below runs real Redis"
+  },
+  "ci": {
+    "run": 41805604486,
+    "unitPass": 519,
+    "unitFail": 0,
+    "unitSkip": 0,
+    "browserShards": "all success"
+  },
+  "browser": [
+    {
+      "name": "test:manual-plant",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 18
+    },
+    {
+      "name": "test:startup",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 22
+    },
+    {
+      "name": "test:csp",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 28
+    },
+    {
+      "name": "test:ascent-objectives",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 28
+    },
+    {
+      "name": "test:original-maps",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 33
+    },
+    {
+      "name": "test:ascent",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 38
+    },
+    {
+      "name": "test:ascent-abilities",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 35
+    },
+    {
+      "name": "test:select-mapshot",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 30
+    },
+    {
+      "name": "test:mobile-map",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 51
+    },
+    {
+      "name": "test:public-map-online",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 42
+    },
+    {
+      "name": "test:english-map-names",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 63
+    },
+    {
+      "name": "test:map-loading",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 20
+    },
+    {
+      "name": "test:rgx",
+      "pass": true,
+      "sourceChanged": false,
+      "seconds": 23
+    }
+  ],
+  "unverified": [
+    "physical Android",
+    "WAN quality",
+    "real-store purchases"
+  ]
+}

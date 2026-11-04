@@ -35,7 +35,7 @@ for t,im in zip(tiles,images):
     atlas.paste(padded,(x,y))
 atlas.save(dest/'atlas.png')
 palette={'version':1,'profile':'mobile','sourceAtlasSha256':source['atlasSha256'],'atlas':'atlas.png','atlasSha256':hashlib.sha256((dest/'atlas.png').read_bytes()).hexdigest(),'width':atlas.width,'height':atlas.height,'tiles':tiles}
-(dest/'palette.json').write_text(json.dumps(palette,separators=(',',':'))+'\n',encoding='utf8')
+(dest/'palette.json').write_text(json.dumps(palette,separators=(',',':'))+'\n',encoding='utf8',newline='\n')
 print('Mobile atlas:',atlas.size,'original:',original.size,'opaque patterns 8x8; all cutouts/glass unchanged')
 # the pack's manifest names the atlas it uses: keep its hash in step
 mm=dest/'manifest.json'

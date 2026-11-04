@@ -1,3 +1,7 @@
+# 모든 작업 전 상호 확인
+
+**Codex와 Claude 모두 모든 프로젝트 작업을 시작하거나 재개하기 전에** [.cursor/rules/collaboration-coordination.mdc](.cursor/rules/collaboration-coordination.mdc)를 읽고 수행한다. 상대의 최신 커밋·열린 PR·미커밋 worktree 변경까지 파악하고 [공통 작업 기록](docs/AGENT_WORK_STATUS.md)을 갱신한 뒤 구현한다. Claude는 [CLAUDE.md](CLAUDE.md)도 함께 읽는다.
+
 # 공동 작업과 배포
 
 배포할 때마다 [.cursor/rules/deployment-coordination.mdc](.cursor/rules/deployment-coordination.mdc)를 읽고 클로드와 다른 작업자의 최신 변경을 확인한다. 이 규칙은 사용자의 명시적 요청이다.

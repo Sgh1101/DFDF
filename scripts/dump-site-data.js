@@ -39,11 +39,8 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
     if (images) {
       const shot = (w, h) => page.evaluate(({ w, h }) => {
         const m = MAPS[CUR_MAP_KEY], b = m.bounds, bw = b.maxX - b.minX, bd = b.maxZ - b.minZ, cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
-        const cam = new T.PerspectiveCamera(40, 16 / 9, 1, 5000), a = m.attackSpawn;
-        let ux = cx - a.x, uz = cz - a.z; const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
-        const canvas = renderer.domElement, aspect = canvas.width / canvas.height, el = 50 * Math.PI / 180, dist = Math.max(bw, bd) * (aspect < 1.5 ? 1.15 : 0.95);
-        cam.aspect = aspect; cam.updateProjectionMatrix();
-        cam.position.set(cx - ux * dist * Math.cos(el), dist * Math.sin(el), cz - uz * dist * Math.cos(el)); cam.lookAt(cx, 0, cz);
+        const cam = new T.PerspectiveCamera(40, 16 / 9, 1, 5000),canvas=renderer.domElement,aspect=canvas.width/canvas.height;
+        SELECT_MAPSHOT.frameCamera(cam,m,aspect);
         const fog = scene.fog, f0 = fog && { d: fog.density, n: fog.near, f: fog.far }, vm = typeof VM !== "undefined" && VM.root, vmOn = vm && vm.visible;
         fog && (void 0 !== fog.density ? (fog.density = 0) : ((fog.near = 1e6), (fog.far = 2e6)));
         vm && (vm.visible = false);

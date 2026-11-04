@@ -5862,7 +5862,7 @@ function spawnSeeker(e, t, o) {
       if (((f -= t), f <= 0)) {
         f = 0.5;
         try {
-          ((u = findPath(c.x, c.z, p.pos.x, p.pos.z)), (m = 0));
+          ((u = findPath(c.x, c.z, p.pos.x, p.pos.z, abilityGroundY(c.x, c.z, e.y), p.y)), (m = 0));
         } catch (e) {
           u = null;
         }
@@ -9238,7 +9238,7 @@ function updateBot(e, t) {
   }
   let a = botGoal(e);
   (e.repathCd <= 0 || !e.path.length) &&
-    ((e.path = findPath(e.pos.x, e.pos.z, a.x, a.z)),
+    ((e.path = findPath(e.pos.x, e.pos.z, a.x, a.z, e.y, a.y)),
     (e.pathIdx = 0),
     (e.repathCd = rnd(1.4, 2.6)));
   const n = e.path[e.pathIdx];
@@ -15342,6 +15342,9 @@ function setCarrierMark(e, t) {
       e.spikeMark.visible = !0;
     } else e.spikeMark && (e.spikeMark.visible = !1);
 }
+function spikeFloorMatches(actor) {
+  return typeof ASCENT_TRIAL==='undefined'||!ASCENT_TRIAL.active||ASCENT_TRIAL.sameSpikeFloor(actor);
+}
 function siteAt(e, t) {
   for (const o of MAP.sites) if (dist2(e, t, o.x, o.z) < o.r * o.r) return o;
   return null;
@@ -15477,18 +15480,19 @@ function defuseDone(e) {
 function detonate() {
   const e = world.spike;
   if (world.over) return;
+  const y = typeof ASCENT_TRIAL!=='undefined'&&ASCENT_TRIAL.active ? e.y||0 : 0;
   const t = e.x,
     o = e.z;
   ((e.state = "boom"),
     e.mesh && ((e.mesh.visible = !1), (e.mesh.userData.light.intensity = 0)),
     SFX.boom(),
     screenShake(1.8),
-    fxFlash(16760954, 55, 110, t, 5, o, 0.8, 1.4));
+    fxFlash(16760954, 55, 110, t, y+5, o, 0.8, 1.4));
   const a = new T.Mesh(
     new T.SphereGeometry(5.5, 20, 16),
     new T.MeshBasicMaterial({ color: 16765066, transparent: !0 }),
   );
-  (a.position.set(t, 3, o),
+  (a.position.set(t, y+3, o),
     addFx(a, 0.95, (e, t) => {
       (e.scale.setScalar(1 + 5.4 * t), (e.material.opacity = 0.92 * (1 - t)));
     }));
@@ -15501,7 +15505,7 @@ function detonate() {
     }),
   );
   ((n.rotation.x = -Math.PI / 2),
-    n.position.set(t, 0.25, o),
+    n.position.set(t, y+0.25, o),
     addFx(n, 1.15, (e, t) => {
       (e.scale.setScalar(1 + 26 * t), (e.material.opacity = 0.8 * (1 - t)));
     }));
@@ -15513,7 +15517,7 @@ function detonate() {
         transparent: !0,
       }),
     );
-    a.position.set(t, 1.4, o);
+    a.position.set(t, y+1.4, o);
     const n = new T.Vector3(rnd(-17, 17), rnd(7, 21), rnd(-17, 17));
     addFx(a, 1.35, (e, t, o) => {
       ((n.y -= 23 * o),
@@ -15559,7 +15563,7 @@ function handleSpike(e) {
             t.timer < 12 ? 1.6 : 1,
             14,
             t.x,
-            0.9,
+            (typeof ASCENT_TRIAL!=='undefined'&&ASCENT_TRIAL.active?t.y||0:0)+0.9,
             t.z,
             Math.min(0.3, 0.6 * o),
             2,
@@ -15586,11 +15590,12 @@ function handleSpike(e) {
       "dropped" === t.state &&
       player.alive &&
       "atk" === player.team &&
+      spikeFloorMatches(player) &&
       dist2(player.pos.x, player.pos.z, t.x, t.z) < SPIKE.PICK_R2 &&
       pickupSpike("player"),
     !a && "carried" === t.state && player.hasSpike && player.alive)
   ) {
-    const t = siteAt(player.pos.x, player.pos.z);
+    const t = siteAt(player.pos.x, player.pos.z, player.y);
     if (!t)
       return (
         (player.planting = 0),
@@ -15656,6 +15661,7 @@ function handleSpike(e) {
     const o =
       player.alive &&
       "def" === player.team &&
+      spikeFloorMatches(player) &&
       dist2(player.pos.x, player.pos.z, t.x, t.z) < SPIKE.DEFUSE_R2;
     if (o && n) {
       player.defusing <= 0 &&
@@ -15712,7 +15718,7 @@ function handleBotSpike(e, t) {
   if ("live" === world.phase && e.alive && !world.over)
     if ("atk" !== e.team) {
       if ("planted" === o.state)
-        if (dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2 + 5) {
+        if (spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2 + 5) {
           e.defuseT || (e.defuseT = o.halfDefused ? SPIKE.HALF : 0);
           const a = e.defuseT;
           ((e.defuseT += t),
@@ -15722,11 +15728,11 @@ function handleBotSpike(e, t) {
     } else {
       if (
         "dropped" === o.state &&
-        dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2 + 3
+        spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2 + 3
       )
         return void pickupSpike(e);
       if (e.hasSpike && "carried" === o.state) {
-        const o = siteAt(e.pos.x, e.pos.z);
+        const o = siteAt(e.pos.x, e.pos.z, e.y);
         o
           ? ((e.plantCd += t),
             e.plantCd >= SPIKE.PLANT + 0.8 &&
@@ -17311,6 +17317,7 @@ function intelTick(e) {
 function intelReport(e, t) {
   TEAM_INTEL[e.team].set(t.id, {
     x: t.pos.x,
+    y: t.y,
     z: t.pos.z,
     t: INTEL_LIFE,
     seen: !0,
@@ -17320,6 +17327,7 @@ function intelOnHit(e, t) {
   if (!t || !t.pos || t.team === e.team) return;
   TEAM_INTEL[e.team].set(t.id, {
     x: t.pos.x,
+    y: t.y,
     z: t.pos.z,
     t: INTEL_LIFE,
     seen: !1,
@@ -17336,7 +17344,7 @@ function intelNearest(e) {
       continue;
     }
     const i = Math.hypot(r.x - e.pos.x, r.z - e.pos.z);
-    i < a && ((a = i), (o = { id: n, x: r.x, z: r.z, e: s, d: i }));
+    i < a && ((a = i), (o = { id: n, x: r.x, y: r.y, z: r.z, e: s, d: i }));
   }
   return o;
 }
@@ -17383,7 +17391,7 @@ function actorSpike(e, t) {
   if ("live" === world.phase && e.alive && !world.over && e.ai)
     if ("atk" !== e.team) {
       if ("planted" === o.state)
-        if (dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2 + 5) {
+        if (spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2 + 5) {
           e.ai.defuseT || (e.ai.defuseT = o.halfDefused ? SPIKE.HALF : 0);
           const a = e.ai.defuseT;
           ((e.ai.defuseT += t),
@@ -17396,7 +17404,7 @@ function actorSpike(e, t) {
     } else {
       if (
         "dropped" === o.state &&
-        dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2 + 14
+        spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2 + 14
       ) {
         ((e.hasSpike = !0),
           (o.state = "carried"),
@@ -17408,7 +17416,7 @@ function actorSpike(e, t) {
         return;
       }
       if (e.hasSpike && "carried" === o.state) {
-        const o = siteAt(e.pos.x, e.pos.z);
+        const o = siteAt(e.pos.x, e.pos.z, e.y);
         if (
           (!o && e._plantSite
             ? ((e._siteHold = (e._siteHold || 0) + t),
@@ -17446,15 +17454,15 @@ function guestSpike(e, t) {
     hold = !!(e.input && e.input.btn & BTN.USE);
   if ("live" !== world.phase || world.over) return void ((e.planting = 0), (e.defusing = 0), (e.plantAnchor = null));
   if ("atk" === e.team) {
-    if ("dropped" === o.state && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2) return void pickupSpike(e);
-    const s = e.hasSpike && "carried" === o.state && hold ? siteAt(e.pos.x, e.pos.z) : null;
+    if ("dropped" === o.state && spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.PICK_R2) return void pickupSpike(e);
+    const s = e.hasSpike && "carried" === o.state && hold ? siteAt(e.pos.x, e.pos.z, e.y) : null;
     if (!s) return void ((e.planting = 0), (e.plantAnchor = null));
     if (!e.plantAnchor) e.plantAnchor = { x: e.pos.x, z: e.pos.z };
     else if (dist2(e.pos.x, e.pos.z, e.plantAnchor.x, e.plantAnchor.z) > SPIKE.MOVE_CANCEL * SPIKE.MOVE_CANCEL)
       return void (e.plantAnchor = { x: e.pos.x, z: e.pos.z });
     e.planting = (e.planting || 0) + t;
     e.planting >= SPIKE.PLANT && plantSpike(e.pos.x, e.pos.z, s, !1);
-  } else if ("planted" === o.state && hold && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2) {
+  } else if ("planted" === o.state && hold && spikeFloorMatches(e) && dist2(e.pos.x, e.pos.z, o.x, o.z) < SPIKE.DEFUSE_R2) {
     e.defusing > 0 || (e.defusing = o.halfDefused ? SPIKE.HALF : 0);
     const a = e.defusing;
     e.defusing += t;
@@ -17828,10 +17836,10 @@ function aiThink(e, t) {
   if (!p && e.blind <= 0 && !h)
     if (s) {
       const t = sweepTarget(e);
-      t && ((u = t.e), (m = { x: t.e.pos.x, z: t.e.pos.z }));
+      t && ((u = t.e), (m = { x: t.e.pos.x, y: t.e.y, z: t.e.pos.z }));
     } else {
       const t = intelNearest(e);
-      t && ((u = t.e), (m = { x: t.x, z: t.z }));
+      t && ((u = t.e), (m = { x: t.x, y: t.y, z: t.z }));
     }
   if (p) {
     ((o.state = "fight"), (o.lastSeen = { x: p.pos.x, z: p.pos.z }));
@@ -17884,7 +17892,7 @@ function aiThink(e, t) {
     ((o.state = s ? "sweep" : "hunt"),
       (e.pitch = (e.pitch || 0) * Math.max(0, 1 - 3 * t)));
     const a = Math.hypot(m.x - e.pos.x, m.z - e.pos.z),
-      i = navNext(e, m.x, m.z, t);
+      i = navNext(e, m.x, m.z, t, m.y);
     (stuckCheck(e, t, i.x, i.z),
       steerToward(e, i.x, i.z, t, l),
       (n = -1),
@@ -17896,7 +17904,7 @@ function aiThink(e, t) {
       (e.pitch = (e.pitch || 0) * Math.max(0, 1 - 3 * t)));
     const a = aiGoal(e);
     if (a) {
-      const s = navNext(e, a.x, a.z, t);
+      const s = navNext(e, a.x, a.z, t, a.y);
       (stuckCheck(e, t, s.x, s.z), steerToward(e, s.x, s.z, t, 5.5), (n = -1));
       const i = Math.hypot(a.x - e.pos.x, a.z - e.pos.z);
       (e.hasSpike && i < 1.2 && (n = 0),

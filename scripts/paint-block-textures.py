@@ -115,6 +115,21 @@ COLORS.update({
     'rose_bush_top': rgb(0xc93a3a), 'sunflower_front': rgb(0xefc020),
 })
 
+# Dusk District: copper roofs, blue slate, pale plaster and teal fittings.
+# These are authored solid colours; block IDs, face assignments and masks stay unchanged.
+COLORS.update({
+    'stone': rgb(0x89959e), 'cobblestone': rgb(0x6c7d89), 'stone_bricks': rgb(0xa6b4bf),
+    'bricks': rgb(0xad8067), 'terracotta': rgb(0xcab3a1), 'sandstone': rgb(0xd5c6ad),
+    'sandstone_top': rgb(0xe0d5c0), 'sandstone_bottom': rgb(0xc6b99f),
+    'quartz_block_side': rgb(0xe4e4da), 'quartz_block_top': rgb(0xefeee5),
+    'oak_planks': rgb(0x758a9c), 'spruce_planks': rgb(0x485969), 'dark_oak_planks': rgb(0x34434c),
+    'jungle_planks': rgb(0x6a7c89), 'acacia_planks': rgb(0x95755f),
+    'iron_bars': rgb(0x407e83), 'iron_door_bottom': rgb(0x52868a), 'iron_door_top': rgb(0x52868a),
+    'orange_wool': rgb(0xb87f60), 'red_wool': rgb(0x9c6655), 'brown_wool': rgb(0x5a6974),
+    'orange_terracotta': rgb(0x956e5a), 'red_terracotta': rgb(0x846150),
+    'cyan_wool': rgb(0x3d7b85), 'light_blue_wool': rgb(0x81a4ad),
+})
+
 tiles = src['tiles']
 cols, cell, pad = src['columns'], src['cell'], src['padding']
 rows = math.ceil(len(tiles) / cols)
