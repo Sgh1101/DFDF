@@ -69,6 +69,16 @@
       head: [{ w: "sine", f: 3136, d: 0.35, v: 0.1, at: 0.15 }, { w: "noise", d: 0.2, v: 0.1, cut: 9000, ft: "highpass", at: 0.15 }],
       fin: [{ w: "sawtooth", f: 392, d: 0.15, v: 0.14, at: 0.3, cut: 2000 }, { w: "sawtooth", f: 523, d: 0.15, v: 0.14, at: 0.45, cut: 2000 }, { w: "sawtooth", f: 659, d: 0.15, v: 0.14, at: 0.6, cut: 2000 }, { w: "sawtooth", f: 784, d: 0.6, v: 0.16, at: 0.75, cut: 2400 }, { w: "noise", d: 0.6, v: 0.12, cut: 9000, ft: "highpass", at: 0.75 }],
     },
+    // 챔피언의 물결: a ring of light — a soft chime with a ring-out tail on the shot, a rising wave of three bells on a kill,
+    // a bright ping on a headshot, a swell that sweeps up into a chord on the finisher. Every voice is a sine or a
+    // triangle (nothing harsh), and none is louder than the pack's others, so it never clips on a streak
+    champion: {
+      ko: "빛의 물결", en: "Rings of light",
+      shot: [{ w: "sine", f: 880, to: 1760, d: 0.08, v: 0.12 }, { w: "sine", f: 1320, to: 1100, d: 0.24, v: 0.07, at: 0.02 }, { w: "noise", d: 0.03, v: 0.1, cut: 6000, ft: "highpass" }],
+      kill: [{ w: "sine", f: 165, to: 330, d: 0.4, v: 0.2 }, { w: "sine", f: 659, to: 988, d: 0.16, v: 0.22 }, { w: "triangle", f: 988, d: 0.22, v: 0.18, at: 0.07 }, { w: "sine", f: 1319, d: 0.4, v: 0.16, at: 0.14 }, { w: "sine", f: 1976, d: 0.5, v: 0.08, at: 0.14 }, { w: "sine", f: 2637, d: 0.6, v: 0.04, at: 0.2 }],
+      head: [{ w: "sine", f: 2637, d: 0.3, v: 0.12, at: 0.05 }, { w: "sine", f: 3951, d: 0.25, v: 0.07, at: 0.08 }, { w: "noise", d: 0.08, v: 0.1, cut: 8000, ft: "highpass", at: 0.05 }],
+      fin: [{ w: "sine", f: 110, to: 880, d: 0.9, v: 0.2, at: 0.3 }, { w: "noise", d: 0.9, v: 0.1, cut: 3000, ft: "highpass", at: 0.3 }, { w: "triangle", f: 523, d: 0.7, v: 0.16, at: 1.1 }, { w: "triangle", f: 659, d: 0.7, v: 0.16, at: 1.22 }, { w: "triangle", f: 784, d: 0.7, v: 0.16, at: 1.34 }, { w: "sine", f: 1047, d: 1.2, v: 0.16, at: 1.46 }, { w: "sine", f: 2093, d: 1.2, v: 0.06, at: 1.46 }],
+    },
     blade: {
       ko: "바람/칼날", en: "Blade wind",
       shot: [{ w: "noise", d: 0.09, v: 0.26, cut: 2500, ft: "bandpass", q: 2 }, { w: "sine", f: 1800, to: 900, d: 0.05, v: 0.06 }],
@@ -89,7 +99,7 @@
     gold: "royal", dancheong: "royal",
     ink: "blade", wave: "blade", tanto: "blade", karambit: "blade",
     bayonet: "heavy", gut: "heavy", bowie: "heavy", kunai: "blade", stiletto: "blade",
-    koi: "royal", kintsugi: "royal", prism: "crystal", abyss: "cosmic", synth: "energy", opal: "crystal",
+    champion: "champion", koi: "royal", kintsugi: "royal", prism: "crystal", abyss: "cosmic", synth: "energy", opal: "crystal",
   };
 
   // ── the synth ──
