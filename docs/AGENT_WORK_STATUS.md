@@ -124,3 +124,12 @@
 - 담당 파일: `js/gun-model-silenced.js`(새), `play.html` 한 줄.
 - 실제 검사: 단위 521 통과, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 통과. 브라우저 10종은 에이전트 worktree(main 165caf3 병합본)에서 통과.
 - 다음: 3/18 황소(revolver).
+
+## 2026-11-05 · Claude · 챔피언의 물결(전설) 실총형 총에 맞게 재설계 — 사용자 검토 대기
+- 사용자 요청: 챔피언의 물결(`champion`, 전설) 스킨이 새 실총형 Axiom(pistol)·Hush(silenced)에 방패/상자처럼 붙던 문제 수정. 초월 챔피언스 팬텀(`champions_atk/def`)과 그 파일은 건드리지 않았다.
+- 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). 기준: `claude/quirky-fermat-11wa1b` `ccdb6da`(main `4165f84` + Axiom/Hush).
+- 상대 작업 확인: `git fetch origin --prune`(시작 시와 커밋 직전 두 번). origin/main은 `4165f84`(#131) 그대로, codex/* 새 커밋 없음. 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude Hush)뿐. #126 diff 35파일은 챔스 팬텀·play.html 다른 줄만 고치고 이번 담당 파일과 겹치지 않는다. #131의 `check-ad-readiness.js`는 변경 후에도 gateChecksPass·assetErrors 없음. 다른 worktree에서 담당 파일의 새 미커밋 변경은 찾지 못했다(Verdict 리볼버 작업 파일은 미접촉).
+- 담당 파일: `js/legacy/58-gun-skins.js`(champion 정의, 금속 장갑판 무늬 `championPlate`, 금속·작은 부품 광택 코트, 밀도 기반 UV 맞춤 `fitAll`(champion만), `KITS.champion` 전면 교체, 키트 제거가 하위 그룹까지 보도록), `js/legacy/96-champions-wave-…js`(고리 크기·금 고리 지속, `userData.anchors.muzzle` 사용), `js/legacy/97-legendary-finishers-…js`(champion 하늘 0.7→0.2, 안개 0.1, 화면 가장자리만 옅게), `scripts/browser-champion.js`, `README.md`.
+- 구현: 스킨은 총 자체 부품의 표면 마감(몸통=불꽃 장갑, 금속=회색·광택검정 체커 장갑판, 작은 부품=광택 검정). 덧붙는 것은 윗부분 부품에 광선을 쏴 찾은 실제 표면 위의 가는 금선·주황 빛선·작은 문장뿐이며 슬라이드에 붙어 함께 움직인다. 총마다 그리기 +2(이전 +7), 외곽 증가 최대 0.3%(이전 Axiom 높이 1.25배·폭 1.31배).
+- 실제 검사(로컬): 단위 521 통과·2 선택 제외, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나): champion·finisher-always·improvements·weapon-shop·mobile-skin-preview·graphics·startup·phantom·champions-finish·phantom-kill-wave 통과. render-cost는 첫 실행 1500초 시간 초과, 재실행 통과. legacy-models는 처음 두 번 `GUN_SKINS.isOpen` 대기 30초 초과, 이후 같은 코드로 3회 연속 통과(기준 ccdb6da 사본은 3/3 통과). 실기기 미검증.
+- 다음: 사용자 외형 검토 후 병합 여부 결정. 미배포.
