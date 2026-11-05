@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const D=require('../js/valorant-data'),{harness}=require('./api-harness');
 test('18 firearms plus a knife share the server catalog; the removed pack knives are not in it',async()=>{
- const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,19);assert.equal(c.items,601);
+ const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,19);assert.equal(c.items,604);
  for(const k of Object.keys(D.aliases))assert.ok(!c.guns.includes(k));
  for(const id of D.retiredKnives){assert.equal(c.only[id],undefined);assert.equal(c.tiers[id],undefined);}
  assert.equal(c.only.champions_atk,'scout');

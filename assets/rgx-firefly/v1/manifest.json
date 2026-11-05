@@ -7,8 +7,8 @@
   "files": [
     {
       "name": "model.json",
-      "size": 44644,
-      "sha256": "f9b5f5061698a9f2c349205b0ef1237c40a91ac975c9dbc00d3b85d74e0ba4a1"
+      "size": 104239,
+      "sha256": "e3c6678bfd2d47e0057022eebf81c77fecc59e7dc7336215f62d8f824a37d636"
     },
     {
       "name": "animation.json",
@@ -17,8 +17,23 @@
     },
     {
       "name": "texture.png",
-      "size": 4046,
-      "sha256": "8d3fec620a662ebe51e0b9b35b7d30b81946c17e8f279830094912371f6cdcd7"
+      "size": 13723,
+      "sha256": "3d03b587e89e413dd25f8cf3391a4ff1c52e1095933ff135c51990dd6b1c774c"
+    },
+    {
+      "name": "texture_crimson.png",
+      "size": 13658,
+      "sha256": "3c3a02e49aca1000653352d961620070c38f3ec4c0390b77bfe90a70c9ed44b4"
+    },
+    {
+      "name": "texture_emerald.png",
+      "size": 13593,
+      "sha256": "570445613ad860f73e76882daa89d2d93e0f3c7ec9f28378bd9ecae3f677d33f"
+    },
+    {
+      "name": "texture_blackgold.png",
+      "size": 12328,
+      "sha256": "db88977262c610dad23ee23f693b29899837bad59f191b86d37273873c2361e7"
     },
     {
       "name": "sounds/sgh_draw.wav",

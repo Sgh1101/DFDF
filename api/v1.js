@@ -585,13 +585,13 @@ const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
-const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
+const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, butterfly_crimson: 4, butterfly_emerald: 4, butterfly_blackgold: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
 const VALORANT = require('../js/valorant-data');
 SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 // skins no pull or shop gives: only the end of a season (or the owner)
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
-const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
+const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", butterfly_crimson: "knife", butterfly_emerald: "knife", butterfly_blackgold: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = VALORANT.championsWeapon;
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);

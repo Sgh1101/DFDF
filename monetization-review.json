@@ -67,11 +67,11 @@
       "files": [
         {
           "path": "assets/rgx-firefly/v1/manifest.json",
-          "sha256": "b0045388f80859e573422d8bb7e106bf8b77130ddc85fb01eddc6effa9ec9ccd"
+          "sha256": "be16b9040f837fd37dc362172947602b478d22120baf610044fc1e99209f5790"
         },
         {
           "path": "assets/rgx-firefly/v1/model.json",
-          "sha256": "f9b5f5061698a9f2c349205b0ef1237c40a91ac975c9dbc00d3b85d74e0ba4a1"
+          "sha256": "e3c6678bfd2d47e0057022eebf81c77fecc59e7dc7336215f62d8f824a37d636"
         },
         {
           "path": "assets/rgx-firefly/v1/animation.json",
@@ -79,7 +79,7 @@
         },
         {
           "path": "assets/rgx-firefly/v1/texture.png",
-          "sha256": "8d3fec620a662ebe51e0b9b35b7d30b81946c17e8f279830094912371f6cdcd7"
+          "sha256": "3d03b587e89e413dd25f8cf3391a4ff1c52e1095933ff135c51990dd6b1c774c"
         },
         {
           "path": "assets/rgx-firefly/v1/sounds/sgh_draw.wav",

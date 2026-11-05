@@ -252,7 +252,9 @@
     // right to left, the edge leading
     slash: { c: [[0, 0], [0.16, -1], [0.44, 1], [0.56, 1.12], [1, 0]], ry: [-0.35, 0.8], px: [0.07, -0.16], rz: [-0.3, 0.5], pz: [0.02, -0.05] },
     // drawn back a little, driven straight in, pulled out
-    stab: { c: [[0, 0], [0.2, -1], [0.42, 1], [0.58, 0.95], [1, 0]], pz: [0.05, -0.3], rx: [0.1, -0.22], py: [0.01, 0.015] },
+    // drawn back and up a little with the elbow, then driven fast toward the crosshair (in toward the middle of the screen,
+    // the wrist rolling the blade flat), a jolt where it goes in, a twist as it is pulled out, and back
+    stab: { c: [[0, 0], [0.15, -1], [0.34, 1], [0.4, 1.08], [0.52, 0.96], [1, 0]], pz: [0.07, -0.34], px: [0.015, -0.06], py: [0.012, 0.035], rx: [0.14, -0.1], ry: [-0.05, 0.12], rz: [0.12, -0.35], jolt: 1, pullTwist: -0.3 },
     hook: { c: [[0, 0], [0.18, -1], [0.46, 1], [0.6, 1.1], [1, 0]], ry: [-0.4, 1.1], rz: [-0.2, 0.6], px: [0.08, -0.17], py: [0.02, -0.02], spin: 0.5 },
     rip: { c: [[0, 0], [0.2, -1], [0.45, 1], [0.6, 1.05], [1, 0]], pz: [0.04, -0.22], py: [0.03, -0.1], rx: [0.25, -0.6], spin: 1 },
     // raised high, brought down hard, the weight carrying it on
@@ -283,7 +285,19 @@
     P.y += v(C.py);
     P.z += v(C.pz);
     C.twist && (R.z += C.twist * Math.sin(PI * c01((k - 0.4) / 0.45)));
+    // the jolt where the point goes in: a quick shake that dies out
+    if (C.jolt) { const j = c01((k - 0.34) / 0.16); j > 0 && j < 1 && ((P.y += 0.006 * Math.sin(j * 3 * PI) * (1 - j)), (R.x += 0.03 * Math.sin(j * 3 * PI) * (1 - j))); }
+    // the wrist turning the blade as it is pulled back out
+    C.pullTwist && (R.z += C.pullTwist * Math.sin(PI * c01((k - 0.42) / 0.4)));
     C.spin && spin && (spin.rotation.x += C.spin * PI * Math.max(0, c));
+  }
+  // the knife's point raised in the hand: a turn about the hand (where the grip is), not about the model's origin
+  const TIP_UP = 0.2, _tq = new T.Quaternion(), _tv = new T.Vector3(), _tw = new T.Vector3(), _tx = new T.Vector3(1, 0, 0);
+  function tipUp(a, ang) {
+    const pv = window.KNIFE_PIVOT && KNIFE_PIVOT.of(a), H = (pv && pv.userData.grip) || null;
+    _tq.setFromAxisAngle(_tx, ang);
+    if (H) { _tv.copy(H).applyQuaternion(_tq); _tw.copy(H).sub(_tv).multiply(a.scale).applyQuaternion(a.quaternion); a.position.add(_tw); }
+    a.quaternion.multiply(_tq);
   }
   const IDLE = { t: 0, next: 5, anim: -1 };
   function pose(dt) {
@@ -291,6 +305,9 @@
       M = SP() && SP().state;
     if (!a || !M || !player.alive || !VM.root.visible || !a.visible) return;
     if ("knife" !== curWeaponKey() || player.ultW) return;
+    // every knife is held with its point a little higher (the user asked for the tip up): turned about the hand, so the
+    // hand stays where it is
+    tipUp(a, TIP_UP);
     const m = model();
     if (!m) return;
     const kp = parts(a),
@@ -395,5 +412,5 @@
     } catch (e) {}
     return r;
   };
-  window.KNIVES = { build: BUILD, cut, cuts: CUTS, drawD: (m) => DRAW_D[m] || 0.4, attack: (m, i) => { const l = ATTACK[m] || ATTACK.flip; return l[i % l.length]; }, model, parts, idle: IDLE, hand: HAND, grip: GRIP, rest: REST, size: SIZE };
+  window.KNIVES = { build: BUILD, cut, cuts: CUTS, tipUp: TIP_UP, drawD: (m) => DRAW_D[m] || 0.4, attack: (m, i) => { const l = ATTACK[m] || ATTACK.flip; return l[i % l.length]; }, model, parts, idle: IDLE, hand: HAND, grip: GRIP, rest: REST, size: SIZE };
 })();

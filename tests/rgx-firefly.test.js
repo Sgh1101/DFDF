@@ -6,13 +6,13 @@ test('the generated SGH butterfly package has only its own geometry, motion, tex
   assert.equal(manifest.version, 2);
   assert.equal(manifest.sourceItem, 'sgh_butterfly');
   assert.equal(manifest.sourcePack, 'DFDF');
-  assert.equal(new Set(manifest.files.map(f => f.name)).size, 11);
+  assert.equal(new Set(manifest.files.map(f => f.name)).size, 14, 'model, animation, four colour textures and eight sounds');
   for (const file of manifest.files) {
     assert.ok(!file.name.includes('..'));
     const bytes = fs.readFileSync(path.join(base, file.name));
     assert.equal(bytes.length, file.size);
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), file.sha256);
-    assert.ok(/^(model\.json|animation\.json|texture\.png|sounds\/sgh_(draw|inspect|melee_[123]|rotate_[123])\.wav)$/.test(file.name), file.name);
+    assert.ok(/^(model\.json|animation\.json|texture(_[a-z]+)?\.png|sounds\/sgh_(draw|inspect|melee_[123]|rotate_[123])\.wav)$/.test(file.name), file.name);
     if (file.name.endsWith('.wav')) {
       assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
       assert.equal(bytes.toString('ascii', 8, 12), 'WAVE');
