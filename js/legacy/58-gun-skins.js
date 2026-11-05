@@ -1308,9 +1308,9 @@
       }
       g.globalAlpha = 1;
     },
-    // 챔피언의 물결's metal: pale-grey armour plates (bricks, every other row shifted half a plate) with black seams between
-    // them, a light bevel on the upper edge, an orange line inset round each plate and a gold shard at its cut corner. Square
-    // plates, so it reads the same whichever way a part's uv runs
+    // 챔피언의 물결's metal: armour plates in a checker of pale grey and gloss black (bricks, every other row shifted half a
+    // plate) with black seams between them, a light bevel on the upper edge, an orange line inset round each plate and a
+    // small gold shard at its cut corner. Square plates, so it reads the same whichever way a part's uv runs
     championPlate(g, W, H, pal) {
       const wrap = wrapper(W, H),
         rows = 2,
@@ -1320,7 +1320,7 @@
         m = rh * 0.035,
         hw = cw / 2 - m,
         hh = rh / 2 - m,
-        cut = rh * 0.2;
+        cut = rh * 0.12;
       g.fillStyle = "#06060a";
       g.fillRect(0, 0, W, H);
       for (let row = 0; row < rows; row++)
@@ -1341,16 +1341,18 @@
               g.lineTo(mx - w, my - h + ct);
               g.closePath();
             };
+            // every other plate is gloss-black armour (a checker of grey and black, so a slide reads black and grey both)
+            const black = (row + c) % 2 === 1;
             path(1);
             const gr = g.createLinearGradient(0, my - hh, 0, my + hh);
-            gr.addColorStop(0, pal[1]);
-            gr.addColorStop(1, "#8d92a2");
+            gr.addColorStop(0, black ? "#2a2a36" : pal[1]);
+            gr.addColorStop(1, black ? pal[0] : "#8d92a2");
             g.fillStyle = gr;
             g.fill();
             g.beginPath();
             g.moveTo(mx - hw + cut, my - hh * 0.97);
             g.lineTo(mx + hw, my - hh * 0.97);
-            g.strokeStyle = "rgba(255,255,255,.75)";
+            g.strokeStyle = black ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.75)";
             g.lineWidth = W * 0.006;
             g.stroke();
             path(0.82);
@@ -1645,7 +1647,7 @@
         }
       };
       const unit = Math.min(sH, L * 0.12),
-        r = Math.max(0.0045, Math.min(0.018, sH * 0.24));
+        r = Math.max(0.0045, Math.min(0.018, sH * 0.27));
       for (const sd of [-1, 1]) {
         line(sd, sTop - sH * 0.26, 0.05, 0.95, Math.max(0.0014, unit * 0.075), Math.max(0.0008, unit * 0.03), M.gold);
         line(sd, sb.min.y + sH * 0.16, 0.08, 0.92, Math.max(0.0008, unit * 0.03), Math.max(0.0006, unit * 0.018), M.light, col(0xff8f1f));
