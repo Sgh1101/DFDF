@@ -17,10 +17,11 @@
   // (z -0.32, bore height 0.027) and the gun is about as long (0.43).
   //
   // Material roles stay the stock GUNMAT kinds, so every skin recolours it: the walnut and
-  // its checkering (body), the colour-cased action, hammers, lever, fore-end iron and the
-  // engraved side plates (metal: steel), the bright triggers, pins and extractor (metal:
-  // chrome), the blued barrels, rib, guard and grip cap (dark: blued). The stock finish
-  // carries its own small canvas textures (case colours, engraving, walnut grain,
+  // its checkering (body), the colour-cased action, hammers, fore-end iron and the
+  // engraved side plates (metal: steel), the bright triggers, pins, extractor and sawn
+  // muzzle faces (metal: chrome), the blued barrels, rib, guard, top lever and grip cap
+  // (dark: blued). The bores alone are a plain unlit black that no skin touches. The stock
+  // finish carries its own small canvas textures (case colours, engraving, walnut grain,
   // checkering), made once and shared by every copy of the gun.
   if (typeof GUN_BUILD === 'undefined' || typeof GunBuilder !== 'function' || typeof GUNMAT === 'undefined' || typeof T === 'undefined') return;
 
@@ -416,9 +417,9 @@
     };
     const t = textures();
     return {
-      cased: tone(GUNMAT.steel(), 0xffffff, 0.32, 0.62, t.cased), // the colour-cased action, fences, hammers, lever, fore-end iron
+      cased: tone(GUNMAT.steel(), 0xffffff, 0.32, 0.62, t.cased), // the colour-cased action, fences, tang, hammers, fore-end iron
       plate: tone(GUNMAT.steel(), 0xffffff, 0.36, 0.58, t.plate), // the engraved side plates
-      blued: tone(GUNMAT.blued(), 0x222d42, 0.28, 0.8), // barrels, rib, trigger guard, grip cap: deep blue-black
+      blued: tone(GUNMAT.blued(), 0x222d42, 0.28, 0.8), // barrels, rib, trigger guard, top lever, grip cap: deep blue-black
       bright: tone(GUNMAT.chrome(), 0xc6cad0, 0.24, 0.88), // triggers, hinge pin, screws, extractor
       dark: tone(GUNMAT.blued(), 0x111214, 0.65, 0.35), // screw slots, the hammer spurs' and lever's checkering
       wood: tone(GUNMAT.wood(), 0xffffff, 0.5, 0.02, t.walnut), // the fore-end
@@ -554,14 +555,6 @@
     // the top tang, inlet flush with the wrist
     const tang = [[253, -9.4], [272, -8.6], [300, -7.4], [326, -6], [332, -3.4], [333.5, 0], [332, 3.4], [326, 6], [300, 7.4], [272, 8.6], [253, 9.4]];
     g.push(topGeo(tang, 8.5 - 4.5, 4.5, { rise: (x) => TANG_TOP(x) - 8.5, bevel: 0.6 }));
-    // the top lever: a boss on its pin and an arm swept back to the right, a thumb piece at its end
-    const lever = [];
-    for (let i = 0; i <= 10; i++) {
-      const a = Math.PI * 0.5 + (i / 10) * Math.PI;
-      lever.push([266 + 6 * Math.sin(a), 6 * Math.cos(a)]);
-    }
-    lever.push([279, -4.4], [290, -2.6], [296.5, 0.2], [299, 4.6], [297.6, 9], [293, 10.6], [288, 8.8], [278, 5.4], [270, 5.4]);
-    g.push(topGeo(lever, TANG_TOP(266) - 0.4, 3.4, { rise: (x) => TANG_TOP(x) - TANG_TOP(266), bevel: 0.5 }));
     // the hammers: a nose that falls on the fence, a neck and a tall spur, either side of the tang
     const hammer = [[263.5, 4.5], [259, 11.4], [260.4, 14.6], [267, 15.4], [273.5, 14], [279.5, 15], [285.5, 18.6], [291.5, 22.8], [297.5, 24.8], [302.6, 24.4], [303.6, 21.6], [298.6, 19.6], [292.8, 15.4], [290.4, 8], [289.4, 2], [286, -2], [279, -2.5], [272.5, 0], [267.5, 3]];
     for (const sig of [-1, 1]) g.push(sideGeo(hammer, 7.4, { s: sig * HAMMER_S, bevel: 1.4, segments: 2 }));
@@ -605,10 +598,21 @@
     return merged(g);
   }
   // the trigger guard (blued): long enough for two triggers, its rear running into the grip
+  // the top lever, blued against the cased action: a boss on its pin and an arm swept back to the
+  // right, a thumb piece at its end
+  function leverGeo() {
+    const lever = [];
+    for (let i = 0; i <= 10; i++) {
+      const a = Math.PI * 0.5 + (i / 10) * Math.PI;
+      lever.push([266 + 6 * Math.sin(a), 6 * Math.cos(a)]);
+    }
+    lever.push([279, -4.4], [290, -2.6], [296.5, 0.2], [299, 4.6], [297.6, 9], [293, 10.6], [288, 8.8], [278, 5.4], [270, 5.4]);
+    return topGeo(lever, TANG_TOP(266) - 0.4, 3.4, { rise: (x) => TANG_TOP(x) - TANG_TOP(266), bevel: 0.5 });
+  }
   function guardGeo() {
     const outer = [[259, -24.5], [261, -33], [266, -42], [274, -49.5], [286, -53.2], [300, -53.2], [311, -49.6], [318, -43.4], [321.5, -37], [322, -31.5], [313, -28.5], [298, -26.2]];
     const hole = [[266, -28], [267, -35.5], [271.5, -43], [280, -47.6], [298.5, -47.6], [307.5, -44.4], [313.4, -38.4], [314.6, -31.6], [305, -28.6]];
-    return sideGeo(outer, 8.8, { holes: [hole], bevel: 1.2, segments: 2 });
+    return merged([sideGeo(outer, 8.8, { holes: [hole], bevel: 1.2, segments: 2 }), leverGeo()]);
   }
 
   // ── the grip: raked walnut, as wide as the action at its head, rounded, with a steel cap ──
@@ -663,7 +667,7 @@
     add('pocketshot-side-plates', platesGeo(), m.plate);
     add('pocketshot-bright-parts', brightGeo(), m.bright);
     add('pocketshot-small-dark', darkGeo(), m.dark);
-    add('pocketshot-trigger-guard', guardGeo(), m.blued);
+    add('pocketshot-guard-and-lever', guardGeo(), m.blued);
     add('pocketshot-grip', gripGeo(), m.grip);
     add('pocketshot-grip-checkering', checkerGeo(), m.checker);
     add('pocketshot-grip-cap', capGeo(), m.blued);
