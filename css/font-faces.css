@@ -1,0 +1,14 @@
+/* Pretendard 1.3.9 provides separate files for ranges of characters. */
+@import url('../assets/fonts/pretendard-1.3.9/pretendard.css');
+
+@font-face {
+  font-family: Galmuri11;
+  src: url('../assets/fonts/galmuri-2.40.3/Galmuri11-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --ui-reading-font: 'Pretendard Variable', system-ui, sans-serif;
+  --ui-pixel-font: Galmuri11, var(--ui-reading-font);
+}

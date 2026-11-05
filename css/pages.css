@@ -1,8 +1,7 @@
 /* The article pages of 13 (guide, controls, modes, maps, agents, patch notes, about, contact, privacy).
-   Written by scripts/build-site-pages.js together with the pages; the look follows index.html: dark, Black Han Sans for titles,
-   Noto Sans KR for text. Nothing here is loaded by the game. */
+   Built with scripts/build-site-pages.js. Page titles share the game's pixel face, and articles use its reading face. */
 :root{--void:#0a0d12;--panel:#141922;--panel2:#1b222e;--line:#2a3444;--steel:#8a97ab;--dim:#5b6879;--ink:#e8edf4;--text:#c3ccd8;--red:#ff3b4e;--gold:#ffc849;--cyan:#22d3ee;--green:#4ade80;
---fd:'Black Han Sans',system-ui,sans-serif;--fb:'Noto Sans KR',system-ui,sans-serif;color-scheme:dark}
+--fd:var(--ui-reading-font);--fb:var(--ui-reading-font);color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 .privacy-check{display:flex;gap:12px;align-items:flex-start;padding:12px 0;cursor:pointer}
@@ -18,7 +17,7 @@ a:hover{color:#ffe08a}
 /* header */
 .sh{border-bottom:1px solid var(--line);background:rgba(10,13,18,.86)}
 .sh-in{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;padding-top:12px;padding-bottom:12px}
-.sh-logo{font-family:var(--fd);font-weight:900;font-size:26px;letter-spacing:.06em;color:var(--ink);text-decoration:none;line-height:1}
+.sh-logo{font-family:var(--ui-pixel-font);font-weight:700;font-size:26px;letter-spacing:.06em;color:var(--ink);text-decoration:none;line-height:1}
 .sh-logo:hover{color:var(--ink)}
 .sh-nav{display:flex;flex-wrap:wrap;gap:2px 4px;flex:1 1 auto;order:3;width:100%}
 .sh-nav a{color:var(--steel);text-decoration:none;font-size:14px;line-height:1;padding:11px 12px;border-radius:99px;border:1px solid transparent;min-height:40px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
@@ -38,7 +37,7 @@ main.wrap{flex:1;padding-top:34px;padding-bottom:56px}
 .page.wide{max-width:1040px}
 .crumb{font-size:13px;color:var(--steel);margin-bottom:10px}
 .crumb a{color:var(--steel)}
-h1{font-family:var(--fd);font-weight:400;font-size:clamp(30px,6vw,44px);line-height:1.25;color:var(--ink);letter-spacing:.01em}
+h1{font-family:var(--ui-pixel-font);font-weight:700;font-size:clamp(30px,6vw,44px);line-height:1.25;color:var(--ink);letter-spacing:.01em}
 .lead{margin-top:14px;font-size:17px;color:#d5dce7}
 .meta{margin-top:10px;font-size:13px;color:var(--steel)}
 h2{font-family:var(--fd);font-weight:400;font-size:clamp(22px,4vw,27px);line-height:1.35;color:var(--gold);margin:46px 0 10px;scroll-margin-top:12px}
