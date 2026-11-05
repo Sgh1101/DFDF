@@ -327,8 +327,27 @@
     }
     // a break-action gun: two shells in the fingers, and the two it throws out
     if ("break" === rl.style) {
+      // a gun that says where its chambers are (gun-model-pocketshot.js): the shells are its size and
+      // go into the chambers as they stand when the barrels are broken open
+      let brk = null;
+      a.traverse((n) => "break" === n.userData.legacyAction && n.userData.reload && (brk = n));
+      const d = brk && brk.userData.reload;
       const pair = () => {
         const g = new T.Group();
+        if (d) {
+          // hull nose along +y, the brass head and its rim at -y
+          const half = d.spacing / 2, cr = d.caseR, cl = d.caseLen;
+          for (const x of [-half, half]) {
+            const t = new T.Mesh(new T.CylinderGeometry(cr * 0.97, cr * 0.97, cl, 12), red);
+            const b = new T.Mesh(new T.CylinderGeometry(cr * 1.02, cr * 1.02, cl * 0.22, 12), brass);
+            const rim = new T.Mesh(new T.CylinderGeometry(d.rimR, d.rimR, cl * 0.03, 12), brass);
+            t.position.x = b.position.x = rim.position.x = x;
+            b.position.y = -cl * 0.39;
+            rim.position.y = -cl * 0.5 + cl * 0.015;
+            g.add(t, b, rim);
+          }
+          return g;
+        }
         for (const x of [-0.012, 0.012]) {
           const t = new T.Mesh(new T.CylinderGeometry(0.0105, 0.0105, 0.05, 10), red);
           const b = new T.Mesh(new T.CylinderGeometry(0.0112, 0.0112, 0.01, 10), brass);
@@ -340,6 +359,22 @@
       };
       const g = pair();
       g.rotation.x = Math.PI / 2;
+      if (d) {
+        const rot0 = brk.rotation.x;
+        brk.rotation.x = rot0 - 0.55; // as broken open by the reload below
+        brk.updateMatrixWorld(!0);
+        const m = new T.Matrix4().multiplyMatrices(inv, brk.matrixWorld);
+        const mouth = V(...d.breech).applyMatrix4(m),
+          out = V(d.breech[0], d.breech[1], d.breech[2] + 0.01).applyMatrix4(m).sub(mouth).normalize();
+        const q = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().extractRotation(m)).multiply(new T.Quaternion().setFromAxisAngle(V(1, 0, 0), -Math.PI / 2));
+        brk.rotation.x = rot0;
+        brk.updateMatrixWorld(!0);
+        g.rotation.set(0, 0, 0);
+        g.quaternion.copy(q);
+        // the hand holds the pair by the brass; seated, only the rims stand proud of the breech
+        const grip = out.clone().multiplyScalar(d.caseLen * 0.5 + 0.01);
+        rl.brk = { mouth, out, grip, seated: mouth.clone().addScaledVector(out, -(d.caseLen * 0.5 - d.caseLen * 0.03)) };
+      }
       rl.pair = prop(g);
       rl.empties = [prop(pair())];
     }
@@ -643,15 +678,16 @@
         midx = (gb.min.x + gb.max.x) / 2,
         h = gb.max.y - gb.min.y;
       const rev = "revolver" === st,
-        rv = rev && rl.rev;
+        rv = rev && rl.rev,
+        bk = !rev && rl.brk;
       // the cylinder (or the breech), and where the hand takes the new rounds from
-      const CY = rv ? rv.open.rear.clone() : rev ? V(midx - 0.012, gb.max.y - 0.32 * h, gb.min.z + 0.62 * len) : V(midx, gb.max.y - 0.01, gb.min.z + 0.5 * len);
+      const CY = rv ? rv.open.rear.clone() : bk ? bk.mouth.clone() : rev ? V(midx - 0.012, gb.max.y - 0.32 * h, gb.min.z + 0.62 * len) : V(midx, gb.max.y - 0.01, gb.min.z + 0.5 * len);
       // a real crane: the thumb pushes the latch and the fingers knock the cylinder out to the left;
-      // the loader goes straight in along the open cylinder's axis
+      // the loader goes straight in along the open cylinder's axis. Real chambers: the pair goes in along theirs
       const SIDE = rv ? rv.shut.rear.clone().add(V(-0.03, -0.012, -0.02)) : CY.clone().add(V(-0.035, 0, 0)),
-        IN = rv ? CY.clone().sub(rl.loaderGrip) : CY.clone().add(rev ? V(-0.012, 0, 0.03) : V(0, 0.025, 0.02)),
+        IN = rv ? CY.clone().sub(rl.loaderGrip) : bk ? bk.seated.clone().sub(bk.grip) : CY.clone().add(rev ? V(-0.012, 0, 0.03) : V(0, 0.025, 0.02)),
         AWAY = CY.clone().add(rev ? V(-0.08, -0.42, 0.14) : V(-0.08, -0.42, 0.02)),
-        NEAR = rv ? IN.clone().addScaledVector(rv.open.back, 0.07).add(V(-0.01, -0.02, 0)) : CY.clone().add(rev ? V(-0.03, -0.01, 0.06) : V(0, 0.06, 0.0));
+        NEAR = rv ? IN.clone().addScaledVector(rv.open.back, 0.07).add(V(-0.01, -0.02, 0)) : bk ? IN.clone().addScaledVector(bk.out, 0.07) : CY.clone().add(rev ? V(-0.03, -0.01, 0.06) : V(0, 0.06, 0.0));
       const open = rev ? 0.12 : 0.1,
         load0 = rev ? 0.3 : 0.26,
         loadIn = rev ? 0.55 : 0.52,
@@ -671,13 +707,18 @@
       rx += rev ? 0 : 0.42 * bump(k, shut, 0.07);
       dy -= rev ? 0 : 0.02 * bump(k, shut, 0.07);
       const held = rev ? rl.loader : rl.pair;
-      if (held) {
+      if (held && bk) {
+        // the pair stays seated in the chambers once pushed home, until the barrels start to close
+        held.visible = k > load0 && k < shut - 0.06;
+        if (k >= loadIn) held.position.copy(bk.seated);
+        else held.position.copy(H).add(bk.grip);
+      } else if (held) {
         held.visible = k > load0 && k < loadIn + 0.02;
         held.position.copy(H).add(rv ? rl.loaderGrip : rev ? V(0.004, 0.012, -0.022) : V(0.0, 0.018, -0.02));
       }
       // the empties fly out and fall
       if (rl.empties) {
-        const t0 = open + (rev ? 0.06 : 0.02),
+        const t0 = bk ? 0.19 : open + (rev ? 0.06 : 0.02),
           ts = (k - t0) * RL.D;
         // a real cylinder: each case leaves its own chamber backwards, then falls (down in the gun's own frame)
         const down = rv && ts > 0 ? V(0, -1, 0).applyQuaternion(a.getWorldQuaternion(new T.Quaternion()).invert()) : null;
@@ -694,7 +735,16 @@
             return;
           }
           const ang = (i / Math.max(1, rl.empties.length)) * 2 * Math.PI;
-          const v = rev ? V(-0.05 + 0.04 * Math.cos(ang), 0.15 + 0.04 * Math.sin(ang), 0.3) : V(-0.04, 0.55, 0.45);
+          // the ejectors kick the two empties straight out of the chambers, back over the shoulder
+          const v = rev ? V(-0.05 + 0.04 * Math.cos(ang), 0.15 + 0.04 * Math.sin(ang), 0.3) : bk ? bk.out.clone().multiplyScalar(0.62).add(V(0.05, 0.2, 0)) : V(-0.04, 0.55, 0.45);
+          if (bk) {
+            // leaving the chambers as they lay in them, tumbling end over end as they go
+            e.position.copy(bk.seated).addScaledVector(v, ts).add(V(0, -2.4 * ts * ts, 0));
+            e.quaternion.copy(rl.pair.quaternion);
+            e.rotateX(-9 * ts);
+            e.rotateZ(2.5 * ts);
+            return;
+          }
           e.position.set(CY.x + v.x * ts, CY.y + v.y * ts - 2.4 * ts * ts, CY.z + v.z * ts);
           e.rotation.set(7 * ts + i, 4 * ts, rev ? Math.PI / 2 : 9 * ts);
         });
