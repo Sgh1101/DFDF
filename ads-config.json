@@ -6,5 +6,7 @@
   "cmpReady": false,
   "rightsReviewed": false,
   "format": "display",
+  "userApprovedIntegrations": ["play.html"],
+  "userApprovedNote": "사용자 요청(2026-11-05): 게임 홈 화면 오른쪽(예전 소식 자리)에 AdSense 코드와 디스플레이 광고 칸 하나. 다른 페이지·파일에 광고 코드를 넣으려면 다시 사용자 승인이 필요하다.",
   "candidatePages": ["/guide.html", "/controls.html", "/modes.html", "/maps.html", "/agents.html", "/patch-notes.html"]
 }

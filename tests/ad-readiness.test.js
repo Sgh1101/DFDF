@@ -34,5 +34,18 @@ test('repository audit detects missing files and asset drift after rights review
 test('the checked-in release honestly stays blocked during review',()=>{
  const {audit}=require('../scripts/check-ad-readiness'),r=audit(path.resolve(__dirname,'..'));
  assert.equal(r.ready,false);assert.ok(r.reasons.includes('site-not-approved'));assert.ok(r.reasons.includes('asset-unverified:dusk-layout'));assert.ok(r.reasons.includes('asset-unverified:sgh-butterfly-retained'));
- assert.deepEqual(r.assetErrors,[],'review fingerprints must describe the current files even when permission is pending');assert.deepEqual(r.adIntegrations,[]);
+ assert.deepEqual(r.assetErrors,[],'review fingerprints must describe the current files even when permission is pending');
+ // the one integration the owner asked for (the home screen's slot); nothing else carries ad code
+ assert.deepEqual(r.adIntegrations,['play.html']);assert.deepEqual(r.unapprovedIntegrations,[]);assert.equal(r.unexpectedIntegration,false);assert.equal(r.gateChecksPass,true);
+});
+test('ad code in a file the owner did not approve still fails the gate',()=>{
+ const {audit}=require('../scripts/check-ad-readiness'),root=fs.mkdtempSync(path.join(os.tmpdir(),'dfdf-ad-scan-'));
+ try{
+  for(const f of ['ads-config.json','monetization-review.json'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(root,f));
+  const tag='<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3446698746925219"></script>';
+  fs.writeFileSync(path.join(root,'play.html'),tag);
+  let r=audit(root);assert.deepEqual(r.unapprovedIntegrations,[]);assert.equal(r.unexpectedIntegration,false);
+  fs.writeFileSync(path.join(root,'guide.html'),tag);
+  r=audit(root);assert.deepEqual(r.unapprovedIntegrations,['guide.html']);assert.equal(r.unexpectedIntegration,true);assert.equal(r.gateChecksPass,false);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
 });

@@ -67,11 +67,10 @@ const { AUDIT_SRC } = require("./ui-audit-lib");
     const over = await page.evaluate(() => { const b = document.getElementById("ov-again").getBoundingClientRect(), hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return { within: b.top >= 0 && b.bottom <= innerHeight, hit: hit === document.getElementById("ov-again") }; });
     assert.ok(over.within && over.hit, "play again on screen and tappable: " + JSON.stringify(over));
     await page.context().close();
-    // the play guide under the top bar
+    // the news column is gone from the home screen (an ad slot took its place: scripts/browser-home-ad.js)
     const desk = await f.page("fixdesk", { width: 1280, height: 720 });
     await desk.waitForTimeout(500);
-    const news = await desk.evaluate(() => { const n = document.querySelector(".tt-news").getBoundingClientRect(), hd = document.querySelector(".home-header").getBoundingClientRect(); return { top: n.top, header: hd.bottom, bottom: n.bottom, vh: innerHeight }; });
-    assert.ok(news.top >= news.header - 1 && news.bottom <= news.vh, "the guide fits between the bar and the edge " + JSON.stringify(news));
+    assert.equal(await desk.evaluate(() => document.querySelectorAll(".tt-news, #home-newmap").length), 0, "no news column on the home screen");
     // done with this game page: left open, it keeps drawing its 3D scene on the software GPU and the tablet page
     // next waited 30 s for a tap (its context stays for the diagnostic page below)
     await desk.close();
