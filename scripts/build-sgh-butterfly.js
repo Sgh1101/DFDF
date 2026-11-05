@@ -1,13 +1,11 @@
-// SGH butterfly (SGH나비칼): the knife's own shape and texture, drawn here, on the retained butterfly rig.
-// The bones of assets/rgx-firefly/v1/model.json (names, parents, pivots, rotations) are kept exactly, so the retained
-// animations (inspect, draw, the three cuts, the handles turning round their pins) and the sounds play unchanged. Only
-// the cubes inside the blade, the two handles and their glowing parts are replaced, and texture.png is painted here.
-//   node scripts/build-sgh-butterfly.js          rewrite model.json, texture.png and the manifest's fingerprints
+// SGH butterfly (SGH나비칼): generate the model, texture, animations and synthesized sound package.
+//   node scripts/build-sgh-butterfly.js          regenerate the package and its manifest
 //   node scripts/build-sgh-butterfly.js --check  fail when they are not what this script makes
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto"), zlib = require("node:zlib");
 const DIR = path.resolve(__dirname, "../assets/rgx-firefly/v1");
-const D = require("../js/rgx-firefly-data");
+const { rig, animation } = require("./sgh-butterfly-motion");
+const { sounds } = require("./sgh-butterfly-audio");
 
 // ── the palette: 8×8 cells in the lower half of the 128×128 texture (the upper half holds the two effect planes) ──
 const W = 128, H = 128, CELL = 8, ROW0 = 64;
@@ -19,7 +17,7 @@ const COLORS = {
 const NAMES = Object.keys(COLORS);
 const cellOf = (name) => { const i = NAMES.indexOf(name); return [(i % 16) * CELL, ROW0 + Math.floor(i / 16) * CELL]; };
 
-// a cube [x0,y0,z0]-[x1,y1,z1] in the source's units, painted one colour (the face samples a texel inside its cell,
+// a cube [x0,y0,z0]-[x1,y1,z1] in model units, painted one colour (the face samples a texel inside its cell,
 // varied per cube so neighbouring cubes do not read as one flat block)
 let serial = 0;
 function cube(a, b, color) {
@@ -125,32 +123,51 @@ function png(rgba) {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(raw, { level: 9 })), chunk("IEND", Buffer.alloc(0))]);
 }
 
-// ── the model: the source bones, the new cubes ──
+// ── the model ──
 function build() {
   serial = 0;
-  const src = D.parse(fs.readFileSync(path.join(DIR, "model.json"), "utf8")), geo = src["minecraft:geometry"][0];
   const bl = blade(), up = handle(9.5, 10.36, 9.957, true, false), dn = handle(8.46, 9.32, 8.88, false, true);
-  const cubes = { blade2: bl.out, blade_illuminated: bl.glow, up: up.out, bone3_illuminated: up.glow, down: dn.out, bone2_illuminated: dn.glow };
-  for (const b of geo.bones) if (cubes[b.name]) b.cubes = cubes[b.name];
-  geo.description.identifier = "geometry.sgh_butterfly";
-  return JSON.stringify(src) + "\n";
+  const trailFace = { uv: [21, 53], uv_size: [74, 8] };
+  const trail = { origin: [.16, 9.2, -10.8], size: [0, 1.65, 7.4], uv: { east: trailFace, west: trailFace } };
+  const cubes = {
+    blade2: bl.out, blade_illuminated: bl.glow,
+    up: up.out, bone3_illuminated: up.glow,
+    down: dn.out, bone2_illuminated: dn.glow,
+    trail_illuminated: [trail],
+  };
+  return JSON.stringify(rig(cubes)) + "\n";
+}
+
+function packageFiles() {
+  const files = {
+    "model.json": Buffer.from(build()),
+    "animation.json": Buffer.from(JSON.stringify(animation()) + "\n"),
+    "texture.png": paint(),
+  };
+  for (const [name, pcm] of Object.entries(sounds())) files["sounds/sgh_" + name + ".wav"] = pcm;
+  const manifest = {
+    version: 2,
+    sourceItem: "sgh_butterfly",
+    sourceLabel: "SGH나비칼",
+    sourcePack: "DFDF",
+    design: "SGH Butterfly geometry, joint rig, keyframes, texture, and synthesized sound generated in this repository.",
+    files: Object.entries(files).map(([name, bytes]) => ({
+      name, size: bytes.length, sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+    })),
+  };
+  return { ...files, "manifest.json": Buffer.from(JSON.stringify(manifest, null, 2) + "\n") };
 }
 
 if (require.main === module) {
-  // the model is built from the bones of what is there; a second run gives the same bytes
-  const model = Buffer.from(build()), texture = paint();
-  const mPath = path.join(DIR, "manifest.json"), manifest = JSON.parse(fs.readFileSync(mPath, "utf8"));
-  const want = { "model.json": model, "texture.png": texture };
+  const files = Object.entries(packageFiles());
   if (process.argv.includes("--check")) {
-    const stale = Object.entries(want).filter(([n, b]) => !fs.readFileSync(path.join(DIR, n)).equals(b) || manifest.files.find((f) => f.name === n).sha256 !== crypto.createHash("sha256").update(b).digest("hex"));
+    const stale = files.filter(([name, bytes]) => !fs.readFileSync(path.join(DIR, name)).equals(bytes));
     if (stale.length) { console.error("SGH butterfly is out of date: " + stale.map((s) => s[0]).join(", ") + " — run node scripts/build-sgh-butterfly.js"); process.exit(1); }
-    console.log("SGH butterfly: model.json and texture.png are up to date");
+    console.log("SGH butterfly: model, animations, texture and audio are up to date");
   } else {
-    for (const [n, b] of Object.entries(want)) { fs.writeFileSync(path.join(DIR, n), b); const f = manifest.files.find((x) => x.name === n); f.size = b.length; f.sha256 = crypto.createHash("sha256").update(b).digest("hex"); }
-    manifest.sourceLabel = "SGH나비칼";
-    manifest.design = "SGH butterfly: model geometry and texture drawn by scripts/build-sgh-butterfly.js; the retained rig bones, animations and sounds are unchanged";
-    fs.writeFileSync(mPath, JSON.stringify(manifest, null, 2) + "\n");
-    console.log("SGH butterfly: wrote model.json (" + model.length + " bytes) and texture.png (" + texture.length + " bytes)");
+    fs.mkdirSync(path.join(DIR, "sounds"), { recursive: true });
+    for (const [name, bytes] of files) fs.writeFileSync(path.join(DIR, name), bytes);
+    console.log("SGH butterfly: wrote " + files.length + " generated files");
   }
 }
-module.exports = { build, paint, COLORS };
+module.exports = { build, paint, COLORS, packageFiles };

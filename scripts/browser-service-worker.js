@@ -48,7 +48,8 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
   assert.equal(await page.evaluate(async()=>!!await(await caches.open('13-assets-v2-original-maps')).match('/assets/maps/kour/manifest.json')),false);
   async function bytes(url){return page.evaluate(async url=>{const r=await fetch(url,{cache:'no-store'}),b=await r.arrayBuffer();return{status:r.status,bytes:b.byteLength,sha:Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b)),x=>x.toString(16).padStart(2,'0')).join('')};},url);}
   const geometry=await bytes('/assets/maps/ascent/geometry.bin');assert.equal(geometry.sha,hash(fs.readFileSync(path.join(root,'assets/maps/ascent/geometry.bin'))));
-  const manifest=await page.evaluate(async()=>(await fetch('/assets/maps/ascent/manifest.json')).json());assert.equal(manifest.provenance.externalMapInput,false,'manifests bypass even a poisoned asset cache');
+  const manifest=await page.evaluate(async()=>(await fetch('/assets/maps/ascent/manifest.json')).json());
+  assert.deepEqual(manifest,JSON.parse(fs.readFileSync(path.join(root,'assets/maps/ascent/manifest.json'),'utf8')),'manifests bypass even a poisoned asset cache');
   const image='/assets/site/maps/ascent_trial.webp?v=district-ascent-1',online=await bytes(image);assert.equal(online.status,200);
   await page.evaluate(async url=>{const deadline=performance.now()+5000,c=await caches.open('13-assets-v2-original-maps');while(!await c.match(url)){if(performance.now()>deadline)throw Error('Preview was not cached');await new Promise(r=>setTimeout(r,25));}},image);
   await ctx.setOffline(true);const cached=await bytes(image);assert.deepEqual(cached,online,'current terrain preview remains available from the real worker cache');

@@ -22,6 +22,9 @@ test('activation purges retired files while retaining the current island preview
  const handlers=new Map(),origin='https://game.example',deleted=[];
  const stale=['/assets/maps/ascent/geometry.bin?v=neighborhood-2','/assets/site/maps/ascent_trial.webp?v=neighborhood-2','/assets/maps/kour/manifest.json','/assets/site/maps/desert_town.webp','/assets/maps/ascent/geometry.bin?v=blocks2','/assets/ui/ascent-preview-v3.webp','/assets/site/maps/ascent_trial.webp?x=1','/assets/site/maps/ascent_trial.webp?v=original-1','/assets/maps/ascent/manifest.json?v=original-1','/assets/maps/ascent/geometry.bin?v=original-1'];
  const keep=['/assets/maps/ascent/manifest.json?v=district-ascent-1','/assets/site/maps/ascent_trial.webp?v=district-ascent-1','/assets/champions-phantom/dfdf-1/manifest.json'];
+ const knife='/assets/rgx-firefly/v1/';
+ stale.push(knife+'sounds/future_butterfly_draw.ogg?sha256=old',knife+'model.json',knife+'animation.json?sha256=d415254c87f8310ca4bcc23fea57ecd17e3bc12f3ea010a24862fc320e58bd79');
+ keep.push(knife+'sounds/sgh_draw.wav?sha256=new',knife+'animation.json?sha256=new');
  const cache={keys:async()=>[...stale,...keep].map(u=>({url:origin+u})),delete:async r=>{deleted.push(r.url.slice(origin.length));return true;}};
  const context={URL,location:{origin},self:{addEventListener:(n,f)=>handlers.set(n,f),clients:{claim:async()=>{}}},caches:{keys:async()=>[],open:async()=>cache}};
  vm.runInNewContext(fs.readFileSync(require.resolve('../sw.js'),'utf8'),context);

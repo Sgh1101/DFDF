@@ -19,7 +19,7 @@ async function runtime({suspended=false}={}){
   assert.equal(await s.RGX_FIREFLY.ready,true);s.VM.current=s.RGX_FIREFLY.create();
   return {s,setWeapon:v=>{weapon=v;},started:()=>started,resume:()=>resume?.()};
 }
-test('the third RGX attack plays past 2.5 seconds until its own source endpoint',async()=>{
+test('the third SGH attack plays past 2.5 seconds until its three-second endpoint',async()=>{
   const {s}=await runtime();s.tickViewmodel(.01);s.tickViewmodel(2.1);
   for(let i=0;i<3;i++)s.viewmodelFireKick();s.tickViewmodel(2.7);
   assert.equal(s.RGX_FIREFLY.clip,'melee_3');s.tickViewmodel(.31);assert.equal(s.RGX_FIREFLY.clip,'static_idle');
