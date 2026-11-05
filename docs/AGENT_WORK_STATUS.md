@@ -108,3 +108,28 @@
 ## 2026-11-05 · Codex · PR#131 CI 언어 환경 검사 보완
 - GitHub의en-US초기상태를한국어로가정한새public-entry검사가실패했다. en-US컨텍스트로동일실패를로컬재현하고, ko-KR/en-US초기언어와양방향변경·메뉴재열기를명시해수정했다. 제품/홈/광고정책런타임변경없음. 네화면+JS OFF통과, 단위521통과/선택Redis2제외재확인.
 - 이전GitHub전체523단위(실제Redis포함)통과, 다른브라우저검사묶음통과. 최종CI는수정테스트커밋에서다시확인한다. 권리/계정/CMP미확인과병합승인대기는변함없다.
+
+## 2026-11-04 · Claude · 부엉이(silenced) 소음권총 실총형 재제작 — 사용자 검토 대기
+
+- 사용자 요청: 기본 총 18종 순차 재제작 중 2번째. 부엉이를 풀사이즈 폴리머 스트라이커 9mm + 긴 원통형 소음기로 다시 만든다. 사용자 승인 후 다음 총으로 넘어간다.
+- 작업 브랜치/worktree: `worktree-agent-ae9fe0e89f0548e03`(로컬, 미푸시). 기준: 승인된 참새 권총 `claude/quirky-fermat-11wa1b`, 이후 origin/main `165caf3`(#128·#129·#130 포함) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR #126(Codex 챔스 입체 소총)·#129를 대조했다. #126은 play.html의 다른 줄(solid-geometry.js 추가)만 겹치고 충돌 없음. 미병합 codex 브랜치는 #126과 10월 15일의 `codex/reliability-home-skins`(오래됨, 열린 PR 없음)뿐이며 이번 변경 파일과 실제로 겹치는 미반영 작업은 없다.
+- 담당 파일: `js/gun-model-silenced.js`(새 파일), `play.html`(스크립트 한 줄). 03-engine·54·58·챔피언스 파일·스킨 목록·무기 수치는 변경하지 않았다.
+- 실제 검사(로컬): 단위 517 통과·2 Redis 선택 제외, 구문, 자산 50지문, 사이트 페이지, 브라우저 legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload·render-cost·gun-template-memory·drop-skins. 실기기/Android 미검증.
+- 다음: 사용자 외형 승인 후 병합 여부 결정. 미배포.
+
+## 2026-11-05 · Claude · 총 개편 2/18 부엉이 통합 — PR 준비
+- 사용자 승인("코덱스가 한 일 생각해서 ㄱ"). 브랜치 `claude/quirky-fermat-11wa1b`를 main `4165f84`(Codex #131 AdSense 준비)에서 다시 시작해 부엉이 커밋 `1f81298`을 병합했다.
+- 상대 작업 확인: #131 diff 33파일을 읽었다. 총·챔스·play.html과 겹치지 않는다. 광고 준비 점검기(`check-ad-readiness.js`)와 고정 지문은 부엉이 변경 후에도 통과(exit 0). 열린 #126은 여전히 #128과 챔스 총이 겹쳐 별도 정리가 필요하다.
+- 담당 파일: `js/gun-model-silenced.js`(새), `play.html` 한 줄.
+- 실제 검사: 단위 521 통과, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 통과. 브라우저 10종은 에이전트 worktree(main 165caf3 병합본)에서 통과.
+- 다음: 3/18 황소(revolver).
+
+## 2026-11-05 · Claude · 총 개편 3/18 Verdict(revolver) 실총형 재제작 — 사용자 검토 대기
+- 사용자 요청: 기본 총 18종 순차 재제작 3번째. Verdict(키 `revolver`)를 6인치 풀러그 더블액션 6연발 .357 리볼버로 다시 만든다(특정 제조사 이름·로고·각인 없음). 승인 후 다음 총.
+- 작업 worktree: `worktree-agent-a3ff956c11f7e2ff6`(로컬, 미푸시). 기준: main `4165f84`(Codex #131) + 승인된 참새·부엉이 `origin/claude/quirky-fermat-11wa1b`(`ccdb6da`) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude 부엉이)뿐. #126의 play.html 변경은 다른 줄(solid-geometry.js)이라 겹치지 않고, 03-engine·54·58·총 모델 파일과도 겹치지 않는다. origin/codex/* 최근 브랜치(adsense-compliance #131 병합됨, ascent-layout-restore, champions-solid-rifle)도 이번 파일과 겹치는 미반영 변경 없음.
+- 담당 파일: `js/gun-model-revolver.js`(새), `play.html`(스크립트 한 줄), `js/legacy/54-reload-animation.js`(크레인 스윙·이젝터·탄두 표시·스피드로더 크기/위치·해머/방아쇠/실린더 사격 동작 추가; 기존 총 동작은 그대로). 챔스 파일·champion 키트·참새/부엉이 모델·무기 수치·가격·스킨 목록·광고 파일은 건드리지 않았다.
+- 결과: 메시 66→19, 크기 0.098×0.241×0.528 → 0.073×0.264×0.510(길이 -3%, 높이 +10%, 폭은 실총 비율로 좁아짐). 총구·총열 위치 유지(섬광·예광탄 시작점 동일). 기본 마감은 스테인리스+어두운 강철 부품+검은 그립으로 1인칭에서 디테일이 보인다. 재장전: 크레인이 왼쪽으로 열리고 탄피 6개가 각 약실에서 나오며, 스피드로더가 열린 실린더에 맞춰 들어간다. 사격 때 해머·방아쇠·실린더가 움직인다.
+- 실제 검사(로컬, 기준 4165f84+ccdb6da 병합본): 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 209 스크립트, 자산 50지문, 사이트 페이지 12, 광고 준비 점검 exit 0(게이트 통과·자산 오류 0, 외부 승인 대기 항목은 기존과 동일). 브라우저(한 번에 하나씩): weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload(revolver: loader, empties 6)·render-cost·gun-template-memory·drop-skins·modes2 통과. legacy-models는 첫 실행에서 모든 단언 통과 후 무기고 열기 대기 30초 시간 초과(다른 세션 렌더로 CPU 경합), 단독 재실행 통과. 실기기/Android 미검증. 미배포.
+- 남은 점: 리볼버도 사격마다 탄피가 튀는 기존 효과(18-gun-effects.js, 이번 범위 밖)는 그대로다. 사용자 승인 후 다음 총(4/18).

@@ -253,7 +253,63 @@
     const blk = new T.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.6, metalness: 0.3 });
     const prop = (g) => ((g.visible = !1), a.add(g), g);
     // a revolver's speedloader (six rounds on a black knob) and its six empties
-    if ("revolver" === rl.style) {
+    let crane = null;
+    a.traverse((n) => "crane" === n.userData.legacyAction && n.userData.reload && (crane = n));
+    if ("revolver" === rl.style && crane) {
+      // a gun with a real crane (gun-model-revolver.js): the loader and the empties are sized
+      // and placed from its cylinder, swung out the way the reload swings it
+      const d = crane.userData.reload,
+        rot0 = crane.rotation.z;
+      const at = (open) => {
+        crane.rotation.z = rot0 + open;
+        crane.updateMatrixWorld(!0);
+        const m = new T.Matrix4().multiplyMatrices(inv, crane.matrixWorld);
+        const p = (x, y, z) => V(x, y, z).applyMatrix4(m);
+        const rear = p(...d.rear),
+          back = p(d.rear[0], d.rear[1], d.rear[2] + 0.01).sub(rear).normalize();
+        const chambers = d.angles.map((t) => p(d.rear[0] + d.chamberR * Math.cos(t), d.rear[1] + d.chamberR * Math.sin(t), d.rear[2]));
+        const q = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().extractRotation(m));
+        return { rear, back, chambers, q, sc: chambers[0].distanceTo(rear) / d.chamberR };
+      };
+      const shut = at(0),
+        open = at(crane.userData.open || Math.PI / 2);
+      crane.rotation.z = rot0;
+      crane.updateMatrixWorld(!0);
+      const k = open.sc,
+        cr = d.caseR * k,
+        cl = d.caseLen * k;
+      // the loader, built round its cylinder's axis: six rounds (case, rim, bullet), the body behind, the knob
+      const g = new T.Group();
+      const lead = new T.MeshStandardMaterial({ color: 0x9a6b4a, roughness: 0.45, metalness: 0.6 });
+      for (const t of d.angles) {
+        const x = Math.cos(t) * d.chamberR * k,
+          y = Math.sin(t) * d.chamberR * k;
+        const caseM = new T.Mesh(new T.CylinderGeometry(cr, cr, cl, 10).rotateX(Math.PI / 2), brass);
+        caseM.position.set(x, y, -cl / 2);
+        const rim = new T.Mesh(new T.CylinderGeometry(d.rimR * k, d.rimR * k, 0.12 * cr, 10).rotateX(Math.PI / 2), brass);
+        rim.position.set(x, y, 0.06 * cr);
+        const nose = new T.Mesh(new T.CylinderGeometry(cr * 0.35, cr * 0.94, cr * 1.5, 10).rotateX(-Math.PI / 2), lead);
+        nose.position.set(x, y, -cl - cr * 0.75);
+        g.add(caseM, rim, nose);
+      }
+      const R = (d.chamberR + d.rimR) * k * 1.02;
+      const body = new T.Mesh(new T.CylinderGeometry(R, R, 0.9 * cr, 24).rotateX(Math.PI / 2), blk);
+      body.position.z = 0.6 * cr;
+      const knob = new T.Mesh(new T.CylinderGeometry(1.4 * cr, 1.7 * cr, 2.6 * cr, 16).rotateX(Math.PI / 2), blk);
+      knob.position.z = 2.3 * cr;
+      g.add(body, knob);
+      g.quaternion.copy(open.q);
+      rl.loader = prop(g);
+      // where the hand holds it: just behind the knob
+      rl.loaderGrip = open.back.clone().multiplyScalar(-(3.6 * cr + 0.012));
+      rl.empties = [];
+      for (let i = 0; i < 6; i++) {
+        const e = prop(new T.Mesh(new T.CylinderGeometry(cr, cr, cl, 8).rotateX(Math.PI / 2), brass));
+        e.quaternion.copy(open.q);
+        rl.empties.push(e);
+      }
+      rl.rev = { shut, open, q: open.q.clone() };
+    } else if ("revolver" === rl.style) {
       const g = new T.Group(),
         r = "handcan" === key ? 0.013 : 0.011;
       for (let i = 0; i < 6; i++) {
@@ -586,13 +642,16 @@
         len = gb.max.z - gb.min.z,
         midx = (gb.min.x + gb.max.x) / 2,
         h = gb.max.y - gb.min.y;
-      const rev = "revolver" === st;
+      const rev = "revolver" === st,
+        rv = rev && rl.rev;
       // the cylinder (or the breech), and where the hand takes the new rounds from
-      const CY = rev ? V(midx - 0.012, gb.max.y - 0.32 * h, gb.min.z + 0.62 * len) : V(midx, gb.max.y - 0.01, gb.min.z + 0.5 * len);
-      const SIDE = CY.clone().add(V(-0.035, 0, 0)),
+      const CY = rv ? rv.open.rear.clone() : rev ? V(midx - 0.012, gb.max.y - 0.32 * h, gb.min.z + 0.62 * len) : V(midx, gb.max.y - 0.01, gb.min.z + 0.5 * len);
+      // a real crane: the thumb pushes the latch and the fingers knock the cylinder out to the left;
+      // the loader goes straight in along the open cylinder's axis
+      const SIDE = rv ? rv.shut.rear.clone().add(V(-0.03, -0.012, -0.02)) : CY.clone().add(V(-0.035, 0, 0)),
+        IN = rv ? CY.clone().sub(rl.loaderGrip) : CY.clone().add(rev ? V(-0.012, 0, 0.03) : V(0, 0.025, 0.02)),
         AWAY = CY.clone().add(rev ? V(-0.08, -0.42, 0.14) : V(-0.08, -0.42, 0.02)),
-        NEAR = CY.clone().add(rev ? V(-0.03, -0.01, 0.06) : V(0, 0.06, 0.0)),
-        IN = CY.clone().add(rev ? V(-0.012, 0, 0.03) : V(0, 0.025, 0.02));
+        NEAR = rv ? IN.clone().addScaledVector(rv.open.back, 0.07).add(V(-0.01, -0.02, 0)) : CY.clone().add(rev ? V(-0.03, -0.01, 0.06) : V(0, 0.06, 0.0));
       const open = rev ? 0.12 : 0.1,
         load0 = rev ? 0.3 : 0.26,
         loadIn = rev ? 0.55 : 0.52,
@@ -614,15 +673,26 @@
       const held = rev ? rl.loader : rl.pair;
       if (held) {
         held.visible = k > load0 && k < loadIn + 0.02;
-        held.position.copy(H).add(rev ? V(0.004, 0.012, -0.022) : V(0.0, 0.018, -0.02));
+        held.position.copy(H).add(rv ? rl.loaderGrip : rev ? V(0.004, 0.012, -0.022) : V(0.0, 0.018, -0.02));
       }
       // the empties fly out and fall
       if (rl.empties) {
         const t0 = open + (rev ? 0.06 : 0.02),
           ts = (k - t0) * RL.D;
+        // a real cylinder: each case leaves its own chamber backwards, then falls (down in the gun's own frame)
+        const down = rv && ts > 0 ? V(0, -1, 0).applyQuaternion(a.getWorldQuaternion(new T.Quaternion()).invert()) : null;
         rl.empties.forEach((e, i) => {
           e.visible = ts > 0 && ts < 0.55;
           if (!e.visible) return;
+          if (rv) {
+            const c = rv.open.chambers[i],
+              out = c.clone().sub(CY).multiplyScalar(1.4 * ts);
+            e.position.copy(c).add(out).addScaledVector(rv.open.back, 0.32 * ts).addScaledVector(down, 2.2 * ts * ts);
+            e.quaternion.copy(rv.q);
+            e.rotateX((3 + i) * ts * ts * 6);
+            e.rotateY((i - 2.5) * ts * 3);
+            return;
+          }
           const ang = (i / Math.max(1, rl.empties.length)) * 2 * Math.PI;
           const v = rev ? V(-0.05 + 0.04 * Math.cos(ang), 0.15 + 0.04 * Math.sin(ang), 0.3) : V(-0.04, 0.55, 0.45);
           e.position.set(CY.x + v.x * ts, CY.y + v.y * ts - 2.4 * ts * ts, CY.z + v.z * ts);
@@ -718,6 +788,7 @@
     for (const action of rl.actions || []) {
       action.node.position.copy(action.position);
       action.node.rotation.copy(action.rotation);
+      if (action.kind === "rounds") action.node.visible = !0;
     }
     if (rl.lh && rl.lh0) rl.lh.position.copy(rl.lh0);
     if (rl.mag && rl.mag0) {
@@ -744,7 +815,16 @@
     if (!rl.actions || !rl.actions.length) return;
     const f = Math.min(1, Math.max(0, (VM.kick || 0) / 0.85));
     if (!f) return;
-    for (const action of rl.actions) if (action.kind === "slide") action.node.position.z = action.position.z + (action.node.userData.travel || 0.06) * Math.pow(f, 2.5);
+    // a revolver: the next pull cocks the hammer and turns the cylinder a sixth (it is six-fold, so the
+    // turn's end looks the same as its start), then the hammer falls again
+    const pull = Math.sin(Math.PI * (1 - f));
+    for (const action of rl.actions) {
+      const n = action.node, u = n.userData;
+      if (action.kind === "slide") n.position.z = action.position.z + (u.travel || 0.06) * Math.pow(f, 2.5);
+      else if (action.kind === "hammer") n.rotation.x = action.rotation.x + (u.cock || 0.5) * pull;
+      else if (action.kind === "trigger") n.rotation.x = action.rotation.x - (u.pull || 0.3) * pull;
+      else if (action.kind === "cylinder") n.rotation.z = action.rotation.z + (u.spin || 0) * sm(1 - f);
+    }
   }
   const _tick = tickViewmodel;
   tickViewmodel = function (dt) {
@@ -773,6 +853,11 @@
         if (action.kind === "pump") action.node.position.z += .065 * Math.sin(Math.PI * seg(k, .78, .94));
         // a pistol slide: pulled back once the fresh magazine is in, then let go
         if (action.kind === "slide") action.node.position.z += (action.node.userData.travel || .06) * sm(seg(k, .55, .6)) * (1 - sm(seg(k, .61, .64)));
+        // a revolver: the crane swings the cylinder out to the left, the ejector throws the empties,
+        // the case heads are gone until the loader puts six new rounds in, then the crane swings home
+        if (action.kind === "crane") action.node.rotation.z += (action.node.userData.open || 1.5) * sm(seg(k, .1, .16)) * (1 - sm(seg(k, .6, .66)));
+        if (action.kind === "ejector") action.node.position.z += (action.node.userData.travel || .02) * sm(seg(k, .165, .2)) * (1 - sm(seg(k, .24, .3)));
+        if (action.kind === "rounds") action.node.visible = !(k > .19 && k < .55);
       }
       a.position.y -= o.dy;
       a.position.x += o.dx;
