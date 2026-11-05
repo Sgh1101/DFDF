@@ -1,11 +1,30 @@
-/* Korean headings use the real 400 face; changing digits keep a steady width. */
-.title-mark,.sel-top h2,.ov-head,.tt-name,#banner,#kf-main{font-weight:400}
-.mono,#tb-time,#tb-atk,#tb-def,.rs-cnt,#v-hp,#v-ar,#am-count,#am-credit,.ab-key,.ab-meta,.buy-price,.shop-price,#kf-streak{
-  font-family:'Noto Sans KR',system-ui,sans-serif;
+/* Small HUD values use the reading face with a steady digit width. */
+.mono,#tb-time,#tb-atk,#tb-def,.rs-cnt,#v-hp,#v-ar,#am-count small,#am-credit,.ab-key,.ab-meta,.buy-price,.shop-price,#kf-streak{
+  font-family:var(--f-body);
   font-variant-numeric:tabular-nums;
   font-weight:700;
   letter-spacing:0;
 }
+body #mini-set{font-family:var(--f-body)}
+#kf-main{font-weight:400}
+#s-title .title-mark,.sel-top h2,.ov-head,.tt-name,.acard-name,.det-name,#banner,#am-count,
+#killfx:not(.phantom-attack,.phantom-defense) :is(#kf-main,#kf-tag){
+  font-family:var(--ui-pixel-font);
+  font-weight:700;
+}
+#banner{
+  width:max-content;
+  max-width:calc(100% - 24px);
+  font-size:clamp(24px,5.5vw,38px);
+  line-height:1.25;
+  letter-spacing:.02em;
+  white-space:normal;
+  text-wrap:balance;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
+#am-count{font-variant-numeric:tabular-nums}
+#am-count small{letter-spacing:0}
 #killfx.phantom-attack #kf-streak,#killfx.phantom-defense #kf-streak{font-family:Orbitron,system-ui,sans-serif}
 button,input,select,textarea{font-synthesis:none}
 @media(max-width:600px){.lbl{letter-spacing:.08em}.ab-meta{font-size:11px}.acard-q{font-size:12px}}
