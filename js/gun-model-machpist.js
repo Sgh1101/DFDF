@@ -185,7 +185,7 @@
     };
     return {
       frame: tone(GUNMAT.tan(), 0x8a7553, 0.82, 0.04), // flat dark earth polymer frame and hand stop
-      panel: tone(GUNMAT.rubber(), 0x6a5a40, 0.96, 0), // stippled grip panels, a shade darker
+      panel: tone(GUNMAT.rubber(), 0x56492f, 0.97, 0), // stippled grip panels and hand stop ribs, darker than the frame
       slide: tone(GUNMAT.gunmetal(), 0x9ba1a8, 0.4, 0.62), // tungsten grey slide: light enough to read in first person
       steel: tone(GUNMAT.steel(), 0xa9afb6, 0.28, 0.88), // barrel, selector, pins, trigger blade
       comp: tone(GUNMAT.steel(), 0xb4bac1, 0.3, 0.86), // bead-blasted stainless compensator, bright against the ports
@@ -194,7 +194,7 @@
       bore: Object.assign(tone(GUNMAT.rubber(), 0x050506, 1, 0), { side: T.DoubleSide }), // bore, ports, slots, holes
       dot: tone(GUNMAT.glow(0xff2d1e), 0xff2d1e, 0.4, 0), // the red dot and the front sight insert
       lens: new T.MeshStandardMaterial({ color: 0x8fd8e6, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.2, side: T.DoubleSide, depthWrite: false }),
-      mag: tone(GUNMAT.blued(), 0x2b2e33, 0.5, 0.45), // the magazine's steel-lined polymer body
+      mag: tone(GUNMAT.blued(), 0x3a3e45, 0.58, 0.35), // the magazine's charcoal polymer body, light enough to show its ribs and holes
       base: tone(GUNMAT.tan(), 0x8a7553, 0.8, 0.04), // the extended baseplate, frame colour
       round: tone(GUNMAT.brass(), 0xc9a24e, 0.32, 0.85), // the top round
     };
