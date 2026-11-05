@@ -51,7 +51,17 @@
   // ── networking ──
   const personalPayload = () => ({ cheat: P.cheat, god: P.god, oneShot: P.oneShot, infAmmo: P.infAmmo, noRecoil: P.noRecoil, speed: P.speed, fastFire: P.fastFire });
   function sendPersonal() {
-    isClient() && sendAction({ t: "padm", p: personalPayload() });
+    if (!isClient()) return;
+    sendAction({ t: "padm", p: personalPayload() });
+    // the set I picked goes with my switches: one picked before the host had the server's word on me was set aside
+    // there, and my switches are sent again once it has (own-ok, perm-ok, own-grant)
+    const a = me();
+    P.cheat && a && a._kit && sendKit(a._kit);
+  }
+  // my set requests are numbered, so the host's answer to an older one cannot undo a newer pick
+  let kitN = 0;
+  function sendKit(key) {
+    isClient() && sendAction({ t: "kit", key, n: ++kitN });
   }
   const globalPayload = () => ({ run: ADMIN.run, walk: ADMIN.walk, crouch: ADMIN.crouch, jumpV: ADMIN.jumpV, gravity: ADMIN.gravity, infAll: G.infAll });
   function sendGlobal() {
@@ -79,13 +89,25 @@
       const a = world.actors.find((o) => o.ctrl === peer),
         f = PEERS.get(peer),
         ag = AGENTS.find((x) => x.key === msg.key);
-      a && ag && f && f.cheat && setKit(a, ag);
+      if (a && ag && f && f.cheat) {
+        a._kitN = Number.isFinite(+msg.n) ? +msg.n : null;
+        setKit(a, ag);
+        a._kitN = null;
+      }
       return;
     }
     return _oa(peer, msg);
   };
   const _oe = NET.onEvent;
   NET.onEvent = (e) => {
+    // the host says which set my body has: its word stands (a pick it turned down, or a reset when cheats ended)
+    if (e && "kit" === e.t) {
+      if (null != e.n && +e.n < kitN) return; // an answer to an older pick: a newer one is on its way
+      const a = me(),
+        ag = AGENTS.find((x) => x.key === e.key);
+      a && ag && (a._kit || (a.agent && a.agent.key)) !== ag.key && setKit(a, ag);
+      return;
+    }
     if (e && "gadm" === e.t) {
       const g = e.g || {};
       for (const k of ["run", "walk", "crouch", "jumpV", "gravity"]) null != g[k] && (ADMIN[k] = g[k]);
@@ -146,6 +168,11 @@
     // a set change must not hand out a free ultimate
     a.ultCharge = Math.min(a.ultCharge || 0, a.ultMax);
     a._kit = ag === a.agent ? null : ag.key;
+    // host: the guest whose body this is learns its set, so its screen and its casts match what the host gives it
+    if ("host" === NET.mode && a.ctrl && "me" !== a.ctrl && NET.conns && NET.conns.has(a.ctrl))
+      try {
+        sendEventTo(a.ctrl, { t: "kit", key: ag.key, n: a._kitN });
+      } catch (e) {}
     if (a === me()) {
       $("skills") && ($("skills").dataset.key = "");
       try {
@@ -162,7 +189,7 @@
     if (!a || !P.cheat) return;
     const ag = 0 === d ? a.agent : AGENTS[(kitIdx(a) + d + AGENTS.length) % AGENTS.length];
     setKit(a, ag);
-    isClient() && sendAction({ t: "kit", key: ag.key });
+    sendKit(ag.key);
     flashChip();
   }
   addEventListener(
@@ -457,7 +484,7 @@
     P[k] = v;
     if ("cheat" === k && was && !v) {
       const a = me();
-      a && a._kit && a.agent && (setKit(a, a.agent), isClient() && sendAction({ t: "kit", key: a.agent.key }));
+      a && a._kit && a.agent && (setKit(a, a.agent), sendKit(a.agent.key));
     }
     "cheat" === k && v && flashChip();
   }
