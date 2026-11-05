@@ -96,7 +96,7 @@
     // a soft violet-pink bloom under its crest and a faint second wave like light on water (champTide, projected in the gun's
     // own space so it runs along every part, its height and size taken from each gun: wave); indigo small parts; the kit adds
     // only a thin gold top line, a lilac light line and a small pink gem that follow the gun's own surface
-    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, pat: "champTide", mpat: "champTide", mem: !0, em: !0, wave: !0, fitAll: !0, kit: "champion", anim: "pulse", pal: ["#1e1b3c", "#4a5192", "#ebc062", "#ff7ccb", "#a35cff", "#d4c6ff", "#5b4789"], body: [0xffffff, 0.34, 0.2], coat: [0.9, 0.1], metal: [0xffffff, 0.26, 0.42], mcoat: [1, 0.05], dark: [0x1b1b3c, 0.42, 0.35], dcoat: [0.6, 0.15], glow: 0xc060ff, glass: 0xe8c6ff, trim: { gold: 0xebc062, low: 0xc27aff, gem: 0xff6fc4, pip: 0xfff0f8 } },
+    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, pat: "champTide", mpat: "champTide", mem: !0, em: !0, wave: !0, fitAll: !0, kit: "champion", anim: "pulse", pal: ["#1e1b3c", "#4a5192", "#ebc062", "#ff7ccb", "#a35cff", "#d4c6ff", "#5b4789"], body: [0xffffff, 0.34, 0.2], coat: [0.9, 0.1], metal: [0xffffff, 0.24, 0.45], dark: [0x1b1b3c, 0.4, 0.35], glow: 0xc060ff, glass: 0xe8c6ff, trim: { gold: 0xebc062, low: 0xc27aff, gem: 0xff6fc4, pip: 0xfff0f8 } },
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
@@ -1191,15 +1191,20 @@
           i ? g.lineTo(x, wy(x, ph, k) + off) : g.moveTo(x, wy(x, ph, k) + off);
         }
       };
+      // a line, and for a soft one (blur) a few wider, fainter strokes under it: a bloom without canvas shadows, which cost
+      // a second or more to paint in a software canvas
       const line = (off, ph, k, col, w, a, blur) => {
         path(off, ph, k);
         g.strokeStyle = col;
+        if (blur)
+          for (const [m, f] of [[2, 0.08], [1.2, 0.14], [0.5, 0.24]]) {
+            g.globalAlpha = a * f;
+            g.lineWidth = w + (blur * m) / TIDE_ASP;
+            g.stroke();
+          }
         g.globalAlpha = a;
         g.lineWidth = w;
-        g.shadowColor = blur ? col : "transparent";
-        g.shadowBlur = blur || 0;
         g.stroke();
-        g.shadowBlur = 0;
       };
       // the sheen above the line and the second wave below it
       em || line(-Hp * 0.05, 0.6, 1, "#ffffff", Hp * 0.07, 0.05, W * 0.02);
