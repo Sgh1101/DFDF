@@ -14954,7 +14954,7 @@ const SPIKE = {
     PLANT: 4,
     DEFUSE: 7,
     HALF: 3.5,
-    FUSE: 45,
+    FUSE: 40,
     DEFUSE_R2: 12,
     PICK_R2: 6,
     MOVE_CANCEL: 1.1,
@@ -15481,11 +15481,16 @@ function detonate() {
   const e = world.spike;
   if (world.over) return;
   const y = typeof ASCENT_TRIAL!=='undefined'&&ASCENT_TRIAL.active ? e.y||0 : 0;
-  const t = e.x,
-    o = e.z;
-  ((e.state = "boom"),
-    e.mesh && ((e.mesh.visible = !1), (e.mesh.userData.light.intensity = 0)),
-    SFX.boom(),
+  e.state = "boom";
+  if (e.mesh) {
+    e.mesh.visible = false;
+    e.mesh.userData.light.intensity = 0;
+  }
+  spikeBlast(e.x, y, e.z);
+  endRound("atk", "폭탄 폭발");
+}
+function spikeBlast(t, y, o) {
+  (SFX.boom(),
     screenShake(1.8),
     fxFlash(16760954, 55, 110, t, y+5, o, 0.8, 1.4));
   const a = new T.Mesh(
@@ -15525,7 +15530,16 @@ function detonate() {
         (e.material.opacity = 1 - t));
     });
   }
-  endRound("atk", "폭탄 폭발");
+}
+const SPIKE_FUSE_EPSILON = 1e-6;
+function tickSpikeFuse(dt) {
+  const spike = world.spike;
+  if (!isHost() || world.phase !== "live" || world.over || spike.state !== "planted") return;
+  spike.timer -= dt;
+  if (spike.timer <= SPIKE_FUSE_EPSILON) {
+    spike.timer = 0;
+    detonate();
+  }
 }
 function spikeUI(e, t, o, a, n) {
   $("spike").classList.add("on");
@@ -15539,6 +15553,7 @@ function spikeUI(e, t, o, a, n) {
 function handleSpike(e) {
   const t = world.spike,
     o = "live" === world.phase,
+    authoritative = isHost(),
     a =
       player &&
       "function" == typeof isAI &&
@@ -15549,9 +15564,6 @@ function handleSpike(e) {
   } catch (e) {}
   if ("planted" === t.state) {
     if (o && !world.over) {
-      t.timer -= e;
-      // the fuse runs out whatever a defender is doing
-      if (t.timer <= 0) return void detonate();
       const o =
         t.timer > 25 ? 1 : t.timer > 12 ? 0.55 : t.timer > 5 ? 0.3 : 0.16;
       ((t.beepT -= e),
@@ -15582,11 +15594,10 @@ function handleSpike(e) {
         n.scale.setScalar(1 + 0.55 * o));
     }
   }
-  if (!o)
-    return void ("planted" !== t.state && $("spike").classList.remove("on"));
+  if (!o) return void $("spike").classList.remove("on");
   const n = !!keys.f;
   if (
-    (!a &&
+    (authoritative && !a &&
       "dropped" === t.state &&
       player.alive &&
       "atk" === player.team &&
@@ -15647,10 +15658,10 @@ function handleSpike(e) {
         SFX.plantStart());
     return (
       (player.planting += e),
-      player.planting >= SPIKE.PLANT
+      authoritative && player.planting >= SPIKE.PLANT
         ? void plantSpike(player.pos.x, player.pos.z, t, !0)
         : void spikeUI(
-            `${t.id} 사이트 설치 중 · ${(SPIKE.PLANT - player.planting).toFixed(1)}초`,
+            `${t.id} 사이트 설치 중 · ${Math.max(0, SPIKE.PLANT - player.planting).toFixed(1)}초`,
             "#ff3b4e",
             player.planting / SPIKE.PLANT,
             "#ff3b4e",
@@ -15672,15 +15683,15 @@ function handleSpike(e) {
         o < SPIKE.HALF &&
           player.defusing >= SPIKE.HALF &&
           !t.halfDefused &&
-          ((t.halfDefused = !0),
+          ((authoritative && (t.halfDefused = !0)),
           SFX.half(),
           banner("절반 해제 — 여기서 재개됩니다", "#38bdf8")),
         (t.defTick -= e),
         t.defTick <= 0 && ((t.defTick = 0.26), SFX.defuseTick()),
-        player.defusing >= SPIKE.DEFUSE
+        authoritative && player.defusing >= SPIKE.DEFUSE
           ? void defuseDone("player")
           : void spikeUI(
-              `해제 중 · ${(SPIKE.DEFUSE - player.defusing).toFixed(1)}초 남음`,
+              "해제 중",
               "#38bdf8",
               player.defusing / SPIKE.DEFUSE,
               "#38bdf8",
@@ -15694,20 +15705,8 @@ function handleSpike(e) {
         t.halfDefused ? "해제 중단 · 절반 지점 유지" : "해제 중단",
         "#ffc849",
       ));
-    const a = Math.max(0, t.timer),
-      r = a < 10;
-    return (
-      spikeUI(
-        "def" === player.team && player.alive && !o
-          ? `폭탄 작동 중 · ${a.toFixed(1)}초 — 접근해 F`
-          : `폭탄 작동 중 · ${a.toFixed(1)}초`,
-        r ? "#ff3b4e" : "#ff6b4a",
-        a / SPIKE.FUSE,
-        r ? "#ff3b4e" : "#ff6b4a",
-        t.halfDefused,
-      ),
-      void (t.timer <= 0 && detonate())
-    );
+    $("spike").classList.remove("on");
+    return;
   }
   "dropped" !== t.state || "atk" !== player.team
     ? $("spike").classList.remove("on")
@@ -16053,7 +16052,7 @@ function endRound(e, t) {
     }, delay);
 }
 function checkRoundEnd() {
-  if (world.over || "live" !== world.phase) return;
+  if (NET.mode === "client" || world.over || "live" !== world.phase) return;
   let e, t;
   world.actors && world.actors.length
     ? ((e = world.actors.filter((e) => e.alive && "atk" === e.team).length),
@@ -16064,12 +16063,13 @@ function checkRoundEnd() {
       (t =
         ("def" === player.team && player.alive ? 1 : 0) +
         world.entities.filter((e) => e.alive && "def" === e.team).length));
-  const o = "planted" === world.spike.state;
-  0 !== e || o
-    ? 0 === t
-      ? endRound("atk", "수비팀 전멸")
-      : world.roundTime <= 0 && !o && endRound("def", "시간 초과")
-    : endRound("def", "공격팀 전멸");
+  if (world.spike.state === "planted") {
+    if (t === 0) endRound("atk", "수비팀 전멸");
+    return;
+  }
+  if (e === 0) endRound("def", "공격팀 전멸");
+  else if (t === 0) endRound("atk", "수비팀 전멸");
+  else if (world.roundTime <= 0) endRound("def", "시간 초과");
 }
 function winRounds() {
   const e =
@@ -16509,13 +16509,7 @@ function buildSnapshot(includeEffects = true) {
     sd: world.scoreDef,
     rd: world.round,
     sk: [
-      "carried" === e.state
-        ? 0
-        : "dropped" === e.state
-          ? 1
-          : "planted" === e.state
-            ? 2
-            : 3,
+      Math.max(0, SPIKE_STATES.indexOf(e.state)),
       Q.pos(e.x),
       Q.pos(e.z),
       Math.round(10 * (e.timer || 0)),
@@ -16527,7 +16521,7 @@ function buildSnapshot(includeEffects = true) {
     ...(gm ? { gm } : {}),
   };
 }
-const SPIKE_STATES = ["carried", "dropped", "planted", "defused"];
+const SPIKE_STATES = ["carried", "dropped", "planted", "defused", "boom"];
 // The host stamps each snapshot with its own clock (ht, ms). The guest keeps the offset between the two clocks as the largest
 // (ht - arrival time) seen lately, i.e. that of the snapshot that was least delayed on the way; it falls 20 ms a second so a
 // link that has become slower is followed. An old host sends no ht: the arrival time stands in for it.
@@ -16543,6 +16537,12 @@ function netClockSample(ht) {
   return ((c.at = now), (c.stamp = ht), c);
 }
 function applySnapshot(e) {
+  const sameRound = world.round === e.rd;
+  const previousSpikeState = world.spike.state;
+  const ascent = typeof ASCENT_TRIAL !== "undefined" && ASCENT_TRIAL.active;
+  const roundEnded = sameRound && e.ph === "end" && world.phase !== "end" &&
+    !window.GAME_MODES?.[room.mode]?.respawn;
+  const winner = roundEnded && (e.sa > world.scoreAtk ? "atk" : e.sd > world.scoreDef ? "def" : null);
   (netClockSample(e.ht),
     (world.phase = e.ph),
     (world.roundTime = e.rt / 10),
@@ -16555,6 +16555,27 @@ function applySnapshot(e) {
     (t.z = Q.unpos(e.sk[2])),
     (t.timer = e.sk[3] / 10),
     (t.halfDefused = !!e.sk[4]));
+  if (previousSpikeState !== "planted" && t.state === "planted") {
+    player.planting = 0;
+    player.plantAnchor = null;
+    t.beepT = 0;
+    t.defTick = 0;
+    SFX.planted();
+  }
+  if (!ascent && t.mesh && previousSpikeState !== t.state) {
+    const shown = t.state === "planted" || t.state === "dropped";
+    t.mesh.visible = shown;
+    if (shown) {
+      if (!t.mesh.parent) scene.add(t.mesh);
+      t.mesh.position.set(t.x, 0, t.z);
+      if (t.state === "planted") spikeDeployFx(t.mesh);
+    }
+  }
+  if (sameRound && previousSpikeState === "planted" && t.state !== "planted") {
+    player.defusing = 0;
+    if (t.state === "boom") spikeBlast(t.x, ascent && Number.isFinite(e.sk[5]) ? Q.unpos(e.sk[5]) : 0, t.z);
+    if (t.state === "defused") SFX.defused();
+  }
   const o = new Set(),
     ak = e.ak;
   for (const t of e.a) {
@@ -16566,6 +16587,14 @@ function applySnapshot(e) {
   }
   for (const a of world.actors)
     !o.has(a.id) && a.group && (a.group.visible = !1);
+  if (winner) {
+    let reason = "공격팀 전멸";
+    if (winner === "atk") reason = t.state === "boom" ? "폭탄 폭발" : "수비팀 전멸";
+    else if (t.state === "defused") reason = "폭탄 해제됨";
+    else if (world.actors.some(a => o.has(a.id) && a.alive && a.team === "atk")) reason = "시간 초과";
+    const won = player.team === winner;
+    banner(won ? `라운드 승리 · ${reason}` : `라운드 패배 · ${reason}`, won ? "#4ade80" : "#ff3b4e");
+  }
   e.fx && e.fx.length && playRemoteFX(e.fx);
   if (e.gm) for (const m of e.gm) try { NET.onEvent && NET.onEvent(m); } catch (x) {}
 }
@@ -20128,8 +20157,13 @@ function updateHUD() {
     _hT($("tb-atk"), world.scoreAtk),
     _hT($("tb-def"), world.scoreDef));
   const r = Math.max(0, world.roundTime);
+  const clock = $("tb-time"), fuse = $("tb-spike");
+  const planted = world.phase === "live" && world.spike.state === "planted";
+  clock.hidden = planted;
+  fuse.hidden = !planted;
+  if (planted) fuse.value = clamp(world.spike.timer / SPIKE.FUSE, 0, 1);
   (_hT(
-    $("tb-time"),
+    clock,
     `${Math.floor(r / 60)}:${String(Math.floor(r % 60)).padStart(2, "0")}`,
   ),
     _hT(
@@ -20832,6 +20866,12 @@ function menuCovered() {
   return !$("s-select").hidden || !$("lobby").hidden;
 }
 function step(e) {
+  const spike = world.spike;
+  const fuseExpires = isHost() && world.phase === "live" && !world.over &&
+    spike.state === "planted" && spike.timer <= e + SPIKE_FUSE_EPSILON;
+  // On the last step, interactions get only the time strictly before expiry.
+  if (fuseExpires) e = Math.min(e, Math.max(0, spike.timer - SPIKE_FUSE_EPSILON));
+  else tickSpikeFuse(e);
   "buy" === world.phase
     ? ((world.roundTime -= e),
       world.roundTime <= 0 &&
@@ -20839,7 +20879,7 @@ function step(e) {
         (world.roundTime = 100),
         closeShop(),
         banner("교전 개시", "#4ade80")))
-    : "live" === world.phase && (world.roundTime -= e);
+    : "live" === world.phase && world.spike.state !== "planted" && (world.roundTime -= e);
   if (
     (!(world.actors && world.actors.length) &&
       (player.blind > 0 && (player.blind -= e),
@@ -20937,6 +20977,7 @@ function step(e) {
                 t.hasSpike && t.alive && (t.team === player.team || o)));
         }),
     handleSpike(e),
+    fuseExpires && tickSpikeFuse(spike.timer),
     "live" === world.phase && checkRoundEnd(),
     updateZones(e),
     updateProps(e),
