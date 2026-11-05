@@ -34,11 +34,17 @@ test('respawn modes cannot show a stale result over a menu, new map, new match o
     f.ctx.scheduleMatchFinish();change(f);f.advance(2600);assert.equal(f.results,change.toString()==='()=>{}'?1:0);
   }
 });
-test('simultaneous elimination follows the existing planted/unplanted rule and scores once',()=>{
-  for(const [state,atk,def,winner]of [['carried',0,0,'def'],['planted',0,0,'atk'],['carried',1,0,'atk'],['planted',0,1,null],['carried',1,1,'def']]){
+test('only the host settles eliminations; a planted spike outlasts an attacker wipe and round clock',()=>{
+  for(const [mode,state,atk,def,winner]of [
+    ['solo','carried',0,0,'def'],['host','carried',0,1,'def'],['host','planted',0,0,'atk'],
+    ['host','carried',1,0,'atk'],['host','planted',0,1,null],['host','planted',1,1,null],
+    ['host','carried',1,1,'def'],['client','carried',0,1,null],['client','planted',1,0,null],
+  ]){
     const f=fixture();f.world.spike={state};f.world.roundTime=0;f.world.actors=[...Array.from({length:atk},()=>({alive:true,team:'atk'})),...Array.from({length:def},()=>({alive:true,team:'def'})),{alive:false,team:'atk'}];
+    f.ctx.NET.mode=mode;
     vm.runInContext(engine.slice(engine.indexOf('function checkRoundEnd()'),engine.indexOf('function winRounds()')),f.ctx);
-    f.ctx.checkRoundEnd();f.ctx.checkRoundEnd();assert.equal(f.world.scoreAtk,winner==='atk'?1:0);assert.equal(f.world.scoreDef,winner==='def'?1:0);assert.equal(f.timers.size,winner?1:0);
+    f.ctx.checkRoundEnd();f.ctx.checkRoundEnd();
+    assert.deepEqual([f.world.scoreAtk,f.world.scoreDef,f.timers.size], [winner==='atk'?1:0,winner==='def'?1:0,winner?1:0], `${mode}, ${state}, ${atk} attackers and ${def} defenders`);
   }
 });
 // detonate() only builds throw-away fx meshes that addFx (stubbed below) discards, so a minimal stand-in keeps this logic test independent of the three package being installed.
