@@ -97,6 +97,26 @@
     // small lit emblem that follow the gun's own surface
     { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, tile: 0.2, pat: "champion", mpat: "championPlate", mtile: 0.32, fitAll: !0, kit: "champion", em: !0, anim: "pulse", pal: ["#09090e", "#d6d9e2", "#e3b13e", "#ff8f1f", "#8a35ff", "#ff3fb0"], body: [0xffffff, 0.3, 0.4], coat: [1, 0.04], metal: [0xffffff, 0.3, 0.3], mcoat: [1, 0.06], dark: [0x0b0b11, 0.26, 0.55], dcoat: [1, 0.05], glow: 0xc060ff, glass: 0xe8c6ff },
   ];
+  // ── 챔피언의 물결 concepts under review (dev only): localStorage "dfdf_champion_concept" = A | B | C dresses the skin in
+  // one of three looks so the owner can compare real renders; with no flag the skin is as shipped. Each look is a finish on
+  // the gun's own parts with box-projected uv (boxUV: a pattern runs along the gun's length on every part) and a few pieces
+  // of surface-following trim (trim), never a shell.
+  const CHAMP_LOOKS = {
+    // A · 물마루 (Tide Line): satin midnight armour, one gold wave line sweeping along the gun with a violet-to-pink glow
+    // under its crest and a fine gold pinstripe beside it; polished dark metal; gold top line, violet light line, pink gem
+    A: { pat: "champTide", tile: 0.46, mpat: "champTide", mtile: 0.46, mem: !0, em: !0, boxUV: !0, boxY: -0.02, fitAll: !0, anim: "pulse", pal: ["#05070d", "#0e1424", "#e2b75a", "#ff4fb8", "#9a4dff", "#ffe0f2"], body: [0xffffff, 0.4, 0.2], coat: [0.7, 0.2], metal: [0xffffff, 0.24, 0.65], mcoat: [1, 0.06], dark: [0x07080d, 0.5, 0.35], dcoat: null, glow: 0xc060ff, trim: { gold: 0xe2b75a, low: 0xa04dff, gem: 0xff4fb8, pip: 0xffe6f4 } },
+    // B · 트로피 물결 (Trophy Ripple): mirror-black lacquer, metal parts in polished gold with an engine-turned ripple
+    // (guilloché) finish, and violet ripples of light engraved round a small onyx emblem; no other ornament
+    B: { pat: null, mpat: "champEngrave", mtile: 0.11, mem: !1, em: !1, boxUV: !0, fitAll: !0, anim: null, pal: ["#09090c", "#d9a441", "#f3d27a", "#b04dff", "#8a35ff", "#ff3fb0"], body: [0x0b0a10, 0.14, 0.3], coat: [1, 0.02], metal: [0xe0ac48, 0.2, 1], mcoat: null, dark: [0x0a0a0d, 0.5, 0.4], dcoat: [1, 0.1], glow: 0xb04dff, trim: { top: !1, low: !1, gold: 0xf0c060, gem: 0x140a20, pip: 0xc070ff, ripple: 3, rippleCol: 0xb04dff } },
+    // C · 진주 물살 (Pearl Surf): pearl white to lilac with a shifting iridescent sheen, two translucent glowing wave lines
+    // (violet, pink); deep plum small parts; rose-gold top line, pink light line, violet gem
+    C: { pat: "champPearl", tile: 0.5, mpat: "champPearl", mtile: 0.5, mem: !0, em: !0, boxUV: !0, boxY: -0.01, fitAll: !0, anim: "pulse", pal: ["#f7f3fb", "#ddd0f2", "#f1c0c8", "#ff5fc8", "#9a4dff", "#f4e2f2"], body: [0xf4effc, 0.3, 0.05], coat: [1, 0.05], irid: [1, 1.6, [180, 900]], metal: [0xebe4fa, 0.2, 0.45], mcoat: [1, 0.05], mirid: [0.8, 1.5, [180, 900]], dark: [0x2a1636, 0.32, 0.35], dcoat: [1, 0.08], glow: 0xff5fc8, trim: { gold: 0xf2c2c6, low: 0xff5fc8, gem: 0x9a4dff, pip: 0xffffff } },
+  };
+  try {
+    const look = CHAMP_LOOKS[localStorage.getItem("dfdf_champion_concept")],
+      champ = SKINS.find((x) => x.id === "champion");
+    look && champ && Object.assign(champ, look, { concept: localStorage.getItem("dfdf_champion_concept") });
+  } catch (e) {}
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
     { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
@@ -1372,6 +1392,103 @@
         }
     },
   };
+  // the concept patterns (see CHAMP_LOOKS); every one tiles in both directions
+  Object.assign(PAT, {
+    // A: midnight base with a faint brushed grain; one wave per tile, a gold line with a violet→pink glow under its crest
+    // and a fine gold pinstripe riding above it
+    champTide(g, W, H, pal, em) {
+      const TAU = Math.PI * 2,
+        wy = (x, ph) => H * 0.5 + H * 0.16 * Math.sin((TAU * x) / W + ph) + H * 0.045 * Math.sin((2 * TAU * x) / W + ph * 1.7);
+      g.fillStyle = "#000";
+      g.fillRect(0, 0, W, H);
+      if (!em) {
+        const bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, pal[0]);
+        bg.addColorStop(0.5, pal[1]);
+        bg.addColorStop(1, pal[0]);
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        const R = rng(77);
+        g.globalAlpha = 0.05;
+        g.fillStyle = "#c8d4ff";
+        for (let i = 0; i < 140; i++) g.fillRect(R() * W, R() * H, W * (0.05 + 0.15 * R()), 1);
+        g.globalAlpha = 1;
+      }
+      const path = (off) => {
+        g.beginPath();
+        for (let i = 0; i <= 128; i++) {
+          const x = (i / 128) * W;
+          i ? g.lineTo(x, wy(x, 0.6) + off) : g.moveTo(x, wy(x, 0.6) + off);
+        }
+      };
+      // the glow under the crest: a soft band fading downwards, violet into pink
+      for (let k = 0; k < 14; k++) {
+        path(H * 0.006 * (k + 1));
+        g.strokeStyle = k < 5 ? pal[3] : pal[4];
+        g.globalAlpha = (em ? 0.55 : 0.35) * (1 - k / 14);
+        g.lineWidth = H * 0.008;
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      if (!em) {
+        path(0);
+        g.strokeStyle = pal[2];
+        g.lineWidth = H * 0.012;
+        g.stroke();
+        path(-H * 0.03);
+        g.lineWidth = H * 0.003;
+        g.stroke();
+      } else {
+        path(H * 0.004);
+        g.strokeStyle = pal[5];
+        g.lineWidth = H * 0.004;
+        g.stroke();
+      }
+    },
+    // B's gold: an engine-turned ripple, circles cut round each tile corner and its centre, lighter and darker gold
+    champEngrave(g, W, H) {
+      g.fillStyle = "#f4ecd8";
+      g.fillRect(0, 0, W, H);
+      g.lineWidth = W * 0.006;
+      for (const [cx, cy] of [[0, 0], [W, 0], [0, H], [W, H], [W / 2, H / 2]])
+        for (let r = W * 0.03; r < W * 0.5; r += W * 0.035) {
+          g.beginPath();
+          g.arc(cx, cy, r, 0, Math.PI * 2);
+          g.strokeStyle = (Math.round(r / (W * 0.035)) % 2 ? "rgba(120,86,30," : "rgba(255,250,235,") + "0.35)";
+          g.stroke();
+        }
+    },
+    // C: pearl from white to lilac to blush with two translucent wave lines, violet and pink, that also glow
+    champPearl(g, W, H, pal, em) {
+      const TAU = Math.PI * 2;
+      g.fillStyle = "#000";
+      g.fillRect(0, 0, W, H);
+      if (!em) {
+        const bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, pal[0]);
+        bg.addColorStop(0.35, pal[1]);
+        bg.addColorStop(0.7, pal[5]);
+        bg.addColorStop(1, pal[0]);
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+      }
+      for (const [yc, amp, ph, c] of [[0.42, 0.07, 0.4, pal[4]], [0.6, 0.06, 2.6, pal[3]]]) {
+        for (const [w, a] of em ? [[0.03, 0.3], [0.009, 1]] : [[0.024, 0.22], [0.007, 0.85]]) {
+          g.beginPath();
+          for (let i = 0; i <= 128; i++) {
+            const x = (i / 128) * W,
+              y = H * yc + H * amp * Math.sin((TAU * x) / W + ph);
+            i ? g.lineTo(x, y) : g.moveTo(x, y);
+          }
+          g.strokeStyle = c;
+          g.globalAlpha = a;
+          g.lineWidth = H * w;
+          g.stroke();
+        }
+      }
+      g.globalAlpha = 1;
+    },
+  });
   const TEX = {};
   function texture(skin, em, pat) {
     pat = pat || skin.pat;
@@ -1402,9 +1519,15 @@
       const [c, r, mt] = skin[cls];
       // a lacquer coat (and, for opal, the play of colour) on the newest skins' bodies
       // (a lacquer coat on the metal or the small dark parts too, for a skin that asks: mcoat, dcoat)
-      const coat = "body" === cls ? skin.coat : "metal" === cls ? skin.mcoat : skin.dcoat;
-      m = coat || ("body" === cls && skin.irid) ? new T.MeshPhysicalMaterial({ color: c, roughness: r, metalness: mt, clearcoat: coat ? coat[0] : 0, clearcoatRoughness: coat ? coat[1] : 0, iridescence: "body" === cls && skin.irid ? skin.irid[0] : 0, iridescenceIOR: skin.irid ? skin.irid[1] : 1.3, iridescenceThicknessRange: [120, 520] }) : new T.MeshStandardMaterial({ color: c, roughness: r, metalness: mt });
+      const coat = "body" === cls ? skin.coat : "metal" === cls ? skin.mcoat : skin.dcoat,
+        irid = "body" === cls ? skin.irid : "metal" === cls ? skin.mirid : null;
+      m = coat || irid ? new T.MeshPhysicalMaterial({ color: c, roughness: r, metalness: mt, clearcoat: coat ? coat[0] : 0, clearcoatRoughness: coat ? coat[1] : 0, iridescence: irid ? irid[0] : 0, iridescenceIOR: irid ? irid[1] : 1.3, iridescenceThicknessRange: irid && irid[2] ? irid[2] : [120, 520] }) : new T.MeshStandardMaterial({ color: c, roughness: r, metalness: mt });
       if ("metal" === cls && skin.mpat) m.map = texture(skin, !1, skin.mpat);
+      if ("metal" === cls && skin.mpat && skin.mem) {
+        m.emissiveMap = texture(skin, !0, skin.mpat);
+        m.emissive = new T.Color(0xffffff);
+        m.emissiveIntensity = 1;
+      }
       if ("body" === cls && skin.pat) {
         m.map = texture(skin);
         if (skin.em) {
@@ -1438,19 +1561,43 @@
   const TILE = 0.16;
   // dense: also fit parts of any other shape (extruded profiles, merged parts) by measuring how many uv units their own
   // uv runs per metre, so a pattern drawn for the whole gun is not a tenth of a tile on a part whose uv is in metres
-  function fitUV(mesh, tile, vOff, dense) {
+  // box: the gun's inverse world matrix; the uv is then projected in the gun's own space (sides: along the gun and up, top:
+  // along and across, ends: across and up), so a pattern runs along the gun's length on every part whichever way its own uv
+  // was laid out
+  function fitUV(mesh, tile, vOff, dense, box, boxY) {
     tile = tile || TILE;
+    boxY = boxY || 0;
     // each part starts the pattern where it sits on the gun, so the pattern runs on from part to part
     const ou = (mesh.position.x + mesh.position.z) / tile,
       ov = (vOff || 0) + (0.5 * mesh.position.y) / tile;
     const g = mesh.geometry,
       uv = g && g.attributes.uv;
-    const fitKey = dense ? tile + "d" : tile;
+    const fitKey = box ? tile + "b" + boxY : dense ? tile + "d" : tile;
     if (!uv || g.userData.uvFit === fitKey) return;
     // (the first fit keeps the original uv, so a part dressed again in another skin is fitted from that)
     g.userData.uv0 = g.userData.uv0 || uv.array.slice();
     uv.array.set(g.userData.uv0);
     g.userData.uvFit = fitKey;
+    if (box) {
+      const pos = g.attributes.position,
+        nor = g.attributes.normal;
+      if (!pos || !nor) return;
+      const m = new T.Matrix4().multiplyMatrices(box, mesh.matrixWorld),
+        nm = new T.Matrix3().getNormalMatrix(m),
+        p = new T.Vector3(),
+        n = new T.Vector3();
+      for (let i = 0; i < uv.count; i++) {
+        p.fromBufferAttribute(pos, i).applyMatrix4(m);
+        n.fromBufferAttribute(nor, i).applyMatrix3(nm);
+        const ax = Math.abs(n.x),
+          ay = Math.abs(n.y),
+          az = Math.abs(n.z);
+        const v = 0.5 + (p.y - boxY) / tile;
+        ax >= ay && ax >= az ? uv.setXY(i, -p.z / tile, v) : ay >= az ? uv.setXY(i, -p.z / tile, p.x / tile) : uv.setXY(i, p.x / tile, v);
+      }
+      uv.needsUpdate = !0;
+      return;
+    }
     const P = g.parameters || {},
       t = g.type;
     let f = null;
@@ -1566,14 +1713,17 @@
         za = sb.min.z,
         zb = sb.max.z,
         span = zb - za,
+        tr = skin.trim || {},
+        mk = "m" + (tr.gold || 0xf1c35a),
         M =
-          KITS._m ||
-          (KITS._m = {
-            gold: new T.MeshStandardMaterial({ color: 0xf1c35a, roughness: 0.26, metalness: 0.85, emissive: 0x3a2200, emissiveIntensity: 1 }),
-            light: new T.MeshBasicMaterial({ vertexColors: !0 }),
+          (KITS._ms || (KITS._ms = {}))[mk] ||
+          (KITS._ms[mk] = {
+            gold: new T.MeshStandardMaterial({ color: tr.gold || 0xf1c35a, roughness: 0.26, metalness: 0.85, emissive: new T.Color(tr.gold || 0xf1c35a).multiplyScalar(0.2), emissiveIntensity: 1, side: T.DoubleSide }),
+            light: new T.MeshBasicMaterial({ vertexColors: !0, side: T.DoubleSide }),
           }),
         pieces = [],
         hit = (sd, y, z, face) => hitOn(spine, sd, y, z, face);
+      KITS._m || (KITS._m = M);
       for (const k in M) (M[k].userData.keep = !0), (M[k].userData.kit = !0);
       const col = (c) => {
         const k = new T.Color(c);
@@ -1618,8 +1768,9 @@
       };
       // the emblem: a flat spot on the part's side (the centre and four points round it on one face), a gold ring, a violet
       // gem and a hot centre
-      const emblem = (sd, r) => {
+      const emblem = (sd, r0) => {
         const y = sTop - sH * 0.56;
+        for (const r of [r0, r0 * 0.7, r0 * 0.5])
         for (const u of [0.66, 0.6, 0.72, 0.54, 0.78, 0.48]) {
           const z = za + span * u,
             c = hit(sd, y, z, 0.9);
@@ -1638,20 +1789,63 @@
           const gem = new T.CylinderGeometry(r * 0.8, r * 0.8, t, 24);
           gem.rotateZ(Math.PI / 2);
           gem.translate(x + (sd * t) / 2, y, z);
-          put(gem, M.light, col(0xb24dff));
+          put(gem, M.light, col(tr.gem || 0xb24dff));
           const pip = new T.CylinderGeometry(r * 0.32, r * 0.32, t, 14);
           pip.rotateZ(Math.PI / 2);
           pip.translate(x + sd * t * 0.8, y, z);
-          put(pip, M.light, col(0xffd9a0));
-          return;
+          put(pip, M.light, col(tr.pip || 0xffd9a0));
+          return { sd, x: c.p.x, y, z };
         }
       };
       const unit = Math.min(sH, L * 0.12),
         r = Math.max(0.0045, Math.min(0.018, sH * 0.27));
+      // a flat ribbon through surface points (each with its normal), lifted just off the surface
+      const ribbon = (pts, w, mat, rgb) => {
+        const pos = [],
+          nor = [],
+          sa = new T.Vector3(),
+          sb2 = new T.Vector3(),
+          t = new T.Vector3();
+        for (let i = 0; i + 1 < pts.length; i++) {
+          const a = pts[i],
+            b = pts[i + 1];
+          if (!a || !b || Math.abs(a.p.x - b.p.x) > spine.dx * 0.12) continue;
+          t.subVectors(b.p, a.p);
+          if (t.lengthSq() < 1e-12) continue;
+          sa.crossVectors(a.n, t).normalize().multiplyScalar(w / 2);
+          sb2.crossVectors(b.n, t).normalize().multiplyScalar(w / 2);
+          const A = a.p.clone().addScaledVector(a.n, 0.0004),
+            B = b.p.clone().addScaledVector(b.n, 0.0004),
+            v = [A.clone().sub(sa), A.clone().add(sa), B.clone().add(sb2), B.clone().sub(sb2)];
+          for (const k of [0, 1, 2, 0, 2, 3]) {
+            const nn = k < 2 ? a.n : b.n;
+            pos.push(v[k].x, v[k].y, v[k].z);
+            nor.push(nn.x, nn.y, nn.z);
+          }
+        }
+        if (!pos.length) return;
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+        g.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
+        g.setAttribute("uv", new T.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+        put(g, mat, rgb);
+      };
       for (const sd of [-1, 1]) {
-        line(sd, sTop - sH * 0.26, 0.05, 0.95, Math.max(0.0014, unit * 0.075), Math.max(0.0008, unit * 0.03), M.gold);
-        line(sd, sb.min.y + sH * 0.16, 0.08, 0.92, Math.max(0.0008, unit * 0.03), Math.max(0.0006, unit * 0.018), M.light, col(0xff8f1f));
-        emblem(sd, r);
+        tr.top !== !1 && line(sd, sTop - sH * 0.26, 0.05, 0.95, Math.max(0.0014, unit * 0.075), Math.max(0.0008, unit * 0.03), M.gold);
+        tr.low !== !1 && line(sd, sb.min.y + sH * 0.16, 0.08, 0.92, Math.max(0.0008, unit * 0.03), Math.max(0.0006, unit * 0.018), M.light, col(tr.low || 0xff8f1f));
+        const e = emblem(sd, r);
+        // ripples of light round the emblem, cut into the part's own surface and broken where it ends
+        if (e && tr.ripple)
+          for (let k = 0; k < tr.ripple; k++) {
+            const rr = r * (1.7 + k * 0.85),
+              pts = [];
+            for (let j = 0; j <= 72; j++) {
+              const a = (j / 72) * Math.PI * 2,
+                h = hit(sd, e.y + Math.sin(a) * rr, e.z + Math.cos(a) * rr, 0.6);
+              pts.push(h);
+            }
+            ribbon(pts, Math.max(0.0007, r * (0.09 - k * 0.015)), M.light, col(tr.rippleCol || 0xb04dff));
+          }
       }
       if (!pieces.length) return;
       // baked: one mesh per material, in the part's own parent (so trim on a slide moves with the slide)
@@ -1712,6 +1906,11 @@
       k.traverse((o) => o.geometry && o.geometry.dispose());
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
+    let box = null;
+    if (skin.boxUV) {
+      root.updateMatrixWorld(!0);
+      box = root.matrixWorld.clone().invert();
+    }
     if ("default" !== skin.id) {
       root.traverse((o) => {
         if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.kit) return;
@@ -1721,7 +1920,7 @@
         const m = skinMat(skin, cls, o.material);
         if (!m) return;
         o.material = m;
-        m.map && fitUV(o, ("metal" === cls && skin.mtile) || skin.tile, skin.vOff, skin.fitAll);
+        m.map && fitUV(o, ("metal" === cls && skin.mtile) || skin.tile, skin.vOff, skin.fitAll, box, skin.boxY);
       });
     }
     root.userData.skin = skin.id;
