@@ -160,3 +160,7 @@
 - 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude Hush·Verdict). #126의 play.html 변경은 다른 줄(solid-geometry.js)이라 겹치지 않고, 이번 파일과 겹치는 미반영 Codex 변경은 없다(최근 codex/* 브랜치: adsense-compliance #131 병합됨, ascent-layout-restore, champions-solid-rifle). 챔피언의 물결 스킨(58·96·97)은 다른 세션 담당이라 건드리지 않았다.
 - 담당 파일: `js/gun-model-machpist.js`(새), `play.html`(스크립트 한 줄). `js/legacy-gun-models.js`의 옛 machpist는 그대로 두고 뒤에 로드되는 새 파일이 `GUN_BUILD.machpist`를 대체한다. 챔스 파일·champion 키트·다른 총 모델·무기 수치·가격·스킨 목록·광고 파일은 건드리지 않았다.
 - 설계: 상단 보정 컷 3개와 광학 컷이 있는 슬라이드, 오픈 에미터 레드닷, 슬라이드 왼쪽 뒤의 조정간, 슬라이드 폭 3실 보정기, 손가락 홈 그립, 레일 앞 핸드 스톱, 그립 아래로 길게 나온 33발 탄창과 넓은 베이스플레이트. 기본 마감은 FDE 프레임 + 텅스텐 회색 슬라이드 + 스테인리스 보정기 + 검은 광학·소부품.
+- 결과: 메시 41→16, 크기 0.060×0.326×0.366 → 0.049×0.338×0.393(길이 +7%, 높이 +4%, 폭은 실총 비율로 좁아짐). 보정기 앞면이 옛 총구 위치(z -0.276)이고 `anchors.muzzle`도 그곳(3인칭 섬광·예광탄). 슬라이드·광학·조정간이 한 그룹으로 사격·연사마다 후퇴하고 재장전 때 당겨진다. 탄창은 mag() 4부품(몸통·베이스플레이트·구멍·맨 위 탄)으로 통째로 빠진다. `browser-legacy-models.js` 단언은 바꾸지 않았다.
+- 통합: 작업 중 origin/main이 `1a5068a`(Claude #132 병합, Codex #133 글꼴·#134 폭탄전 규칙)로 전진해 병합했다. 겹친 파일은 play.html(다른 줄)과 이 기록(양쪽 유지)뿐이고 총 코드와 겹치지 않는다.
+- 실제 검사(로컬): 병합 전 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0, 브라우저(하나씩) legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload·render-cost·gun-template-memory·drop-skins 모두 통과. main 병합 후 단위·check·자산·사이트 페이지·광고 준비와 legacy-models·reload 재실행 통과. 실기기/Android 미검증. 미배포·미푸시.
+- 남은 점: 실총 폭(슬라이드 25.5mm)을 옛 길이에 맞추니 1인칭에서 옛 뭉툭한 모델보다 가늘어 보인다. 사용자 승인 후 다음 총(5/18).
