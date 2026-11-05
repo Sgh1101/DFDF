@@ -4,7 +4,7 @@
 const RATE = 22050;
 const TAU = 2 * Math.PI;
 
-function render(duration, seed, compose) {
+function render(duration, seed, compose, makeup = 1) {
   const signal = new Float64Array(Math.round(duration * RATE));
   function noise() {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -62,25 +62,33 @@ function render(duration, seed, compose) {
   out.writeUInt16LE(16, 34);
   out.write('data', 36);
   out.writeUInt32LE(signal.length * 2, 40);
-  for (let i = 0; i < signal.length; i++) out.writeInt16LE(Math.round(signal[i] * gain * 32767), 44 + i * 2);
+  for (let i = 0; i < signal.length; i++) {
+    let sample = signal[i] * gain * makeup;
+    const magnitude = Math.abs(sample);
+    // Lift quiet flips while keeping the sharp pin clicks below full scale.
+    if (makeup > 1 && magnitude > .6) {
+      sample = Math.sign(sample) * (.6 + .19 * Math.tanh((magnitude - .6) / .19));
+    }
+    out.writeInt16LE(Math.round(sample * 32767), 44 + i * 2);
+  }
   return out;
 }
 
 function sounds() {
-  const flips = (duration, seed, cues) => render(duration, seed, ({ air, click, latch }) => {
+  const flips = (duration, seed, cues, makeup) => render(duration, seed, ({ air, click, latch }) => {
     cues.forEach(([at, force, pitch], i) => {
       air(Math.max(0, at - .075), .13, force * .37, .14);
       if (i % 3 === 1) click(at, force, pitch);
       else latch(at, force, pitch);
     });
-  });
+  }, makeup);
   const cut = (seed, strength, sweep, pitch) => render(.32, seed, ({ air, click }) => {
     air(.01, .245, strength, sweep);
     air(.033, .108, strength * .36, .29);
     click(.104, .14, pitch);
   });
   return {
-    draw: flips(1, 201, [[.022,.32,1.2],[.116,.55,1.05],[.28,.7,.88],[.45,.48,1.12],[.61,.79,.86],[.73,.29,1.14]]),
+    draw: flips(1, 201, [[.022,.32,1.2],[.116,.55,1.05],[.28,.7,.88],[.45,.48,1.12],[.61,.79,.86],[.73,.29,1.14]], 1.65),
     inspect: flips(4.35, 202, [
       [.025,.35,1.18],[.17,.64,.91],[.44,.42,1.07],[.66,.64,.92],[.92,.39,1.21],
       [1.24,.7,.84],[1.51,.42,1.13],[1.8,.59,.95],[2.11,.57,1.16],[2.46,.74,.85],
@@ -89,9 +97,9 @@ function sounds() {
     melee_1: cut(203, .81, .23, 1.02),
     melee_2: cut(204, .87, .31, 1.16),
     melee_3: cut(205, .96, .19, .88),
-    rotate_1: flips(1.04, 206, [[.053,.51,1.05],[.23,.67,.87],[.44,.45,1.12],[.68,.74,.89]]),
-    rotate_2: flips(1, 207, [[.064,.46,1.17],[.26,.61,1.02],[.49,.72,.88],[.67,.42,1.13]]),
-    rotate_3: flips(1.25, 208, [[.032,.4,1.12],[.21,.62,.94],[.47,.48,1.23],[.72,.76,.86],[.93,.33,1.11]]),
+    rotate_1: flips(1.04, 206, [[.053,.51,1.05],[.23,.67,.87],[.44,.45,1.12],[.68,.74,.89]], 1.88),
+    rotate_2: flips(1, 207, [[.064,.46,1.17],[.26,.61,1.02],[.49,.72,.88],[.67,.42,1.13]], 2),
+    rotate_3: flips(1.25, 208, [[.032,.4,1.12],[.21,.62,.94],[.47,.48,1.23],[.72,.76,.86],[.93,.33,1.11]], 1.85),
   };
 }
 

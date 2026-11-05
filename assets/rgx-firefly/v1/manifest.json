@@ -23,7 +23,7 @@
     {
       "name": "sounds/sgh_draw.wav",
       "size": 44144,
-      "sha256": "67804e0c94b7a968f2789ec9885d04e89650a17179bebcbe4eb389a00ee8516c"
+      "sha256": "c7bdbb32cf606a04b2a73be47f8dcc2de076d49a30fbfa5ba35eb9baf141894d"
     },
     {
       "name": "sounds/sgh_inspect.wav",
@@ -48,17 +48,17 @@
     {
       "name": "sounds/sgh_rotate_1.wav",
       "size": 45908,
-      "sha256": "ca3a62ada616abc04d792a54a4c3be4610258b059820b778cd060fa84912e6a0"
+      "sha256": "85eb58b5006c05dda53681b8bc4734bc76f0080e143615263e41e711c9e68c0e"
     },
     {
       "name": "sounds/sgh_rotate_2.wav",
       "size": 44144,
-      "sha256": "7e1c490b54f7e61e05f45ee894b61df252a7844781f14409f2cdffef010a50f8"
+      "sha256": "f474a723c89c88499ba5ea6680fab66079335c804f012d4c7f5a17c0d318d5f5"
     },
     {
       "name": "sounds/sgh_rotate_3.wav",
       "size": 55170,
-      "sha256": "6d3a7eb5772a14f7573cb3ed88aed534ea5d9d681a87481749d39e20fc62036a"
+      "sha256": "18a3334d179fbcf635323db6d20159914e3f04e25eb96d5cca48f7ca60b6d70c"
     }
   ]
 }
