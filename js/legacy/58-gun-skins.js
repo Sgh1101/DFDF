@@ -92,11 +92,11 @@
     { id: "laurel", ko: "월계관", en: "Laurel", rar: 4, excl: "season", res: 512, tile: 0.36, pat: "laurel", em: !0, anim: "pulse", pal: ["#062418", "#0d3d2a", "#d4af37", "#fff1b8", "#fff6d6", "#c62828"], body: [0xffffff, 0.3, 0.2], coat: [1, 0.06], metal: [0xd4af37, 0.18, 1], dark: [0x072016, 0.5, 0.45], glow: 0xffd54f },
     // 챔피언의 물결: our own legendary, gloss-black armour with pale-grey plates edged in orange and gold and a purple-pink
     // plasma flame flowing over it in waves; shots send rings of light out of the muzzle (96-…champion…js)
-    // 물마루 (Tide Line): satin midnight armour on the gun's own parts, one gold wave line sweeping along the gun with a
-    // violet-to-pink glow under its crest and a fine gold pinstripe beside it (champTide, projected in the gun's own space so
-    // it runs along every part, its height and size taken from each gun: wave); polished dark metal; the kit adds only a thin
-    // gold top line, a violet light line and a small pink gem that follow the gun's own surface
-    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, pat: "champTide", mpat: "champTide", mem: !0, em: !0, wave: !0, fitAll: !0, kit: "champion", anim: "pulse", pal: ["#05070d", "#0e1424", "#e2b75a", "#ff4fb8", "#9a4dff", "#ffe0f2"], body: [0xffffff, 0.4, 0.2], coat: [0.7, 0.2], metal: [0xffffff, 0.24, 0.65], mcoat: [1, 0.06], dark: [0x07080d, 0.5, 0.35], glow: 0xc060ff, glass: 0xe8c6ff, trim: { gold: 0xe9be5e, low: 0xa04dff, gem: 0xff4fb8, pip: 0xffe6f4 } },
+    // 물마루 (Tide Line): a luminous twilight finish on the gun's own parts, one crisp gold wave line sweeping along the gun with
+    // a soft violet-pink bloom under its crest and a faint second wave like light on water (champTide, projected in the gun's
+    // own space so it runs along every part, its height and size taken from each gun: wave); indigo small parts; the kit adds
+    // only a thin gold top line, a lilac light line and a small pink gem that follow the gun's own surface
+    { id: "champion", ko: "챔피언의 물결", en: "Champion's Wave", rar: 4, res: 512, pat: "champTide", mpat: "champTide", mem: !0, em: !0, wave: !0, fitAll: !0, kit: "champion", anim: "pulse", pal: ["#1e1b3c", "#4a5192", "#ebc062", "#ff7ccb", "#a35cff", "#d4c6ff", "#5b4789"], body: [0xffffff, 0.34, 0.2], coat: [0.9, 0.1], metal: [0xffffff, 0.26, 0.42], mcoat: [1, 0.05], dark: [0x1b1b3c, 0.42, 0.35], dcoat: [0.6, 0.15], glow: 0xc060ff, glass: 0xe8c6ff, trim: { gold: 0xebc062, low: 0xc27aff, gem: 0xff6fc4, pip: 0xfff0f8 } },
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
@@ -1152,60 +1152,69 @@
         }
     },
   };
+  // the Tide Line tile is TIDE_ASP times as long (along the gun) as it is high, and drawn so: lines keep one width in the
+  // gun's own space whichever way they slope (applySkin gives every gun a tile of this shape)
+  const TIDE_ASP = 2.5;
   Object.assign(PAT, {
-    // 챔피언의 물결 (물마루, Tide Line): midnight base with a faint brushed grain; one wave across the tile, a gold line with a
-    // narrow violet→pink glow under its crest and a fine gold pinstripe riding above it. The wave sits in the middle of the
-    // tile, about a tenth of the tile high either side, so a gun's own size and height place it on the body (wave in applySkin)
+    // 챔피언의 물결 (물마루, Tide Line): a luminous twilight base, deep indigo at the edges of the tile brightening to blue
+    // above the wave and violet below it, like light on water; one wave across the tile drawn as a crisp polished-gold line
+    // (a darker gold edge, the gold, a fine highlight on its upper edge), a soft violet-pink bloom just under its crest, a
+    // faint lilac second wave following it lower down and a broad pale sheen above it. The wave sits in the middle of the
+    // tile, about an eighth of the tile high either side, so a gun's own size and height place it on the body (wave in
+    // applySkin). Emissive: the bloom and, faintly, the second wave and the gold
     champTide(g, W, H, pal, em) {
       const TAU = Math.PI * 2,
-        wy = (x, ph) => H * 0.5 + H * 0.1 * Math.sin((TAU * x) / W + ph) + H * 0.03 * Math.sin((2 * TAU * x) / W + ph * 1.7);
+        Hp = H / TIDE_ASP,
+        wy = (x, ph, k) => Hp * 0.5 + Hp * 0.1 * k * Math.sin((TAU * x) / W + ph) + Hp * 0.03 * k * Math.sin((2 * TAU * x) / W + ph * 1.7);
       g.fillStyle = "#000";
       g.fillRect(0, 0, W, H);
       if (!em) {
         const bg = g.createLinearGradient(0, 0, 0, H);
         bg.addColorStop(0, pal[0]);
-        bg.addColorStop(0.5, pal[1]);
+        bg.addColorStop(0.4, pal[1]);
+        bg.addColorStop(0.6, pal[6]);
         bg.addColorStop(1, pal[0]);
         g.fillStyle = bg;
         g.fillRect(0, 0, W, H);
         const R = rng(77);
-        g.globalAlpha = 0.05;
-        g.fillStyle = "#c8d4ff";
-        for (let i = 0; i < 140; i++) g.fillRect(R() * W, R() * H, W * (0.05 + 0.15 * R()), 1);
+        g.globalAlpha = 0.04;
+        g.fillStyle = "#dfe6ff";
+        for (let i = 0; i < 120; i++) g.fillRect(R() * W, R() * H, W * (0.05 + 0.15 * R()), 1);
         g.globalAlpha = 1;
       }
-      const path = (off) => {
+      g.save();
+      g.setTransform(1, 0, 0, TIDE_ASP, 0, 0);
+      const path = (off, ph, k) => {
         g.beginPath();
-        for (let i = 0; i <= 128; i++) {
-          const x = (i / 128) * W;
-          i ? g.lineTo(x, wy(x, 0.6) + off) : g.moveTo(x, wy(x, 0.6) + off);
+        for (let i = 0; i <= 160; i++) {
+          const x = (i / 160) * W;
+          i ? g.lineTo(x, wy(x, ph, k) + off) : g.moveTo(x, wy(x, ph, k) + off);
         }
       };
-      // the glow under the crest: a soft band fading downwards, violet into pink
-      for (let k = 0; k < 9; k++) {
-        path(H * 0.004 * (k + 1));
-        g.strokeStyle = k < 3 ? pal[3] : pal[4];
-        g.globalAlpha = (em ? 0.42 : 0.3) * (1 - k / 9);
-        g.lineWidth = H * 0.005;
+      const line = (off, ph, k, col, w, a, blur) => {
+        path(off, ph, k);
+        g.strokeStyle = col;
+        g.globalAlpha = a;
+        g.lineWidth = w;
+        g.shadowColor = blur ? col : "transparent";
+        g.shadowBlur = blur || 0;
         g.stroke();
-      }
-      g.globalAlpha = 1;
+        g.shadowBlur = 0;
+      };
+      // the sheen above the line and the second wave below it
+      em || line(-Hp * 0.05, 0.6, 1, "#ffffff", Hp * 0.07, 0.05, W * 0.02);
+      line(Hp * 0.075, 1.5, 0.85, pal[5], Hp * 0.005, em ? 0.22 : 0.4, em ? W * 0.008 : 0);
+      // the bloom under the crest: violet, then pink nearer the gold
+      line(Hp * 0.026, 0.6, 1, pal[4], Hp * 0.014, em ? 0.5 : 0.3, W * 0.03);
+      line(Hp * 0.019, 0.6, 1, pal[3], Hp * 0.004, em ? 0.75 : 0.45, W * 0.012);
+      // the gold line
       if (!em) {
-        path(0);
-        g.strokeStyle = pal[2];
-        g.lineWidth = H * 0.016;
-        g.stroke();
-        path(-H * 0.026);
-        g.lineWidth = H * 0.004;
-        g.stroke();
-      } else {
-        path(H * 0.011);
-        g.strokeStyle = pal[3];
-        g.globalAlpha = 0.85;
-        g.lineWidth = H * 0.004;
-        g.stroke();
-        g.globalAlpha = 1;
-      }
+        line(0, 0.6, 1, "#8f6520", Hp * 0.028, 1, 0);
+        line(0, 0.6, 1, pal[2], Hp * 0.021, 1, 0);
+        line(-Hp * 0.005, 0.6, 1, "#fff0c4", Hp * 0.0035, 0.75, 0);
+      } else line(0, 0.6, 1, pal[2], Hp * 0.02, 0.22, 0);
+      g.restore();
+      g.globalAlpha = 1;
     },
   });
   const TEX = {};
@@ -1591,9 +1600,9 @@
     }
     if (window.CHAMPIONS_PHANTOM && CHAMPIONS_PHANTOM.isSkin(skin.id)) return CHAMPIONS_PHANTOM.dress(root, skin);
     // wave: the pattern is projected in the gun's own space (box) and sized to the gun: its middle at the middle of the gun's
-    // top part (a slide, a receiver: spineOf), one tile along the gun three quarters of its length (a wave and a bit) and up
-    // the gun about twice that part's band, so the wave runs along the body of a pistol and of a rifle alike and stays off the
-    // grip and the magazine
+    // top part (a slide, a receiver: spineOf), one tile up the gun about twice that part's band and TIDE_ASP times that along
+    // it, so the wave runs along the body of a pistol and of a rifle alike, keeps one line width, and stays off the grip and
+    // the magazine
     let box = null,
       boxY = 0,
       tile = skin.tile,
@@ -1609,8 +1618,9 @@
         const b = sp.spine.b,
           band = sp.band(sp.spine);
         boxY = Math.round((b.max.y - band * 0.5) * 1e4) / 1e4;
-        tile = [Math.round(Math.max(0.25, Math.min(1, sp.L * 0.75)) * 1e3) / 1e3, Math.round(Math.max(0.16, Math.min(0.6, Math.max(band, sp.H * 0.28) * 1.9)) * 1e3) / 1e3];
-      } else tile = [0.5, 0.4];
+        const tv = Math.round(Math.max(0.14, Math.min(0.5, Math.max(band, sp.H * 0.28) * 1.9)) * 1e3) / 1e3;
+        tile = [tv * TIDE_ASP, tv];
+      } else tile = [0.4 * TIDE_ASP, 0.4];
     }
     if ("default" !== skin.id) {
       root.traverse((o) => {
