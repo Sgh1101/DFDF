@@ -9,7 +9,8 @@
   // colour-cased action against blued barrels and walnut set it apart at a glance.
   //
   // Everything is measured in millimetres on the real gun and converted here:
-  //   x: from the muzzle face backwards (0 muzzle .. 250 breech face .. 375 grip heel)
+  //   x: along the gun, backwards (45 the sawn muzzle .. 250 breech face .. 382 grip heel); the
+  //      drawings count from where a full-length barrel's muzzle would be
   //   y: from the bores' centre line upwards (+29 hammer spurs .. -134 grip cap)
   //   s: across, from the centre line (+ is the right side)
   // The scale keeps the old Breach's footprint: the muzzle sits where the old one was
@@ -23,10 +24,11 @@
   // checkering), made once and shared by every copy of the gun.
   if (typeof GUN_BUILD === 'undefined' || typeof GunBuilder !== 'function' || typeof GUNMAT === 'undefined' || typeof T === 'undefined') return;
 
-  const K = 0.00115; // model units per millimetre
+  const K = 0.00128; // model units per millimetre
   const ZM = -0.32; // the muzzle face
   const Y0 = 0.027; // the bores' centre line
-  const Z = (x) => ZM + x * K;
+  const X0 = 45; // the barrels are sawn off here: the muzzle face (the drawings run from the full-length muzzle)
+  const Z = (x) => ZM + (x - X0) * K;
   const Y = (y) => Y0 + y * K;
   const S = (s) => s * K;
   const UV_TILE = 0.16; // parts carry metre UVs; one texture tile per 0.16 like the boxes the skins fit
@@ -228,7 +230,7 @@
       const g = cased.getContext('2d'), w = 256, h = 256;
       g.fillStyle = '#a7abb1';
       g.fillRect(0, 0, w, h);
-      const cols = ['#24458f', '#3a5fae', '#5d3f92', '#7c58a0', '#c99a4c', '#e0bd72', '#8b5e34', '#4d6f9e', '#25272f', '#c7ccd3', '#6b7f9c'];
+      const cols = ['#24458f', '#3a5fae', '#1f6fb4', '#5d3f92', '#7c58a0', '#c99a4c', '#e0bd72', '#d8a24a', '#8b5e34', '#4d6f9e', '#25272f', '#c7ccd3', '#6b7f9c'];
       const blot = (x, y, r, col, a) => {
         for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) {
           const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
@@ -239,7 +241,7 @@
           g.fillRect(x + dx - r, y + dy - r, 2 * r, 2 * r);
         }
       };
-      for (let i = 0; i < 70; i++) blot(R() * w, R() * h, 10 + R() * 42, cols[(R() * cols.length) | 0], 0.35 + R() * 0.4);
+      for (let i = 0; i < 80; i++) blot(R() * w, R() * h, 9 + R() * 40, cols[(R() * cols.length) | 0], 0.45 + R() * 0.4);
       // watery swirls
       g.lineCap = 'round';
       for (let i = 0; i < 30; i++) {
@@ -341,7 +343,7 @@
     const walnut = canvas(256, 256);
     {
       const g = walnut.getContext('2d'), w = 256, h = 256;
-      g.fillStyle = '#6a3f22';
+      g.fillStyle = '#5e3720';
       g.fillRect(0, 0, w, h);
       for (let i = 0; i < 12; i++) {
         const y = R() * h, hh = 10 + R() * 40;
@@ -351,12 +353,12 @@
         g.fillRect(0, y - h, w, hh);
       }
       g.lineCap = 'round';
-      for (let i = 0; i < 110; i++) {
+      for (let i = 0; i < 64; i++) {
         const y0 = R() * h, amp = 1.5 + R() * 7, cyc = 1 + ((R() * 3) | 0), ph = R() * 6.28, amp2 = R() * 3, cyc2 = 3 + ((R() * 5) | 0);
         const dark = R() < 0.72;
-        g.globalAlpha = dark ? 0.25 + R() * 0.4 : 0.12 + R() * 0.2;
-        g.strokeStyle = dark ? '#2a140a' : '#a8703f';
-        g.lineWidth = 0.6 + R() * (dark ? 2.2 : 1.5);
+        g.globalAlpha = dark ? 0.16 + R() * 0.28 : 0.1 + R() * 0.16;
+        g.strokeStyle = dark ? '#26120a' : '#a06a3c';
+        g.lineWidth = 0.5 + R() * (dark ? 1.4 : 1.2);
         for (const dy of [-h, 0, h]) {
           g.beginPath();
           for (let x = 0; x <= w; x += 4) {
@@ -366,8 +368,8 @@
           g.stroke();
         }
       }
-      for (let i = 0; i < 900; i++) {
-        g.globalAlpha = 0.25;
+      for (let i = 0; i < 500; i++) {
+        g.globalAlpha = 0.18;
         g.fillStyle = '#241008';
         g.fillRect(R() * w, R() * h, 2 + R() * 4, 0.8);
       }
@@ -396,7 +398,7 @@
     }
     const grip = tex(walnut);
     grip.center.set(0.5, 0.5);
-    grip.rotation = -1.33; // the grain runs down the raked grip
+    grip.rotation = 1.3; // the grain runs down the raked grip
     return (TEX = { cased: tex(cased), plate: tex(plate), walnut: tex(walnut), grip, checker: tex(checker, 4) });
   }
 
@@ -416,13 +418,13 @@
     return {
       cased: tone(GUNMAT.steel(), 0xffffff, 0.32, 0.62, t.cased), // the colour-cased action, fences, hammers, lever, fore-end iron
       plate: tone(GUNMAT.steel(), 0xffffff, 0.36, 0.58, t.plate), // the engraved side plates
-      blued: tone(GUNMAT.blued(), 0x1d2534, 0.3, 0.8), // barrels, rib, trigger guard, grip cap: deep blue-black
+      blued: tone(GUNMAT.blued(), 0x222d42, 0.28, 0.8), // barrels, rib, trigger guard, grip cap: deep blue-black
       bright: tone(GUNMAT.chrome(), 0xc6cad0, 0.24, 0.88), // triggers, hinge pin, screws, extractor
       dark: tone(GUNMAT.blued(), 0x111214, 0.65, 0.35), // screw slots, the hammer spurs' and lever's checkering
       wood: tone(GUNMAT.wood(), 0xffffff, 0.5, 0.02, t.walnut), // the fore-end
       grip: tone(GUNMAT.wood(), 0xffffff, 0.5, 0.02, t.grip), // the grip, its grain along the rake
       checker: tone(GUNMAT.woodDark(), 0xffffff, 0.78, 0, t.checker), // the grip's checkered panels
-      bore: Object.assign(tone(GUNMAT.rubber(), 0x050506, 1, 0), { side: T.DoubleSide }), // bores and chambers
+      bore: new T.MeshBasicMaterial({ color: 0x040405, side: T.DoubleSide }), // bores and chambers: unlit, black under every skin
       bead: tone(GUNMAT.brass(), 0xe0b95c, 0.22, 0.9), // the front bead
     };
   }
@@ -436,11 +438,11 @@
   // a part built along z from the muzzle (z = x mm * K), turned onto one barrel's axis
   function onBarrel(geo, sig) {
     geo.rotateY(sig * TOE);
-    geo.translate(S(sig * RM), Y(0), ZM);
+    geo.translate(S(sig * R(X0)), Y(0), Z(X0));
     return geo;
   }
   function lathe(profile, segs) {
-    const pts = profile.map(([x, r]) => new T.Vector2(Math.max(0, S(r)), x * K));
+    const pts = profile.map(([x, r]) => new T.Vector2(Math.max(0, S(r)), (x - X0) * K));
     const geo = new T.LatheGeometry(pts, segs);
     const uv = geo.attributes.uv, np = pts.length;
     const rMax = Math.max(...profile.map(([, r]) => r)) * K;
@@ -456,19 +458,19 @@
     const g = [];
     for (const sig of [-1, 1]) {
       // the muzzle face with a small crown, the tapered tube, the breech face round the chamber
-      g.push(onBarrel(lathe([[0, BORE_R], [0, RM - 0.7], [0.8, RM], [BL - 1, RB], [BL, RB - 1], [BL, CHAMBER_R]], 32), sig));
+      g.push(onBarrel(lathe([[X0, BORE_R], [X0, R(X0) - 0.8], [X0 + 0.9, R(X0)], [BL - 1, RB], [BL, RB - 1], [BL, CHAMBER_R]], 32), sig));
     }
     // the top rib: a solid strip in the valley between the barrels, its top just under theirs
-    g.push(sideGeo([[0.4, 5], [0.4, RIB_TOP(0.4)], [BL, RIB_TOP(BL)], [BL, 5]], 7.4));
+    g.push(sideGeo([[X0 + 0.5, 5], [X0 + 0.5, RIB_TOP(X0 + 0.5)], [BL, RIB_TOP(BL)], [BL, 5]], 7.4));
     // the bottom rib, from the muzzle to the fore-end
-    g.push(sideGeo([[0.4, -4], [132, -4], [132, -R(132) + 0.6], [0.4, -R(0.4) + 0.6]], 6.4));
+    g.push(sideGeo([[X0 + 0.5, -4], [132, -4], [132, -R(132) + 0.6], [X0 + 0.5, -R(X0) + 0.6]], 6.4));
     // the lumps under the breech: they drop into the action bar and hook round the hinge pin
     g.push(sideGeo([[197, -10.5], [249, -10.5], [249, -18], [224, -21.5], [205, -21.5], [199, -19], [194.5, -18.5]], 16, { bevel: 0.8, segments: 1 }));
     // the bead's little base on the rib
-    g.push(cylGeo(1.4, 1.9, 1.6, 10, 'y', 4.2, RIB_TOP(4.2) + 0.5, 0));
+    g.push(cylGeo(1.4, 1.9, 1.6, 10, 'y', BEAD.x, RIB_TOP(BEAD.x) + 0.5, 0));
     return merged(g);
   }
-  const BEAD = { x: 4.2, y: RIB_TOP(4.2) + 2.4, r: 1.75 };
+  const BEAD = { x: X0 + 4.5, y: RIB_TOP(X0 + 4.5) + 2.5, r: 1.8 };
   function beadGeo() {
     const g = new T.SphereGeometry(S(BEAD.r), 14, 10);
     g.translate(0, Y(BEAD.y), Z(BEAD.x));
@@ -478,27 +480,35 @@
   function boresGeo() {
     const g = [];
     for (const sig of [-1, 1]) {
-      const bore = new T.CylinderGeometry(S(BORE_R), S(BORE_R), S(34), 18, 1, true);
+      const bore = new T.CylinderGeometry(S(BORE_R), S(BORE_R), S(70), 18, 1, true);
       bore.rotateX(Math.PI / 2);
-      bore.translate(0, 0, S(17));
+      bore.translate(0, 0, S(35));
       g.push(onBarrel(bore, sig));
       const floor = new T.CircleGeometry(S(BORE_R), 18);
       floor.rotateY(Math.PI);
-      floor.translate(0, 0, S(34));
+      floor.translate(0, 0, S(70));
       g.push(onBarrel(floor, sig));
       const ch = new T.CylinderGeometry(S(CHAMBER_R), S(CHAMBER_R), S(26), 18, 1, true);
       ch.rotateX(Math.PI / 2);
-      ch.translate(0, 0, S(BL - 13));
+      ch.translate(0, 0, S(BL - X0 - 13));
       g.push(onBarrel(ch, sig));
       const chFloor = new T.CircleGeometry(S(CHAMBER_R), 18);
-      chFloor.translate(0, 0, S(BL - 26));
+      chFloor.translate(0, 0, S(BL - X0 - 26));
       g.push(onBarrel(chFloor, sig));
     }
     return merged(g);
   }
   // the extractor: a half moon in the breech face between the chambers, proud when the gun is open
+  // and the sawn muzzles, dressed bright: a ring of bare steel round each bore
   function extractorGeo() {
-    return merged([boxGeo(9, 6.5, 1.4, BL + 0.4, -6, 0), cylGeo(1.2, 1.2, 1.6, 8, 'z', BL + 0.4, -2.2, 0)]);
+    const g = [boxGeo(9, 6.5, 1.4, BL + 0.4, -6, 0), cylGeo(1.2, 1.2, 1.6, 8, 'z', BL + 0.4, -2.2, 0)];
+    for (const sig of [-1, 1]) {
+      const ring = new T.RingGeometry(S(BORE_R), S(R(X0) - 0.15), 36);
+      ring.rotateY(Math.PI);
+      ring.translate(0, 0, -S(0.08));
+      g.push(onBarrel(scaleUV(ring), sig));
+    }
+    return merged(g);
   }
 
   // ── the fore-end: a short splinter of walnut under the barrels, its iron against the knuckle ──
@@ -514,8 +524,8 @@
     const sec = [[-25.6, -6], [-24.4, -15.4], [-20.4, -21.2], [-12.6, -24.4], [12.6, -24.4], [20.4, -21.2], [24.4, -15.4], [25.6, -6]];
     const g = [sectionGeo(sec, FE.x1, 182, { back: (y) => knuckleX(y) - 0.4 - 182 })];
     // the latch lever under the wood's tip, and its escutcheon
-    g.push(sideGeo([[134, -23.2], [150, -23.2], [151, -24.6], [147, -26], [136, -25.6]], 5.5, { bevel: 0.5, segments: 1 }));
-    g.push(boxGeo(10, 0.8, 22, 141, -23.5, 0));
+    g.push(sideGeo([[148, -23.2], [164, -23.2], [165, -24.6], [161, -26], [150, -25.6]], 5.5, { bevel: 0.5, segments: 1 }));
+    g.push(boxGeo(10, 0.8, 20, 157, -23.6, 0));
     return merged(g);
   }
 
@@ -548,13 +558,13 @@
     const lever = [];
     for (let i = 0; i <= 10; i++) {
       const a = Math.PI * 0.5 + (i / 10) * Math.PI;
-      lever.push([266 + 6.5 * Math.sin(a), 6.5 * Math.cos(a)]);
+      lever.push([266 + 6 * Math.sin(a), 6 * Math.cos(a)]);
     }
-    lever.push([280, -5.2], [292, -3], [298.5, 0.4], [301, 5.5], [299.5, 10.5], [294, 12.2], [288.5, 10], [278, 6.2], [270, 6]);
+    lever.push([279, -4.4], [290, -2.6], [296.5, 0.2], [299, 4.6], [297.6, 9], [293, 10.6], [288, 8.8], [278, 5.4], [270, 5.4]);
     g.push(topGeo(lever, TANG_TOP(266) - 0.4, 3.4, { rise: (x) => TANG_TOP(x) - TANG_TOP(266), bevel: 0.5 }));
     // the hammers: a nose that falls on the fence, a neck and a tall spur, either side of the tang
-    const hammer = [[263.5, 4.5], [258.8, 11.6], [260.2, 14.6], [267.5, 15.2], [274.5, 13.4], [281.5, 15], [288.5, 20.8], [294.5, 27.2], [299.5, 29.2], [301.3, 27], [297.5, 21.4], [292.2, 13.4], [290.4, 5], [287, -1.5], [280, -2.5], [272.5, 0], [267.5, 3]];
-    for (const sig of [-1, 1]) g.push(sideGeo(hammer, 6.2, { s: sig * HAMMER_S, bevel: 1.1, segments: 2 }));
+    const hammer = [[263.5, 4.5], [259, 11.4], [260.4, 14.6], [267, 15.4], [273.5, 14], [279.5, 15], [285.5, 18.6], [291.5, 22.8], [297.5, 24.8], [302.6, 24.4], [303.6, 21.6], [298.6, 19.6], [292.8, 15.4], [290.4, 8], [289.4, 2], [286, -2], [279, -2.5], [272.5, 0], [267.5, 3]];
+    for (const sig of [-1, 1]) g.push(sideGeo(hammer, 7.4, { s: sig * HAMMER_S, bevel: 1.4, segments: 2 }));
     // the trigger plate's tang down the front of the grip, behind the guard
     g.push(sideGeo([[296, -25.6], [312, -28.6], [319, -33.5], [323, -40.5], [321, -41.5], [316.5, -36], [309, -31], [296, -28.2]], 10, { bevel: 0.8, segments: 1 }));
     return merged(g);
@@ -567,7 +577,7 @@
   // bright parts: the hinge pin, screws, the triggers, the firing pins in the standing breech
   function brightGeo() {
     const g = [];
-    g.push(cylGeo(4.2, 4.2, AW + 0.8, 18, 'x', H[0], H[1], 0)); // the hinge pin's ends
+    g.push(cylGeo(3.4, 3.4, AW + 0.6, 18, 'x', H[0], H[1], 0)); // the hinge pin's ends
     for (const sig of [-1, 1]) {
       g.push(cylGeo(2.4, 2.4, 1, 14, 'x', 283.5, 2.8, sig * (HAMMER_S + 3.6))); // hammer pivot screws
       g.push(cylGeo(1.9, 1.9, 0.8, 12, 'x', 236, -18, sig * (AW / 2 + 0.4))); // plate screws
@@ -587,11 +597,9 @@
       g.push(boxGeo(0.5, 0.5, 3.6, 283.5, 2.8, sig * (HAMMER_S + 4.15)));
       g.push(boxGeo(0.5, 0.5, 3, 236, -18, sig * (AW / 2 + 0.85), 0.6));
       g.push(boxGeo(0.5, 0.5, 3, 272, -17, sig * (AW / 2 + 0.85), -0.4));
-      // the spur's checkering: grooves across its top
-      for (let i = 0; i < 4; i++) g.push(boxGeo(6.8, 0.7, 0.8, 292.6 + i * 1.9, 21.6 + i * 1.95, sig * HAMMER_S, -0.85));
     }
     // the thumb piece's grooves and the lever pin's slot
-    for (let i = 0; i < 4; i++) g.push(topGeo([[290 + i * 2.4, 1.8], [291 + i * 2.4, 1.8], [291 + i * 2.4, 10.2], [290 + i * 2.4, 10.2]], TANG_TOP(291 + i * 2.4) + 2.9, 0.5));
+    for (let i = 0; i < 4; i++) g.push(topGeo([[288 + i * 2.4, 1.6], [289 + i * 2.4, 1.6], [289 + i * 2.4, 8.6], [288 + i * 2.4, 8.6]], TANG_TOP(289 + i * 2.4) + 2.9, 0.5));
     g.push(boxGeo(3.6, 0.4, 0.5, 266, TANG_TOP(266) + 3.5, 0));
     g.push(boxGeo(3, 0.4, 0.5, 322, TANG_TOP(322) + 0.5, 0, 0, 0));
     return merged(g);
@@ -607,24 +615,24 @@
   const GRIP_W = 32;
   function gripGeo() {
     const pts = [
-      [291.6, 5], [300, TANG_TOP(300) - 0.3], [316, TANG_TOP(316) - 0.3], [333.5, TANG_TOP(333.5) - 0.6], [339.5, -1.8], [345.5, -8.5], [350, -18], [352.8, -30],
-      [356.5, -46], [361, -64], [366, -84], [370.5, -104], [373.8, -121.5],
-      [343, -129.5],
-      [339.6, -116], [336.6, -102], [333.4, -88], [330.2, -74], [326.8, -60], [323.4, -48], [320.4, -40.5], [316, -34.6], [308, -29.4], [299.5, -26],
+      [291.6, 5], [300, TANG_TOP(300) - 0.3], [316, TANG_TOP(316) - 0.3], [333.5, TANG_TOP(333.5) - 0.6], [337.5, 1], [341.5, -1.4], [345.2, -4.8], [348.4, -9.4], [351, -15], [353, -21.6], [354.6, -29], [356.4, -37.4],
+      [358.8, -46], [364.2, -64], [370.4, -84], [376, -104], [380, -119],
+      [349, -128.6],
+      [345, -116], [341, -102], [337, -88], [333, -74], [328.6, -60], [324.4, -48], [320.6, -40.5], [316, -34.6], [308, -29.4], [299.5, -26],
       [293.5, -16], [290.8, -6],
     ];
-    const g = sideGeo(pts, GRIP_W, { bevel: 6.5, segments: 3 });
+    const g = sideGeo(pts, GRIP_W, { bevel: 7.5, segments: 3 });
     return taper(g, (x) => 1 + (AW / GRIP_W - 1) * (1 - smooth(296, 330, x)));
   }
-  const CHECK = [[328.4, -52], [347.5, -45.5], [363.4, -103], [345.2, -109.5]];
+  const CHECK = [[332, -54], [349.5, -45.5], [367, -103], [348.5, -109.5]];
   function checkerGeo() {
     return merged([-1, 1].map((sig) => plateGeo(CHECK, sig * (GRIP_W / 2 + 0.1), false)));
   }
   function capGeo() {
     return merged([
-      sideGeo([[343, -129.4], [373.8, -121.4], [375, -125.8], [344.2, -134.4]], GRIP_W - 4, { bevel: 1.6, segments: 2 }),
+      sideGeo([[349, -128.4], [380, -118.8], [381.6, -123.2], [350.6, -133.2]], GRIP_W - 4, { bevel: 1.6, segments: 2 }),
       // the lanyard-free cap's screw
-      cylGeo(1.8, 1.8, 0.6, 12, 'y', 359.2, -130.6, 0),
+      cylGeo(1.8, 1.8, 0.6, 12, 'y', 365.4, -128.4, 0),
     ]);
   }
 
@@ -636,10 +644,10 @@
     root.userData.weaponModel = 'dfdf-pocketshot';
     root.userData.modelRevision = 2;
     root.userData.anchors = {
-      right: [0.004, Y(-62), Z(342)],
+      right: [0.004, Y(-62), Z(346)],
       left: [-0.006, Y(-24), Z(150)],
       // the flash comes out of the right barrel, the one the front trigger fires
-      muzzle: [S(RM), Y(0), Z(-1)],
+      muzzle: [S(R(X0)), Y(0), Z(X0 - 1)],
       // the line of sight: along the rib to the top of the bead; this point is over the breech
       sight: [0, Y(BEAD.y + BEAD.r), Z(BL)],
     };
