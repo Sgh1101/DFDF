@@ -133,3 +133,13 @@
 - 구현: 스킨은 총 자체 부품의 표면 마감(몸통=불꽃 장갑, 금속=회색·광택검정 체커 장갑판, 작은 부품=광택 검정). 덧붙는 것은 윗부분 부품에 광선을 쏴 찾은 실제 표면 위의 가는 금선·주황 빛선·작은 문장뿐이며 슬라이드에 붙어 함께 움직인다. 총마다 그리기 +2(이전 +7), 외곽 증가 최대 0.3%(이전 Axiom 높이 1.25배·폭 1.31배).
 - 실제 검사(로컬): 단위 521 통과·2 선택 제외, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나): champion·finisher-always·improvements·weapon-shop·mobile-skin-preview·graphics·startup·phantom·champions-finish·phantom-kill-wave 통과. render-cost는 첫 실행 1500초 시간 초과, 재실행 통과. legacy-models는 처음 두 번 `GUN_SKINS.isOpen` 대기 30초 초과, 이후 같은 코드로 3회 연속 통과(기준 ccdb6da 사본은 3/3 통과). 실기기 미검증.
 - 다음: 사용자 외형 검토 후 병합 여부 결정. 미배포.
+- 2026-11-05 추가: 사용자가 회색/검정 체커+불꽃 대신 완전히 새 콘셉트를 요청(참고: VCT Champions 2024 스킨의 절제된 디자인 원칙만, 모티프·로고 복제 금지). 개발용 플래그(localStorage `dfdf_champion_concept` = A|B|C)로 A 물마루(Tide Line)·B 트로피 물결(Trophy Ripple)·C 진주 물살(Pearl Surf) 세 가지를 실제 렌더로 비교 중. 플래그가 없으면 출시된 모습 그대로. origin/main `c37cf1f`(#132 Hush·Verdict) 병합. 사용자 선택 대기, 미배포.
+
+## 2026-11-05 · Claude · 총 개편 3/18 Verdict(revolver) 실총형 재제작 — 사용자 검토 대기
+- 사용자 요청: 기본 총 18종 순차 재제작 3번째. Verdict(키 `revolver`)를 6인치 풀러그 더블액션 6연발 .357 리볼버로 다시 만든다(특정 제조사 이름·로고·각인 없음). 승인 후 다음 총.
+- 작업 worktree: `worktree-agent-a3ff956c11f7e2ff6`(로컬, 미푸시). 기준: main `4165f84`(Codex #131) + 승인된 참새·부엉이 `origin/claude/quirky-fermat-11wa1b`(`ccdb6da`) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude 부엉이)뿐. #126의 play.html 변경은 다른 줄(solid-geometry.js)이라 겹치지 않고, 03-engine·54·58·총 모델 파일과도 겹치지 않는다. origin/codex/* 최근 브랜치(adsense-compliance #131 병합됨, ascent-layout-restore, champions-solid-rifle)도 이번 파일과 겹치는 미반영 변경 없음.
+- 담당 파일: `js/gun-model-revolver.js`(새), `play.html`(스크립트 한 줄), `js/legacy/54-reload-animation.js`(크레인 스윙·이젝터·탄두 표시·스피드로더 크기/위치·해머/방아쇠/실린더 사격 동작 추가; 기존 총 동작은 그대로). 챔스 파일·champion 키트·참새/부엉이 모델·무기 수치·가격·스킨 목록·광고 파일은 건드리지 않았다.
+- 결과: 메시 66→19, 크기 0.098×0.241×0.528 → 0.073×0.264×0.510(길이 -3%, 높이 +10%, 폭은 실총 비율로 좁아짐). 총구·총열 위치 유지(섬광·예광탄 시작점 동일). 기본 마감은 스테인리스+어두운 강철 부품+검은 그립으로 1인칭에서 디테일이 보인다. 재장전: 크레인이 왼쪽으로 열리고 탄피 6개가 각 약실에서 나오며, 스피드로더가 열린 실린더에 맞춰 들어간다. 사격 때 해머·방아쇠·실린더가 움직인다.
+- 실제 검사(로컬, 기준 4165f84+ccdb6da 병합본): 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 209 스크립트, 자산 50지문, 사이트 페이지 12, 광고 준비 점검 exit 0(게이트 통과·자산 오류 0, 외부 승인 대기 항목은 기존과 동일). 브라우저(한 번에 하나씩): weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload(revolver: loader, empties 6)·render-cost·gun-template-memory·drop-skins·modes2 통과. legacy-models는 첫 실행에서 모든 단언 통과 후 무기고 열기 대기 30초 시간 초과(다른 세션 렌더로 CPU 경합), 단독 재실행 통과. 실기기/Android 미검증. 미배포.
+- 남은 점: 리볼버도 사격마다 탄피가 튀는 기존 효과(18-gun-effects.js, 이번 범위 밖)는 그대로다. 사용자 승인 후 다음 총(4/18).
