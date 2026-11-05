@@ -164,3 +164,9 @@
 - 통합: 작업 중 origin/main이 `1a5068a`(Claude #132 병합, Codex #133 글꼴·#134 폭탄전 규칙)로 전진해 병합했다. 겹친 파일은 play.html(다른 줄)과 이 기록(양쪽 유지)뿐이고 총 코드와 겹치지 않는다.
 - 실제 검사(로컬): 병합 전 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0, 브라우저(하나씩) legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload·render-cost·gun-template-memory·drop-skins 모두 통과. main 병합 후 단위·check·자산·사이트 페이지·광고 준비와 legacy-models·reload 재실행 통과. 실기기/Android 미검증. 미배포·미푸시.
 - 남은 점: 실총 폭(슬라이드 25.5mm)을 옛 길이에 맞추니 1인칭에서 옛 뭉툭한 모델보다 가늘어 보인다. 사용자 승인 후 다음 총(5/18).
+
+## 2026-11-05 · Claude · 총 개편 5/18 Breach(pocketshot) 실총형 재제작 — 진행 중
+- 사용자 요청: 기본 총 18종 순차 재제작 5번째. Breach(키 `pocketshot`)를 권총 손잡이의 짧은 수평 쌍대 중절식 산탄총(코치건/소드오프형, 특정 제조사 이름·로고·각인 없음)으로 다시 만든다. 승인 후 다음 총.
+- 작업 worktree: `worktree-agent-a4ac8c01a923840ed`(로컬, 미푸시). 기준: origin/main `1a5068a`(Codex #133 글꼴·#134 스파이크 규칙 포함) + 승인된 Axiom·Hush·Verdict·Tempo `origin/claude/quirky-fermat-11wa1b`(`1419dfb`, fast-forward).
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총, 건드리지 않음)·#135(Claude 기록)·#136(Claude Tempo). #133/#134는 글꼴·스파이크 파일로 이번 파일과 겹치지 않는다. 다른 세션이 챔스 스킨(58·96·97)과 ADS 조준선(모델 `userData.anchors.sight`, 뷰모델 코드)을 동시에 고치므로 그 파일은 건드리지 않고 모델에 `anchors.sight`만 넣는다.
+- 담당 파일: `js/gun-model-pocketshot.js`(새), `play.html`(스크립트 한 줄), 필요 시 `js/legacy/54-reload-animation.js`의 break 분기(모델이 준 약실 위치·탄 크기 사용, 없으면 기존 동작).
