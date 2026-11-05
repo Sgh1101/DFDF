@@ -6,7 +6,7 @@
   const MOVE = {
     neon: { A: { x: 70, z: -25, r: 13, label: "A 동관 광장" }, B: { x: 45, z: -68, r: 13, label: "B 북관 통로" } },
     freighter: { B: { x: 0, z: -60, r: 13 } },
-    dunes: { C: { x: 0, z: -34, r: 12 } },
+    dunes: { C: { x: 0, z: -67, r: 12 } },
   };
   for (const k in MOVE) {
     const m = MAPS[k];
@@ -35,7 +35,7 @@
   function spikeInfo() {
     const sp = world.spike,
       m = me();
-    if (!sp || !m || !spikeMode() || !("live" === world.phase || "planted" === sp.state)) return null;
+    if (!sp || !m || !spikeMode() || world.phase !== "live") return null;
     if ("planted" === sp.state) {
       const s = siteAt(sp.x, sp.z) || MAP.sites.reduce((b, s) => (!b || Math.hypot(s.x - sp.x, s.z - sp.z) < Math.hypot(b.x - sp.x, b.z - sp.z) ? s : b), null);
       return { kind: "planted", x: sp.x, z: sp.z, site: s && s.id, all: !0 };
@@ -49,18 +49,17 @@
     return null;
   }
 
-  // 2. the bomb box under the timer names the site and the distance, and a
-  //    marker sits on the bomb itself (at the screen edge when it is off
-  //    screen or behind you, pointing the way)
+  // 2. the dropped bomb prompt shows distance, and a marker points to the bomb
+  //    itself when it is visible or to the edge of the screen when it is not.
   const _sui = spikeUI;
   spikeUI = function (txt) {
     try {
       const inf = spikeInfo(),
         m = me();
-      if (inf && m && typeof txt == "string" && /^폭탄 (작동 중|낙하)/.test(txt)) {
+      if (inf?.kind === "dropped" && m && typeof txt === "string" && txt.startsWith("폭탄 낙하")) {
         const d = Math.round(Math.hypot(inf.x - m.pos.x, inf.z - m.pos.z));
         const a = [...arguments];
-        a[0] = inf.kind === "planted" ? txt.replace(/^폭탄 작동 중/, `${inf.site || "?"} 사이트 · 폭탄 작동 중`) + ` · ${d}m` : txt + ` · ${d}m`;
+        a[0] = `${txt} · ${d}m`;
         return _sui.apply(this, a);
       }
     } catch (e) {}

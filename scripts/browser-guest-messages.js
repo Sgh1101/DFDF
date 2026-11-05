@@ -87,12 +87,28 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     await B.evaluate(() => { keys.f = true; });
     await host.waitForFunction(() => world.spike.state === "planted", null, { timeout: (setup.plant + 8) * 1000 });
     await B.evaluate(() => { keys.f = false; });
+    await B.waitForFunction(() => {
+      const bar = document.getElementById("tb-spike");
+      return world.spike.state === "planted" && !bar.hidden && bar.value > 0 && bar.value <= 1 &&
+        document.getElementById("tb-time").hidden && myActor().planting === 0;
+    });
     console.log("a guest planted the bomb");
     await host.evaluate((p) => { const g = world.actors.find((a) => a.ctrl === p); g.team = "def"; g.hasSpike = false; world.spike.x = g.pos.x + 0.5; world.spike.z = g.pos.z; world.spike.timer = 9999; world.spike.halfDefused = false; for (const a of world.actors) a.planting = 0; }, peerB);
     await B.evaluate(() => { keys.f = true; });
     await host.waitForFunction(() => world.spike.state === "defused", null, { timeout: (setup.defuse + 10) * 1000 });
     await B.evaluate(() => { keys.f = false; });
+    await B.waitForFunction(() => world.phase === "end" && world.scoreDef === 1 && world.spike.state === "defused" && document.getElementById("tb-spike").hidden);
     console.log("a guest defused the bomb");
+    await host.evaluate(() => {
+      cancelRoundEnd();
+      world.phase = "live"; world.over = false;
+      const site = MAP.sites[0];
+      plantSpike(site.x, site.z, site, false);
+    });
+    await B.waitForFunction(() => world.spike.state === "planted" && !document.getElementById("tb-spike").hidden);
+    await host.evaluate(() => { world.spike.timer = 0.05; });
+    await B.waitForFunction(() => world.phase === "end" && world.scoreAtk === 1 && world.spike.state === "boom" && document.getElementById("tb-spike").hidden);
+    console.log("a guest saw the host's detonation and score");
 
     // 6. a guest that quits: the host gives its body to a bot at once
     const bodyA = await host.evaluate((p) => world.actors.find((a) => a.ctrl === p).id, peerA);
