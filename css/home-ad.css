@@ -3,7 +3,8 @@
 #s-title .tt-ad.on{display:block}
 #s-title .tt-ad.unfilled{display:none}
 #s-title .tt-ad .ad-lbl{display:block;margin:0 0 4px;font:600 10px/1.2 system-ui,sans-serif;letter-spacing:.06em;color:rgba(255,255,255,.5);text-align:right}
-#s-title .tt-ad ins.adsbygoogle{display:block;width:300px;height:250px;overflow:hidden;border-radius:6px;background:rgba(7,9,13,.4)}
+/* a responsive unit (data-ad-format auto): the column gives it the width, AdSense picks the height */
+#s-title .tt-ad ins.adsbygoogle{display:block;width:300px;min-height:50px}
 /* only where the news column used to fit; the agent art keeps clear of it while it shows */
 @media (max-width:1180px),(max-height:560px){#s-title .tt-ad{display:none!important}}
 @media (min-width:1181px) and (min-height:561px){#s-title.home-original:has(.tt-ad.on:not(.unfilled)) .tt-right{padding-right:340px;box-sizing:border-box}}
