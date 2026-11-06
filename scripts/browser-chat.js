@@ -298,7 +298,7 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     await en.evaluate(() => { CHAT.open("t"); });
     const ui = await en.evaluate(() => ({ tabs: [...document.querySelectorAll(".cht-tabs button")].map((b) => b.textContent), send: document.getElementById("cht-send").textContent, chips: [...document.querySelectorAll("#cht-qc button")].map((b) => b.textContent), ph: document.getElementById("cht-in").placeholder, close: document.getElementById("cht-x").textContent, qm: document.getElementById("cht-qm").textContent, tb: [document.getElementById("tb-chat").textContent, document.getElementById("tb-ping").textContent] }));
     assert.deepEqual(ui.tabs, ["Team", "All"]); assert.equal(ui.send, "Send"); assert.equal(ui.close, "Close");
-    assert.deepEqual(ui.chips, ["Nice", "Thanks", "Need help", "Go A", "Go B", "Fall back", "Enemy spotted", "Plant the spike", "Regroup", "GG"]);
+    assert.deepEqual(ui.chips, ["Nice", "Thanks", "Need help", "Go A", "Go B", "Fall back", "Enemy spotted", "Plant the bomb", "Regroup", "GG"]);
     assert.match(ui.ph, /^To your team/); assert.match(ui.qm, /QUICK CHAT/); assert.deepEqual(ui.tb, ["Chat", "Ping"]);
     assert.ok(!/[가-힣]/.test(JSON.stringify(ui)), "no Korean left in the English interface: " + JSON.stringify(ui));
     await en.click('#cht-qc button[data-q="3"]');

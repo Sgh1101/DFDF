@@ -56,7 +56,7 @@ const { harness } = require("../tests/api-harness");
     await page.fill('[data-q="season.gold.gold"]', "900");
     await page.selectOption('[data-q="season.skinTier"]', "5");
     await page.click("#ssn-save");
-    await page.waitForFunction(() => document.querySelector('[data-q="season.gold.gold"]').value === "900" && /다이아몬드 이상은 전용 스킨/.test(document.querySelector("#ssn").textContent));
+    await page.waitForFunction(() => document.querySelector('[data-q="season.gold.gold"]').value === "900" && new RegExp(RANK_KO[5] + " 이상은 전용 스킨").test(document.querySelector("#ssn").textContent));
     let sc = (await h.api("a_config_get", { atoken: owner.atoken })).config.season;
     assert.equal(sc.gold.gold, 900); assert.equal(sc.skinTier, 5);
     await page.click("#ssn-end");

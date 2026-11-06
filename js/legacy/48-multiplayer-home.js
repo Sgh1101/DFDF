@@ -276,7 +276,7 @@
 .mu-bar{display:flex;gap:8px;align-items:center}
 .mu-chs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
 .mu-chs::-webkit-scrollbar{display:none}
-.mu-ch{flex:none;display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--stroke2);background:var(--glass);color:#c9d2de;font-size:13px;font-weight:700;transition:border-color .2s,color .2s,background .2s}
+.mu-ch{flex:none;display:flex;align-items:center;gap:7px;padding:10px 14px;min-height:32px;box-sizing:border-box;border-radius:999px;border:1px solid var(--stroke2);background:var(--glass);color:#c9d2de;font-size:13px;font-weight:700;transition:border-color .2s,color .2s,background .2s}
 .mu-ch em{font-style:normal;font-family:var(--f-display);font-size:11px;color:var(--steel-dim);min-width:16px;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,.06)}
 .mu-ch:hover{border-color:rgba(255,255,255,.28)}
 .mu-ch.on{border-color:var(--gold);color:var(--gold);background:rgba(255,200,73,.08)}
