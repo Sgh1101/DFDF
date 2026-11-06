@@ -187,5 +187,14 @@
 - 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). origin/claude/quirky-fermat-11wa1b `538ec1f`(main `a09e677` + Tempo #136)를 병합했다.
 - 상대 작업 확인: `git fetch origin --prune`. 열린 PR은 #136(Claude Tempo, 병합해 렌더에 포함), #137(Codex SGH 나비칼 모션·소리, 담당 파일과 겹치지 않음), #138(Claude SGH 색: `58-gun-skins.js` 62~70줄의 칼 스킨과 README 57줄의 "601개"→"604개"). 이 작업은 58의 그 줄들을 건드리지 않는다. README 57줄은 양쪽이 고치므로 나중에 병합되는 쪽이 그 줄에서 이쪽 설명 + "604개"로 맞추면 된다. #126은 #135 기록대로 쓰지 않는다.
 - 구현: `champTide` 무늬(밝은 트와일라잇 바탕, 선명한 광택 금 물결선, 부드러운 보라·분홍 빛, 옅은 두 번째 물결과 윤기). `spineOf`로 총마다 윗부분 부품을 찾아 물결 높이·크기를 정하고, 무늬는 총 자기 좌표에 투영(가로:세로 2.5:1로 선 굵기 일정). 장식은 금선·라일락 빛선·분홍 보석 2메시. 고리·피니셔 변경(2e6c5e7)은 그대로.
-- 실제 검사: 아래 최종 커밋 메시지와 보고에 적는다. 실기기 미검증. 미배포.
+- 실제 검사(로컬, a140a52): 단위 523 중 521 통과·2 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저 12종(champion·finisher-always·improvements·weapon-shop·legacy-models·mobile-skin-preview·graphics·render-cost·startup·phantom·champions-finish·phantom-kill-wave) 한 번에 하나씩 모두 통과. 그 전 판(금속·작은 부품에도 물리 재질 코트)은 legacy-models가 3번 중 2번 무기고 열기 대기 30초 초과로 실패했고(같은 때 기준 사본은 2/2 통과), 셰이더 수를 줄인 뒤 3/3과 전체 묶음에서 통과했다. 이후 Tempo 브랜치의 정조준 가늠쇠 앵커(cba5a4d)를 병합하고 champion·legacy-models를 다시 확인했다. 실기기 미검증. 미배포.
 
+
+## 2026-11-05 · Claude · 실총형 권총 4종 정조준(ADS) 가늠쇠 정렬 — 로컬 완료, 미푸시
+- 사용자 승인: 새 실총형 모델(Axiom·Hush·Verdict·Tempo)에서 정조준 때 가늠쇠/레드닷이 화면 중앙보다 약 30px 아래에 있던 문제를 고친다.
+- 작업 worktree: `worktree-agent-acd1811b98bda6b2e`(로컬). 기준: main `a09e677` + Tempo `origin/claude/quirky-fermat-11wa1b`(`538ec1f`, PR #136) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR #136(Tempo), Codex #137(SGH나비칼 뼈대·모션·소리), Claude #138(SGH나비칼 색) 파일 목록을 읽었다. 03-engine·총 모델 파일과 겹치지 않는다(#138의 58-gun-skins.js 칼 항목은 손대지 않음). origin/codex/* 최근 브랜치도 이번 파일과 겹치는 미반영 변경 없음.
+- 담당 파일: `js/legacy/03-engine.js`(vmWithHands가 `userData.anchors.sight`를 읽고, tickViewmodel이 정조준 때 그 점을 화면 중심선에 둔다), `js/gun-model-{pistol,silenced,revolver,machpist}.js`(각 `anchors.sight` 한 줄). 앵커가 없는 다른 총은 기존 고정 자세(0, -0.075, -0.72) 그대로. FOV·전환·흔들림/반동·저격/지정사수 스코프·손 위치·3인칭은 변경 없음. 58·96·97·pocketshot 미수정.
+- 앵커: Axiom 앞 점(y 3.3mm, 뒤 점 3.4mm와 수평), Hush 앞 점(7.4mm), Verdict 앞 블레이드 윗면 뒤끝(23.2mm, 가늠자 노치 윗면 23mm), Tempo 레드닷 중심.
+- 측정(투영 위치, 중앙 기준 아래쪽 +): 1280×720 Axiom 32.5→0, Hush 28.8→0, Verdict 26.8→0, Tempo 37.2→0px. 852×393 17.7/15.7/14.7/20.3→0px. Strife(소총) 자세 동일.
+- 실제 검사(로컬): 단위 523 중 521 통과·2 Redis 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0. 브라우저(하나씩): aim·improvements·reload·graphics·startup·rifle-identity 통과, legacy-models는 무기고 열기 대기 30초 시간 초과가 반복된 뒤(기준 커밋에서도 같은 대기가 20초를 넘김을 확인) 재실행 통과. followup은 ADS 단계 전의 첫 단언(GAME_CATALOG.counts에 새 `guns:18` 키)에서 실패 — 이번 변경과 무관, 기존 상태. 실기기/Android 미검증. 미배포·미푸시.
