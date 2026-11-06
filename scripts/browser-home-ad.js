@@ -7,12 +7,12 @@ const STUB = `(function(){var q=window.adsbygoogle||[];window.__adPushes=0;windo
 (async () => {
   const f = await fixture();
   try {
-    const open = async (id, viewport, { slot = "", fill = "filled" } = {}) => {
+    const open = async (id, viewport, { slot = null, fill = "filled" } = {}) => {
       const requested = [];
       const p = await f.page(id, viewport, {}, {
         beforeLoad: async (page) => {
           await page.route(/^https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js/, (route) => { requested.push(route.request().url()); route.fulfill({ contentType: "text/javascript", body: STUB }); });
-          if (slot) await page.route("**/play.html", async (route) => { const res = await route.fetch(); await route.fulfill({ response: res, body: (await res.text()).replace('data-ad-slot=""', `data-ad-slot="${slot}"`) }); });
+          if (null != slot) await page.route("**/play.html", async (route) => { const res = await route.fetch(); await route.fulfill({ response: res, body: (await res.text()).replace(/data-ad-slot="[^"]*"/, `data-ad-slot="${slot}"`) }); });
           await page.addInitScript((v) => { window.__adFill = v; }, fill);
         },
       });
@@ -25,8 +25,13 @@ const STUB = `(function(){var q=window.adsbygoogle||[];window.__adPushes=0;windo
       return { shown: getComputedStyle(box).display !== "none" && r.width > 0, top: r.top, left: r.left, right: r.right, bottom: r.bottom, header: hd.bottom, menuRight: menu.right, vw: innerWidth, vh: innerHeight, pushes: window.__adPushes || 0, news: document.querySelectorAll(".tt-news, #home-newmap, .nm-more").length, pad: getComputedStyle(right).paddingRight, client: document.querySelector("ins.adsbygoogle").dataset.adClient };
     });
 
-    // no display unit yet: the script loads (site verification, Google's consent message) but no box and no request
-    let { p, requested } = await open("adnone", { width: 1280, height: 720 });
+    // the page as shipped: the home unit (13fps 홈 우측 디스플레이), a responsive display unit
+    let { p, requested } = await open("adreal", { width: 1280, height: 720 });
+    const unit = await p.evaluate(() => { const i = document.querySelector("#s-title .tt-ad ins.adsbygoogle"); return { slot: i.dataset.adSlot, format: i.dataset.adFormat, full: i.dataset.fullWidthResponsive, shown: getComputedStyle(i.parentElement).display !== "none", pushes: window.__adPushes || 0 }; });
+    assert.deepEqual(unit, { slot: "1624269865", format: "auto", full: "true", shown: true, pushes: 1 }, "the shipped unit asks once");
+    await p.context().close();
+    // without a unit id: the script loads (site verification, Google's consent message) but no box and no request
+    ({ p, requested } = await open("adnone", { width: 1280, height: 720 }, { slot: "" }));
     let s = await look(p);
     console.log("no unit", JSON.stringify(s));
     assert.equal(requested.length, 1, "play.html loads the AdSense script");
