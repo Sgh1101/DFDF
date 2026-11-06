@@ -173,3 +173,27 @@
   - 카드가 날아가는 연출(`opcard` 이벤트)은 모두에게 보입니다.
 - 상점, 스킨 목록, 개수에는 나오지 않습니다. 황금 권총처럼 숨긴 무기입니다.
 - 검사: `test:operator-card`(혼자: 운영자 vs 일반, 온라인: 일반 방장 + 운영자 게스트 + 일반 게스트) 통과. 실기기는 검증하지 않았다. 사용자 요청에 따라 병합하지 않고 브랜치 푸시만 한다.
+## 2026-11-05 · Claude · 홈 소식 칸 → AdSense 광고 칸 (사용자 요청)
+
+- 기준 main `a09e677`, 브랜치 `claude/home-adsense`. 먼저 Codex 작업을 확인했다. #131(광고 준비 게이트 `scripts/check-ad-readiness.js`, `js/advertising-policy.js`, `ads-config.json`), #133(글꼴), #134(스파이크)가 병합되어 있고, #137은 열려 있다.
+- 사용자 지시: "홈 화면 옆 소식 보기(지난 소식 등) 영역을 없애고, 소식은 공지로 충분하니 그 자리에 애드센스 광고를 넣어 줘. CSP도 허용해 줘."
+- 바꾼 것:
+  - play.html 홈 오른쪽 열을 바꿨다.
+    - 뺀 것: 새 맵 카드, 플레이 안내, 지난 소식 보기. `js/home-newmap.js`와 `css/home-newmap.css`는 지웠다. `js/home.js`의 안내 채우기도 뺐다.
+    - 넣은 것: `<aside class="tt-ad">` 광고 칸 하나, head의 AdSense 스크립트(사용자가 준 코드 그대로), `js/home-ad.js`와 `css/home-ad.css`.
+  - 광고 칸 동작:
+    - 디스플레이 광고 단위 번호(`data-ad-slot`)가 있고 칸이 보일 때만 한 번 요청한다. 칸은 넓이 1181px 이상, 높이 561px 이상일 때 보인다.
+    - 단위 번호가 없거나 광고가 채워지지 않으면(unfilled) 칸을 숨긴다.
+    - **단위 번호는 아직 비어 있다. 사용자가 AdSense에서 디스플레이 광고 단위를 만들면 넣는다.**
+  - Codex 게이트와 맞춘 방식:
+    - 게이트는 그대로 두고, `ads-config.json`에 `userApprovedIntegrations: ["play.html"]`을 더했다.
+    - 승인 목록에 없는 파일에 광고 코드가 들어가면 여전히 게이트가 실패한다. 이 경우를 확인하는 테스트를 더했다.
+    - `advertising-policy.js`(글 페이지 광고 판정)는 손대지 않았다.
+  - CSP:
+    - `scripts/build-csp.js`의 AD 목록에 AdSense 호스트를 넣었다. googlesyndication, doubleclick, adtrafficquality, google.com, fundingchoicesmessages가 들어간다. 이미지는 https 전체를 허용한다.
+    - 지금은 report-only라 아무것도 막지 않는다. enforce로 바꾸기 전에 콘솔 보고를 확인해야 한다.
+  - 테스트 픽스처는 Google 광고 호스트를 차단한다. 테스트가 외부에 의존하지 않게 하기 위해서다.
+- 검사:
+  - 단위 522 통과, 2 건너뜀. check 통과, CSP check 통과, 광고 준비 점검 gateChecksPass true.
+  - 브라우저: 새 테스트 `test:home-ad` 통과. 확인한 것: 단위 번호가 없을 때 칸이 없음, 있을 때 1회 요청과 위치, unfilled일 때 숨김, 좁은 화면에서 넓혔을 때 요청. `test:ui-fixes`도 통과.
+  - 실제 AdSense 송출은 검증하지 못했다(사이트 승인과 단위 번호 대기). 병합하지 않고 브랜치 푸시만 한다.

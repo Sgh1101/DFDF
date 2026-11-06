@@ -126,6 +126,7 @@
     "test:public-entry": "node scripts/browser-public-entry.js",
     "test:gunshots": "node scripts/browser-gunshots.js",
     "test:ui-fixes": "node scripts/browser-ui-fixes.js",
+    "test:home-ad": "node scripts/browser-home-ad.js",
     "test:soft-fonts": "node scripts/browser-soft-fonts.js",
     "test:hud-render": "node scripts/browser-hud-render.js",
     "test:render-cost": "node scripts/browser-render-cost.js",

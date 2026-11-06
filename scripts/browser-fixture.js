@@ -23,6 +23,8 @@ async function fixture() {
     if (!options.promo) await page.route("**/js/promo.js", async (route) => { const res = await route.fetch(); await route.fulfill({ response: res, body: (await res.text()).replace(/video: "https?:[^"]*"/, 'video: "PROMO_VIDEO_URL"'), contentType: "text/javascript" }); });
     await page.route("https://fonts.googleapis.com/**", (route) => route.abort());
     await page.route("https://fonts.gstatic.com/**", (route) => route.abort());
+    // the home screen's AdSense script (play.html): tests never reach Google; scripts/browser-home-ad.js puts a stand-in here
+    await page.route(/^https:\/\/([a-z0-9-]+\.)*(googlesyndication\.com|doubleclick\.net|adtrafficquality\.google)\//, (route) => route.abort());
     // options.realRaf (or DFDF_REAL_RAF=1) keeps the browser's own requestAnimationFrame: the 120 ms delay below caps a page at
     // 8 fps, which alone limits the snapshot rate a network test can see
     await page.addInitScript(({ s, realRaf }) => {

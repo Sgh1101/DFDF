@@ -54,14 +54,7 @@
   }
   // the map list also changes after this script loads (the Ascent trial map, the owner's extra maps): count it again
   counts(); addEventListener("server-config", counts); addEventListener("maps-changed", counts);
-  const news = title.querySelector(".tt-news");
-  const newsLabel = document.createElement("div"), newsList = document.createElement("ul");
-  newsLabel.className = "tn-lbl"; newsLabel.textContent = L("플레이 안내", "PLAY GUIDE");
-  for (const item of GAME_CATALOG.news) {
-    const row = document.createElement("li"), heading = document.createElement("b"), text = document.createElement("span");
-    heading.textContent = L(...item.title); text.textContent = L(...item.text); row.append(heading, text); newsList.append(row);
-  }
-  news.replaceChildren(newsLabel, newsList);
+  // the home screen's news column is gone (the notices carry the news; an ad slot took its place, js/home-ad.js)
   // the sound preview under the armory header: which skin and gun, what the sound is, and four ways to hear it
   const sample = document.createElement("section"); sample.id = "skin-samples"; sample.setAttribute("aria-label", L("스킨 음색 미리듣기", "Skin sound preview"));
   const text = document.createElement("div"); text.id = "skin-sample-label";

@@ -9,13 +9,21 @@
 // Scripts: the site's own files (the legacy modules are loaded from ./js), cdnjs (three.js, PeerJS), and the inline ones
 // by hash: every <script> block without a src in the pages, and the two onerror="…" handlers play.html puts on its tags
 // ('unsafe-hashes'). Change an inline script, run this again; the test fails until you do.
-// Ads are not in the policy yet: when AdSense code is added, collect the hosts it needs while in report-only mode (the
-// pages show them in the console) and add them to AD below, not by guessing; then switch to "enforce".
+// Ads: play.html loads AdSense (the home screen's slot, js/home-ad.js). AD below lists the hosts Google's AdSense CSP
+// guidance names (the script, its frames and reports, ad-traffic-quality checks, the consent message from Funding
+// Choices); ad pictures come from many hosts, so images allow any https address. Before switching to "enforce", run the
+// pages in report-only and add whatever the console still reports.
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const root = path.resolve(__dirname, "..");
 const MODE = "report-only"; // "report-only" first, "enforce" when the pages have run under it with nothing reported
 const HEADER = MODE === "enforce" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
-const AD = { script: [], connect: [], img: [], frame: [] };
+const G = ["https://pagead2.googlesyndication.com", "https://*.googlesyndication.com", "https://*.adtrafficquality.google", "https://*.doubleclick.net", "https://www.google.com", "https://fundingchoicesmessages.google.com"];
+const AD = {
+  script: [...G, "https://www.googletagservices.com", "https://adservice.google.com"],
+  connect: [...G, "https://adservice.google.com"],
+  img: ["https:"],
+  frame: [...G],
+};
 const sha = (text) => "'sha256-" + crypto.createHash("sha256").update(text, "utf8").digest("base64") + "'";
 
 function inlineHashes() {
@@ -83,4 +91,4 @@ if (require.main === module) {
     console.log("csp: " + files.map((f) => path.relative(root, f.file)).join(", ") + " are up to date");
   } else { for (const { file, text } of files) fs.writeFileSync(file, text); console.log("csp (" + MODE + "): written to " + files.map((f) => path.relative(root, f.file)).join(", ")); }
 }
-module.exports = { policy, inlineHashes, build, HEADER, MODE };
+module.exports = { AD, policy, inlineHashes, build, HEADER, MODE };
