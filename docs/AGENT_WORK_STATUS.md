@@ -430,3 +430,7 @@
   - 각 사슬마다 "감싸기 전/후" 의미를 확인한다. 순서에 기대는 것은 훅을 `before`/`after`로 나눠 옮긴다.
   - 사슬마다 관련 브라우저 검사를 돌린 뒤 한도를 낮춘다. 큰 사슬(startRound 등)은 한 번에 하나씩, 따로 PR로 낸다.
 - 모듈 전환(type=module)이나 큰 재작성은 하지 않았다.
+- 5단계 첫 단계 검사:
+  - 단위 517 통과(래칫 2개 추가).
+  - 브라우저(한 번에 하나씩) 통과: browser, startup, online, peer-throttle, ragdoll-emotes, network-recovery, owner-state, owner-grant, perm-ticket, chat, surrender, guest-kit.
+  - operator-card는 일괄 실행에서 10초 대기 시간 초과로 한 번 실패했고, 혼자 다시 돌리면 2번 중 2번 통과했다(부하 때문의 간헐 실패로 본다).
