@@ -106,9 +106,9 @@ const {fixture}=require('./browser-fixture');
   });
   console.log('cleanup',cleanup);assert.equal(cleanup.active,false);assert.equal(cleanup.meshes,0);assert.equal(cleanup.imported,0);assert.equal(cleanup.disposed,cleanup.expected);assert.ok(cleanup.floor);assert.equal(cleanup.cell,2.5);
   await page.close();
-  // The map is public without downloading its 7.8 MB terrain on ordinary entry.
+  // An ordinary entry: the map (an outside layout) is not in the public list since 2026-11-07, and its 7.8 MB terrain is not downloaded.
   const normal=await f.page('ascentnormal',{width:960,height:600});
-  assert.deepEqual(await normal.evaluate(()=>({status:ASCENT_TRIAL.status,map:MAP_LIST.some(m=>m.key==='ascent_trial'),requests:performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length})),{status:'idle',map:true,requests:0});
+  assert.deepEqual(await normal.evaluate(()=>({status:ASCENT_TRIAL.status,map:MAP_LIST.some(m=>m.key==='ascent_trial'),requests:performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length})),{status:'idle',map:false,requests:0});
   assert.deepEqual(f.errors,[]);console.log('Ascent: real keyboard movement, full route physics, wall/body and hitscan collision, cleanup, normal entry isolation passed');
  }finally{await f.browser.close();}
 })().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

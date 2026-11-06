@@ -10,7 +10,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
       const num = (text) => Number((/맵 (\d+)종/.exec(text) || [])[1]), tabs = document.querySelector("#sel-maps").previousElementSibling, all = tabs && tabs.querySelector('button[data-cat=""] em');
       return { list: MAP_LIST.length, footer: num(document.querySelector(".title-foot").textContent), play: num(document.querySelector("#go-play small").textContent), filter: all ? Number(all.textContent) : null };
     });
-    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial"));
+    await page.waitForFunction(() => window.ASCENT_TRIAL && "listed" in ASCENT_TRIAL /* the last map script has run (Dusk District itself is not listed) */);
     const booted = await mapCounts();
     assert.ok(booted.list > 0, "map list is empty");
     assert.deepEqual([booted.footer, booted.play], [booted.list, booted.list], "home footer and solo button match MAP_LIST after boot");
