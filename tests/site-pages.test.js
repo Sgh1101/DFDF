@@ -53,7 +53,8 @@ test("agents.html names every agent and each of its four abilities (the game's r
 
 test("maps.html has every map of the pool with its size, and a picture", () => {
   const page = text(read("maps.html"));
-  assert.equal(data.maps.length, 22, "the permanent pool is 22 maps");
+  assert.equal(data.maps.length, 21, "the permanent pool is 21 maps (Dusk District left it on 2026-11-07)");
+  assert.ok(!data.maps.some((m) => m.key === "ascent_trial"), "no Dusk District on the site");
   for (const m of data.maps) {
     assert.ok(page.includes(m.name), "map " + m.name);
     assert.ok(page.includes(`${m.width}×${m.depth}m`), m.name + " footprint");
