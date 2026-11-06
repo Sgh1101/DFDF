@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { fixture } = require('./browser-fixture');
 
-const DISPLAY = /^Galmuri11\b/;
+const PIXEL = /^Galmuri11\b/; // only the "13" mark and the big ammo digits
+const DISPLAY = /^"Pretendard Variable"/; // names and Korean headings: heavy reading face, easy to tell apart
 const BODY = /^"Pretendard Variable"/;
 const output = process.env.DFDF_SCREENSHOT_DIR || 'test-results/retro-fonts';
 const family = (page, selector) => page.locator(selector).first().evaluate(element => getComputedStyle(element).fontFamily);
@@ -23,19 +24,21 @@ async function loadLocalFaces(page) {
   try {
     const page = await f.page('softfonts', { width: 1280, height: 720 }, { locale: 'ko-KR' });
     await loadLocalFaces(page);
-    assert.match(await family(page, '.title-mark'), DISPLAY);
+    assert.match(await family(page, '.title-mark'), PIXEL);
+    assert.match(await family(page, '.tt-name'), DISPLAY);
     await page.evaluate(() => { titleCam = () => {}; document.getElementById('go-play').click(); });
     await page.locator('#sel-detail .det-name').waitFor({ state: 'attached' });
     for (const selector of ['.acard-name', '.det-name']) {
       assert.match(await family(page, selector), DISPLAY, selector);
-      assert.equal(await page.locator(selector).first().evaluate(e => getComputedStyle(e).fontWeight), '700');
+      assert.equal(await page.locator(selector).first().evaluate(e => getComputedStyle(e).fontWeight), '800');
     }
     assert.match(await family(page, '.det-desc'), BODY);
     await page.evaluate(() => { room.mode = 'std'; room.map = 'pogu'; startGame(AGENTS[0], false); closeShop(); ADMIN.freezeAI = true; world.phase = 'live'; });
     await page.waitForFunction(() => myActor()?.alive && !document.getElementById('hud').hidden);
 
     await page.evaluate(() => { window.KILL_EVENT = null; killStreak = 0; playKillFx('화령', false); banner('라운드 승리', '#4ade80'); });
-    for (const selector of ['#kf-main', '#kf-tag', '#banner', '#am-count']) assert.match(await family(page, selector), DISPLAY, selector);
+    for (const selector of ['#kf-main', '#kf-tag', '#banner']) assert.match(await family(page, selector), DISPLAY, selector);
+    assert.match(await family(page, '#am-count'), PIXEL);
     for (const selector of ['#kf-sub', '#kf-streak', '#roster', 'body', '#am-count small', '#am-credit', '#tb-time']) assert.match(await family(page, selector), BODY, selector);
     for (const selector of ['#v-hp', '#v-ar', '#am-count', '#am-count small', '#tb-time']) {
       assert.match(await page.locator(selector).evaluate(e => getComputedStyle(e).fontVariantNumeric), /tabular-nums/, selector);
@@ -86,7 +89,7 @@ async function loadLocalFaces(page) {
     assert.ok(await home.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await context.close();
     assert.deepEqual(f.errors, []);
-    console.log('Local Galmuri11 and Pretendard loaded. Lobby, agent text, settings, round banner, small HUD and guide passed.');
+    console.log('Local Galmuri11 (13 mark, ammo digits) and Pretendard (names, headings, text) loaded. Lobby, agent text, settings, round banner, small HUD and guide passed.');
   } finally {
     await f.browser.close();
   }

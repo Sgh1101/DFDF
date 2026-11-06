@@ -7,10 +7,18 @@
 }
 body #mini-set{font-family:var(--f-body)}
 #kf-main{font-weight:400}
-#s-title .title-mark,.sel-top h2,.ov-head,.tt-name,.acard-name,.det-name,#banner,#am-count,
-#killfx:not(.phantom-attack,.phantom-defense) :is(#kf-main,#kf-tag){
+/* The pixel face stays only where there are no letters to tell apart: the "13" mark and the big ammo digits. */
+#s-title .title-mark,#am-count{
   font-family:var(--ui-pixel-font);
   font-weight:700;
+}
+/* Names and Korean headings: at display sizes the pixel face blurred similar names together (바람/바림, 별빛/벌빛),
+   so they use the reading face, heavy, with clear open shapes. */
+.sel-top h2,.ov-head,.tt-name,.acard-name,.det-name,#banner,
+#killfx:not(.phantom-attack,.phantom-defense) :is(#kf-main,#kf-tag){
+  font-family:var(--ui-display-font);
+  font-weight:800;
+  letter-spacing:0;
 }
 #banner{
   width:max-content;

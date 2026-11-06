@@ -197,3 +197,16 @@
   - 단위 522 통과, 2 건너뜀. check 통과, CSP check 통과, 광고 준비 점검 gateChecksPass true.
   - 브라우저: 새 테스트 `test:home-ad` 통과. 확인한 것: 단위 번호가 없을 때 칸이 없음, 있을 때 1회 요청과 위치, unfilled일 때 숨김, 좁은 화면에서 넓혔을 때 요청. `test:ui-fixes`도 통과.
   - 실제 AdSense 송출은 검증하지 못했다(사이트 승인과 단위 번호 대기). 병합하지 않고 브랜치 푸시만 한다.
+## 2026-11-05 · Claude · 캐릭터 이름 글꼴 교체 (사용자 요청)
+
+- 기준 main `a09e677`, 브랜치 `claude/readable-names`. 먼저 Codex #133(레트로 픽셀 글꼴: 갈무리11 + Pretendard)을 확인했다. 그 뒤 새 Codex 커밋은 없다.
+- 사용자 지시: "글꼴을 바꿔 줘. 지금 글꼴은 캐릭터 이름이 이상하게 나와서 구분이 안 돼. 이름이 잘 구분되는 글꼴로."
+- 바꾼 것:
+  - 요원 이름(홈 `.tt-name`, 선택 카드 `.acard-name`, 상세 `.det-name`), 한글 제목(`.sel-top h2`, `.ov-head`, 사이트 h1), 라운드 배너, 처치 문구는 Pretendard Variable 800(굵게)으로 바꿨다. 새 변수는 `--ui-display-font`다.
+  - 갈무리11 픽셀 글꼴은 글자를 구분할 필요가 없는 곳에만 남겼다. 남긴 곳은 "13" 로고(`.title-mark`, `.logo`, `.sh-logo`)와 큰 탄약 숫자(`#am-count`)다.
+  - 챔피언스 전용 처치 연출 글꼴(Orbitron/Noto Sans KR)은 그대로 두었다.
+  - 새 글꼴 파일은 추가하지 않았다. 이미 함께 제공되는 Pretendard를 쓴다.
+- 검사:
+  - Codex의 `test:soft-fonts`에서 기대값만 새 배치에 맞게 바꿨고 통과했다. 이름과 제목은 Pretendard 800, 로고와 탄약은 갈무리11이다.
+  - 홈과 요원 선택 화면을 1280×720으로 찍어 이름을 확인했다.
+  - 병합하지 않고 브랜치 푸시만 한다.

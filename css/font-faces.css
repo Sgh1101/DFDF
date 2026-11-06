@@ -11,4 +11,5 @@
 :root {
   --ui-reading-font: 'Pretendard Variable', system-ui, sans-serif;
   --ui-pixel-font: Galmuri11, var(--ui-reading-font);
+  --ui-display-font: var(--ui-reading-font);
 }
