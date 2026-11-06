@@ -71,7 +71,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
     });
     await p.keyboard.up("w"); await p.mouse.up();
     assert.ok(slide.started && slide.ended && slide.restored, JSON.stringify(slide));
-    assert.ok(Math.abs(slide.distance - 6) < 0.15, JSON.stringify(slide)); assert.equal(slide.ammo, 30, "the slide click never fires");
+    assert.ok(Math.abs(slide.distance - 5) < 0.15, JSON.stringify(slide)); // our own slide: 5 m assert.equal(slide.ammo, 30, "the slide click never fires");
     // the effects: the orb lays the lane, two walls with current, the bolt and its charge; all gone after
     const fx = await p.evaluate(() => {
       const a = myActor(); abilClear(); a.yaw = 0; CAST_EXT.neon_lane(); abilTick(0.2);
