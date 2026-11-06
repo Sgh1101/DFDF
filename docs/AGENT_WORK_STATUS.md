@@ -172,6 +172,15 @@
 - 요청: #126은 닫아 달라. Claude가 PR 닫기를 시도했지만 이 세션의 권한 검사에서 막혔다. #126에만 있는 공동 작업 지침은 이미 main(`1d189e7`)에 들어 있다. #126 브랜치의 다른 변경을 다시 쓰려면 사용자에게 먼저 확인한다.
 - 이전 기록 정리: SGH나비칼 항목의 "#126의 RGX 해시 검사 갱신 필요"는 #126을 쓰지 않으므로 더 이상 할 일이 아니다. #129(출처 표기)는 `ac757fd`로 병합·배포되었다.
 
+## 2026-11-05 · Claude · 실총형 권총 4종 정조준(ADS) 가늠쇠 정렬 — 로컬 완료, 미푸시
+- 사용자 승인: 새 실총형 모델(Axiom·Hush·Verdict·Tempo)에서 정조준 때 가늠쇠/레드닷이 화면 중앙보다 약 30px 아래에 있던 문제를 고친다.
+- 작업 worktree: `worktree-agent-acd1811b98bda6b2e`(로컬). 기준: main `a09e677` + Tempo `origin/claude/quirky-fermat-11wa1b`(`538ec1f`, PR #136) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR #136(Tempo), Codex #137(SGH나비칼 뼈대·모션·소리), Claude #138(SGH나비칼 색) 파일 목록을 읽었다. 03-engine·총 모델 파일과 겹치지 않는다(#138의 58-gun-skins.js 칼 항목은 손대지 않음). origin/codex/* 최근 브랜치도 이번 파일과 겹치는 미반영 변경 없음.
+- 담당 파일: `js/legacy/03-engine.js`(vmWithHands가 `userData.anchors.sight`를 읽고, tickViewmodel이 정조준 때 그 점을 화면 중심선에 둔다), `js/gun-model-{pistol,silenced,revolver,machpist}.js`(각 `anchors.sight` 한 줄). 앵커가 없는 다른 총은 기존 고정 자세(0, -0.075, -0.72) 그대로. FOV·전환·흔들림/반동·저격/지정사수 스코프·손 위치·3인칭은 변경 없음. 58·96·97·pocketshot 미수정.
+- 앵커: Axiom 앞 점(y 3.3mm, 뒤 점 3.4mm와 수평), Hush 앞 점(7.4mm), Verdict 앞 블레이드 윗면 뒤끝(23.2mm, 가늠자 노치 윗면 23mm), Tempo 레드닷 중심.
+- 측정(투영 위치, 중앙 기준 아래쪽 +): 1280×720 Axiom 32.5→0, Hush 28.8→0, Verdict 26.8→0, Tempo 37.2→0px. 852×393 17.7/15.7/14.7/20.3→0px. Strife(소총) 자세 동일.
+- 실제 검사(로컬): 단위 523 중 521 통과·2 Redis 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0. 브라우저(하나씩): aim·improvements·reload·graphics·startup·rifle-identity 통과, legacy-models는 무기고 열기 대기 30초 시간 초과가 반복된 뒤(기준 커밋에서도 같은 대기가 20초를 넘김을 확인) 재실행 통과. followup은 ADS 단계 전의 첫 단언(GAME_CATALOG.counts에 새 `guns:18` 키)에서 실패 — 이번 변경과 무관, 기존 상태. 실기기/Android 미검증. 미배포·미푸시.
+
 ## 2026-11-05 · Claude · 총 개편 5/18 Breach(pocketshot) 실총형 재제작 — 진행 중
 - 사용자 요청: 기본 총 18종 순차 재제작 5번째. Breach(키 `pocketshot`)를 권총 손잡이의 짧은 수평 쌍대 중절식 산탄총(코치건/소드오프형, 특정 제조사 이름·로고·각인 없음)으로 다시 만든다. 승인 후 다음 총.
 - 작업 worktree: `worktree-agent-a4ac8c01a923840ed`(로컬, 미푸시). 기준: origin/main `1a5068a`(Codex #133 글꼴·#134 스파이크 규칙 포함) + 승인된 Axiom·Hush·Verdict·Tempo `origin/claude/quirky-fermat-11wa1b`(`1419dfb`, fast-forward).

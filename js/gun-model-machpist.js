@@ -510,6 +510,8 @@
       right: [0.004, Y(-68), Z(163)],
       left: [-0.006, Y(-58), Z(32)],
       muzzle: [0, Y(BORE), Z(COMP.face - 1)],
+      // the line of sight: the red dot's centre (ADS puts it on the screen centre)
+      sight: [0, Y(DOT_Y), Z(LENS_X + (DOT_Y - LENS_Y) * 0.32) + S(0.3)],
     };
     const add = (name, geo, mat, parent = root) => {
       const mesh = new T.Mesh(geo, mat);

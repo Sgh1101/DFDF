@@ -11673,6 +11673,9 @@ function vmWithHands(e, t) {
       x + 0.006,
     );
   if (anchors?.right) b.fromArray(anchors.right).applyMatrix4(e.matrixWorld);
+  // A model that says where its line of sight is (the front dot, the front blade's top, the red dot) is aimed down
+  // that point: tickViewmodel puts it on the screen centre in ADS. Guns without one keep the fixed ADS pose.
+  if (anchors?.sight) o.userData.sight = new T.Vector3().fromArray(anchors.sight).applyMatrix4(e.matrixWorld);
   vmArm(o, b, new T.Vector3(b.x + 0.1, b.y - 0.3, b.z + 0.44), i, l, c, !1);
   if (!["보조", "근접"].includes(a.cls)) {
     const e = new T.Vector3(
@@ -11779,8 +11782,9 @@ function tickViewmodel(e) {
   if (tickVmSpike(e)) return void (a.visible = !1);
   a.visible = !0;
   const n = player.ads && !player.ultW,
-    r = n ? 0 : 0.3,
-    s = n ? -0.075 : -0.24,
+    sv = n && a.userData.sight,
+    r = n ? (sv ? -sv.x : 0) : 0.3,
+    s = n ? (sv ? -sv.y : -0.075) : -0.24,
     i = n ? -0.72 : -0.66,
     l = Math.hypot(player.vel.x, player.vel.z);
   VM.bobT += e * (2.2 + 1.1 * l);
