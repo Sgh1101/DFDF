@@ -50,12 +50,12 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
       g.pos.set(-35, 0, -40); g.y = 0; g.input.mv = [0, 0];
       castAbility("neon_relay", NEON_AGENT.agent.abilities[0]);
       for (let i = 0; i < 80 && !(g.concuss > 0); i++) abilTick(0.05);
-      if (!(g.concuss > 0)) throw new Error("Relay Bolt did not hit the guest");
+      if (!(g.concuss > 0)) throw new Error("the twin-shock bolt did not hit the guest");
     });
     await guest.waitForFunction(() => myActor().concuss > 0);
     await guest.waitForFunction(() => !(myActor().concuss > 0), null, { timeout: 15000 });
     assert.deepEqual(f.errors, []);
     await host.evaluate(() => netShutdown());
-    console.log("Real local WebRTC peers: guest High Gear/left-click slide, authoritative Overdrive, replicated timers/charges, Relay Bolt stun and expiry passed");
+    console.log("Real local WebRTC peers: guest sprint/left-click slide, authoritative beam, replicated timers/charges, twin-shock stun and expiry passed");
   } finally { await f.browser.close(); signaling.close(); }
 })().then(() => process.exit(0), e => { console.error(e); process.exit(1); });

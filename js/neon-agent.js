@@ -1,16 +1,19 @@
 (() => {
   "use strict";
   // 전광 (internal id neon_agent): a striker made of speed and current. Everything here is this game's own: the look, the portrait, the
-  // first-person arms and their motions, the icons, the bolt, charge, lane and spark effects, the slide pose. Only what
-  // the four abilities do (and their numbers) follows the reference the owner supplied.
+  // first-person arms and their motions, the icons, the bolt, charge, lane and spark effects, the slide pose, and since
+  // 2026-11-07 what the four abilities do and their numbers too: the bolt sticks and pulses twice (no bounce), the wall is
+  // one curtain across the way ahead (not a lane of two walls), the sprint and the beam have their own numbers.
   if (AGENTS.some((a) => a.id === "neon_agent")) return;
-  // what the abilities do: sprint, slide, lane walls, the bouncing bolt and its charges, the ultimate beam
+  // what the abilities do: sprint, slide, the curtain wall, the sticking bolt and its two pulses, the ultimate beam
   const C = Object.freeze({
-    sprintMultiplier: 1.4, sprintDuration: 10, slideDistance: 6, slideDuration: 0.8333, killsPerSlide: 2,
-    wallLength: 25, wallHeight: 4, wallDuration: 4, wallGap: 2.4, laneSpeed: 62.5,
-    boltSpeed: 38, boltGravity: 4.8, boltLife: 2.25, boltAfterBounce: 0.75, boltDelay: 0.35,
-    concussDelay: 0.8, concussRadius: 5, concussDuration: 2.5,
-    ultimateDuration: 20, ultimateRange: 40, ultimateDamage: 18, ultimateRate: 0.1,
+    sprintMultiplier: 1.3, sprintDuration: 8, slideDistance: 5, slideDuration: 0.7, killsPerSlide: 1,
+    // the curtain: the orb runs curtainDistance ahead, then a wall curtainWidth wide stands across the way
+    curtainDistance: 9, curtainWidth: 14, wallHeight: 3.5, wallDuration: 6, wallGap: 2.4, laneSpeed: 30,
+    boltSpeed: 34, boltGravity: 6, boltLife: 2, boltDelay: 0.3,
+    // the bolt sticks where it lands and pulses twice: two stuns of its own length, pulseGap apart
+    concussDelay: 0.5, concussRadius: 4, concussDuration: 1, pulseGap: 1.2,
+    ultimateDuration: 14, ultimateRange: 32, ultimateDamage: 21, ultimateRate: 0.12,
   });
   const CYAN = 0x41cfff, YELLOW = 0xf7ef69, NAVY = 0x1d2b4f;
   const host = () => NET.mode !== "client";
@@ -18,12 +21,12 @@
   const agent = {
     id: "neon_agent", key: "neon_agent", codename: "SURGE", name: "전광", role: "타격대", color: "#41cfff", accent: "#f7ef69",
     quote: "멈추면 지는 거야.",
-    desc: "몸에 전류를 두른 배달원 출신 돌격수. 튕기는 전격탄으로 길을 열고, 전류 통로를 깔고, 질주와 미끄러지기로 누구보다 먼저 닿는다.",
+    desc: "몸에 전류를 두른 배달원 출신 돌격수. 붙는 전극탄으로 두 번 흔들고, 전류 장막으로 앞을 가리고, 질주와 미끄러지기로 누구보다 먼저 닿는다.",
     abilities: [
-      A("Q", "되튐 전격", "neon_relay", 200, 2, 0, "한 번 튕기는 전기탄. 닿는 곳마다 0.8초 뒤 반경 5m에 전기가 터져 2.5초 뇌진탕. 벽 너머의 적에게는 닿지 않는다."),
-      A("E", "질주 회로", "neon_gear", 0, 1, 30, "10초간 이동 속도 +40%. 좌클릭(모바일 사격)으로 6m 미끄러지며 질주를 끝내고 무기로 돌아온다. 처치 2회마다 미끄러지기가 다시 찬다."),
-      A("C", "전류 통로", "neon_lane", 300, 1, 0, "앞으로 최대 25m, 높이 4m 전류 벽 두 개를 깔아 4초간 양옆 시야를 막는다. 가운데 2.4m 통로로 지나가며 쏠 수 있다."),
-      A("X", "과충전", "neon_overdrive", 0, 1, 0, "20초 동안 총 대신 손끝에서 40m 전기 빔을 쏜다. 0.1초마다 피해 18. 궁극기 중 좌클릭은 빔, 우클릭은 미끄러지기.", 7),
+      A("Q", "이중 전격", "neon_relay", 200, 2, 0, "닿은 곳에 붙는 전극탄. 0.5초 뒤와 1.2초 더 뒤, 두 번 반경 4m에 전기가 터져 각각 1초 뇌진탕. 튕기지 않고, 벽 너머의 적에게는 닿지 않는다."),
+      A("E", "질주 회로", "neon_gear", 0, 1, 30, "8초간 이동 속도 +30%. 좌클릭(모바일 사격)으로 5m 미끄러지며 질주를 끝내고 무기로 돌아온다. 처치할 때마다 미끄러지기가 다시 찬다."),
+      A("C", "전류 장막", "neon_lane", 300, 1, 0, "구슬이 9m 앞까지 달려가 그 자리에 폭 14m, 높이 3.5m 전류 장막을 가로로 세운다. 6초간 앞쪽 시야를 막는다."),
+      A("X", "과충전", "neon_overdrive", 0, 1, 0, "14초 동안 총 대신 손끝에서 32m 전기 빔을 쏜다. 0.12초마다 피해 21. 궁극기 중 좌클릭은 빔, 우클릭은 미끄러지기.", 8),
     ],
   };
   AGENTS.push(agent);
@@ -234,17 +237,19 @@
     const actor = player, yaw = actor.yaw || 0, dx = -Math.sin(yaw), dz = -Math.cos(yaw), px = -dz, pz = dx;
     startClip(actor, "lane");
     const orb = { id: actor.id, startX: actor.pos.x, startY: actor.y || 0, startZ: actor.pos.z, dirX: dx, dirZ: dz, curX: actor.pos.x, curZ: actor.pos.z };
-    const preview = NEON_EFFECTS.preview(orb, C.wallGap); scene.add(preview.root); let age = 0;
+    const preview = NEON_EFFECTS.preview(orb, 0); scene.add(preview.root); // one trail, not the two rails of a lane let age = 0;
     abilSpawn({ update(dt) {
-      age += dt; const length = Math.min(C.wallLength, age * C.laneSpeed);
+      age += dt; const length = Math.min(C.curtainDistance, age * C.laneSpeed);
       orb.curX = orb.startX + dx * length; orb.curZ = orb.startZ + dz * length; preview.updateAge(age);
-      if (length < C.wallLength) return true;
+      if (length < C.curtainDistance) return true;
       finalWalls(); return false;
     }, dispose() { preview.dispose(); } });
     function finalWalls() {
-      for (const side of [-1, 1]) {
-        const x = orb.startX + px * side * C.wallGap / 2, z = orb.startZ + pz * side * C.wallGap / 2;
-        const levels = Array.from({ length: C.wallLength }, (_, i) => groundAt(x + dx * (i + 0.5), z + dz * (i + 0.5), orb.startY + 3));
+      // one curtain, across the way: from the left end to the right end, curtainDistance ahead
+      {
+        const half = C.curtainWidth / 2, dx = px, dz = pz;
+        const x = orb.startX + orb.dirX * C.curtainDistance - px * half, z = orb.startZ + orb.dirZ * C.curtainDistance - pz * half;
+        const levels = Array.from({ length: C.curtainWidth }, (_, i) => groundAt(x + dx * (i + 0.5), z + dz * (i + 0.5), orb.startY + 3));
         // the wall follows the ground in pieces of one level each
         for (let begin = 0; begin < levels.length;) {
           let end = begin + 1; while (end < levels.length && Math.abs(levels[end] - levels[begin]) < 0.5) end++;
@@ -263,11 +268,12 @@
       }
     }
   }
-  function shock(actor, point) {
-    const fx = NEON_EFFECTS.shock(point, C.concussRadius, C.concussDelay); scene.add(fx.root);
-    let time = 0, hit = false;
+  function shock(actor, point, after = 0) {
+    const fx = NEON_EFFECTS.shock(point, C.concussRadius, C.concussDelay + after); scene.add(fx.root);
+    let time = -after, hit = false;
     abilSpawn({ update(dt) {
       time += dt; if (time >= 4) return false; fx.updateAge(time);
+      if (time < 0) return true;
       if (hit || time < C.concussDelay) return true; hit = true;
       if (host()) for (const foe of foesOf(actor)) {
         if (Math.hypot(foe.pos.x - point.x, foe.pos.z - point.z) > C.concussRadius || Math.abs((foe.y || 0) - point.y) > 3) continue;
@@ -309,7 +315,7 @@
   }
   function relay() {
     const actor = player, point = new T.Vector3(), velocity = new T.Vector3(), fx = NEON_EFFECTS.bolt(); scene.add(fx.root);
-    let time = -C.boltDelay, bounces = 0, launched = false, bounceAt = Infinity;
+    let time = -C.boltDelay, launched = false;
     startClip(actor, "relay");
     abilSpawn({ update(dt) {
       const before = time; time += dt; if (time < 0) return true;
@@ -323,15 +329,11 @@
         velocity.y -= C.boltGravity * h;
         const next = point.clone().addScaledVector(velocity, h);
         const hit = boltHit(point, next);
-        if (hit) {
-          point.copy(hit.point); shock(actor, point.clone());
-          if (bounces++ >= 1) return false;
-          bounceAt = time;
-          velocity[hit.axis] *= -1; point[hit.axis] += hit.normal * 0.002;
-        } else point.copy(next);
+        // it sticks where it lands and pulses twice
+        if (hit) { point.copy(hit.point); shock(actor, point.clone()); shock(actor, point.clone(), C.pulseGap); fx.updateBolt(point, velocity, time, actor.id); return false; }
+        point.copy(next);
       }
       fx.updateBolt(point, velocity, time, actor.id);
-      if (bounces && time - bounceAt >= C.boltAfterBounce) { shock(actor, point.clone()); return false; }
       if (time >= C.boltLife) return false;
       return true;
     }, dispose() { fx.dispose(); } });

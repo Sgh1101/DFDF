@@ -19007,7 +19007,7 @@ function hostHandleBuy(e, t) {
   // plain data first: a kind, and a key that is a string or a number (an object key threw in the shop lookup below)
   if (!t || "string" != typeof t.kind || !(null == t.key || "string" == typeof t.key || "number" == typeof t.key)) return;
   // only what the shop lists: the weapon table also holds the golden chest pistol (free, one bullet for 200)
-  if ("weapon" === t.kind && !Object.keys(WEAPONS).includes(window.VALORANT_DATA ? VALORANT_DATA.canonical(t.key) : t.key)) return;
+  if ("weapon" === t.kind && !Object.keys(WEAPONS).includes(window.WEAPON_DATA ? WEAPON_DATA.canonical(t.key) : t.key)) return;
   o &&
     "buy" === world.phase &&
     (applyPurchase(o, t.kind, t.key),

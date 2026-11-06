@@ -30,7 +30,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     }
     const protectedModels={};for(const key of ['pistol','silenced','revolver','rifle','scout','autoshot','hmg','marksman','sniper']){
       // the game's own builder: meshes of finite size and nothing from the removed weapon pack
-      const model=GUN_BUILD[key]();let source=false,meshes=0;model.traverse(n=>{if(n.userData.valorantRig||n.userData.sourceAttachment)source=true;if(n.isMesh)meshes++;});const size=new T.Box3().setFromObject(model).getSize(new T.Vector3());protectedModels[key]=!source&&meshes>0&&size.z>.1&&size.toArray().every(Number.isFinite);
+      const model=GUN_BUILD[key]();let source=false,meshes=0;model.traverse(n=>{if(n.userData.sourceAttachment)source=true;if(n.isMesh)meshes++;});const size=new T.Box3().setFromObject(model).getSize(new T.Vector3());protectedModels[key]=!source&&meshes>0&&size.z>.1&&size.toArray().every(Number.isFinite);
     }
     protectedModels.carbine=GUN_BUILD.carbine().userData.weaponModel==='recon';protectedModels.bullpup=GUN_BUILD.bullpup().userData.weaponModel==='comet';
     const champion=GUN_SKINS.template('scout',GUN_SKINS.list.find(s=>s.id==='champions_atk'));

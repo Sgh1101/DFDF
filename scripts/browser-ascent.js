@@ -3,7 +3,7 @@ const {fixture}=require('./browser-fixture');
 (async()=>{
  const f=await fixture();fs.mkdirSync('test-results',{recursive:true});
  try{
-  const page=await f.page('ascenttester',{width:1280,height:720},{},{bootTimeout:120000});
+  const page=await f.page('ascenttester',{width:1280,height:720},{},{bootTimeout:120000,hiddenMaps:true});
   assert.equal(await page.evaluate(()=>ASCENT_TRIAL.status),'idle');
   assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').filter(r=>r.name.includes('/assets/maps/ascent/')).length),0);
   await page.locator('#go-play').click();

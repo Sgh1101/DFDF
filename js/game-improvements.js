@@ -86,8 +86,9 @@
       if(!diag.hidden)paintReport();
     }return r;};
   // A visible direct entry; the selected map still loads lazily via ASCENT_TRIAL.
-  const mapEntry=button('go-mark-valo','황혼 지구 · '+L('블록 맵','Block map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
-  const thumb=document.createElement('img');thumb.src='./assets/site/maps/ascent_trial.webp?v=district-ascent-1';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title=L('큰 전술 지구 · 5대5 · A/B 거점','Large tactical district · 5v5 · sites A/B');
+  // (only while Dusk District is listed: js/ascent-trial.js)
+  const mapEntry=window.ASCENT_TRIAL&&ASCENT_TRIAL.listed&&button('go-mark-dusk','황혼 지구 · '+L('블록 맵','Block map'),()=>{room.map='ascent_trial';$('go-play').click();paintSelMaps();},document.querySelector('#s-title .tt-menu'));
+  if(mapEntry){const thumb=document.createElement('img');thumb.src='./assets/site/maps/ascent_trial.webp?v=district-ascent-1';thumb.alt='';thumb.width=64;thumb.height=36;thumb.loading='lazy';mapEntry.prepend(thumb);mapEntry.title=L('큰 전술 지구 · 5대5 · A/B 거점','Large tactical district · 5v5 · sites A/B');}
   const controls=document.querySelector('.pz-pane[data-pane="ctl"]');
   if(controls&&window.TOUCHLAY){
     // the sentence as the row's label like every other setting, the two buttons side by side under it

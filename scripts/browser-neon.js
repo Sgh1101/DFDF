@@ -43,7 +43,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       out.slide = NEON_AGENT.slide(me); out.doubleSlide = NEON_AGENT.slide(me);
       const before = me.pos.clone(); for (let i = 0; i < 18; i++) { step(0.05); world.phase = "live"; }
       out.slideDistance = Math.hypot(me.pos.x - before.x, me.pos.z - before.z); out.slideEnded = me.__neonSlide === 0;
-      for (let i = 0; i < 2; i++) { putFoe(8); killActor(foe, me); }
+      putFoe(8); killActor(foe, me); // one kill refills the slide
       out.refilled = me.__neonSlideReady;
       const blocker = COLLIDERS.find(c => c.h > 1 && c.maxZ - c.minZ > 1 && !collideXZ(c.minX - 1, (c.minZ + c.maxZ) / 2, 0.45, 0.28));
       if (!blocker) throw new Error("No wall for slide collision check");
@@ -53,17 +53,20 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       out.stoppedAtWall = me.pos.x < blocker.minX && me.__neonSlide === 0;
       foe.alive = true; botCast(foe, "neon_gear", def("neon_gear")); step(0.01); out.copiedGear = foe.__neonGear > 0; NEON_AGENT.clear(foe);
       resetPos(); cast("neon_lane");
-      abilTick(.41); abilTick(.3);
+      abilTick(.31); abilTick(.31);
       out.walls = scene.children.filter(o => o.name === "neon-fastlane").length;
-      out.visionBlocked = rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + -dz * 5, 1.4, me.pos.z + dx * 5);
+      // our own curtain: one wall across the way 9 m ahead; the view ahead past it is blocked, the near ground and the sides are not
+      out.visionBlocked = rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + dx * 13, 1.4, me.pos.z + dz * 13);
       out.forwardClear = !rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + dx * 6, 1.4, me.pos.z + dz * 6);
+      out.sideClear = !rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + -dz * 5, 1.4, me.pos.z + dx * 5);
       abilClear(); out.wallsGone = scene.children.every(o => o.name !== "neon-fastlane");
-      // Original projectile travels, bounces and produces delayed concussive zones.
+      // our own bolt: it sticks where it lands and pulses twice (the second stun comes after the first has worn off)
       putFoe(5); me.pitch = -0.45; cast("neon_relay");
-      for (let i = 0; i < 80 && !(foe.concuss > 0); i++) abilTick(0.05);
-      out.concuss = foe.concuss || 0; out.relayNoDamage = foe.hp === 100; abilClear(); me.pitch = 0;
+      let first = -1, pulses = 0, was = false;
+      for (let i = 0; i < 120; i++) { abilTick(0.05); foe.concuss = Math.max(0, (foe.concuss || 0) - 0.05); const on = foe.concuss > 0; if (on && !was) { pulses++; first < 0 && (first = i); } was = on; }
+      out.concuss = pulses ? 1 : 0; out.pulses = pulses; out.relayNoDamage = foe.hp === 100; abilClear(); me.pitch = 0;
       putFoe(8); cast("neon_overdrive"); out.ultName = me.ultW.name; out.ultDuration = me.ultW.t;
-      const aim = ultwAim(me, 0, 0), ray = ultwRay(me, aim.o, aim.dir, 40 / AB_D, false, false, 0.08);
+      const aim = ultwAim(me, 0, 0), ray = ultwRay(me, aim.o, aim.dir, 32 / AB_D, false, false, 0.08);
       out.ray = { origin: aim.o.toArray(), dir: aim.dir.toArray(), foe: [foe.pos.x, foe.y, foe.pos.z, foe.crouch], hits: ray.hits.map(h => h.e.id), end: ray.endT, shield: foe.shielded, undying: foe.undying, phase: world.phase };
       me.ultW.cd = 0; ultwFire(me); out.ultDamage = 100 - foe.hp;
       const snap = buildSnapshot(false); out.snapshot = snap.neon.find(row => row[0] === me.id);
@@ -73,13 +76,13 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       return out;
     });
     console.log(result);
-    assert.equal(result.gear, 10); assert.ok(result.fast > result.normal * 1.3);
-    assert.equal(result.slide, true); assert.equal(result.doubleSlide, false); assert.ok(Math.abs(result.slideDistance - 6) < 0.15); assert.equal(result.slideEnded, true); assert.equal(result.refilled, true);
+    assert.equal(result.gear, 8); assert.ok(result.fast > result.normal * 1.2);
+    assert.equal(result.slide, true); assert.equal(result.doubleSlide, false); assert.ok(Math.abs(result.slideDistance - 5) < 0.15); assert.equal(result.slideEnded, true); assert.equal(result.refilled, true);
     assert.equal(result.stoppedAtWall, true); assert.equal(result.copiedGear, true);
-    assert.ok(result.walls >= 2); assert.equal(result.visionBlocked, true); assert.equal(result.forwardClear, true); assert.equal(result.wallsGone, true);
-    assert.ok(result.concuss > 0); assert.equal(result.relayNoDamage, true);
-    assert.equal(result.ultName, "과충전"); assert.equal(result.ultDuration, 20); assert.equal(result.ultDamage, 18); assert.equal(result.clientDamage, 0);
-    assert.equal(result.snapshot[4], 20); assert.equal(result.ourArms, true);
+    assert.ok(result.walls >= 1); assert.equal(result.visionBlocked, true); assert.equal(result.forwardClear, true); assert.equal(result.sideClear, true); assert.equal(result.wallsGone, true);
+    assert.ok(result.concuss > 0); assert.equal(result.pulses, 2, "two pulses"); assert.equal(result.relayNoDamage, true);
+    assert.equal(result.ultName, "과충전"); assert.equal(result.ultDuration, 14); assert.equal(result.ultDamage, 21); assert.equal(result.clientDamage, 0);
+    assert.equal(result.snapshot[4], 14); assert.equal(result.ourArms, true);
     await p.screenshot({ path: path.join(dir, "overdrive-arms.png") });
     await p.evaluate(() => { const me = myActor(); endUltW(me); NEON_AGENT.clear(me); });
     assert.equal(await p.evaluate(() => myActor().__neonSlideReady), false);

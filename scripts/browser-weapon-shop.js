@@ -8,7 +8,7 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
  await p.evaluate(async()=>{await GUN_SKINS.sync();room.map='pogu';startGame(AGENTS[0],true);ADMIN.freezeAI=true;world.phase='buy';world.roundTime=999;const a=myActor();a.credits=10000;a.abilities[0].charges=0;openShop();});
  await p.waitForFunction(()=>document.querySelectorAll('#shop-grid .buy-gun-image[src]').length===18,null,{timeout:120000});
  assert.equal(await p.locator('#shop-grid [data-kind="weapon"]').count(),18);
- const catalog=await p.evaluate(()=>({keys:Object.keys(WEAPONS),profiles:Object.fromEntries(Object.keys(VALORANT_DATA.names).map(k=>[k,VALORANT_DATA.profiles[k]]))}));
+ const catalog=await p.evaluate(()=>({keys:Object.keys(WEAPONS),profiles:Object.fromEntries(Object.keys(WEAPON_DATA.names).map(k=>[k,WEAPON_DATA.profiles[k]]))}));
  assert.equal(catalog.keys.length,19);for(const key of ['machpist','whisper','burst','shotgun','scout'])assert.ok(catalog.keys.includes(key));for(const key of Object.keys(catalog.profiles))assert.ok(catalog.keys.includes(key));
  assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('#shop-grid .buy-group')].map(g=>g.querySelectorAll('[data-kind="weapon"]').length)),[5,2,2,5,2,2,0]);
  const filled=async()=>p.evaluate(()=>[...document.querySelectorAll('#shop-grid .shop-col')].map(c=>{const r=c.getBoundingClientRect(),last=c.lastElementChild.getBoundingClientRect();return Math.abs(r.bottom-last.bottom)<2;}));

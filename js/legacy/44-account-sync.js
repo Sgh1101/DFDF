@@ -263,7 +263,7 @@
     "마우스로 플레이 시작":"Start with mouse", "터치 기기 · 모바일 조작 사용":"Touch device · use mobile controls", "더 높은 방어력 장착":"Higher armor equipped",
     "참새":"Sparrow", "부엉이":"Owl", "황소":"Bull", "표범":"Panther", "정찰 소총":"Recon Rifle", "팬텀":"Phantom", "코멧 소총":"Comet Rifle", "멧돼지":"Boar", "코뿔소":"Rhino", "송골매":"Falcon", "독수리":"Eagle", "전투 나이프":"Combat Knife",
     "칼 대난투":"Knife Fight", "총기 순환":"Gun Game", "감염":"Infection", "점령전":"Conquest", "깃발 탈취":"Capture the Flag", "축소전":"Shrinking Zone", "빠른 대전":"Swift", "표적 사격":"Target Range", "전광":"Surge",
-    "되튐 전격":"Rebound Bolt", "질주 회로":"Surge Circuit", "전류 통로":"Current Lane", "과충전":"Overcharge",
+    "이중 전격":"Twin Shock", "질주 회로":"Surge Circuit", "전류 장막":"Current Curtain", "과충전":"Overcharge",
   });
   const NORM = {};
   for (const k in DICT) NORM[k.replace(/\s+/g, " ")] = DICT[k];

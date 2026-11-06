@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'
 const {PeerServer}=require(process.env.DFDF_PEER_SERVER_MODULE||'peer');
 // Public map/weapon UI paths were explored before this host/client regression.
 (async()=>{let signaling;await new Promise(r=>PeerServer({host:'127.0.0.1',port:9000,path:'/'},s=>{signaling=s;r();}));const f=await fixture();try{
- const h=await f.page('maphost'),g=await f.page('mapguest');
+ const h=await f.page('maphost',undefined,{},{hiddenMaps:true}),g=await f.page('mapguest',undefined,{},{hiddenMaps:true});
  for(const p of [h,g])await p.evaluate(async()=>{render=()=>{};titleCam=()=>{};await ensurePeerLib();peerOpts=()=>({host:'127.0.0.1',port:9000,path:'/',secure:false,config:{iceServers:[]}});});
  const code=await h.evaluate(async()=>{await createRoom();return NET.room;});await g.evaluate(code=>joinRoom(code),code);
  await h.waitForFunction(()=>room.members.size===2&&NET.conns.size===1);

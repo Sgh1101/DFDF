@@ -7,7 +7,7 @@ test("actual kill hook plays the Phantom kill ladder on scout and excludes rifle
   let generic = 0;
   const ctx = { SFX: { kill() { generic++; return "generic"; } }, world: { round: 1 }, counts: new WeakMap(),
     myActor: () => actor, play: count => played.push(count), phantom: id => ["champions_atk", "champions_def"].includes(id) };
-  ctx.VALORANT_DATA = require("../js/valorant-data"); ctx.root = ctx; vm.createContext(ctx);
+  ctx.WEAPON_DATA = require("../js/weapon-data"); ctx.root = ctx; vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf("  const kill = SFX.kill;"), source.indexOf("  const clear = clearStatus;")), ctx);
   for (let i = 1; i <= 5; i++) {
     ctx.KILL_EVENT = { gun: "scout", skin: i % 2 ? "champions_atk" : "champions_def", kind: i % 2 ? "gun" : "head" };

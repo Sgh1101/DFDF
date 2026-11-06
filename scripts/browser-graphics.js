@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('../j
 (async()=>{const f=await fixture();fs.mkdirSync('test-results',{recursive:true});try{
  const results={};let ascent=null;
  if(process.env.DFDF_GRAPHICS_PHONE_ONLY!=='1'){
- const p=await f.page('graphicsdesktop',{width:960,height:640},{deviceScaleFactor:1.5},{bootTimeout:120000,quality:false});
+ const p=await f.page('graphicsdesktop',{width:960,height:640},{deviceScaleFactor:1.5},{bootTimeout:120000,quality:false,hiddenMaps:true});
  p.setDefaultTimeout(90000);
  assert.equal(await p.evaluate(()=>SETTINGS.quality),'perf','new desktop starts with performance');
  await p.locator('#go-set').click();await p.locator('#pause .pz-tabs [data-tab="gfx"]').click();

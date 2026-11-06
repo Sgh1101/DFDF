@@ -25,7 +25,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
         portrait: agentPortrait(ag, 300, 380).slice(0, 22), meshes, glow, skin, verts,
       };
     });
-    assert.deepEqual(look.names, ["되튐 전격", "질주 회로", "전류 통로", "과충전"]);
+    assert.deepEqual(look.names, ["이중 전격", "질주 회로", "전류 장막", "과충전"]);
     assert.deepEqual(look.icons, ["neonRelay", "neonGear", "neonLane", "neonOverdrive"]);
     assert.ok(look.paint && look.design, "a painted portrait and an outfit of our own");
     assert.match(look.portrait, /^data:image\//);

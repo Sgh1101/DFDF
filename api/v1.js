@@ -586,16 +586,16 @@ const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
 const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
-const VALORANT = require('../js/valorant-data');
+const WEAPON_DATA = require('../js/weapon-data');
 SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
 // skins no pull or shop gives: only the end of a season (or the owner)
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
 const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
-SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = VALORANT.championsWeapon;
+SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = WEAPON_DATA.championsWeapon;
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
-const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"].filter(key => !VALORANT.aliases[key]);
+const GUNS = ["knife", "pistol", "silenced", "revolver", "machpist", "handcan", "smg", "vector", "pdw", "shotgun", "autoshot", "slugger", "rifle", "carbine", "battle", "burst", "lmg", "hmg", "marksman", "sniper", "stinger", "pocketshot", "ripper", "whisper", "burstsmg", "doublebarrel", "scout", "bullpup", "minigun", "antimat", "rpg"].filter(key => !WEAPON_DATA.aliases[key]);
 const ITEMS = GUNS.reduce((n, g) => n + SKIN_IDS.filter((s) => fits(s, g)).length, 0);
 const TIER_KEYS = SKIN_TIERS.list.map((tier) => tier.key);
 // the summary of a match the game sends with its report: only these fields,
@@ -623,7 +623,7 @@ function ensureWallet(u, c) {
   if (!isObj(u.own)) ((u.own = {}), (changed = !0));
   // Restore archived copies once when a consolidated weapon returns. Leave
   // current equipment, migrated copies and previous compensation intact.
-  for (const key of VALORANT.restored) {
+  for (const key of WEAPON_DATA.restored) {
     if (!Array.isArray(u.weaponArchive?.[key]) || u.weaponRestored?.[key]) continue;
     const archived = u.weaponArchive[key].filter(s => SKIN_TIER[s] && fits(s, key) && !RETIRED[s]);
     u.own[key] = [...new Set([...(Array.isArray(u.own[key]) ? u.own[key] : []), ...archived])];
@@ -633,7 +633,7 @@ function ensureWallet(u, c) {
   // Move all previously sold Champions copies to the renamed Phantom. Preserve
   // ordinary skins, the target's current choice and both currency balances.
   const phantom = (s) => s === "champions_atk" || s === "champions_def";
-  const championGun = VALORANT.championsWeapon;
+  const championGun = WEAPON_DATA.championsWeapon;
   for (const old of ["carbine", "rifle"]) {
     const moved = Array.isArray(u.own[old]) ? u.own[old].filter(phantom) : [];
     if (moved.length) {
@@ -649,7 +649,7 @@ function ensureWallet(u, c) {
   }
   let back = 0;
   // Preserve retired copies in an archive and move skins without charging.
-  for (const [old, target] of Object.entries(VALORANT.aliases)) {
+  for (const [old, target] of Object.entries(WEAPON_DATA.aliases)) {
     if (Array.isArray(u.own[old])) {
       const list = u.own[old];
       u.weaponArchive = isObj(u.weaponArchive) ? u.weaponArchive : {};
@@ -668,7 +668,7 @@ function ensureWallet(u, c) {
     }
   }
   if (Array.isArray(u.wish)) {
-    const wish = [...new Set(u.wish.map(value => { if (typeof value !== 'string') return value; const [g,s] = value.split('|'); return VALORANT.canonical(g) + '|' + s; }))];
+    const wish = [...new Set(u.wish.map(value => { if (typeof value !== 'string') return value; const [g,s] = value.split('|'); return WEAPON_DATA.canonical(g) + '|' + s; }))];
     if (JSON.stringify(wish) !== JSON.stringify(u.wish)) { u.wish = wish; changed = true; }
   }
   // The user retained the RGX butterfly. Preserve a still-owned legacy key before
@@ -683,17 +683,17 @@ function ensureWallet(u, c) {
   }
   for (const g in u.own) {
     if (!Array.isArray(u.own[g])) continue;
-    const pack = (s) => VALORANT.retiredKnives.includes(s);
+    const pack = (s) => WEAPON_DATA.retiredKnives.includes(s);
     const keep = u.own[g].filter((s) => !RETIRED[s] && !pack(s));
     for (const s of u.own[g]) RETIRED[s] && (back += Math.max(0, Math.round(+c.gacha.cost1 || 0)) * (4 === RETIRED[s] ? 3 : 1));
     for (const s of new Set(u.own[g])) pack(s) && (back += packKnifeRefund(c));
     keep.length !== u.own[g].length && ((u.own[g] = keep), (changed = !0));
   }
-  if (isObj(u.skins?.m) && VALORANT.retiredKnives.includes(u.skins.m.knife)) {
+  if (isObj(u.skins?.m) && WEAPON_DATA.retiredKnives.includes(u.skins.m.knife)) {
     delete u.skins.m.knife; u.skins.t = Math.max(+u.skins.t || 0, now()) + 1; changed = true;
   }
-  if (Array.isArray(u.wish) && u.wish.some((w) => typeof w === "string" && VALORANT.retiredKnives.includes(w.split("|")[1]))) {
-    u.wish = u.wish.filter((w) => !(typeof w === "string" && VALORANT.retiredKnives.includes(w.split("|")[1]))); changed = true;
+  if (Array.isArray(u.wish) && u.wish.some((w) => typeof w === "string" && WEAPON_DATA.retiredKnives.includes(w.split("|")[1]))) {
+    u.wish = u.wish.filter((w) => !(typeof w === "string" && WEAPON_DATA.retiredKnives.includes(w.split("|")[1]))); changed = true;
   }
   if (back) {
     u.gold = Math.min(9e6, u.gold + back);

@@ -2,7 +2,11 @@
 (() => {
   'use strict';
   const trial=new URLSearchParams(location.search).get('ascent-trial')==='1';
-  const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null};
+  // Dusk District is built on a layout the owner supplied (an outside game's map, permission not confirmed): since 2026-11-07
+  // it is out of the public map list, the home button and the site pages. It is still here, and listed, with ?hidden-maps=1
+  // (or localStorage dfdf_hidden_maps=1) for development and its checks; a room that still names it can load it.
+  const listed=trial||new URLSearchParams(location.search).get('hidden-maps')==='1'||(()=>{try{return localStorage.getItem('dfdf_hidden_maps')==='1';}catch(e){return false;}})();
+  const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null,listed};
   const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','황혼 지구 불러오기');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
   const title=document.createElement('strong');title.textContent='황혼 지구';
@@ -35,8 +39,10 @@
   };
   MAPS[KEY]={...MAPS.glacier,key:KEY,name:'황혼 지구',size:5,walls:[],graphicsStatic:true};
   const entry={key:KEY,name:'황혼 지구',size:5};
-  (window.MAP_EXTRA||=[]).push(entry);
-  if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else{MAP_LIST.push(entry);dispatchEvent(new CustomEvent('maps-changed',{detail:{count:MAP_LIST.length}}));}
+  if(listed){
+    (window.MAP_EXTRA||=[]).push(entry);
+    if(window.POGU){if(!POGU.pool.includes(KEY))POGU.pool.push(KEY);POGU.setPool();}else{MAP_LIST.push(entry);dispatchEvent(new CustomEvent('maps-changed',{detail:{count:MAP_LIST.length}}));}
+  }
   let pending=null,startRevision=0,loadRevision=0;
   let material, glassMaterial, atlasTexture, palette, buffer, navHeight, navEdges, previousNav=null, previousCell;
   const renderAssets=new Map(),assetLoads=new Map();let graphicsRevision=0,renderProfile=null;

@@ -16,7 +16,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   await p.locator('#shop-grid [data-key="'+key+'"]').hover();await p.waitForFunction(name=>document.getElementById('buy-name').textContent===name,name,{timeout:60000});
   assert.match(await p.locator('#buy-stats').innerText(),new RegExp(mode));
   previews[key]=await p.evaluate(key=>document.querySelector('#shop-grid [data-key="'+key+'"] img').src,key);
-  const identity=await p.evaluate(()=>{const o=WEAPON_SHOP.preview().obj;let original=false,comet=false,finite=true;o.traverse(n=>{if(n.userData.valorantItem==='phantom')original=true;if(n.userData.weaponModel==='comet')comet=true;if(n.geometry)finite&&=Array.from(n.geometry.attributes.position.array).every(Number.isFinite);});return{original,comet,finite};});
+  const identity=await p.evaluate(()=>{const o=WEAPON_SHOP.preview().obj;let original=false,comet=false,finite=true;o.traverse(n=>{if(n.userData.packItem==='phantom')original=true;if(n.userData.weaponModel==='comet')comet=true;if(n.geometry)finite&&=Array.from(n.geometry.attributes.position.array).every(Number.isFinite);});return{original,comet,finite};});
   assert.ok(identity.finite);assert.equal(identity.original,false,'no model from the removed weapon pack');assert.equal(identity.comet,key==='bullpup');
   await p.screenshot({path:'test-results/rifle-'+key+'.png'});
  }
@@ -32,7 +32,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   if(!await p.evaluate(()=>locked&&document.pointerLockElement===document.getElementById('cv')))await lock();
   await p.mouse.down();
   await p.waitForFunction(()=>keys.fire,null,{timeout:30000});
-  results[label]=await p.evaluate(key=>{const a=myActor(),before=a.ammo[key];for(let i=0;i<55;i++){world.phase='live';netStep(.02);}tickViewmodel(.02);const model=VM.current;let source=false,champions=false,comet=false;model.traverse(n=>{if(n.userData.valorantItem==='phantom')source=true;if(n.name==='phantom-rig')champions=true;if(n.userData.weaponModel==='comet')comet=true;});return{shots:before-a.ammo[key],source,champions,comet,wire:WKEYS[packActor(a)[9]]};},key);
+  results[label]=await p.evaluate(key=>{const a=myActor(),before=a.ammo[key];for(let i=0;i<55;i++){world.phase='live';netStep(.02);}tickViewmodel(.02);const model=VM.current;let source=false,champions=false,comet=false;model.traverse(n=>{if(n.userData.packItem==='phantom')source=true;if(n.name==='phantom-rig')champions=true;if(n.userData.weaponModel==='comet')comet=true;});return{shots:before-a.ammo[key],source,champions,comet,wire:WKEYS[packActor(a)[9]]};},key);
   await p.mouse.up();await p.evaluate(()=>{keys.fire=false;netStep(.01);});
   assert.equal(results[label].wire,key,'snapshot retains '+key);
  }

@@ -1,6 +1,6 @@
 
 (() => {
-  const championGunName = VALORANT_DATA.names[VALORANT_DATA.championsWeapon];
+  const championGunName = WEAPON_DATA.names[WEAPON_DATA.championsWeapon];
   // Gun skins. Every gun is built from the same small set of materials
   // (GUNMAT: steel, polymer, blued, glow...), so a skin is a recipe that swaps
   // each of those for its own: a colour and finish for the body, the metal and
@@ -100,8 +100,8 @@
   ];
   // Append only: the numeric indices already sent to rooms must stay stable.
   SKINS.push(
-    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
-    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: VALORANT_DATA.championsWeapon, body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
+    { id: "champions_atk", ko: "챔피언스 팬텀 · 공격", en: "Champions Phantom · Attack", rar: 5, excl: "coins", only: WEAPON_DATA.championsWeapon, body: [0x21171c, 0.3, 0.65], metal: [0xdfbc77, 0.23, 0.95], dark: [0x100b10, 0.5, 0.4], glow: 0xff405d, anim: "pulse" },
+    { id: "champions_def", ko: "챔피언스 팬텀 · 수비", en: "Champions Phantom · Defense", rar: 5, excl: "coins", only: WEAPON_DATA.championsWeapon, body: [0xf2e7ce, 0.3, 0.55], metal: [0xdfbc77, 0.23, 0.95], dark: [0x22252a, 0.5, 0.4], glow: 0xffe5a3, anim: "pulse" },
   );
   // which skins a gun can wear
   const fits = (s, key) => !s.gone && (!s.only || s.only === key);
@@ -1703,7 +1703,7 @@
   const signed = () => gated() && !!token();
   const owns = (key, id) => "default" === id || (!!BY[id] && fits(BY[id], key) && (!gated() || !!(INV.own[key] && INV.own[key].includes(id))));
   const pullableLeft = () => Object.keys(WEAPONS).reduce((n, key) => n + skinsFor(key).filter((s) => s.rar > 0 && !s.excl && !owns(key, s.id)).length, 0);
-  const collectorPull = () => pullableLeft() === 0 && SKINS.some(s => s.rar === 5 && s.excl === 'coins' && !owns(VALORANT_DATA.championsWeapon, s.id));
+  const collectorPull = () => pullableLeft() === 0 && SKINS.some(s => s.rar === 5 && s.excl === 'coins' && !owns(WEAPON_DATA.championsWeapon, s.id));
   const totalOf = (key) => skinsFor(key).length - 1;
   const ownedOf = (key) => (gated() ? (INV.own[key] || []).filter((id) => BY[id] && fits(BY[id], key)).length : totalOf(key));
   const ownedAll = () => {
@@ -1745,7 +1745,7 @@
   };
   // Preserve newer local picks while old Champions copies move to Phantom.
   for (const old of ["carbine", "rifle"]) if (["champions_atk", "champions_def"].includes(SK.mine[old])) {
-    const target = VALORANT_DATA.championsWeapon;
+    const target = WEAPON_DATA.championsWeapon;
     if (!SK.mine[target] || SK.mine[target] === "default") SK.mine[target] = SK.mine[old];
     delete SK.mine[old]; save();
   }
@@ -1785,7 +1785,7 @@
       for (const c of VM.root.children.slice()) if (c.userData && c.userData.key) {
         VM.root.remove(c);
         let imported = false;
-        c.traverse(n => { if (n.userData.valorantRig || n.userData.rgxRig) imported = true; });
+        c.traverse(n => { if (n.userData.rgxRig) imported = true; });
         if (imported) {
           const disposed = new Set();
           c.traverse(n => { if (n.geometry && !n.geometry.userData.shared && !disposed.has(n.geometry)) { disposed.add(n.geometry); n.geometry.dispose(); } });
@@ -1808,7 +1808,7 @@
     const geo = new Set(), mat = new Set(), kit = KITS._m ? Object.values(KITS._m) : [];
     let imported = !1;
     w.traverse((o) => {
-      (o.userData.valorantRig || o.userData.rgxRig) && (imported = !0);
+      o.userData.rgxRig && (imported = !0);
       if (!o.isMesh) return;
       o.geometry && !o.geometry.userData.shared && geo.add(o.geometry);
       for (const m of [].concat(o.material)) m && !m.userData.keep && !m.userData.shared && !kit.includes(m) && mat.add(m);
@@ -2880,7 +2880,7 @@
     try {
       const j = JSON.parse(localStorage.getItem(HK) || "null"),
         me = session() && session().user;
-      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => ["rifle", "carbine"].includes(r.g) && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: VALORANT_DATA.championsWeapon } : r) : [];
+      return j && Array.isArray(j.l) && me && j.id === me.id ? j.l.map(r => ["rifle", "carbine"].includes(r.g) && ["champions_atk", "champions_def"].includes(r.s) ? { ...r, g: WEAPON_DATA.championsWeapon } : r) : [];
     } catch (e) {
       return [];
     }
@@ -4499,7 +4499,7 @@
     for (const drop of scene.children.slice()) {
       const old = drop.userData.spin, skin = old && BY[old.userData.skin];
       if (!skin || !window.CHAMPIONS_PHANTOM || !CHAMPIONS_PHANTOM.isSkin(skin.id)) continue;
-      const fresh = buildFor(VALORANT_DATA.championsWeapon, skin);
+      const fresh = buildFor(WEAPON_DATA.championsWeapon, skin);
       applySkin(fresh, skin);
       fresh.position.copy(old.position); fresh.rotation.copy(old.rotation); fresh.scale.copy(old.scale);
       const parent = old.parent;
