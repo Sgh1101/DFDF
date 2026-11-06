@@ -28,52 +28,68 @@
   const ringGeo = () => RING || ((RING = new T.RingGeometry(0.8, 1, 56)), (RING.userData.shared = !0), RING);
   function rings(pos, dir, big) {
     if (!pos || !dir) return;
+    // purple, pink, then the gold ring last; with fewer rings (low effects) the gold one is kept. The gold ring is drawn a
+    // little larger and stays about twice as long, so the shot leaves a gold halo that is still there after the colours
     const n = Math.max(2, Math.round(3 * q())),
+      cols = n >= 3 ? COLS : [COLS[0], COLS[2]],
       d = dir.clone().normalize(),
-      reach = big ? 2 : 1.5,
-      size = big ? 0.7 : 0.5;
+      reach = big ? 2.4 : 1.9,
+      size = big ? 0.95 : 0.75;
     for (let i = 0; i < n; i++) {
       // solid colour (not additive), so the ring reads against a bright sky and a bright floor as well as a dark one
-      const mat = new T.MeshBasicMaterial({ color: COLS[i % COLS.length], transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide }),
+      const c = cols[i % cols.length],
+        gold = c === COLS[2],
+        mat = new T.MeshBasicMaterial({ color: c, transparent: !0, opacity: 0, depthWrite: !1, side: T.DoubleSide }),
         m = new T.Mesh(ringGeo(), mat),
         delay = i * 0.06,
-        life = 0.55 + delay;
+        dur = gold ? 1 : 0.55,
+        grow = gold ? 1.15 : 1,
+        life = dur + delay;
       m.position.copy(pos);
       m.lookAt(pos.clone().add(d));
       m.userData.noCollide = !0;
       addFx(m, life, (o, t) => {
-        const k = Math.max(0, t * life - delay) / 0.55; // 0..1 once its turn has come
+        const k = Math.max(0, t * life - delay) / dur; // 0..1 once its turn has come
         if (k <= 0) return void (o.material.opacity = 0);
         const e = 1 - (1 - k) * (1 - k);
         o.position.copy(pos).addScaledVector(d, 0.04 + e * reach);
-        o.scale.setScalar(0.05 + e * size);
-        o.material.opacity = 0.95 * (1 - k * k);
+        o.scale.setScalar((0.05 + e * size) * grow);
+        o.material.opacity = 0.95 * (1 - Math.pow(k, gold ? 3 : 2));
       });
     }
   }
-  // the muzzle of the gun in my hands, found from the gun's own front (the middle of its muzzle end, a little above the
-  // bore line where the crown sits), so the rings leave the gun wherever it is on screen
+  // the muzzle of the gun in my hands: the model's own muzzle anchor when it has one (the realistic models mark it), or
+  // else found from the gun's own front (the middle of its muzzle end, a little above the bore line), so the rings leave
+  // the gun wherever it is on screen
   const MZ = new WeakMap();
   function muzzleOf(g) {
     let l = MZ.get(g);
     if (!l) {
       g.updateWorldMatrix(!0, !0);
-      const inv = g.matrixWorld.clone().invert(),
-        box = new T.Box3(),
-        b = new T.Box3();
+      let anchor = null;
       g.traverse((o) => {
-        if (!o.isMesh || !o.geometry || o.userData.kit || !o.visible) return;
-        o.geometry.boundingBox || o.geometry.computeBoundingBox();
-        b.copy(o.geometry.boundingBox).applyMatrix4(inv.clone().multiply(o.matrixWorld));
-        const s = b.getSize(new T.Vector3());
-        Math.min(s.x, s.y, s.z) >= 1e-4 && box.union(b);
+        const a = !anchor && o.userData && o.userData.anchors && o.userData.anchors.muzzle;
+        a && a.length === 3 && (anchor = { o, p: new T.Vector3(a[0], a[1], a[2]) });
       });
-      if (box.isEmpty()) return null;
-      l = new T.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.7, box.min.z);
+      if (anchor) l = anchor;
+      else {
+        const inv = g.matrixWorld.clone().invert(),
+          box = new T.Box3(),
+          b = new T.Box3();
+        g.traverse((o) => {
+          if (!o.isMesh || !o.geometry || o.userData.kit || !o.visible) return;
+          o.geometry.boundingBox || o.geometry.computeBoundingBox();
+          b.copy(o.geometry.boundingBox).applyMatrix4(inv.clone().multiply(o.matrixWorld));
+          const s = b.getSize(new T.Vector3());
+          Math.min(s.x, s.y, s.z) >= 1e-4 && box.union(b);
+        });
+        if (box.isEmpty()) return null;
+        l = { o: g, p: new T.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.7, box.min.z) };
+      }
       MZ.set(g, l);
     }
-    g.updateWorldMatrix(!0, !1);
-    return g.localToWorld(l.clone());
+    l.o.updateWorldMatrix(!0, !1);
+    return l.o.localToWorld(l.p.clone());
   }
   // my own shot: from the gun's muzzle along the view (from just in front of the camera when the gun cannot be found)
   function mine() {

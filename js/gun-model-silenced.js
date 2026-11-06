@@ -454,6 +454,8 @@
     root.userData.anchors = {
       right: [0.004, Y(-66), Z(166)],
       muzzle: [0, Y(BORE), Z(CAN.tip - 1)],
+      // the line of sight: the front dot's centre, level with the two rear dots (ADS puts it on the screen centre)
+      sight: [0, Y(7.4), Z(13.2)],
     };
     const add = (name, geo, mat, parent = root) => {
       const mesh = new T.Mesh(geo, mat);

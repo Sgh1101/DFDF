@@ -25,8 +25,10 @@
     opal: { world: 0x30284a, glow: "220,200,255", fig: "serpent", c: [0xffa6e8, 0x9ff3ff], rainbow: !0 },
     laurel: { world: 0x4a3a08, glow: "255,215,90", fig: "laurel", c: [0xf2c94c, 0xfff3b0] },
     // 챔피언의 물결: rings of light rising like ripples up a column, three ribbons of flame (purple, pink, gold) winding up around
-    // it; a softer world tint and screen edge (vig, tint) and a gold-lit column (soft) so the fight stays in view
-    champion: { world: 0x24104a, glow: "190,110,255", fig: "ripple", c: [0xb35bff, 0xffc24d], mid: 0xff4fb8, soft: !0, vig: 0.55, tint: 0.7 },
+    // it. The colour lives in the rings and the ribbons: the sky only leans a fifth of the way to violet, the fog (which
+    // colours the whole map) a tenth, and the screen edge is a faint glow (vig, tint, fog), so the map still reads; a
+    // gold-lit column (soft)
+    champion: { world: 0x24104a, glow: "190,110,255", fig: "ripple", c: [0xb35bff, 0xffc24d], mid: 0xff4fb8, soft: !0, vig: 0.2, tint: 0.2, fog: 0.1 },
     karambit: { world: 0x5a0a22, glow: "255,60,100", fig: "slash", c: [0xff3b6b, 0xffffff] },
     butterfly: { world: 0x083a5a, glow: "60,200,255", fig: "slash", c: [0x3fd0ff, 0xffffff] },
     stiletto: { world: 0x241a40, glow: "170,130,255", fig: "slash", c: [0xb18bff, 0xffffff] },
@@ -63,8 +65,9 @@
     }
     const wc = `${(th.world >> 16) & 255},${(th.world >> 8) & 255},${th.world & 255}`;
     const vig = th.vig || 1;
-    el.style.background = `radial-gradient(ellipse at center, rgba(${th.glow},.08) 0%, rgba(${wc},${0.2 * vig}) 45%, rgba(${wc},${0.6 * vig}) 100%)`;
-    el.style.boxShadow = `inset 0 0 340px 70px rgba(${th.glow},${0.78 * vig})`;
+    // (a soft theme keeps the middle of the screen clear: only a thin glow round the edge, the map reads through it)
+    el.style.background = th.soft ? `radial-gradient(ellipse at center, transparent 55%, rgba(${wc},${0.5 * vig}) 100%)` : `radial-gradient(ellipse at center, rgba(${th.glow},.08) 0%, rgba(${wc},${0.2 * vig}) 45%, rgba(${wc},${0.6 * vig}) 100%)`;
+    el.style.boxShadow = th.soft ? `inset 0 0 160px 6px rgba(${th.glow},${0.78 * vig})` : `inset 0 0 340px 70px rgba(${th.glow},${0.78 * vig})`;
     const ctl = new T.Group();
     ctl.userData.noCollide = !0;
     addFx(ctl, life, (o, t) => {
@@ -73,7 +76,7 @@
       th.flicker && (k *= 0.7 + 0.3 * Math.abs(Math.sin(t * 38) * Math.sin(t * 11)));
       const tn = th.tint || 0.9;
       scene.background && scene.background.copy && scene.background.copy(base.bg).lerp(target, tn * k);
-      scene.fog && scene.fog.color.copy(base.fog).lerp(target, tn * k);
+      scene.fog && scene.fog.color.copy(base.fog).lerp(target, (null == th.fog ? tn : th.fog) * k);
       el.style.opacity = String(Math.min(1, k * 1.1));
       if (t > 0.985) restore();
     });
