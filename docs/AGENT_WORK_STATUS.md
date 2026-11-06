@@ -373,3 +373,26 @@
   - 기록해 보니 snap 때 ack는 손님 입력 기록 안에 있었다. 방장 쪽 몸은 1번 부분의 걷는 봇(6m 왕복, 7.5m 거리) 근처에서 멈췄고, 손님 예측은 계속 달렸다.
   - 방장과 손님이 **다른 몸과 부딪힐 때** 다르게 처리하는 실제 넷코드 문제인지, 테스트 배치 문제인지는 아직 확인하지 못했다. 걷는 봇을 치우는 시도는 결과가 더 나빠져(작은 보정 17~23회) 되돌렸다. 평가 2번의 근거로 남긴다.
 - `test:chat`은 일괄 실행에서 한 번 영어 "Go A" 칩 클릭 대기로 실패했고, 혼자 다시 돌리면 통과했다. 간헐 실패로 본다. 단독으로 띄운 화면에서는 칩이 보였다.
+
+## 2026-11-07 · Claude2 · 발로란트 흔적 교체 1~3단계 (사용자: "발로란트 관련 다 우리꺼로 바꾸고 … 3번도 고쳐봐", "다음작업도 니가 해")
+
+- 브랜치 `claude/adoring-dijkstra-n9rtaj`(PR #147), 기준 main `c4241cd`. 시작 전 원격과 열린 PR을 다시 확인했다. 새 Codex 커밋은 없다.
+- 1단계 무기 데이터:
+  - `js/valorant-data.js`를 `js/weapon-data.js`로, `VALORANT_DATA`를 `WEAPON_DATA`로 바꿨다(게임, 서버 카탈로그, 테스트).
+  - 챔피언스 파일(`champion-shop.js`, `champions-phantom.js`, `phantom-audio.js`)은 **식별자 이름만** 바꿨다. 모델, 마무리, 소리, 배너, 어느 총인지는 그대로다.
+  - 원작과 같던 탄창·연사 수치를 자체 수치로 바꿨다. Axiom 15/420, Hush 11/380, Verdict 6/210, Strife 28/620·2800, Vesper 32/690, Overdrive 90/680·4000, Duplex 2/200·3600, Eclipse 4/40·4500. 피해량은 연사에 맞춰 조정했다.
+  - 원작 수치 조합을 거부하는 단위 검사를 더했다.
+- 2단계 황혼 지구(제공된 외부 맵 구조): 공개 맵 목록, 홈 버튼, 사이트 맵 페이지, 크레딧 설명에서 뺐다.
+  - 파일과 이력은 그대로 둔다. `?hidden-maps=1`(또는 localStorage `dfdf_hidden_maps=1`)로만 목록에 나온다.
+  - 이 맵을 쓰는 검사는 픽스처 옵션 `hiddenMaps`로 연다. 맵 수는 22에서 21로 바뀌었다(5대5 10, 소규모 8, 1대1 3). 홈·소개 페이지·CSP를 다시 만들었다.
+  - 광고 게이트의 `asset-unverified:dusk-layout` 항목은 Codex 게이트 설정이라 건드리지 않았다.
+- 3단계 전광: 네 능력의 동작과 수치를 자체 설계로 바꿨다.
+  - Q 이중 전격: 붙어서 두 번 터진다(튕기지 않음).
+  - C 전류 장막: 9m 앞에 가로 장막 하나를 세운다(통로 벽 두 개가 아님).
+  - E: 질주 1.3배·8초, 미끄러지기 5m, 처치할 때마다 재충전.
+  - X: 14초·32m·0.12초당 21, 8포인트.
+- 나비칼의 외부 뼈대·모션·소리는 Codex #137(자체 제작, 열린 PR)이 바꾼다. 이 브랜치에서는 손대지 않았다. 사용자가 #137을 병합하면 해결된다.
+- 검사:
+  - 단위 523 통과, check, CSP, 자산, 광고 게이트 exit 0.
+  - 브라우저(한 번에 하나씩) 통과: startup, weapon-shop, rifle-identity, champion, finisher-always, legacy-models, phantom, improvements, ability-floors, ascent-abilities, ascent-objectives, ascent, buildings, collide-equiv, english-map-names, firefight, graphics, home-layout, home-numbers, map-loading, mobile-map, original-maps, performance, public-map-online, service-worker, site-pages, neon, neon-look, neon-online.
+- 다음: 4단계 랭크 제거·티어를 레벨로, 5단계 코드 구조(평가 3번).
