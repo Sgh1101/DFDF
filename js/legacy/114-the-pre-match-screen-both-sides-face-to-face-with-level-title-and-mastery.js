@@ -80,11 +80,9 @@
   }
   function cardHtml(c, i, side, anim) {
     const ag = c.agent || {},
-      MT = window.MASTERY,
-      R = window.RANK;
+      MT = window.MASTERY;
     const chips = [];
-    c.bot ? chips.push(`<span class="pm-ai">AI</span>`) : c.lv ? chips.push(...(c.tag ? [`<span class="clan-tag">${esc(c.tag)}</span>`] : []), `<span class="lv-chip">Lv ${c.lv}</span>`) : 0;
-    if (room.ranked && !c.bot && c.lv && R) chips.push(c.placing ? `<span class="pm-rk" style="--rc:#8a8f98">${R.badge(-1, 0, 15)}<i>${L("배치 중", "Placing")}</i></span>` : c.tr != null ? `<span class="pm-rk" style="--rc:${R.colors[c.tr] || "#8a8f98"}">${R.badge(c.tr, 0, 15)}<i>${esc(R.names[c.tr] || "")}</i></span>` : "");
+    c.bot ? chips.push(`<span class="pm-ai">AI</span>`) : c.lv ? chips.push(...(c.tag ? [`<span class="clan-tag">${esc(c.tag)}</span>`] : []), `<span class="lv-chip">${window.TIER ? esc(TIER.text(c.lv)) : "Lv " + c.lv}</span>`) : 0;
     const style = `--ac:${esc(ag.color || "#ffc849")};--i:${i}`;
     return `<div class="pm-card ${side}${c.me ? " me" : ""}${c.bot ? " bot" : ""}${anim ? "" : " still"}" style="${style}" data-id="${esc(c.id)}">
       <div class="pm-pic"><img alt="" decoding="async">${c.mast && MT ? `<span class="pm-mast">${MT.badge(c.mast, 13)}</span>` : ""}${c.me ? `<span class="pm-you">${L("나", "YOU")}</span>` : ""}</div>
@@ -203,8 +201,7 @@
       list = (world.actors || []).map(cardOf),
       anim = first && motion();
     el.classList.toggle("ffa", ffa);
-    const rk = room.ranked ? `<span class="pm-rkd">${L("랭크", "RANKED")}</span>` : "";
-    const head = `<div class="pm-top"><b>${esc(modeName())}${rk}</b><span>${esc(mapName())}</span></div>`;
+    const head = `<div class="pm-top"><b>${esc(modeName())}</b><span>${esc(mapName())}</span></div>`;
     const hint = `<div class="pm-hint">${L("화면을 누르거나 아무 키나 누르면 건너뜁니다", "Tap or press any key to skip")}</div>`;
     const bar = `<div class="pm-bar"><i></i></div>`;
     let body;

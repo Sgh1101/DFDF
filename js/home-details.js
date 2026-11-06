@@ -65,10 +65,6 @@
   const controls = document.createElement("p");
   controls.textContent = L("PC: WASD 이동 · 마우스 조준 · 클릭 사격 · R 장전 · B 구매 · C/Q/E/X 능력 · Esc 설정. 모바일: 조이스틱 이동, 화면 오른쪽 조준, 화면의 사격·능력 버튼 사용.", "PC: WASD move · mouse aim · click fire · R reload · B buy · C/Q/E/X abilities · Esc settings. Mobile: joystick to move, right side to aim, fire and ability buttons.");
   menu.querySelector(".home-guide").append(controls);
-  const rankNote = document.createElement("p");
-  rankNote.id = "home-rank-policy";
-  rankNote.textContent = L("TP는 랭크전(같이 하기 → 랭크전 찾기)에서만 오르내립니다. 랭크 방에서는 관리자·치트가 모두 꺼지고, 사람이 3명 이상이어야 반영됩니다. 일반 경기는 XP와 골드만 줍니다.", "TP moves only in ranked matches (Play together → Find a ranked match). Admin and cheats are off there, and it counts with 3+ real players. Other matches give XP and gold only.");
-  menu.querySelector(".home-guide").append(rankNote);
   const modeGuide = document.createElement("details"); modeGuide.className = "home-guide"; modeGuide.id = "mode-guide";
   const modeTitle = document.createElement("summary"), modeText = document.createElement("p");
   modeTitle.textContent = L("선택한 모드 안내", "Selected mode guide"); modeGuide.append(modeTitle, modeText);

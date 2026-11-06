@@ -49,13 +49,15 @@
       const lv = j.lvReward;
       if (lv) {
         const subs = (lv.cos || []).map((id) => L("획득: ", "Unlocked: ") + cosName(id)), up = lv.to > lv.from;
-        tile("ov-lvr", up ? `${L("레벨 보상", "Level reward")} · Lv ${lv.from} → ${lv.to}` : L("레벨 보상", "Level reward"), up ? (lv.gold ? gold(lv.gold) : L("골드 상한 도달", "daily gold limit reached")) : L("지난 레벨", "Past levels"), subs, "");
+        // no level numbers: the reward for the levels gained, named by the tier they reached (js/legacy/71-the-tier-...)
+        const tierOf = (n) => (window.TIER ? TIER.text(n) : "Lv " + n);
+        tile("ov-lvr", up ? `${L("성장 보상", "Progress reward")} · ${tierOf(lv.to)}` : L("성장 보상", "Progress reward"), up ? (lv.gold ? gold(lv.gold) : L("골드 상한 도달", "daily gold limit reached")) : L("지난 성장", "Past progress"), subs, "");
       } else hide("ov-lvr");
       // achievements
       const ach = j.ach || [];
       if (ach.length) tile("ov-ach", L("업적 달성", "Achievement"), ach.map((x) => PR.ach(x.id).name).join(" · "), ach.map((x) => gold(x.gold)), ach.map((x) => PR.ach(x.id).desc).join("\n"));
       else hide("ov-ach");
-      if (lv && lv.cos && lv.cos.length && "function" == typeof banner) setTimeout(() => banner(L(`레벨 보상 · ${lv.cos.map(cosName).join(", ")}`, `Level reward · ${lv.cos.map(cosName).join(", ")}`), "#ffc849"), 3000);
+      if (lv && lv.cos && lv.cos.length && "function" == typeof banner) setTimeout(() => banner(L(`성장 보상 · ${lv.cos.map(cosName).join(", ")}`, `Progress reward · ${lv.cos.map(cosName).join(", ")}`), "#ffc849"), 3000);
       if (ach.length && "function" == typeof banner) setTimeout(() => banner(L(`업적 달성 · ${PR.ach(ach[0].id).name}`, `Achievement · ${PR.ach(ach[0].id).name}`), "#4ade80"), 4800);
     } catch (err) {}
   });

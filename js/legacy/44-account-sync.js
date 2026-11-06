@@ -823,9 +823,12 @@
       const j = await api("progress", { token: ownerToken, ...job });
       if (!sessionMatches(ownerToken)) return;
       pending.shift(); keepReports();
+      const levelBefore = (S.user && S.user.level) || 1;
       S.user = j.user; S.hist = j.hist || S.hist;
       localStorage.setItem("lgp_session", JSON.stringify(S));
-      const reward = j.levelUp ? L(`레벨 업! Lv.${j.user.level}`, `Level up! Lv.${j.user.level}`) : `+${j.gain} XP · 🪙 +${j.gold}`;
+      // no level numbers any more: the level shows as a tier (js/legacy/71-the-tier-...), and a new division is the news
+      const T = window.TIER, up = T && j.levelUp && T.of(j.user.level).step > T.of(levelBefore).step;
+      const reward = up ? L(`티어 상승! ${T.text(j.user.level)}`, `Tier up! ${T.text(j.user.level)}`) : `+${j.gain} XP · 🪙 +${j.gold}`;
       banner(reward + (j.coinGain ? L(" · 초월 코인 +1", " · Transcendent coin +1") : ""), "#ffc849");
       dispatchEvent(new CustomEvent("account-reward", { detail: j }));
     } catch (e) {
@@ -889,7 +892,7 @@
         b.style.cssText = "position:fixed;top:10px;right:12px;z-index:40;padding:6px 12px;border-radius:99px;background:rgba(20,25,34,.8);border:1px solid #2a3444;color:#e8edf4;font-size:12px;text-decoration:none";
         document.body.appendChild(b);
       }
-      b.textContent = `${S.user.guest && LANG === "en" ? S.user.id.replace(/^게스트/, "Guest") : S.user.id} · Lv.${S.user.level || 1}`;
+      b.textContent = `${S.user.guest && LANG === "en" ? S.user.id.replace(/^게스트/, "Guest") : S.user.id}`; // the tier chip beside it shows the progress
       b.title = L("내 프로필과 기록", "My profile and records");
       b.style.display = $("s-title") && !$("s-title").hidden && getComputedStyle($("s-title")).display !== "none" ? "" : "none";
     } catch (e) {}

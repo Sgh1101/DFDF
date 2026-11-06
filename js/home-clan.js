@@ -1,6 +1,6 @@
 (() => {
   // The "Clan" section of the profile on the homepage (index.html loads this file in <head> and calls HOME_CLAN.draw() from drawMe()):
-  // my clan (tag, name, description, the members with level and role, leave; for the owner: kick and edit the description), or
+  // my clan (tag, name, description, the members with their tier (the level shown as a tier, js/tier-level.js) and role, leave; for the owner: kick and edit the description), or
   // a search with the clans that earned the most XP, a way to join one, and a form to make one with its cost. Everything comes
   // from the server (api clan_*); the page's own S (session), CFG (public settings), L (language), api(), save(), drawMe(), esc()
   // and $() are used when it draws.
@@ -11,7 +11,7 @@
       searchPh: "클랜 이름·태그 검색", search: "검색", top: "경험치 상위 클랜", found: (n) => `검색 결과 ${n}개`, nothing: "찾은 클랜이 없습니다", join: "가입", full: "가득 참", seats: (n, m) => `${n}/${m}명`,
       make: "클랜 만들기", namePh: "클랜 이름 (2~16자)", tagPh: "태그 (2~4자)", descPh: "한 줄 소개 (60자까지, 비워도 됩니다)", makeBtn: (c) => (c ? `만들기 · 🪙 ${c.toLocaleString()}` : "만들기 (무료)"),
       cost: (c, g) => (c ? `클랜을 만들려면 🪙 ${c.toLocaleString()}이 듭니다. 지금 ${g.toLocaleString()} 골드를 가지고 있습니다.` : "지금은 무료로 만들 수 있습니다."), rules: "이름과 태그는 한글·영문·숫자만 쓰고, 다른 클랜과 겹칠 수 없습니다.",
-      owner: "클랜장", member: "멤버", lv: (n) => `Lv ${n}`, xp: (n) => `경험치 합계 ${n.toLocaleString()}`, noDesc: "소개가 없습니다",
+      owner: "클랜장", member: "멤버", lv: (n) => (window.TIER_LEVEL ? TIER_LEVEL.text(n, "ko") : `Lv ${n}`), xp: (n) => `경험치 합계 ${n.toLocaleString()}`, noDesc: "소개가 없습니다",
       leave: "클랜 나가기", leaveAsk: (n) => `${n} 클랜에서 나갈까요?`, leaveOwner: "\n클랜장이 나가면 가장 오래된 멤버가 클랜장이 됩니다. 마지막 멤버가 나가면 클랜이 사라집니다.",
       kick: "내보내기", kickAsk: (n) => `${n}님을 클랜에서 내보낼까요?`, descLabel: "소개", save: "저장", saved: "저장했습니다", joined: (n) => `${n} 클랜에 들어갔습니다`, made: (n) => `${n} 클랜을 만들었습니다`, left: "클랜에서 나왔습니다", kicked: (n) => `${n}님을 내보냈습니다`,
     },
@@ -21,7 +21,7 @@
       searchPh: "Search clans by name or tag", search: "Search", top: "Clans with the most XP", found: (n) => `${n} found`, nothing: "No clan found", join: "Join", full: "Full", seats: (n, m) => `${n}/${m}`,
       make: "Make a clan", namePh: "Clan name (2-16)", tagPh: "Tag (2-4)", descPh: "One line about it (up to 60, optional)", makeBtn: (c) => (c ? `Make it · 🪙 ${c.toLocaleString()}` : "Make it (free)"),
       cost: (c, g) => (c ? `Making a clan costs 🪙 ${c.toLocaleString()}. You have ${g.toLocaleString()} gold.` : "Making a clan is free right now."), rules: "Names and tags use Korean letters, English letters and digits only, and cannot repeat another clan's.",
-      owner: "Leader", member: "Member", lv: (n) => `Lv ${n}`, xp: (n) => `${n.toLocaleString()} XP together`, noDesc: "No description",
+      owner: "Leader", member: "Member", lv: (n) => (window.TIER_LEVEL ? TIER_LEVEL.text(n, "en") : `Lv ${n}`), xp: (n) => `${n.toLocaleString()} XP together`, noDesc: "No description",
       leave: "Leave the clan", leaveAsk: (n) => `Leave ${n}?`, leaveOwner: "\nWhen the leader leaves, the longest-standing member takes over. When the last member leaves, the clan is gone.",
       kick: "Kick", kickAsk: (n) => `Kick ${n} from the clan?`, descLabel: "Description", save: "Save", saved: "Saved", joined: (n) => `You joined ${n}`, made: (n) => `You made ${n}`, left: "You left the clan", kicked: (n) => `${n} was kicked`,
     },

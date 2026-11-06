@@ -20,7 +20,7 @@
     lb.id = "go-ranks";
     lb.type = "button";
     lb.innerHTML = `<b>${L("순위표", "Ranks")}</b>`;
-    lb.title = L("이번 시즌 순위표", "This season's leaderboard");
+    lb.title = L("전체 기간 순위표", "All-time leaderboard");
     lb.insertAdjacentHTML("afterbegin", icon("M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0z M17 5h3v2a3 3 0 0 1-3 3 M7 5H4v2a3 3 0 0 0 3 3"));
     lb.onclick = () => LEADERBOARD.open();
     $("go-armory").after(lb);
@@ -64,12 +64,6 @@
     settingsLogin.id = "pz-signin";
     settingsLogin.onclick = () => { $("pz-close").click(); ACCOUNT.openSignIn(); };
     document.querySelector("#pause .pz-btns").prepend(settingsLogin);
-    if ($("sel-comp")) {
-      const rankedLogin = login.cloneNode(true); rankedLogin.id = "sel-signin";
-      rankedLogin.textContent = L("로그인 후 경쟁전", "Sign in for competitive");
-      rankedLogin.onclick = () => ACCOUNT.openSignIn();
-      $("sel-modes").after(rankedLogin);
-    }
   }
   // the target range was mounted before the practice menu existed and landed in the bar: it belongs in the menu
   const into = practice.querySelector(":scope > div");
