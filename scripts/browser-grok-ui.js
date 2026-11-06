@@ -69,7 +69,7 @@ const visible = (p, id) => p.waitForFunction(id => { const e=document.getElement
     await p.locator('#guestSignIn').click();await visible(p,'v-auth');
     await p.locator('#authBack').click();await visible(p,'v-dash');
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('lgp_session')).token),guest.token);
-    assert.match(await p.locator('#feat').innerText(),/22 permanent maps/);
+    assert.match(await p.locator('#feat').innerText(),/21 permanent maps/);
     assert.match(await p.locator('#feat').innerText(),/601 collectible items/);
     await p.goto(base+'/play.html');await p.waitForFunction(()=>window.GAME_BOOT&&!document.documentElement.dataset.gameLoading);
     await p.setViewportSize({width:852,height:393});

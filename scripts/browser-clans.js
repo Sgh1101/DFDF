@@ -62,7 +62,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     assert.equal(await P.locator("#clan .cl-tag").textContent(), "[STAR]");
     assert.equal(await P.locator("#clan .cl-name").textContent(), "별빛 클랜");
     assert.equal(await P.inputValue("#clanDescEdit"), "밤에 모여서 합니다", "the owner edits the description in place");
-    assert.deepEqual(await P.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["Lv 3 clancap 클랜장"]);
+    assert.deepEqual(await P.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["구리 1 clancap 클랜장"]);
     assert.match(await P.locator("#meGold").textContent(), /4,000/, "the cost left the wallet");
     assert.equal(h.user("clancap").gold, 4000);
     await shot(P, "home-owner");
@@ -77,7 +77,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     await shot(M, "home-search");
     await M.click("#clanResults [data-join]");
     await M.waitForSelector("#clanLeave");
-    assert.deepEqual(await M.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["Lv 3 clancap 클랜장", "Lv 2 clanmem 멤버"]);
+    assert.deepEqual(await M.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["구리 1 clancap 클랜장", "구리 1 clanmem 멤버"]);
     assert.equal(await M.locator("#clanDescEdit").count(), 0, "a member does not edit the description");
     assert.equal(await M.locator("[data-kick]").count(), 0, "or kick");
     assert.equal(h.user("clanmem").clan, h.user("clancap").clan);

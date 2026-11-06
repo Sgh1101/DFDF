@@ -82,8 +82,8 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
       const botChip = LV_CHIP.text(world.actors.find((a) => "ai" === a.ctrl));
       return { me: me.querySelector(".lv-chip") && me.querySelector(".lv-chip").textContent, chips: chips.filter(Boolean), rows: rows.length, guest, botChip };
     });
-    assert.equal(board.me, "Lv 7");
-    assert.deepEqual(board.chips, ["Lv 7"], "only the human has a chip");
+    assert.equal(board.me, "구리 3");
+    assert.deepEqual(board.chips, ["구리 3"], "only the human has a chip");
     assert.ok(board.rows >= 4);
     assert.equal(board.guest, ""); assert.equal(board.botChip, "");
     await host.evaluate(() => { QOL.closeBoard && QOL.closeBoard(); netShutdown(); });
@@ -104,7 +104,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     for (const names of [await lobby(host), await lobby(guest)]) {
       assert.equal(names.length, 2, JSON.stringify(names));
       assert.ok(names.some((n) => /Lv 4$/.test(n)) && names.some((n) => /Lv 30$/.test(n)), JSON.stringify(names));
-      assert.ok(!names.some((n) => /Lv 1$/.test(n)), "the claimed Lv 1 shows nowhere: " + JSON.stringify(names));
+      assert.ok(!names.some((n) => /구리 1$/.test(n)), "the claimed Lv 1 shows nowhere: " + JSON.stringify(names));
     }
     const heard = await host.evaluate(() => ({ claim: [...LV_CHIP.peers].map(([, v]) => v), server: [...LV_CHIP.verified].map(([, v]) => ({ id: v.id, lv: v.lv })) }));
     assert.deepEqual(heard.claim, [{ lv: 1, tr: 0 }], "the host heard the claim");
@@ -119,16 +119,16 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
       return [...document.querySelectorAll("#bd-body .bd-row:not(.hd) .lv-chip")].map((c) => c.textContent).sort();
     });
     // the guest's own row is its own session (the lie it told itself); the HOST's row is what the host handed on
-    assert.ok(seen.includes("Lv 4"), "the guest's scoreboard shows the host: " + JSON.stringify(seen));
+    assert.ok(seen.includes("구리 2"), "the guest's scoreboard shows the host: " + JSON.stringify(seen));
     const feed = await host.evaluate(() => {
       const bot = world.actors.find((a) => "ai" === a.ctrl), g = world.actors.find((a) => a.ctrl && "ai" !== a.ctrl && "me" !== a.ctrl);
       pushKill(bot.name || bot.agent.name, g.name || g.agent.name);
       return [...document.querySelectorAll("#klog .kl")[0].querySelectorAll(".lv-chip")].map((c) => c.textContent);
     });
-    assert.deepEqual(feed, ["Lv 30"], "the kill feed on the host names the guest with the server's level");
+    assert.deepEqual(feed, ["금빛 1"], "the kill feed on the host names the guest with the server's level");
     // a human the host's scoreboard shows is verified too
     const hostBoard = await host.evaluate(() => { QOL.openBoard("sb", true); return [...document.querySelectorAll("#bd-body .bd-row:not(.hd) .lv-chip")].map((c) => c.textContent).sort(); });
-    assert.deepEqual(hostBoard, ["Lv 30", "Lv 4"]);
+    assert.deepEqual(hostBoard, ["구리 2", "금빛 1"]); // the levels show as tiers (js/tier-level.js)
     // an account with a hidden tier counts as Iron in a ranked room; once placed, the SERVER's tier counts (the guest claimed Iron)
     const placed = f.h.user("skillguest"); placed.placed = 5; placed.rr = 1800; f.h.db.set("user:skillguest", JSON.stringify(placed));
     await host.evaluate(() => { LV_CHIP.verified.clear(); return LV_CHIP.ask(); });
@@ -154,12 +154,12 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     });
     assert.equal(down.verified, 0); assert.equal(down.shown, null, "an unverified claim is never shown");
     assert.deepEqual(down.skillSees, { lv: 20, tr: 0 }, "but it still counts for the bots, as before");
-    assert.deepEqual(down.chips, ["Lv 4"], "only the host's own chip");
+    assert.deepEqual(down.chips, ["구리 2"], "only the host's own chip");
     // the guest's lobby: of the others, only the host's chip; its own row shows its own account's level as its own server
     // reports it (30), never the claim it sent (20)
     const guestLobby = await guest.evaluate(() => ({ others: [...document.querySelectorAll("#lb-atk .lb-slot:not(.me) .lv-chip, #lb-def .lb-slot:not(.me) .lv-chip")].map((c) => c.textContent).sort(), mine: [...document.querySelectorAll("#lb-atk .lb-slot.me .lv-chip, #lb-def .lb-slot.me .lv-chip")].map((c) => c.textContent) }));
-    assert.deepEqual(guestLobby.others, ["Lv 4"], "nor on the guest's lobby");
-    assert.ok(!guestLobby.mine.includes("Lv 20"), "the guest's own row never shows the level it claimed " + JSON.stringify(guestLobby));
+    assert.deepEqual(guestLobby.others, ["구리 2"], "nor on the guest's lobby");
+    assert.ok(!guestLobby.mine.includes("은빛 1"), "the guest's own row never shows the level it claimed " + JSON.stringify(guestLobby));
     // the server is back: the next ask (the match start) fixes it, the claimed 20 becomes the real 30 and the chip appears on both
     await host.unroute("**/api/v1?a=levels*");
     await host.evaluate(() => { room.mode = "std"; room.diff = "normal"; hostStartMatch(); ADMIN.freezeAI = true; });
