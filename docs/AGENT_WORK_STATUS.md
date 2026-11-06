@@ -125,6 +125,16 @@
 - 실제 검사: 단위 521 통과, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 통과. 브라우저 10종은 에이전트 worktree(main 165caf3 병합본)에서 통과.
 - 다음: 3/18 황소(revolver).
 
+## 2026-11-05 · Claude · 챔피언의 물결(전설) 실총형 총에 맞게 재설계 — 사용자 검토 대기
+- 사용자 요청: 챔피언의 물결(`champion`, 전설) 스킨이 새 실총형 Axiom(pistol)·Hush(silenced)에 방패/상자처럼 붙던 문제 수정. 초월 챔피언스 팬텀(`champions_atk/def`)과 그 파일은 건드리지 않았다.
+- 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). 기준: `claude/quirky-fermat-11wa1b` `ccdb6da`(main `4165f84` + Axiom/Hush).
+- 상대 작업 확인: `git fetch origin --prune`(시작 시와 커밋 직전 두 번). origin/main은 `4165f84`(#131) 그대로, codex/* 새 커밋 없음. 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude Hush)뿐. #126 diff 35파일은 챔스 팬텀·play.html 다른 줄만 고치고 이번 담당 파일과 겹치지 않는다. #131의 `check-ad-readiness.js`는 변경 후에도 gateChecksPass·assetErrors 없음. 다른 worktree에서 담당 파일의 새 미커밋 변경은 찾지 못했다(Verdict 리볼버 작업 파일은 미접촉).
+- 담당 파일: `js/legacy/58-gun-skins.js`(champion 정의, 금속 장갑판 무늬 `championPlate`, 금속·작은 부품 광택 코트, 밀도 기반 UV 맞춤 `fitAll`(champion만), `KITS.champion` 전면 교체, 키트 제거가 하위 그룹까지 보도록), `js/legacy/96-champions-wave-…js`(고리 크기·금 고리 지속, `userData.anchors.muzzle` 사용), `js/legacy/97-legendary-finishers-…js`(champion 하늘 0.7→0.2, 안개 0.1, 화면 가장자리만 옅게), `scripts/browser-champion.js`, `README.md`.
+- 구현: 스킨은 총 자체 부품의 표면 마감(몸통=불꽃 장갑, 금속=회색·광택검정 체커 장갑판, 작은 부품=광택 검정). 덧붙는 것은 윗부분 부품에 광선을 쏴 찾은 실제 표면 위의 가는 금선·주황 빛선·작은 문장뿐이며 슬라이드에 붙어 함께 움직인다. 총마다 그리기 +2(이전 +7), 외곽 증가 최대 0.3%(이전 Axiom 높이 1.25배·폭 1.31배).
+- 실제 검사(로컬): 단위 521 통과·2 선택 제외, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나): champion·finisher-always·improvements·weapon-shop·mobile-skin-preview·graphics·startup·phantom·champions-finish·phantom-kill-wave 통과. render-cost는 첫 실행 1500초 시간 초과, 재실행 통과. legacy-models는 처음 두 번 `GUN_SKINS.isOpen` 대기 30초 초과, 이후 같은 코드로 3회 연속 통과(기준 ccdb6da 사본은 3/3 통과). 실기기 미검증.
+- 다음: 사용자 외형 검토 후 병합 여부 결정. 미배포.
+- 2026-11-05 추가: 사용자가 회색/검정 체커+불꽃 대신 완전히 새 콘셉트를 요청(참고: VCT Champions 2024 스킨의 절제된 디자인 원칙만, 모티프·로고 복제 금지). 개발용 플래그(localStorage `dfdf_champion_concept` = A|B|C)로 A 물마루(Tide Line)·B 트로피 물결(Trophy Ripple)·C 진주 물살(Pearl Surf) 세 가지를 실제 렌더로 비교 중. 플래그가 없으면 출시된 모습 그대로. origin/main `c37cf1f`(#132 Hush·Verdict) 병합. 사용자 선택 대기, 미배포.
+
 ## 2026-11-05 · Claude · 총 개편 3/18 Verdict(revolver) 실총형 재제작 — 사용자 검토 대기
 - 사용자 요청: 기본 총 18종 순차 재제작 3번째. Verdict(키 `revolver`)를 6인치 풀러그 더블액션 6연발 .357 리볼버로 다시 만든다(특정 제조사 이름·로고·각인 없음). 승인 후 다음 총.
 - 작업 worktree: `worktree-agent-a3ff956c11f7e2ff6`(로컬, 미푸시). 기준: main `4165f84`(Codex #131) + 승인된 참새·부엉이 `origin/claude/quirky-fermat-11wa1b`(`ccdb6da`) 병합.
@@ -154,12 +164,51 @@
 - 로컬 단위 521개 통과, 선택 Redis 2개 제외. 구문·무기 자산 50개·정적 안내 생성·CSP 통과. Chrome 스파이크 40초/568×320 HUD, 방장·참가자 설치·해제·폭발 통과. 나머지 브라우저 회귀 검사 진행 중. 실제 Android 기기 및 외부 인터넷 방 검사는 수행하지 않았다.
 - 사용자 병합 승인 이후에 운영 배포한다.
 
+## 2026-11-05 · Claude · 총 개편 4/18 Tempo(machpist) 실총형 기관권총 재제작 — 사용자 검토 대기
+- 사용자 요청: 기본 총 18종 순차 재제작 4번째. Tempo(키 `machpist`)를 폴리머 프레임 셀렉트 파이어 9mm 기관권총으로 다시 만든다(특정 제조사 이름·로고·각인 없음). 승인 후 다음 총.
+- 작업 worktree: `worktree-agent-ae4c76018da08d58e`(로컬, 미푸시). 기준: main `4165f84`(Codex #131) + 승인된 Axiom·Hush·Verdict `origin/claude/quirky-fermat-11wa1b`(`2023f39`, fast-forward).
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude Hush·Verdict). #126의 play.html 변경은 다른 줄(solid-geometry.js)이라 겹치지 않고, 이번 파일과 겹치는 미반영 Codex 변경은 없다(최근 codex/* 브랜치: adsense-compliance #131 병합됨, ascent-layout-restore, champions-solid-rifle). 챔피언의 물결 스킨(58·96·97)은 다른 세션 담당이라 건드리지 않았다.
+- 담당 파일: `js/gun-model-machpist.js`(새), `play.html`(스크립트 한 줄). `js/legacy-gun-models.js`의 옛 machpist는 그대로 두고 뒤에 로드되는 새 파일이 `GUN_BUILD.machpist`를 대체한다. 챔스 파일·champion 키트·다른 총 모델·무기 수치·가격·스킨 목록·광고 파일은 건드리지 않았다.
+- 설계: 상단 보정 컷 3개와 광학 컷이 있는 슬라이드, 오픈 에미터 레드닷, 슬라이드 왼쪽 뒤의 조정간, 슬라이드 폭 3실 보정기, 손가락 홈 그립, 레일 앞 핸드 스톱, 그립 아래로 길게 나온 33발 탄창과 넓은 베이스플레이트. 기본 마감은 FDE 프레임 + 텅스텐 회색 슬라이드 + 스테인리스 보정기 + 검은 광학·소부품.
+- 결과: 메시 41→16, 크기 0.060×0.326×0.366 → 0.049×0.338×0.393(길이 +7%, 높이 +4%, 폭은 실총 비율로 좁아짐). 보정기 앞면이 옛 총구 위치(z -0.276)이고 `anchors.muzzle`도 그곳(3인칭 섬광·예광탄). 슬라이드·광학·조정간이 한 그룹으로 사격·연사마다 후퇴하고 재장전 때 당겨진다. 탄창은 mag() 4부품(몸통·베이스플레이트·구멍·맨 위 탄)으로 통째로 빠진다. `browser-legacy-models.js` 단언은 바꾸지 않았다.
+- 통합: 작업 중 origin/main이 `1a5068a`(Claude #132 병합, Codex #133 글꼴·#134 폭탄전 규칙)로 전진해 병합했다. 겹친 파일은 play.html(다른 줄)과 이 기록(양쪽 유지)뿐이고 총 코드와 겹치지 않는다.
+- 실제 검사(로컬): 병합 전 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0, 브라우저(하나씩) legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload·render-cost·gun-template-memory·drop-skins 모두 통과. main 병합 후 단위·check·자산·사이트 페이지·광고 준비와 legacy-models·reload 재실행 통과. 실기기/Android 미검증. 미배포·미푸시.
+- 남은 점: 실총 폭(슬라이드 25.5mm)을 옛 길이에 맞추니 1인칭에서 옛 뭉툭한 모델보다 가늘어 보인다. 사용자 승인 후 다음 총(5/18).
+
 ## 2026-11-05 · Claude · 챔피언스 팬텀 디자인 결정 기록 — 사용자 결정
 
 - 사용자 결정: 챔피언스 팬텀은 **#128(이미 main에 병합된 현재 디자인)을 유지**한다. Codex #126(챔스 입체 소총)은 쓰지 않는다.
 - 근거: 사용자가 같은 조건(같은 손·조명·각도, 공격/수비, 1인칭)으로 찍은 두 안의 사진을 비교한 뒤 직접 골랐다. 확인 기준은 main `1a5068a`, #126 `0cd1cec`이다.
 - 요청: #126은 닫아 달라. Claude가 PR 닫기를 시도했지만 이 세션의 권한 검사에서 막혔다. #126에만 있는 공동 작업 지침은 이미 main(`1d189e7`)에 들어 있다. #126 브랜치의 다른 변경을 다시 쓰려면 사용자에게 먼저 확인한다.
 - 이전 기록 정리: SGH나비칼 항목의 "#126의 RGX 해시 검사 갱신 필요"는 #126을 쓰지 않으므로 더 이상 할 일이 아니다. #129(출처 표기)는 `ac757fd`로 병합·배포되었다.
+
+## 2026-11-05 · Claude · 챔피언의 물결 물마루(Tide Line) 확정안 — 사용자 검토 대기
+- 사용자 요청: 세 콘셉트 중 A(물마루)를 고르고 더 밝고 세련되게. 개발용 콘셉트 플래그와 B·C 코드는 지웠다.
+- 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). origin/claude/quirky-fermat-11wa1b `538ec1f`(main `a09e677` + Tempo #136)를 병합했다.
+- 상대 작업 확인: `git fetch origin --prune`. 열린 PR은 #136(Claude Tempo, 병합해 렌더에 포함), #137(Codex SGH 나비칼 모션·소리, 담당 파일과 겹치지 않음), #138(Claude SGH 색: `58-gun-skins.js` 62~70줄의 칼 스킨과 README 57줄의 "601개"→"604개"). 이 작업은 58의 그 줄들을 건드리지 않는다. README 57줄은 양쪽이 고치므로 나중에 병합되는 쪽이 그 줄에서 이쪽 설명 + "604개"로 맞추면 된다. #126은 #135 기록대로 쓰지 않는다.
+- 구현: `champTide` 무늬(밝은 트와일라잇 바탕, 선명한 광택 금 물결선, 부드러운 보라·분홍 빛, 옅은 두 번째 물결과 윤기). `spineOf`로 총마다 윗부분 부품을 찾아 물결 높이·크기를 정하고, 무늬는 총 자기 좌표에 투영(가로:세로 2.5:1로 선 굵기 일정). 장식은 금선·라일락 빛선·분홍 보석 2메시. 고리·피니셔 변경(2e6c5e7)은 그대로.
+- 실제 검사(로컬, a140a52): 단위 523 중 521 통과·2 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저 12종(champion·finisher-always·improvements·weapon-shop·legacy-models·mobile-skin-preview·graphics·render-cost·startup·phantom·champions-finish·phantom-kill-wave) 한 번에 하나씩 모두 통과. 그 전 판(금속·작은 부품에도 물리 재질 코트)은 legacy-models가 3번 중 2번 무기고 열기 대기 30초 초과로 실패했고(같은 때 기준 사본은 2/2 통과), 셰이더 수를 줄인 뒤 3/3과 전체 묶음에서 통과했다. 이후 Tempo 브랜치의 정조준 가늠쇠 앵커(cba5a4d)를 병합하고 champion·legacy-models를 다시 확인했다. 실기기 미검증. 미배포.
+
+
+## 2026-11-05 · Claude · 실총형 권총 4종 정조준(ADS) 가늠쇠 정렬 — 로컬 완료, 미푸시
+- 사용자 승인: 새 실총형 모델(Axiom·Hush·Verdict·Tempo)에서 정조준 때 가늠쇠/레드닷이 화면 중앙보다 약 30px 아래에 있던 문제를 고친다.
+- 작업 worktree: `worktree-agent-acd1811b98bda6b2e`(로컬). 기준: main `a09e677` + Tempo `origin/claude/quirky-fermat-11wa1b`(`538ec1f`, PR #136) 병합.
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR #136(Tempo), Codex #137(SGH나비칼 뼈대·모션·소리), Claude #138(SGH나비칼 색) 파일 목록을 읽었다. 03-engine·총 모델 파일과 겹치지 않는다(#138의 58-gun-skins.js 칼 항목은 손대지 않음). origin/codex/* 최근 브랜치도 이번 파일과 겹치는 미반영 변경 없음.
+- 담당 파일: `js/legacy/03-engine.js`(vmWithHands가 `userData.anchors.sight`를 읽고, tickViewmodel이 정조준 때 그 점을 화면 중심선에 둔다), `js/gun-model-{pistol,silenced,revolver,machpist}.js`(각 `anchors.sight` 한 줄). 앵커가 없는 다른 총은 기존 고정 자세(0, -0.075, -0.72) 그대로. FOV·전환·흔들림/반동·저격/지정사수 스코프·손 위치·3인칭은 변경 없음. 58·96·97·pocketshot 미수정.
+- 앵커: Axiom 앞 점(y 3.3mm, 뒤 점 3.4mm와 수평), Hush 앞 점(7.4mm), Verdict 앞 블레이드 윗면 뒤끝(23.2mm, 가늠자 노치 윗면 23mm), Tempo 레드닷 중심.
+- 측정(투영 위치, 중앙 기준 아래쪽 +): 1280×720 Axiom 32.5→0, Hush 28.8→0, Verdict 26.8→0, Tempo 37.2→0px. 852×393 17.7/15.7/14.7/20.3→0px. Strife(소총) 자세 동일.
+- 실제 검사(로컬): 단위 523 중 521 통과·2 Redis 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0. 브라우저(하나씩): aim·improvements·reload·graphics·startup·rifle-identity 통과, legacy-models는 무기고 열기 대기 30초 시간 초과가 반복된 뒤(기준 커밋에서도 같은 대기가 20초를 넘김을 확인) 재실행 통과. followup은 ADS 단계 전의 첫 단언(GAME_CATALOG.counts에 새 `guns:18` 키)에서 실패 — 이번 변경과 무관, 기존 상태. 실기기/Android 미검증. 미배포·미푸시.
+
+## 2026-11-05 · Claude · 총 개편 5/18 Breach(pocketshot) 실총형 재제작 — 사용자 검토 대기
+- 사용자 요청: 기본 총 18종 순차 재제작 5번째. Breach(키 `pocketshot`)를 권총 손잡이의 짧은 수평 쌍대 중절식 산탄총(코치건/소드오프형, 특정 제조사 이름·로고·각인 없음)으로 다시 만든다. 승인 후 다음 총.
+- 작업 worktree: `worktree-agent-a4ac8c01a923840ed`(로컬, 미푸시). 기준: origin/main `1a5068a`(Codex #133 글꼴·#134 스파이크 규칙 포함) + 승인된 Axiom·Hush·Verdict·Tempo `origin/claude/quirky-fermat-11wa1b`(`1419dfb`, fast-forward).
+- 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총, 건드리지 않음)·#135(Claude 기록)·#136(Claude Tempo). #133/#134는 글꼴·스파이크 파일로 이번 파일과 겹치지 않는다. 다른 세션이 챔스 스킨(58·96·97)과 ADS 조준선(모델 `userData.anchors.sight`, 뷰모델 코드)을 동시에 고치므로 그 파일은 건드리지 않고 모델에 `anchors.sight`만 넣는다.
+- 담당 파일: `js/gun-model-pocketshot.js`(새), `play.html`(스크립트 한 줄), `js/legacy/54-reload-animation.js`의 break 분기(모델이 `userData.reload`로 약실 위치·탄 크기를 주면 그 약실에 맞춰 넣고 빼며, 없으면 기존 동작 그대로).
+- 통합: 작업 중 Tempo 브랜치가 `cba5a4d`(ADS 가늠 기준점 `anchors.sight`를 03-engine이 읽음)로 전진해 다시 병합했다. 이 모델의 `anchors.sight`는 리브 위 가늠쇠(구슬) 꼭대기 높이의 조준선 위 점이며, ADS에서 구슬이 화면 중앙(1920×1080에서 약 955,545)에 오고 두 공이치기 사이로 보인다.
+- 설계: 12게이지 수평 쌍대, 205mm로 잘라낸 총열(밝게 다듬은 절단면, 두 총구), 상부 리브와 황동 구슬, 바닥 리브, 경첩 너클과 핀, 둥근 펜스, 탑 레버(청화), 외부 공이치기 2개, 긴 방아쇠울과 2단 방아쇠, 짧은 스플린터 포엔드와 철물·래치, 체커링 패널이 있는 경사 호두나무 손잡이와 강철 캡, 조각 무늬 측판. 기본 마감은 케이스 하드닝(얼룩 색) 기관부 + 짙은 청화 총열 + 호두나무로 대비가 강하다. 스킨 역할은 GUNMAT 종류 그대로(나무=body, 기관부·측판=steel/metal, 방아쇠·핀·총구면=chrome/metal, 총열·울·레버·캡=blued/dark). 총강만 스킨이 바꾸지 않는 검은 무광.
+- 결과: 메시 28→14, 크기 0.092×0.250×0.415 → 0.066×0.202×0.431(길이 +4%, 높이 -19%, 폭 -29%: 실총 비율). 총구 위치 유지(z -0.32, 섬광은 오른쪽 총열). 재장전: 총열이 경첩에서 0.55rad 꺾이고 빈 탄피 두 개가 실제 약실에서 튀어나오며, 새 탄 두 발이 약실 축을 따라 들어가 장착된 채 닫힐 때까지 보인다.
+- 실제 검사(로컬, 병합본 3f97b25 기준): 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 211 스크립트, 자산 50지문, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나씩): legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload(pocketshot: break, pair, 0.55rad 후 복귀 0)·render-cost·gun-template-memory·drop-skins 모두 통과. 실기기/Android 미검증. 미배포.
+- 남은 점: 3인칭 손에 든 모습은 요원 팔 블록에 대부분 가려 검사 사진에서 잘 안 보인다(Tempo와 같은 촬영 한계). 공이치기는 사격 때 움직이지 않는다(검사가 동작 종류를 ['break']만 허용). 열린 PR #137~#143의 play.html 변경은 다른 줄이라 겹치지 않는다.
 
 ## 2026-11-05 · Claude · 운영자 카드(권총 칸) 추가
 
@@ -173,6 +222,7 @@
   - 카드가 날아가는 연출(`opcard` 이벤트)은 모두에게 보입니다.
 - 상점, 스킨 목록, 개수에는 나오지 않습니다. 황금 권총처럼 숨긴 무기입니다.
 - 검사: `test:operator-card`(혼자: 운영자 vs 일반, 온라인: 일반 방장 + 운영자 게스트 + 일반 게스트) 통과. 실기기는 검증하지 않았다. 사용자 요청에 따라 병합하지 않고 브랜치 푸시만 한다.
+
 ## 2026-11-05 · Claude · 홈 소식 칸 → AdSense 광고 칸 (사용자 요청)
 
 - 기준 main `a09e677`, 브랜치 `claude/home-adsense`. 먼저 Codex 작업을 확인했다. #131(광고 준비 게이트 `scripts/check-ad-readiness.js`, `js/advertising-policy.js`, `ads-config.json`), #133(글꼴), #134(스파이크)가 병합되어 있고, #137은 열려 있다.
@@ -197,6 +247,7 @@
   - 단위 522 통과, 2 건너뜀. check 통과, CSP check 통과, 광고 준비 점검 gateChecksPass true.
   - 브라우저: 새 테스트 `test:home-ad` 통과. 확인한 것: 단위 번호가 없을 때 칸이 없음, 있을 때 1회 요청과 위치, unfilled일 때 숨김, 좁은 화면에서 넓혔을 때 요청. `test:ui-fixes`도 통과.
   - 실제 AdSense 송출은 검증하지 못했다(사이트 승인과 단위 번호 대기). 병합하지 않고 브랜치 푸시만 한다.
+
 ## 2026-11-05 · Claude · 캐릭터 이름 글꼴 교체 (사용자 요청)
 
 - 기준 main `a09e677`, 브랜치 `claude/readable-names`. 먼저 Codex #133(레트로 픽셀 글꼴: 갈무리11 + Pretendard)을 확인했다. 그 뒤 새 Codex 커밋은 없다.
@@ -210,6 +261,7 @@
   - Codex의 `test:soft-fonts`에서 기대값만 새 배치에 맞게 바꿨고 통과했다. 이름과 제목은 Pretendard 800, 로고와 탄약은 갈무리11이다.
   - 홈과 요원 선택 화면을 1280×720으로 찍어 이름을 확인했다.
   - 병합하지 않고 브랜치 푸시만 한다.
+
 ## 2026-11-05 · Claude · 멀티플레이 치트 능력 세트 바꾸기 버그 (사용자 제보)
 
 - 기준 main `a09e677`, 브랜치 `claude/mp-cheat-ability`. 먼저 Codex 작업을 확인했다. 관련 파일(`25-admin-panel.js`, `43-cheat-hunt.js`, `47-owner-controls.js`, `55-*.js`)을 바꾼 열린 Codex PR은 없다.
