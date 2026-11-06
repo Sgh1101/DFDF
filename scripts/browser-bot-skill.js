@@ -103,7 +103,7 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     const lobby = async (page) => page.evaluate(() => [...document.querySelectorAll("#lb-atk .lb-slot, #lb-def .lb-slot")].filter((s) => s.querySelector(".lv-chip")).map((s) => s.querySelector(".lb-nm").textContent.replace(/\s+/g, " ").trim()));
     for (const names of [await lobby(host), await lobby(guest)]) {
       assert.equal(names.length, 2, JSON.stringify(names));
-      assert.ok(names.some((n) => /Lv 4$/.test(n)) && names.some((n) => /Lv 30$/.test(n)), JSON.stringify(names));
+      assert.ok(names.some((n) => /구리 2$/.test(n)) && names.some((n) => /금빛 1$/.test(n)), JSON.stringify(names));
       assert.ok(!names.some((n) => /구리 1$/.test(n)), "the claimed Lv 1 shows nowhere: " + JSON.stringify(names));
     }
     const heard = await host.evaluate(() => ({ claim: [...LV_CHIP.peers].map(([, v]) => v), server: [...LV_CHIP.verified].map(([, v]) => ({ id: v.id, lv: v.lv })) }));
