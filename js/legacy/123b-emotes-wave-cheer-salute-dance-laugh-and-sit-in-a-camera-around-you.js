@@ -580,8 +580,7 @@ body.emo-off #tb-emote,body.emo-off #emo-wheel{display:none!important}
   setInterval(sync, 250);
   addEventListener("server-config", sync);
   if ("function" == typeof netShutdown) {
-    const _sd = netShutdown;
-    netShutdown = function () {
+    GAME_HOOKS.on("netShutdown", () => {
       try {
         BUCKET.clear();
         S.me = null;
@@ -589,8 +588,7 @@ body.emo-off #tb-emote,body.emo-off #emo-wheel{display:none!important}
         wheelClose();
         for (const a of world.actors || []) a._emo && finish(a);
       } catch (e) {}
-      return _sd.apply(this, arguments);
-    };
+    });
   }
   window.EMOTE = {
     on,

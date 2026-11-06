@@ -946,8 +946,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     return _pg && _pg.apply(this, arguments);
   };
   if ("function" == typeof netShutdown) {
-    const _sd = netShutdown;
-    netShutdown = function () {
+    GAME_HOOKS.on("netShutdown", () => {
       try {
         S.hist.length = 0;
         log.textContent = "";
@@ -956,8 +955,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
         S.open && close(!1);
         qmClose();
       } catch (e) {}
-      return _sd.apply(this, arguments);
-    };
+    });
   }
   // the page follows the owner's switch, the lobby and the mode
   function sync() {

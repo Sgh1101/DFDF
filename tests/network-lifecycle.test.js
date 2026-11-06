@@ -26,7 +26,7 @@ function setup() {
     world: { phase: 'menu', actors: [] }, room: { started: false, members: new Map(), slots: { atk: [], def: [] } },
     joinRoom() {}, myName: () => 'guest', myActor: () => null, banner() {}, step() {}, isAI: () => true, actorById() {}, lobbyRemove() {}, lobbyMove() {}, lobbySnapshot: () => ({}), renderLobby() {},
   };
-  c.window = c; vm.createContext(c); vm.runInContext(transport + '\nwindow.NET = NET;', c);
+  c.window = c; vm.createContext(c); vm.runInContext(fs.readFileSync('js/game-hooks.js', 'utf8'), c); vm.runInContext(transport + '\nwindow.NET = NET;', c);
   c.NET.onAction = () => {}; c.NET.onPeerGone = () => {}; c.NET.onHostGone = () => left.push('left'); c.NET.onEvent = (m) => received.push(m); c.NET.onSnapshot = (m) => received.push(m);
   vm.runInContext(recovery + '\n' + fallback, c);
   async function flush() { for (let i = 0; i < 20; i++) await Promise.resolve(); }

@@ -18298,6 +18298,8 @@ function clientRecv(e) {
   }
 }
 function netShutdown() {
+  // what modules kept for the room goes first, while NET still says what the room was (js/game-hooks.js)
+  "undefined" != typeof GAME_HOOKS && GAME_HOOKS.run("netShutdown");
   cancelRoundEnd();
   NET.intent = (NET.intent || 0) + 1;
   netCloseTransport();

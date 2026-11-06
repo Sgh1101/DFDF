@@ -556,8 +556,7 @@ body.touching #sv-box .sv-btns button kbd{display:none}
       paintPause();
     } catch (e) {}
   }, 250);
-  const _sd = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     SV = null;
     AFK.clear();
     LV.g.clear();
@@ -567,7 +566,6 @@ body.touching #sv-box .sv-btns button kbd{display:none}
     ui.shown = "";
     afk.hidden = out.hidden = !0;
     afkUntil = 0;
-    return _sd.apply(this, arguments);
-  };
+  });
   window.RANKED_AWAY = { cfg, tally: () => (SV ? tally() : null), vote: () => SV, afk: AFK, request, cast, handOver, whyNot: (a) => whyNot(a || myActor()) };
 })();

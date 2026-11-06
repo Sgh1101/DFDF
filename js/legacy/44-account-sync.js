@@ -740,11 +740,9 @@
     } catch (e) {}
     reported = null;
   };
-  const _sd = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     "host" === NET.mode && down();
-    return _sd.apply(this, arguments);
-  };
+  });
   addEventListener("pagehide", down);
   // a guest the owner removed
   const _oe = NET.onEvent;

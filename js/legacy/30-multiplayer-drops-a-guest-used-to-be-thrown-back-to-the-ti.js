@@ -117,8 +117,7 @@
     return r;
   };
   const stopBackground = () => { if (worker) worker.terminate(); worker = null; wLast = 0; };
-  const shutdownBackground = netShutdown;
-  netShutdown = function () { stopBackground(); return shutdownBackground.apply(this, arguments); };
+  GAME_HOOKS.on("netShutdown", stopBackground);
   addEventListener("match-finished", stopBackground);
   addEventListener("pagehide", stopBackground);
 
@@ -199,15 +198,13 @@
     e && "bye" === e.t && (RC.bye = !0);
     return _oe.apply(this, arguments);
   };
-  const _ns = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     lastPeerId = null;
     RC.quit = !0;
     RC.generation++;
     RC.busy = RC.wait = !1;
     pill(null);
-    return _ns.apply(this, arguments);
-  };
+  });
   const _jr = joinRoom;
   joinRoom = function () {
     lastPeerId = null;

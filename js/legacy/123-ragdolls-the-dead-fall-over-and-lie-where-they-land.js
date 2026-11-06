@@ -434,11 +434,9 @@
     return _ca.apply(this, arguments);
   };
   if ("function" == typeof netShutdown) {
-    const _ns = netShutdown;
-    netShutdown = function () {
+    GAME_HOOKS.on("netShutdown", () => {
       clearAll();
-      return _ns.apply(this, arguments);
-    };
+    });
   }
   if ("function" == typeof startRound) {
     const _sr = startRound;

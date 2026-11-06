@@ -6,7 +6,10 @@ test("hidden host has one worker, bounded simulation steps, and stops on return/
   let clock = 100, terminated = 0, revoked = 0;
   const events = {}, workers = [], steps = [], document = { hidden: true, addEventListener: (key, fn) => events[key] = fn };
   const context = { document, NET: { mode: "host", conns: new Map([["peer", {}]]) }, world: { phase: "live" }, performance: { now: () => clock }, window: {}, step: (dt) => steps.push(dt), Blob: class {}, URL: { createObjectURL: () => "blob:test", revokeObjectURL: () => revoked++ }, Worker: class { constructor() { workers.push(this); } terminate() { terminated++; } }, addEventListener: (key, fn) => events[key] = fn, setInterval() {}, clearInterval() {}, netShutdown: () => "closed" };
-  vm.createContext(context); vm.runInContext(source, context);
+  // the game's hook registry is loaded before js/legacy/, and the engine's netShutdown runs its hooks first (js/game-hooks.js)
+  vm.createContext(context); vm.runInContext(require("node:fs").readFileSync("js/game-hooks.js", "utf8"), context);
+  const closed = context.netShutdown; context.netShutdown = () => { context.GAME_HOOKS.run("netShutdown"); return closed(); };
+  vm.runInContext(source, context);
   events.visibilitychange(); events.visibilitychange(); assert.equal(workers.length, 1); assert.equal(revoked, 1);
   clock += 33; workers[0].onmessage(); assert.equal(steps.length, 1); assert.ok(Math.abs(steps[0] - .033) < 1e-9);
   clock += 1000; workers[0].onmessage(); assert.equal(steps.length, 6); assert.equal(steps.slice(1).reduce((a, b) => a + b, 0), .25);

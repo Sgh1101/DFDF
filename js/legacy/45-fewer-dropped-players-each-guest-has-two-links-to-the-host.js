@@ -126,13 +126,11 @@
     }, 60000));
     m && (m.away = !0);
   };
-  const shutdownAway = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     for (const timer of away.values()) clearTimeout(timer);
     away.clear();
     for (const peer of [...quiet.keys()]) hush(peer);
-    return shutdownAway.apply(this, arguments);
-  };
+  });
   const _oa = NET.onAction;
   NET.onAction = function (peer, m) {
     if (m && "hello" === m.t && !room.started && m.prev && room.members.has(m.prev)) {

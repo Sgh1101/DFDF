@@ -270,12 +270,10 @@
     if (m && "kit" === m.t && PERMS.has(peer) && !OGRANT.has(peer) && !X.OWNP.has(peer) && !PERMS.get(peer).cheat) return;
     return _oa.call(this, peer, m);
   };
-  const _sd = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     OWNER_GRANT_ME = !1; // the owner's grant in that room ends with it
     PERMS.clear(); TICKET.clear(); LAST.clear(); ADDED.clear(); OGRANT.clear();
-    return _sd.apply(this, arguments);
-  };
+  });
   const _pg = NET.onPeerGone;
   NET.onPeerGone = function (peer) {
     try {
