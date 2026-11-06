@@ -415,3 +415,18 @@
 - 검사:
   - 단위 515 통과(랭크 클라이언트 검사를 지워서 줄었다), check, CSP, 사이트 페이지, 광고 게이트 exit 0.
   - 브라우저(한 번에 하나씩) 통과: startup, surrender, bot-skill, clans, grok-ui, home-layout, prematch, chat, aim, chest, design-polish, improvements, legacy-models, home-numbers, operator-card, guest-kit, followup, progression, mastery, audit:ui(신호 0), site-pages, public-entry.
+
+## 2026-11-07 · Claude2 · 5단계 코드 구조(평가 3번) 계획과 첫 단계
+
+- 측정: `js/legacy/`는 전역 함수 143개를 429번 덮어쓴다. 많이 덮어쓴 순서는 startRound 23, killActor 19, step 19, netStep 18, loadMap 17, drawMini 12, updateHUD 11, actorFire 11, dealDamage 10, netShutdown 10이다.
+- 방향: 전역 함수를 감싸서 다시 넣는 방식 대신 이름 붙은 시점에 일을 등록한다(`js/game-hooks.js`의 `GAME_HOOKS.on/run`, play.html에서 가장 먼저 로드).
+  - 감싸던 모듈은 등록만 하고, 엔진이 그 시점에 `run`을 부른다.
+  - 실행 순서는 로드 순서이고, 훅마다 try로 감싸 하나가 실패해도 나머지는 돈다.
+- 래칫: `tests/override-ratchet.test.js`는 덮어쓰기 수가 늘면 실패한다(지금 424). 한 사슬을 바꿀 때마다 한도를 낮춘다.
+- 첫 단계(이번): netShutdown의 정리 감싸기 10개를 훅으로 바꿨다(30 두 개, 44, 45, 55, 112, 115, 119, 123, 123b).
+  - 종료 뒤에 일하는 두 개(30의 bye, 47의 권한 해제)는 감싸기로 남겼다.
+  - 단위 검사 샌드박스 세 곳(network-lifecycle, peer-throttle, background-host)도 레지스트리를 먼저 싣는다.
+- 다음 순서(제안): gameOver(9) → netShutdown 남은 2개 → startRound(23) → killActor(19) → step/netStep.
+  - 각 사슬마다 "감싸기 전/후" 의미를 확인한다. 순서에 기대는 것은 훅을 `before`/`after`로 나눠 옮긴다.
+  - 사슬마다 관련 브라우저 검사를 돌린 뒤 한도를 낮춘다. 큰 사슬(startRound 등)은 한 번에 하나씩, 따로 PR로 낸다.
+- 모듈 전환(type=module)이나 큰 재작성은 하지 않았다.
