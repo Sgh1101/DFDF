@@ -388,6 +388,21 @@
       a.add(cap);
       rl.cap = cap;
     }
+    // a gun that says where its charging handle is (gun-model-smg.js): the left hand takes that handle and pulls
+    // it back as far as it travels, instead of reaching for a point beside the magazine
+    let chg = null;
+    a.traverse((n) => "charge" === n.userData.legacyAction && n.userData.reload && (chg = n));
+    if (chg) {
+      const at = (dz) => {
+        chg.position.z += dz;
+        chg.updateMatrixWorld(!0);
+        const p = V(...chg.userData.reload.grip).applyMatrix4(new T.Matrix4().multiplyMatrices(inv, chg.matrixWorld));
+        chg.position.z -= dz;
+        chg.updateMatrixWorld(!0);
+        return p;
+      };
+      rl.chg = { at: at(0), back: at(chg.userData.travel || 0.06) };
+    }
     // a pistol's magazine hides in the grip: a stand-in slides out of it
     if ("pistol" === rl.style && rl.R && !rl.mag) {
       const g = new T.Group();
@@ -437,6 +452,15 @@
   vmWithHands = function (g) {
     BUILD.lhand = BUILD.rhand = BUILD.gunBox = null;
     try {
+      // a part drawn otherwise in first person (gun-model-smg.js: its stock collapsed) is moved before anything is
+      // measured; the gun on the floor, in the armory and in other fighters' hands is a different build and keeps it
+      g.traverse((n) => {
+        const fp = n.userData.firstPerson;
+        if (fp && fp.position && !n.userData.fpDone) {
+          n.userData.fpDone = !0;
+          n.position.add(V(...fp.position));
+        }
+      });
       // the gun alone (the hands and arms are added next and baked in with it)
       g.updateMatrixWorld(!0);
       BUILD.gunBox = new T.Box3().setFromObject(g);
@@ -549,8 +573,9 @@
       const AWAY = G.clone().add(V(-0.07, -0.46, 0.12)),
         BACK = G.clone().add(V(-0.005, -0.12, 0.02));
       const gb = rl.gun;
-      const C = V(gb.min.x - 0.014, Math.min(gb.max.y - 0.02, top.y + 0.1), top.z - 0.02),
-        C2 = C.clone().add(V(0, 0, 0.06));
+      // the charging handle (a gun that says where its own is), or a point on the left above the magazine
+      const C = rl.chg ? rl.chg.at.clone() : V(gb.min.x - 0.014, Math.min(gb.max.y - 0.02, top.y + 0.1), top.z - 0.02),
+        C2 = rl.chg ? rl.chg.back.clone() : C.clone().add(V(0, 0, 0.06));
       // a pistol's slide is let go by the thumb, so that hand goes straight back to the grip
       path(
         H,
@@ -903,6 +928,8 @@
         if (action.kind === "pump") action.node.position.z += .065 * Math.sin(Math.PI * seg(k, .78, .94));
         // a pistol slide: pulled back once the fresh magazine is in, then let go
         if (action.kind === "slide") action.node.position.z += (action.node.userData.travel || .06) * sm(seg(k, .55, .6)) * (1 - sm(seg(k, .61, .64)));
+        // a charging handle: the left hand pulls it all the way back, then lets it fly home (the hand follows it)
+        if (action.kind === "charge") action.node.position.z += (action.node.userData.travel || .06) * sm(seg(k, .59, .64)) * (1 - sm(seg(k, .652, .672)));
         // a revolver: the crane swings the cylinder out to the left, the ejector throws the empties,
         // the case heads are gone until the loader puts six new rounds in, then the crane swings home
         if (action.kind === "crane") action.node.rotation.z += (action.node.userData.open || 1.5) * sm(seg(k, .1, .16)) * (1 - sm(seg(k, .6, .66)));

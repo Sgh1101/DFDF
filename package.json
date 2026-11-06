@@ -85,6 +85,7 @@
     "test:mobile-preview": "node scripts/browser-mobile-skin-preview.js",
     "test:weapon-shop": "node scripts/browser-weapon-shop.js",
     "test:legacy-models": "node scripts/browser-legacy-models.js",
+    "test:rush": "node scripts/browser-rush.js",
     "test:rifle-identity": "node scripts/browser-rifle-identity.js",
     "test:public-map-online": "node scripts/browser-public-map-online.js",
     "test:map-loading": "node scripts/browser-map-loading.js",
