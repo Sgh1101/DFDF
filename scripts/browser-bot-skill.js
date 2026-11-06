@@ -155,7 +155,11 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     assert.equal(down.verified, 0); assert.equal(down.shown, null, "an unverified claim is never shown");
     assert.deepEqual(down.skillSees, { lv: 20, tr: 0 }, "but it still counts for the bots, as before");
     assert.deepEqual(down.chips, ["Lv 4"], "only the host's own chip");
-    assert.deepEqual(await guest.evaluate(() => [...document.querySelectorAll("#lb-atk .lv-chip, #lb-def .lv-chip")].map((c) => c.textContent).sort()), ["Lv 4"], "nor on the guest's lobby");
+    // the guest's lobby: of the others, only the host's chip; its own row shows its own account's level as its own server
+    // reports it (30), never the claim it sent (20)
+    const guestLobby = await guest.evaluate(() => ({ others: [...document.querySelectorAll("#lb-atk .lb-slot:not(.me) .lv-chip, #lb-def .lb-slot:not(.me) .lv-chip")].map((c) => c.textContent).sort(), mine: [...document.querySelectorAll("#lb-atk .lb-slot.me .lv-chip, #lb-def .lb-slot.me .lv-chip")].map((c) => c.textContent) }));
+    assert.deepEqual(guestLobby.others, ["Lv 4"], "nor on the guest's lobby");
+    assert.ok(!guestLobby.mine.includes("Lv 20"), "the guest's own row never shows the level it claimed " + JSON.stringify(guestLobby));
     // the server is back: the next ask (the match start) fixes it, the claimed 20 becomes the real 30 and the chip appears on both
     await host.unroute("**/api/v1?a=levels*");
     await host.evaluate(() => { room.mode = "std"; room.diff = "normal"; hostStartMatch(); ADMIN.freezeAI = true; });
