@@ -129,5 +129,6 @@
   "js/legacy/122-ai-competitive-solo-play-with-an-ai-rating-of-its-own.js",
   "js/legacy/123-ragdolls-the-dead-fall-over-and-lie-where-they-land.js",
   "js/legacy/123b-emotes-wave-cheer-salute-dance-laugh-and-sit-in-a-camera-around-you.js",
-  "js/legacy/124-clans-my-own-clan-for-the-tag-beside-my-name.js"
+  "js/legacy/124-clans-my-own-clan-for-the-tag-beside-my-name.js",
+  "js/legacy/125-operator-card.js"
 ]
