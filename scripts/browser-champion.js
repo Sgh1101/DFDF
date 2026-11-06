@@ -51,7 +51,12 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       for (const key of GUN_SKINS.guns().filter((g) => GUN_SKINS.skinsFor(g).some((x) => x.id === "champion"))) {
         const gun = body(GUN_SKINS.buildFor(key, skin)), g = GUN_SKINS.buildFor(key, skin);
         GUN_SKINS.apply(g, skin); g.updateMatrixWorld(true);
-        const kit = g.children.find((c) => c.userData && c.userData.kitOf), kb = new T.Box3().setFromObject(kit).getSize(new T.Vector3());
+        // the trim can sit in a moving part (a pistol's slide), so it is looked for anywhere in the gun
+        let kit = null, kitMeshes = 0;
+        g.traverse((c) => { c.userData && c.userData.kitOf && (kit = c); c.isMesh && c.userData.kit && kitMeshes++; });
+        const kb = kit ? new T.Box3().setFromObject(kit).getSize(new T.Vector3()) : new T.Vector3();
+        // the whole gun with its trim against the same gun bare: the trim must not grow the gun's outline
+        const all = new T.Box3().setFromObject(g).getSize(new T.Vector3()), bare = new T.Box3().setFromObject(GUN_SKINS.buildFor(key, skin)).getSize(new T.Vector3());
         let lo = Infinity, hi = -Infinity, imported = false;
         g.traverse((o) => {
           if (o.userData.valorantRig) imported = true;
@@ -59,7 +64,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
           const uv = o.geometry.attributes.uv;
           for (let i = 0; i < uv.count; i++) { lo = Math.min(lo, uv.getX(i)); hi = Math.max(hi, uv.getX(i)); }
         });
-        res[key] = { imported, kitH: +(kb.y / gun.y).toFixed(2), kitL: +(kb.z / gun.z).toFixed(2), flow: +(((hi - lo) * skin.tile) / gun.z).toFixed(2) };
+        res[key] = { imported, kit: !!kit, kitMeshes, onSlide: !!(kit && kit.parent && kit.parent.userData.legacyAction === "slide"), grow: +Math.max(all.x / bare.x, all.y / bare.y, all.z / bare.z).toFixed(3), kitH: +(kb.y / gun.y).toFixed(2), kitL: +(kb.z / gun.z).toFixed(2), flow: +(((hi - lo) * skin.tile) / gun.z).toFixed(2) };
       }
       return res;
     });
@@ -67,7 +72,17 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     for (const [key, r] of Object.entries(fit)) {
       assert.ok(r.kitL <= 1, key + " shell is " + r.kitL + " times as long as the gun");
       assert.ok(r.kitH <= 1, key + " shell is " + r.kitH + " times as tall as the gun");
+      // the skin is a finish on the gun's own parts plus thin trim: the gun's outline grows by no more than a hair, and the
+      // trim is a few draw calls (the old kit, a grey side plate, a toothed rail and a scope housing, made a gun 1.25 times as tall)
+      assert.ok(r.grow <= 1.03, key + " outline grows " + r.grow + " times with the skin");
+      assert.ok(r.kitMeshes <= 2, key + " trim is " + r.kitMeshes + " meshes");
       if (r.imported) assert.ok(r.flow >= 0.8, key + " pattern spans only " + r.flow + " of the gun's length (atlas scraps)");
+    }
+    // the realistic pistols get their trim, it sits on the slide (so it cycles with it), and they keep their outline
+    for (const key of ["pistol", "silenced"]) {
+      assert.ok(fit[key] && fit[key].kit, key + " has its trim");
+      assert.ok(fit[key].onSlide, key + " trim rides on the slide");
+      assert.ok(fit[key].grow <= 1.02, key + " outline grows " + fit[key].grow);
     }
     // the third-party weapon pack is gone: every gun is one of the game's own builds
     assert.ok(Object.keys(fit).length >= 18 && Object.values(fit).every((r) => !r.imported), "every gun checked, none imported");
@@ -148,6 +163,29 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(out.plain, 0, "no rings with another skin"); assert.equal(out.knife, 0, "none from the knife");
     assert.ok(out.waves >= 2, "a kill sends waves: " + out.waves);
     assert.equal(out.noWaves, 0);
+    // a model that marks its own muzzle (the realistic pistol): the rings start there, the gold one is larger than the
+    // others and still lit after the colours have gone
+    const pist = await page.evaluate(() => {
+      const me = myActor(), W = CHAMPION_WAVE;
+      GUN_SKINS.set("pistol", "champion"); me.alive = true; me.weapons.secondary = "pistol"; me.slot = "secondary";
+      for (let i = 0; i < 20; i++) step(0.05);
+      let anchor = null;
+      VM.current.traverse((o) => { if (!anchor && o.userData.anchors && o.userData.anchors.muzzle) anchor = o.localToWorld(new THREE.Vector3(...o.userData.anchors.muzzle)); });
+      const isRing = (o) => o.mesh && o.mesh.geometry && o.mesh.geometry.type === "RingGeometry";
+      const before = new Set(fx.filter(isRing).map((o) => o.mesh));
+      me.fireCd = 0; me.ammo.pistol = 12; actorFire(me);
+      const mine = fx.filter(isRing).map((o) => o.mesh).filter((m) => !before.has(m));
+      const res = { n: mine.length, anchor: !!anchor, dist: anchor && mine.length ? Math.min(...mine.map((m) => m.position.distanceTo(anchor))) : -1, viaAnchor: anchor ? W.muzzleOf(VM.current).distanceTo(anchor) : -1 };
+      step(0.7);
+      const gold = mine.find((m) => m.material.color.getHex() === 0xffc24d), rest = mine.filter((m) => m !== gold);
+      res.goldLit = !!gold && gold.material.opacity > 0.15 && rest.every((m) => !fx.some((o) => o.mesh === m) || m.material.opacity < gold.material.opacity);
+      me.slot = "primary";
+      return res;
+    });
+    console.log("pistol rings", JSON.stringify(pist));
+    assert.ok(pist.anchor && pist.viaAnchor < 1e-4, "the rings use the model's own muzzle anchor: " + pist.viaAnchor);
+    assert.ok(pist.n >= 2 && pist.dist < 0.05, "pistol rings start at its muzzle: " + pist.dist);
+    assert.ok(pist.goldLit, "the gold ring is still lit after the others fade");
     // a look at the gun while firing
     await page.evaluate(() => { GUN_SKINS.set("rifle", "champion"); const me = myActor(); me.alive = true; me.hp = 100; me.invuln = 99; me.slot = "primary"; for (const a of world.actors) if (a !== me) { a.pos.set(40, 0, 40); a.invuln = 99; } });
     await page.waitForTimeout(600);

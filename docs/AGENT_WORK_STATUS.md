@@ -125,6 +125,16 @@
 - 실제 검사: 단위 521 통과, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 통과. 브라우저 10종은 에이전트 worktree(main 165caf3 병합본)에서 통과.
 - 다음: 3/18 황소(revolver).
 
+## 2026-11-05 · Claude · 챔피언의 물결(전설) 실총형 총에 맞게 재설계 — 사용자 검토 대기
+- 사용자 요청: 챔피언의 물결(`champion`, 전설) 스킨이 새 실총형 Axiom(pistol)·Hush(silenced)에 방패/상자처럼 붙던 문제 수정. 초월 챔피언스 팬텀(`champions_atk/def`)과 그 파일은 건드리지 않았다.
+- 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). 기준: `claude/quirky-fermat-11wa1b` `ccdb6da`(main `4165f84` + Axiom/Hush).
+- 상대 작업 확인: `git fetch origin --prune`(시작 시와 커밋 직전 두 번). origin/main은 `4165f84`(#131) 그대로, codex/* 새 커밋 없음. 열린 PR은 #126(Codex 챔스 입체 소총)과 #132(Claude Hush)뿐. #126 diff 35파일은 챔스 팬텀·play.html 다른 줄만 고치고 이번 담당 파일과 겹치지 않는다. #131의 `check-ad-readiness.js`는 변경 후에도 gateChecksPass·assetErrors 없음. 다른 worktree에서 담당 파일의 새 미커밋 변경은 찾지 못했다(Verdict 리볼버 작업 파일은 미접촉).
+- 담당 파일: `js/legacy/58-gun-skins.js`(champion 정의, 금속 장갑판 무늬 `championPlate`, 금속·작은 부품 광택 코트, 밀도 기반 UV 맞춤 `fitAll`(champion만), `KITS.champion` 전면 교체, 키트 제거가 하위 그룹까지 보도록), `js/legacy/96-champions-wave-…js`(고리 크기·금 고리 지속, `userData.anchors.muzzle` 사용), `js/legacy/97-legendary-finishers-…js`(champion 하늘 0.7→0.2, 안개 0.1, 화면 가장자리만 옅게), `scripts/browser-champion.js`, `README.md`.
+- 구현: 스킨은 총 자체 부품의 표면 마감(몸통=불꽃 장갑, 금속=회색·광택검정 체커 장갑판, 작은 부품=광택 검정). 덧붙는 것은 윗부분 부품에 광선을 쏴 찾은 실제 표면 위의 가는 금선·주황 빛선·작은 문장뿐이며 슬라이드에 붙어 함께 움직인다. 총마다 그리기 +2(이전 +7), 외곽 증가 최대 0.3%(이전 Axiom 높이 1.25배·폭 1.31배).
+- 실제 검사(로컬): 단위 521 통과·2 선택 제외, check 208, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나): champion·finisher-always·improvements·weapon-shop·mobile-skin-preview·graphics·startup·phantom·champions-finish·phantom-kill-wave 통과. render-cost는 첫 실행 1500초 시간 초과, 재실행 통과. legacy-models는 처음 두 번 `GUN_SKINS.isOpen` 대기 30초 초과, 이후 같은 코드로 3회 연속 통과(기준 ccdb6da 사본은 3/3 통과). 실기기 미검증.
+- 다음: 사용자 외형 검토 후 병합 여부 결정. 미배포.
+- 2026-11-05 추가: 사용자가 회색/검정 체커+불꽃 대신 완전히 새 콘셉트를 요청(참고: VCT Champions 2024 스킨의 절제된 디자인 원칙만, 모티프·로고 복제 금지). 개발용 플래그(localStorage `dfdf_champion_concept` = A|B|C)로 A 물마루(Tide Line)·B 트로피 물결(Trophy Ripple)·C 진주 물살(Pearl Surf) 세 가지를 실제 렌더로 비교 중. 플래그가 없으면 출시된 모습 그대로. origin/main `c37cf1f`(#132 Hush·Verdict) 병합. 사용자 선택 대기, 미배포.
+
 ## 2026-11-05 · Claude · 총 개편 3/18 Verdict(revolver) 실총형 재제작 — 사용자 검토 대기
 - 사용자 요청: 기본 총 18종 순차 재제작 3번째. Verdict(키 `revolver`)를 6인치 풀러그 더블액션 6연발 .357 리볼버로 다시 만든다(특정 제조사 이름·로고·각인 없음). 승인 후 다음 총.
 - 작업 worktree: `worktree-agent-a3ff956c11f7e2ff6`(로컬, 미푸시). 기준: main `4165f84`(Codex #131) + 승인된 참새·부엉이 `origin/claude/quirky-fermat-11wa1b`(`ccdb6da`) 병합.
@@ -171,6 +181,14 @@
 - 근거: 사용자가 같은 조건(같은 손·조명·각도, 공격/수비, 1인칭)으로 찍은 두 안의 사진을 비교한 뒤 직접 골랐다. 확인 기준은 main `1a5068a`, #126 `0cd1cec`이다.
 - 요청: #126은 닫아 달라. Claude가 PR 닫기를 시도했지만 이 세션의 권한 검사에서 막혔다. #126에만 있는 공동 작업 지침은 이미 main(`1d189e7`)에 들어 있다. #126 브랜치의 다른 변경을 다시 쓰려면 사용자에게 먼저 확인한다.
 - 이전 기록 정리: SGH나비칼 항목의 "#126의 RGX 해시 검사 갱신 필요"는 #126을 쓰지 않으므로 더 이상 할 일이 아니다. #129(출처 표기)는 `ac757fd`로 병합·배포되었다.
+
+## 2026-11-05 · Claude · 챔피언의 물결 물마루(Tide Line) 확정안 — 사용자 검토 대기
+- 사용자 요청: 세 콘셉트 중 A(물마루)를 고르고 더 밝고 세련되게. 개발용 콘셉트 플래그와 B·C 코드는 지웠다.
+- 작업 브랜치/worktree: `worktree-agent-a66a39ac7e9e80894`(로컬, 미푸시). origin/claude/quirky-fermat-11wa1b `538ec1f`(main `a09e677` + Tempo #136)를 병합했다.
+- 상대 작업 확인: `git fetch origin --prune`. 열린 PR은 #136(Claude Tempo, 병합해 렌더에 포함), #137(Codex SGH 나비칼 모션·소리, 담당 파일과 겹치지 않음), #138(Claude SGH 색: `58-gun-skins.js` 62~70줄의 칼 스킨과 README 57줄의 "601개"→"604개"). 이 작업은 58의 그 줄들을 건드리지 않는다. README 57줄은 양쪽이 고치므로 나중에 병합되는 쪽이 그 줄에서 이쪽 설명 + "604개"로 맞추면 된다. #126은 #135 기록대로 쓰지 않는다.
+- 구현: `champTide` 무늬(밝은 트와일라잇 바탕, 선명한 광택 금 물결선, 부드러운 보라·분홍 빛, 옅은 두 번째 물결과 윤기). `spineOf`로 총마다 윗부분 부품을 찾아 물결 높이·크기를 정하고, 무늬는 총 자기 좌표에 투영(가로:세로 2.5:1로 선 굵기 일정). 장식은 금선·라일락 빛선·분홍 보석 2메시. 고리·피니셔 변경(2e6c5e7)은 그대로.
+- 실제 검사(로컬, a140a52): 단위 523 중 521 통과·2 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저 12종(champion·finisher-always·improvements·weapon-shop·legacy-models·mobile-skin-preview·graphics·render-cost·startup·phantom·champions-finish·phantom-kill-wave) 한 번에 하나씩 모두 통과. 그 전 판(금속·작은 부품에도 물리 재질 코트)은 legacy-models가 3번 중 2번 무기고 열기 대기 30초 초과로 실패했고(같은 때 기준 사본은 2/2 통과), 셰이더 수를 줄인 뒤 3/3과 전체 묶음에서 통과했다. 이후 Tempo 브랜치의 정조준 가늠쇠 앵커(cba5a4d)를 병합하고 champion·legacy-models를 다시 확인했다. 실기기 미검증. 미배포.
+
 
 ## 2026-11-05 · Claude · 실총형 권총 4종 정조준(ADS) 가늠쇠 정렬 — 로컬 완료, 미푸시
 - 사용자 승인: 새 실총형 모델(Axiom·Hush·Verdict·Tempo)에서 정조준 때 가늠쇠/레드닷이 화면 중앙보다 약 30px 아래에 있던 문제를 고친다.
