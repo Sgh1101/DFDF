@@ -104,9 +104,9 @@ const part = (n) => only.includes('all') || only.includes(String(n));
             if (d > best.d) best = { yaw, d };
           }
           out.free = best.d;
-          // where the guest's body stood: the synthetic inputs below move it up to several metres on the host only, and a body
-          // left there is snapped back by the next real input (the 2 stop check after this one saw that as a correction)
-          const pos0 = g.pos.clone(), y0 = g.y;
+          // where the guest's body stood and what it last sent: the synthetic inputs below move it up to several metres on the host
+          // only, and the last of them (W held) stays as its held keys; both are put back so the checks after this one start clean
+          const pos0 = g.pos.clone(), y0 = g.y, input0 = { ...g.input }, yaw0 = g.yaw;
           const realSeq = g.input.seq || 0; let seq = realSeq;
           const send = (n, extra) => { for (let i = 0; i < n; i++) NET.onInput(peer, { t: 'in', seq: ++seq, mv: [0, -1], btn: 0, yaw: best.yaw, pitch: 0, ...extra }); };
           const run = (label) => { const x = g.pos.x, z = g.pos.z; g._bank = 0.5; g._bankT = performance.now(); netStep(1 / 60); out[label] = Math.hypot(g.pos.x - x, g.pos.z - z); };
@@ -119,7 +119,8 @@ const part = (n) => only.includes('all') || only.includes(String(n));
           send(100, { dt: 1000 }); run('flood');              // 10 s of input in an instant: the host's own time pays (at most 0.6 s)
           out.simSeq = g.simSeq; out.lastSeq = seq; out.queued = g.inq ? g.inq.length : 0;
           g.input.seq = realSeq; g.simSeq = realSeq; g.inq = null; g.vel.set(0, 0, 0);   // the guest's own inputs go on from where they were
-          g.pos.copy(pos0); g.y = y0;
+          // ...and the last input stands as the host's held keys until the guest's next one: put the guest's own back
+          g.pos.copy(pos0); g.y = y0; g.input = input0; g.yaw = yaw0;
           return out;
         }, guestId);
         console.log('     ', JSON.stringify(r));
