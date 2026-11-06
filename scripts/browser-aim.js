@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 // Aim assist: on a phone the view leans toward an enemy near the crosshair and follows it a
-// little; on a computer only with the owner's grant (or admin mode); a computer never in ranked.
+// little; on a computer only with the owner's grant (or admin mode). (Ranked play, where a computer never had it, is gone.)
 (async () => {
   const f = await fixture();
   try {
@@ -48,11 +48,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       window.SERVER_CFG = Object.assign({}, window.SERVER_CFG || {}, { aim: { mobile: false, pc: true, strength: 35, range: 45, cone: 8, ranked: true } });
       trial("phoneOwnerOff", () => { A._phone = true; A.pref.mobile = true; sess.user.aim = { pc: false, mobile: true }; });
       window.SERVER_CFG.aim = { mobile: true, pc: true, strength: 35, range: 45, cone: 8, ranked: true };
-      // ranked: a computer loses it even with the grant, a phone keeps it
-      room.ranked = true; RANKED.locked = true;
-      trial("pcRanked", () => { A._phone = false; A.pref.pc = true; sess.user.aim = { pc: true, mobile: true }; });
-      trial("phoneRanked", () => { A._phone = true; A.pref.mobile = true; });
-      room.ranked = false; RANKED.locked = false;
+      // (ranked play, where a computer lost it, was removed on 2026-11-07)
       // following: the enemy walks sideways and the view goes a little with it
       A._phone = true; A.pref.mobile = true; A.state.init = false; A.state.tgt = null;
       res.followPlaced = put(0); const y0 = player.yaw;
@@ -68,15 +64,14 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
       return res;
     });
     console.log(JSON.stringify(out));
-    for (const k of ["phone", "pcGrant", "phoneRanked"]) assert.ok(out[k].placed && out[k].on && out[k].pulled, k + ": the aim leans in " + JSON.stringify(out[k]));
-    for (const k of ["phoneOff", "pcNoGrant", "pcGrantSwitchOff", "phoneClosedForAccount", "phoneOwnerOff", "pcRanked"]) assert.ok(!out[k].on && !out[k].pulled, k + ": no assist " + JSON.stringify(out[k]));
+    for (const k of ["phone", "pcGrant"]) assert.ok(out[k].placed && out[k].on && out[k].pulled, k + ": the aim leans in " + JSON.stringify(out[k]));
+    for (const k of ["phoneOff", "pcNoGrant", "pcGrantSwitchOff", "phoneClosedForAccount", "phoneOwnerOff"]) assert.ok(!out[k].on && !out[k].pulled, k + ": no assist " + JSON.stringify(out[k]));
     assert.match(out.pcNoGrant.why, /권한|owner/);
-    assert.match(out.pcRanked.why, /랭크|ranked/);
     assert.ok(out.followPlaced, "the enemy is placed for the follow check");
     assert.ok(out.follow.turned > 0.02, "the aim follows a moving enemy " + JSON.stringify(out.follow));
     assert.equal(out.err, null);
     assert.ok(out.row.sw && out.row.lvl && out.row.pcDisabled && /권한|owner/.test(out.row.pcText), "the settings switch, locked on a computer without the grant " + JSON.stringify(out.row));
     assert.deepEqual(f.errors, []);
-    console.log("aim assist: phone free, computer by grant, off in ranked on a computer, follows a moving enemy");
+    console.log("aim assist: phone free, computer by grant, follows a moving enemy");
   } finally { await f.browser.close(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
