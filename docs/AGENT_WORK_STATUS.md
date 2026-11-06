@@ -181,8 +181,13 @@
 - 측정(투영 위치, 중앙 기준 아래쪽 +): 1280×720 Axiom 32.5→0, Hush 28.8→0, Verdict 26.8→0, Tempo 37.2→0px. 852×393 17.7/15.7/14.7/20.3→0px. Strife(소총) 자세 동일.
 - 실제 검사(로컬): 단위 523 중 521 통과·2 Redis 선택 제외, check 210, 자산 50, 사이트 페이지 12, 광고 준비 exit 0. 브라우저(하나씩): aim·improvements·reload·graphics·startup·rifle-identity 통과, legacy-models는 무기고 열기 대기 30초 시간 초과가 반복된 뒤(기준 커밋에서도 같은 대기가 20초를 넘김을 확인) 재실행 통과. followup은 ADS 단계 전의 첫 단언(GAME_CATALOG.counts에 새 `guns:18` 키)에서 실패 — 이번 변경과 무관, 기존 상태. 실기기/Android 미검증. 미배포·미푸시.
 
-## 2026-11-05 · Claude · 총 개편 5/18 Breach(pocketshot) 실총형 재제작 — 진행 중
+## 2026-11-05 · Claude · 총 개편 5/18 Breach(pocketshot) 실총형 재제작 — 사용자 검토 대기
 - 사용자 요청: 기본 총 18종 순차 재제작 5번째. Breach(키 `pocketshot`)를 권총 손잡이의 짧은 수평 쌍대 중절식 산탄총(코치건/소드오프형, 특정 제조사 이름·로고·각인 없음)으로 다시 만든다. 승인 후 다음 총.
 - 작업 worktree: `worktree-agent-a4ac8c01a923840ed`(로컬, 미푸시). 기준: origin/main `1a5068a`(Codex #133 글꼴·#134 스파이크 규칙 포함) + 승인된 Axiom·Hush·Verdict·Tempo `origin/claude/quirky-fermat-11wa1b`(`1419dfb`, fast-forward).
 - 상대 작업 확인: `git fetch origin --prune` 후 열린 PR은 #126(Codex 챔스 입체 소총, 건드리지 않음)·#135(Claude 기록)·#136(Claude Tempo). #133/#134는 글꼴·스파이크 파일로 이번 파일과 겹치지 않는다. 다른 세션이 챔스 스킨(58·96·97)과 ADS 조준선(모델 `userData.anchors.sight`, 뷰모델 코드)을 동시에 고치므로 그 파일은 건드리지 않고 모델에 `anchors.sight`만 넣는다.
-- 담당 파일: `js/gun-model-pocketshot.js`(새), `play.html`(스크립트 한 줄), 필요 시 `js/legacy/54-reload-animation.js`의 break 분기(모델이 준 약실 위치·탄 크기 사용, 없으면 기존 동작).
+- 담당 파일: `js/gun-model-pocketshot.js`(새), `play.html`(스크립트 한 줄), `js/legacy/54-reload-animation.js`의 break 분기(모델이 `userData.reload`로 약실 위치·탄 크기를 주면 그 약실에 맞춰 넣고 빼며, 없으면 기존 동작 그대로).
+- 통합: 작업 중 Tempo 브랜치가 `cba5a4d`(ADS 가늠 기준점 `anchors.sight`를 03-engine이 읽음)로 전진해 다시 병합했다. 이 모델의 `anchors.sight`는 리브 위 가늠쇠(구슬) 꼭대기 높이의 조준선 위 점이며, ADS에서 구슬이 화면 중앙(1920×1080에서 약 955,545)에 오고 두 공이치기 사이로 보인다.
+- 설계: 12게이지 수평 쌍대, 205mm로 잘라낸 총열(밝게 다듬은 절단면, 두 총구), 상부 리브와 황동 구슬, 바닥 리브, 경첩 너클과 핀, 둥근 펜스, 탑 레버(청화), 외부 공이치기 2개, 긴 방아쇠울과 2단 방아쇠, 짧은 스플린터 포엔드와 철물·래치, 체커링 패널이 있는 경사 호두나무 손잡이와 강철 캡, 조각 무늬 측판. 기본 마감은 케이스 하드닝(얼룩 색) 기관부 + 짙은 청화 총열 + 호두나무로 대비가 강하다. 스킨 역할은 GUNMAT 종류 그대로(나무=body, 기관부·측판=steel/metal, 방아쇠·핀·총구면=chrome/metal, 총열·울·레버·캡=blued/dark). 총강만 스킨이 바꾸지 않는 검은 무광.
+- 결과: 메시 28→14, 크기 0.092×0.250×0.415 → 0.066×0.202×0.431(길이 +4%, 높이 -19%, 폭 -29%: 실총 비율). 총구 위치 유지(z -0.32, 섬광은 오른쪽 총열). 재장전: 총열이 경첩에서 0.55rad 꺾이고 빈 탄피 두 개가 실제 약실에서 튀어나오며, 새 탄 두 발이 약실 축을 따라 들어가 장착된 채 닫힐 때까지 보인다.
+- 실제 검사(로컬, 병합본 3f97b25 기준): 단위 523 중 521 통과·2 Redis 선택 제외·실패 0, check 211 스크립트, 자산 50지문, 사이트 페이지 12, 광고 준비 점검 exit 0. 브라우저(한 번에 하나씩): legacy-models·weapon-shop·mobile-skin-preview·improvements·graphics·startup·reload(pocketshot: break, pair, 0.55rad 후 복귀 0)·render-cost·gun-template-memory·drop-skins 모두 통과. 실기기/Android 미검증. 미배포.
+- 남은 점: 3인칭 손에 든 모습은 요원 팔 블록에 대부분 가려 검사 사진에서 잘 안 보인다(Tempo와 같은 촬영 한계). 공이치기는 사격 때 움직이지 않는다(검사가 동작 종류를 ['break']만 허용). 열린 PR #137~#143의 play.html 변경은 다른 줄이라 겹치지 않는다.
