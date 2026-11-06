@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { policy, inlineHashes, build, HEADER, MODE } = require("../scripts/build-csp");
+const { AD, policy, inlineHashes, build, HEADER, MODE } = require("../scripts/build-csp");
 
 const root = path.join(__dirname, "..");
 
@@ -38,13 +38,16 @@ test("the stage: report-only sends the Report-Only header, enforce the real one"
   assert.deepEqual(lines, ["  " + HEADER + ": " + policy()]);
 });
 
-test("the policy: scripts by hash, no inline-script allowance, nothing framed, objects off", () => {
+test("the policy: scripts by hash, no inline-script allowance, only ad frames, objects off", () => {
   const csp = policy(), dir = Object.fromEntries(csp.split("; ").map((d) => [d.split(" ")[0], d]));
   assert.ok(!/'unsafe-inline'|'unsafe-eval'/.test(dir["script-src"]), dir["script-src"]);
   assert.match(dir["script-src"], /'unsafe-hashes'/);
   assert.ok(dir["script-src"].includes("https://cdnjs.cloudflare.com"));
   assert.equal(dir["object-src"], "object-src 'none'");
-  assert.equal(dir["frame-src"], "frame-src 'none'");
+  // frames: only AdSense's (the home screen's ad slot), each a named Google host, never "any https" or "*"
+  assert.equal(dir["frame-src"], "frame-src " + AD.frame.join(" "));
+  for (const host of AD.frame) assert.match(host, /^https:\/\/(\*\.)?[a-z0-9.-]*(google|googlesyndication|doubleclick|adtrafficquality)\.(com|net|google)$/, host);
+  for (const d of ["script-src", "connect-src"]) assert.ok(!/\shttps:(\s|$)|\s\*(\s|$)/.test(dir[d]), d + " allows any host");
   assert.equal(dir["base-uri"], "base-uri 'self'");
   assert.equal(dir["form-action"], "form-action 'self'");
   assert.equal(dir["frame-ancestors"], "frame-ancestors 'self'");

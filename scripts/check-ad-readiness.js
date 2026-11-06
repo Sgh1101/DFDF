@@ -27,9 +27,13 @@ function audit(root=path.resolve(__dirname,'..')){
  for(const d of fs.readdirSync(root,{withFileTypes:true}))if(d.isFile()&&d.name.endsWith('.html')){const file=path.join(root,d.name);if(/(?:adsbygoogle\.js|googlesyndication\.com\/pagead|doubleclick\.net\/)/.test(fs.readFileSync(file,'utf8')))adIntegrations.push(d.name);}
  scan(path.join(root,'js'));
  reasons.push(...assetErrors);
- const ready=reasons.length===0,unexpectedIntegration=adIntegrations.length>0&&!ready;
+ // An integration the owner asked for by name (ads-config.json userApprovedIntegrations) is allowed before the review is
+ // clear; any other file that picks up ad code still fails the gate.
+ const approved=Array.isArray(config?.userApprovedIntegrations)?config.userApprovedIntegrations.filter(f=>typeof f==='string'):[];
+ const unapprovedIntegrations=adIntegrations.filter(f=>!approved.includes(f));
+ const ready=reasons.length===0,unexpectedIntegration=unapprovedIntegrations.length>0&&!ready;
  const gateChecksPass=!assetErrors.length&&!reasons.some(r=>r.endsWith('-unreadable'))&&!unexpectedIntegration&&(config?.enabled===false||ready);
- return {ready,gateChecksPass,reasons:[...new Set(reasons)],assetErrors,adIntegrations,unexpectedIntegration};
+ return {ready,gateChecksPass,reasons:[...new Set(reasons)],assetErrors,adIntegrations,unapprovedIntegrations,unexpectedIntegration};
 }
 if(require.main===module){
  const result=audit();console.log(JSON.stringify(result,null,2));
