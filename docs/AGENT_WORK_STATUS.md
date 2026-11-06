@@ -396,3 +396,22 @@
   - 단위 523 통과, check, CSP, 자산, 광고 게이트 exit 0.
   - 브라우저(한 번에 하나씩) 통과: startup, weapon-shop, rifle-identity, champion, finisher-always, legacy-models, phantom, improvements, ability-floors, ascent-abilities, ascent-objectives, ascent, buildings, collide-equiv, english-map-names, firefight, graphics, home-layout, home-numbers, map-loading, mobile-map, original-maps, performance, public-map-online, service-worker, site-pages, neon, neon-look, neon-online.
 - 다음: 4단계 랭크 제거·티어를 레벨로, 5단계 코드 구조(평가 3번).
+
+## 2026-11-07 · Claude2 · 4단계 랭크 제거, 레벨은 티어로 보이게 (사용자: "랭크 없애고 티어를 레벨로 하자 레벨없애")
+
+- 해석: 순위를 거는 랭크전(방, RR, 배치, 시즌, AI 경쟁전)을 없앤다. 계정의 성장(경험치 레벨)은 숫자 대신 티어(구리~왕좌)로만 보인다.
+- 매핑: `js/tier-level.js`(새 파일, 게임·홈 공용). 3레벨이 한 구간, 3구간이 한 티어, 레벨 73부터 왕좌다. 단위 검사 `tests/tier-level.test.js`.
+- 지운 것(git 이력에 남음): `81` 랭크 방, `88` 시즌, `109-ranked-flow`, `122` AI 경쟁전. 검사도 지웠다: ranked, ranked-flow, ranked-away, ai-comp, season, `tests/ranked-client.test.js`, `ranked-integrity`의 클라이언트 검사 1개.
+- 남긴 것: `119`의 항복 투표. 일반 팀 모드에서 그대로 동작하고, 새 검사 `test:surrender`로 확인한다.
+- 바꾼 것:
+  - `71`: 랭크 대신 레벨로 정한 티어를 첫 화면 칩에 보인다.
+  - 이름 옆 칩, 경기 전 화면, 성장 보상 칸, 순위표(첫 탭이 티어, 시즌 랭크 탭 없음), 클랜 멤버, 홈 프로필(링 안에 티어 배지, 진행 막대는 구간 진행도), 홈 보상 목록에서 "Lv N"이 티어 이름으로 바뀌었다.
+  - 레벨업 알림은 구간이 바뀔 때 "티어 상승!"으로 나온다.
+  - 랭크 안내와 방 목록의 랭크 표시를 뺐고, 사이트 페이지(소개, 가이드, 모드, 맵, 약관)와 패치노트를 고쳤다.
+- 건드리지 않은 것(확인 필요):
+  - 서버(`api/v1.js`)는 아직 랭크 요청에 답한다. 계정의 RR, 시즌, 레벨 데이터는 지우지 않았다. 데이터 삭제는 사용자 확인이 필요하다.
+  - 관리자 화면은 숫자를 그대로 쓴다. 요원 숙련도(요원별 1~10레벨)는 그대로다.
+  - 홈 문자열 표의 쓰이지 않는 시즌·랭크 문구는 남아 있다.
+- 검사:
+  - 단위 515 통과(랭크 클라이언트 검사를 지워서 줄었다), check, CSP, 사이트 페이지, 광고 게이트 exit 0.
+  - 브라우저(한 번에 하나씩) 통과: startup, surrender, bot-skill, clans, grok-ui, home-layout, prematch, chat, aim, chest, design-polish, improvements, legacy-models, home-numbers, operator-card, guest-kit, followup, progression, mastery, audit:ui(신호 0), site-pages, public-entry.
