@@ -92,9 +92,14 @@
   };
 
   // ── match start / sync ──
+  let pendingZoneSpawns = null;
   const _sea = sendEventAll;
   sendEventAll = function (e) {
-    e && "begin" === e.t && (e.mode = room.mode);
+    if (e && e.t === "begin") {
+      e.mode = room.mode;
+      pendingZoneSpawns = null;
+      if (M().zone) e.zoneSpawns = pendingZoneSpawns = zoneSpawns(world.actors.length);
+    }
     return _sea.apply(this, arguments);
   };
   const _set = sendEventTo;
@@ -122,10 +127,17 @@
   const _cbm = clientBeginMatch;
   clientBeginMatch = function (e) {
     room.mode = (e && e.mode) || "std";
-    const r = _cbm.apply(this, arguments);
-    ffaIntel();
-    paintModeBody();
-    return r;
+    const starts = e?.zoneSpawns;
+    pendingZoneSpawns = M().zone && Array.isArray(starts) && Array.isArray(e.actors) && starts.length <= e.actors.length &&
+      starts.every(p => p && [p.x, p.y, p.z, p.yaw].every(Number.isFinite)) ? starts : null;
+    try {
+      const r = _cbm.apply(this, arguments);
+      ffaIntel();
+      paintModeBody();
+      return r;
+    } finally {
+      pendingZoneSpawns = null;
+    }
   };
   const _sg = startGame;
   startGame = function (e, t) {
@@ -167,6 +179,15 @@
     if (m.ffa) for (const a of acts) a.team = a._baseTeam || (a._baseTeam = a.id < TEAM_SIZE ? "atk" : "def");
     const r = _sr.apply(this, arguments);
     if (m.ffa) for (const a of acts) a.team = "f" + a.id;
+    if (m.zone && acts.length) {
+      const starts = pendingZoneSpawns || (isHost() ? zoneSpawns(acts.length) : []);
+      pendingZoneSpawns = null;
+      for (const [i, a] of acts.entries()) {
+        if (!starts[i]) continue;
+        placeActor(a, starts[i]);
+        syncActorModel(a);
+      }
+    }
     if (!inMatch() || !isHost()) return r;
     clearPickups();
     if (m.respawn) respawnModeStart();
@@ -263,7 +284,7 @@
     for (const a of world.actors) {
       a.kills = 0;
       a.armor = m.ffa ? 50 : 25;
-      m.ffa && placeActor(a, ffaSpawn(a));
+      m.ffa && !m.zone && placeActor(a, ffaSpawn(a));
       m.team && giveTierWeapon(a);
       sendWallet(a);
     }
@@ -285,6 +306,48 @@
   function farFromSpawns(p, d) {
     return Math.hypot(p.x - MAP.attackSpawn.x, p.z - MAP.attackSpawn.z) > d && Math.hypot(p.x - MAP.defendSpawn.x, p.z - MAP.defendSpawn.z) > d;
   }
+  function zoneSpawns(count) {
+    if (!count) return [];
+    const { minX, maxX, minZ, maxZ } = MAP.bounds;
+    const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
+    const districtNav = window.ASCENT_TRIAL?.active ? ASCENT_TRIAL.nav : null;
+    const candidates = [];
+    function add({ x, y: floor = 0, z }) {
+      const y = groundAt(x, z, floor);
+      if (x < minX + PR || x > maxX - PR || z < minZ + PR || z > maxZ - PR ||
+        (districtNav && Math.abs(y - floor) > .05) ||
+        collideXZ(x, z, y + .02, PR + .1) ||
+        candidates.some(q => Math.hypot(x - q.x, z - q.z) < 2 * PR)) return;
+      candidates.push({ x, y, z, yaw: Math.atan2(x - cx, z - cz) });
+    }
+    for (const p of [...Object.values(MAP.nodes || {}), ...MAP.sites, MAP.attackSpawn, MAP.defendSpawn]) add(p);
+    // Sample connected floors across the district; the authored anchors alone cluster near objectives.
+    if (districtNav) {
+      const stride = Math.ceil(8 / GRID.cell);
+      for (let z = 0; z < GRID.rows; z += stride) for (let x = 0; x < GRID.cols; x += stride) {
+        const i = z * GRID.cols + x;
+        if (districtNav.component[i] === districtNav.mainId) add({ ...cellCenter(x, z), y: districtNav.height[i] });
+      }
+    }
+    if (candidates.length < count)
+      for (const team of ["atk", "def"]) for (let i = 0; i < TEAM_SIZE; i++) add(spawnPointFor(team, i));
+    if (candidates.length < count)
+      for (const p of candidates.slice()) for (let i = 0; i < 8; i++) {
+        const angle = i * Math.PI / 4;
+        add({ x: p.x + 3 * Math.cos(angle), y: p.y, z: p.z + 3 * Math.sin(angle) });
+      }
+
+    const starts = candidates.splice(Math.floor(Math.random() * candidates.length), 1);
+    while (starts.length < count && candidates.length) {
+      let best = 0, farthest = -1;
+      for (const [i, p] of candidates.entries()) {
+        const distance = Math.min(...starts.map(q => (p.x - q.x) ** 2 + (p.z - q.z) ** 2));
+        if (distance > farthest) { best = i; farthest = distance; }
+      }
+      starts.push(candidates.splice(best, 1)[0]);
+    }
+    return starts;
+  }
   function ffaSpawn(a) {
     const cands = mapPoints().concat([MAP.attackSpawn, MAP.defendSpawn]);
     const foes = world.actors.filter((o) => o !== a && o.alive);
@@ -301,8 +364,8 @@
     return { x: s.x, z: s.z, yaw: s.yaw };
   }
   function placeActor(a, p) {
-    a.pos.set(p.x, 0, p.z);
-    a.y = 0;
+    a.y = p.y ?? 0;
+    a.pos.set(p.x, a.y, p.z);
     a.vy = 0;
     a.yaw = p.yaw;
     a.input && (a.input.yaw = p.yaw);

@@ -1,5 +1,18 @@
 const assert = require("node:assert/strict"), { fixture } = require("./browser-fixture");
 const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
+const spawnState = () => world.actors.map(a => ({
+  id: a.id, x: a.pos.x, y: a.y, z: a.pos.z,
+  clear: !collideXZ(a.pos.x, a.pos.z, a.y + .02, PR),
+  supported: Math.abs(groundAt(a.pos.x, a.pos.z, a.y) - a.y) < .05,
+}));
+function checkSpawns(spawns, separation) {
+  assert.ok(spawns.length >= 2);
+  for (const [i, a] of spawns.entries()) {
+    assert.ok(a.clear && a.supported, JSON.stringify(a));
+    for (const b of spawns.slice(i + 1))
+      assert.ok(Math.hypot(a.x - b.x, a.z - b.z) >= separation, `starting positions overlap: ${JSON.stringify([a, b])}`);
+  }
+}
 // 축소전: free for all, one life; a safe circle covers the map and closes in stages on a new smaller one
 // (shown beforehand); outside it hurts (armour does not help) more each stage; out is out, no
 // respawn, a place is kept; the last one standing wins; bots stay in; a guest sees the same circle.
@@ -8,7 +21,18 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
   let signaling;
   try {
     const page = await f.page("zoner", { width: 1280, height: 800 });
+    const dusk = await page.evaluate(async () => {
+      titleCam = () => {}; render = () => {}; ADMIN.freezeAI = true;
+      room.mode = "zone"; room.map = "ascent_trial";
+      try { await startGame(AGENTS[0], false); return { active: ASCENT_TRIAL.active }; }
+      catch (e) { return { error: e.message }; }
+    });
+    assert.deepEqual(dusk, { active: true }, "the layered map must finish starting a Shrinking Zone match");
+    const duskSpawns = await page.evaluate(spawnState);
+    checkSpawns(duskSpawns, 8);
+    assert.ok(duskSpawns.every(a => a.y > 0), "players start on the district terrain");
     await page.evaluate(() => { titleCam = () => {}; render = () => {}; room.mode = "zone"; room.map = "nightport"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
+    checkSpawns(await page.evaluate(spawnState), 8);
     await page.waitForTimeout(800);
     const r = await page.evaluate(() => {
       const S = SHRINK_ZONE, Z = S.Z, me = myActor(), all = world.actors, out = { name: GAME_MODES.zone.name, n: all.length };
@@ -88,12 +112,23 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     // online
     await new Promise((resolve) => { const peer = PeerServer({ host: "127.0.0.1", port: 9000, path: "/" }, (s) => { signaling = s; resolve(); }); });
     const host = await f.page("zonehost"), guest = await f.page("zoneguest");
-    for (const p of [host, guest]) await p.evaluate(async () => { render = () => {}; titleCam = () => {}; await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port: 9000, path: "/", secure: false, config: { iceServers: [] } }); });
+    for (const p of [host, guest]) await p.evaluate(async () => { render = () => {}; titleCam = () => {}; ADMIN.freezeAI = true; await ensurePeerLib(); peerOpts = () => ({ host: "127.0.0.1", port: 9000, path: "/", secure: false, config: { iceServers: [] } }); });
     const code = await host.evaluate(async () => { await createRoom(); return NET.room; });
     await guest.evaluate((c) => joinRoom(c), code);
     await host.waitForFunction(() => NET.conns.size === 1 && room.members.size === 2);
+    await guest.evaluate(() => {
+      const enter = enterMatch;
+      enterMatch = function () {
+        const result = enter.apply(this, arguments);
+        window.zoneInitialSpawns = world.actors.map(a => [a.id, a.pos.x, a.y, a.pos.z]);
+        return result;
+      };
+    });
     await host.evaluate(() => { room.mode = "zone"; room.map = "nightport"; hostStartMatch(); });
     await guest.waitForFunction(() => "client" === NET.mode && world.actors.length > 0 && myActor() && SHRINK_ZONE.Z.from.r > 0, null, { timeout: 90000 });
+    const hostSpawns = await host.evaluate(spawnState);
+    checkSpawns(hostSpawns, 8);
+    assert.deepEqual(await guest.evaluate(() => zoneInitialSpawns), hostSpawns.map(a => [a.id, a.x, a.y, a.z]), "the guest starts at the host's coordinates before any snapshot");
     await host.evaluate(() => { world.phase = "live"; const Z = SHRINK_ZONE.Z; Z.t = SHRINK_ZONE.WAIT - 0.01; step(0.1); step(0.5); });
     await guest.waitForFunction(() => SHRINK_ZONE.Z.state === "shrink", null, { timeout: 20000 });
     const seen = await guest.evaluate(() => ({ state: SHRINK_ZONE.Z.state, r: SHRINK_ZONE.Z.r > 0, hud: !!document.getElementById("zone-hud") }));
