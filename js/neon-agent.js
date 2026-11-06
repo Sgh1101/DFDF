@@ -237,7 +237,8 @@
     const actor = player, yaw = actor.yaw || 0, dx = -Math.sin(yaw), dz = -Math.cos(yaw), px = -dz, pz = dx;
     startClip(actor, "lane");
     const orb = { id: actor.id, startX: actor.pos.x, startY: actor.y || 0, startZ: actor.pos.z, dirX: dx, dirZ: dz, curX: actor.pos.x, curZ: actor.pos.z };
-    const preview = NEON_EFFECTS.preview(orb, 0); scene.add(preview.root); // one trail, not the two rails of a lane let age = 0;
+    // one trail, not the two rails of a lane
+    const preview = NEON_EFFECTS.preview(orb, 0); scene.add(preview.root); let age = 0;
     abilSpawn({ update(dt) {
       age += dt; const length = Math.min(C.curtainDistance, age * C.laneSpeed);
       orb.curX = orb.startX + dx * length; orb.curZ = orb.startZ + dz * length; preview.updateAge(age);
