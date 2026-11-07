@@ -6,7 +6,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
 //    MVP card is clear of the button bar
 //  · phone armory: the picked gun is in view (clear of the edge fade) in the sideways gun row, the row keeps its
 //    place when a gun is picked and when it is only repainted, and a row with more to scroll fades on that side
-//  · settings and the ranked card never leave 1-2 letters alone on a line
+//  · settings never leave 1-2 letters alone on a line (the ranked card is gone)
 //  · an agent card waiting for its portrait shows a figure in the agent's colour
 //  · result-screen and armory skin-card labels are 11 px or larger
 //  · 내 스킨 with a few skins ends with a card that leads to the shop and the pull
@@ -91,10 +91,10 @@ const small = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.offse
     assert.deepEqual(await phone.evaluate(orphans, "#pause"), [], "phone settings lines end with whole words");
     await phone.evaluate(() => { document.getElementById("pause").hidden = true; show("s-title"); });
     await phone.setViewportSize({ width: 844, height: 390 });
-    // the ranked card
+    // (the ranked card left the multiplayer screen with ranked play on 2026-11-07)
     await phone.evaluate(() => document.getElementById("go-multi").click());
     await phone.waitForTimeout(700);
-    assert.deepEqual(await phone.evaluate(orphans, "#mu-rank"), [], "the ranked card ends lines with whole words");
+    assert.equal(await phone.evaluate(() => !!document.getElementById("mu-rank")), false, "no ranked card");
     // armory: the picked gun is in view clear of the edge fade, the row remembers its place and fades where it has
     // more to scroll
     await phone.evaluate(() => { show("s-title"); GUN_SKINS.open("rifle", "gun"); });

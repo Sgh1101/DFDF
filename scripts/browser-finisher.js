@@ -61,7 +61,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.equal(out.epic.active, 1, "an Epic skin: one finisher " + JSON.stringify(out.epic));
     assert.deepEqual(out.epic.kinds, ["flash", "halo", "pillar", "spark", "wave"], "with its flash, halo, pillar, sparks and shockwaves");
     assert.ok(out.epic.parts >= 25 && out.epic.life >= 2.8, "larger and longer than a Rare one " + JSON.stringify(out.epic));
-    assert.ok(Object.keys(out.themes).length >= 18);
+    assert.ok(Object.keys(out.themes).length >= 12); // 18 until the third-party knife pack and its six themes were removed
     for (const [k, v] of Object.entries(out.themes)) assert.equal(v, true, k);
     assert.equal(out.roundEnds, true);
     // leaving for another map while a legendary finisher still runs: the new map keeps its own sky and fog

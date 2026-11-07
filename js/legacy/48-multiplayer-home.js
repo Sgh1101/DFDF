@@ -124,11 +124,6 @@
     const mob = cs.find((c) => c.mobile);
     CH = (isMob() && mob ? mob : cs.find((c) => !c.mobile) || cs[0]).id;
   }
-  // a ranked room's skill band (its average rating, as the tier it sits in) and how far from it a player may be
-  function bandChip(r) {
-    const n = window.RANKED && RANKED.bandName && RANKED.bandName(r.band);
-    return n ? `<span class="mu-band" title="${esc(L("방 평균 실력대 · 너무 먼 실력은 들어갈 수 없습니다", "Room's average skill · players too far from it cannot join"))}">${esc(n)}</span>` : "";
-  }
   function paint() {
     pickDefault();
     const age = updatedAt ? Math.max(0, Math.floor((Date.now() - updatedAt) / 1000)) : 0;
@@ -147,9 +142,7 @@
     const mob = chMob(CH),
       pcOff = mob && !isMob(),
       note = $("mu-note");
-    const notes = [],
-      jm = window.RANKED && RANKED.joinMsg;
-    jm && Date.now() - jm.at < 12000 && notes.push(jm.text); // why a ranked room would not take me
+    const notes = [];
     failed && ROOMS.length && notes.push(L("방 목록 갱신에 실패했습니다. 이전 목록을 표시합니다.", "Refresh failed. Showing the previous room list."));
     mob && notes.push(pcOff ? L("📱 모바일 전용 서버입니다. PC에서는 방을 만들거나 들어갈 수 없습니다.", "📱 Mobile-only server: rooms here can't be made or joined from a PC.") : L("📱 모바일 전용 서버 · 폰과 앱 유저끼리만 만납니다.", "📱 Mobile-only server · phone and app players only."));
     online() || notes.push(L("방 목록은 온라인 서버에서 보입니다. 방 만들기와 코드 참가는 그대로 됩니다.", "The room list shows on the online server. Making a room and joining by code still work."));
@@ -164,7 +157,7 @@
             live = "lobby" !== r.state,
             dis = full || pcOff;
           const where = [modeName(r.mode), mapName(r.map)].filter(Boolean).join(" · ");
-          return `<div class="mu-room"><div class="mu-rt"><b>${esc(r.name)}${r.ranked ? `<span class="mu-rk">${L("랭크", "RANKED")}</span>${bandChip(r)}` : ""}</b><span>${esc(r.host)}${where ? " · " + esc(where) : ""}</span></div><span class="mu-st${live ? " live" : ""}">${live ? L("경기 중", "In game") : L("대기", "Lobby")}</span><span class="mu-n">${r.n | 0}<i>/${r.max | 0}</i></span><button class="mu-join" data-code="${esc(r.code)}"${dis ? " disabled" : ""}>${pcOff ? L("PC 불가", "No PC") : full ? L("가득 참", "Full") : L("참가", "Join")}</button></div>`;
+          return `<div class="mu-room"><div class="mu-rt"><b>${esc(r.name)}</b><span>${esc(r.host)}${where ? " · " + esc(where) : ""}</span></div><span class="mu-st${live ? " live" : ""}">${live ? L("경기 중", "In game") : L("대기", "Lobby")}</span><span class="mu-n">${r.n | 0}<i>/${r.max | 0}</i></span><button class="mu-join" data-code="${esc(r.code)}"${dis ? " disabled" : ""}>${pcOff ? L("PC 불가", "No PC") : full ? L("가득 참", "Full") : L("참가", "Join")}</button></div>`;
         })
         .join("");
     else
@@ -276,7 +269,7 @@
 .mu-bar{display:flex;gap:8px;align-items:center}
 .mu-chs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
 .mu-chs::-webkit-scrollbar{display:none}
-.mu-ch{flex:none;display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--stroke2);background:var(--glass);color:#c9d2de;font-size:13px;font-weight:700;transition:border-color .2s,color .2s,background .2s}
+.mu-ch{flex:none;display:flex;align-items:center;gap:7px;padding:10px 14px;min-height:32px;box-sizing:border-box;border-radius:999px;border:1px solid var(--stroke2);background:var(--glass);color:#c9d2de;font-size:13px;font-weight:700;transition:border-color .2s,color .2s,background .2s}
 .mu-ch em{font-style:normal;font-family:var(--f-display);font-size:11px;color:var(--steel-dim);min-width:16px;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,.06)}
 .mu-ch:hover{border-color:rgba(255,255,255,.28)}
 .mu-ch.on{border-color:var(--gold);color:var(--gold);background:rgba(255,200,73,.08)}

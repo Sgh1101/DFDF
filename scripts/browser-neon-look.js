@@ -25,7 +25,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
         portrait: agentPortrait(ag, 300, 380).slice(0, 22), meshes, glow, skin, verts,
       };
     });
-    assert.deepEqual(look.names, ["되튐 전격", "질주 회로", "전류 통로", "과충전"]);
+    assert.deepEqual(look.names, ["이중 전격", "질주 회로", "전류 장막", "과충전"]);
     assert.deepEqual(look.icons, ["neonRelay", "neonGear", "neonLane", "neonOverdrive"]);
     assert.ok(look.paint && look.design, "a painted portrait and an outfit of our own");
     assert.match(look.portrait, /^data:image\//);
@@ -71,12 +71,12 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), { fixture
     });
     await p.keyboard.up("w"); await p.mouse.up();
     assert.ok(slide.started && slide.ended && slide.restored, JSON.stringify(slide));
-    assert.ok(Math.abs(slide.distance - 6) < 0.15, JSON.stringify(slide)); assert.equal(slide.ammo, 30, "the slide click never fires");
+    assert.ok(Math.abs(slide.distance - 5) < 0.15, JSON.stringify(slide)); // our own slide: 5 m assert.equal(slide.ammo, 30, "the slide click never fires");
     // the effects: the orb lays the lane, two walls with current, the bolt and its charge; all gone after
     const fx = await p.evaluate(() => {
       const a = myActor(); abilClear(); a.yaw = 0; CAST_EXT.neon_lane(); abilTick(0.2);
       const preview = !!scene.getObjectByName("neon-lane-preview"); abilTick(0.21); abilTick(0.6);
-      const walls = scene.children.filter((n) => n.name === "neon-fastlane").length;
+      const walls = scene.children.filter((n) => n.name === "neon-curtain").length;
       render(); abilClear(); a.pitch = -0.35; CAST_EXT.neon_relay(); abilTick(0.36); // just launched: a wall beside the lane can end the flight within a few frames
       const bolt = !!scene.getObjectByName("neon-relaybolt");
       for (let i = 0; i < 30 && !scene.getObjectByName("neon-relay-charge"); i++) abilTick(0.01);

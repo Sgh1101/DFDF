@@ -149,6 +149,56 @@
     return fx;
   };
 
+  // ── the curtain: a wall of grey-blue smoke you cannot see through, with faint current running in it ──
+  // (normal blending, not additive like the old glowing sheet: it hides what is behind it)
+  const curtainVert = laneVert;
+  const curtainFrag = [
+    'uniform float uTime; uniform float uFade; uniform float uLen; uniform vec3 uA; uniform vec3 uB;',
+    'varying vec2 vUv;',
+    'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }',
+    'float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * n(p); p *= 2.03; a *= 0.5; } return v; }',
+    'void main() {',
+    '  vec2 p = vec2(vUv.x * uLen * 0.6, vUv.y * 3.0);',
+    '  float t = uTime * 0.35;',
+    '  vec2 q = vec2(fbm(p + vec2(t, 0.0)), fbm(p + vec2(0.0, -t)));',
+    '  float smoke = fbm(p * 0.9 + q * 1.6 + vec2(t, -t * 0.6));',
+    '  float top = smoothstep(1.0, 0.7, vUv.y + (smoke - 0.5) * 0.45);',
+    '  float bolt = smoothstep(0.985, 1.0, sin(p.x * 3.1 + p.y * 7.0 + uTime * 9.0) * 0.5 + 0.5) * step(0.55, smoke);',
+    '  vec3 c = mix(vec3(0.24, 0.28, 0.34), vec3(0.82, 0.86, 0.92), smoothstep(0.25, 0.8, smoke));',
+    '  c = mix(c, uA, 0.18 + bolt * 0.6);',
+    '  float a = clamp(0.9 + smoke * 0.1, 0.0, 0.97) * top * uFade;',
+    '  gl_FragColor = vec4(c, a);',
+    '}',
+  ].join('\n');
+  S.curtain = (wall, age = 0, duration = 6) => {
+    const fx = create('neon-curtain'); fx.wall = wall;
+    const dx = wall.endX - wall.startX, dz = wall.endZ - wall.startZ, len = Math.max(0.01, Math.hypot(dx, dz));
+    const mat = new T.ShaderMaterial({ vertexShader: curtainVert, fragmentShader: curtainFrag, transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
+      uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uLen: { value: len }, uA: { value: new T.Color(CYAN) }, uB: { value: new T.Color(WHITE) } } });
+    // two sheets a hand apart, so the smoke has a little depth from any side
+    const sheets = [-0.12, 0.12].map((off) => {
+      const sh = add(new T.Mesh(new T.PlaneGeometry(len, wall.height, 1, 1), mat));
+      const nx = -dz / len, nz = dx / len;
+      sh.position.set(wall.startX + dx / 2 + nx * off, wall.startY + wall.height / 2, wall.startZ + dz / 2 + nz * off);
+      sh.rotation.y = Math.atan2(-dz, dx);
+      return sh;
+    });
+    const ground = add(new T.Mesh(new T.PlaneGeometry(len, 0.14), glowMat(CYAN, 0.6)));
+    ground.rotation.set(-Math.PI / 2, 0, Math.atan2(dz, dx)); ground.position.set(wall.startX + dx / 2, wall.startY + 0.04, wall.startZ + dz / 2);
+    fx.root.add(...sheets, ground);
+    fx.updateAge = (a) => {
+      const fade = Math.min(1, a / 0.35) * Math.min(1, Math.max(0, (duration - a) / 0.6));
+      mat.uniforms.uTime.value = a; mat.uniforms.uFade.value = fade;
+      ground.material.opacity = 0.45 * fade;
+      // the smoke rises out of the ground line
+      for (const sh of sheets) { sh.scale.y = Math.min(1, 0.15 + a / 0.3); sh.position.y = wall.startY + (wall.height * sh.scale.y) / 2; }
+    };
+    fx.updateAge(age);
+    return fx;
+  };
+
   // ── the orb that runs ahead along the floor to lay the lane, with a faint line where each wall will rise ──
   S.preview = (orb, gap = 2.4) => {
     const fx = create('neon-lane-preview');

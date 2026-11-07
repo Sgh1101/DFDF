@@ -48,7 +48,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         const e = events.find((x) => x.victim === victim.id) || {};
         return { skin: e.skin, finisherSkin: e.finisherSkin || null, finisher: !!e.finisher, byBot: !!e.byBot, active: FINISHERS.active.size, legend: legend.join(), wait: (world.championsFinishUntil || 0) - at };
       };
-      return { plain: one("rifle", "default"), lava: one("rifle", "lava"), wave: one("smg", "champion"), champions: one(VALORANT_DATA.championsWeapon, "champions_atk") };
+      return { plain: one("rifle", "default"), lava: one("rifle", "lava"), wave: one("smg", "champion"), champions: one(WEAPON_DATA.championsWeapon, "champions_atk") };
     });
     assert.equal(mine.plain.finisherSkin, null, "no skin is put in place of the gun's: " + JSON.stringify(mine.plain));
     assert.equal(mine.plain.finisher, false, "no finisher with the stock skin");

@@ -1,14 +1,16 @@
 // Playwright's offline switch reaches a service worker's own fetches only with its service-worker network events
 // on; without them the worker still reaches the server and the offline screen is never shown.
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ||= '1';
-const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture');
+const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture'),fs=require('node:fs'),path=require('node:path');
+// the shell cache the worker keeps now (its name changes with each cache revision: 13-v2, then 13-v4-neighborhood, ...)
+const CACHE=/const CACHE = "([^"]+)"/.exec(fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8'))[1];
 // The diagnostics/update and reconnect screen were inspected before this check.
 (async()=>{const f=await fixture();try{
  const p=await f.page('pwaupdate',{width:852,height:393},{serviceWorkers:'allow'});
  await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);
  // Old shell cache is removed on activation without touching player settings.
  await p.evaluate(async()=>{localStorage.setItem('dfdf-pwa-test-setting','kept');await caches.open('13-v1');const registration=await navigator.serviceWorker.getRegistration();await navigator.serviceWorker.register('/sw.js?qa=update');});
- await p.waitForFunction(async()=>!(await caches.keys()).includes('13-v1'));const cached=await p.evaluate(()=>caches.keys());assert.ok(cached.includes('13-v2'));
+ await p.waitForFunction(async()=>!(await caches.keys()).includes('13-v1'));const cached=await p.evaluate(()=>caches.keys());assert.ok(cached.includes(CACHE),'the current shell cache '+CACHE+' in '+JSON.stringify(cached));
  await p.context().setOffline(true);await p.goto((process.env.DFDF_BASE_URL||'http://127.0.0.1:3000')+'/',{waitUntil:'domcontentloaded'});
  assert.match(await p.locator('body').innerText(),/인터넷에 연결되어 있지 않습니다/);assert.equal(await p.getByRole('button',{name:'다시 시도'}).isVisible(),true);
  await p.context().setOffline(false);await p.getByRole('button',{name:'다시 시도'}).click();await p.waitForFunction(()=>!document.body.textContent.includes('인터넷에 연결되어 있지 않습니다'));

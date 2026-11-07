@@ -196,9 +196,11 @@
     ".lv-chip{display:inline-block;margin-left:6px;padding:0 6px;border-radius:99px;border:1px solid rgba(255,200,73,.45);background:rgba(255,200,73,.1);color:#ffc849;font:700 10px/15px var(--f-display,system-ui);letter-spacing:.04em;vertical-align:middle;white-space:nowrap}" +
     ".clan-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:99px;border:1px solid rgba(34,211,238,.5);background:rgba(34,211,238,.1);color:#67e8f9;font:700 10px/15px var(--f-display,system-ui);letter-spacing:.04em;vertical-align:middle;white-space:nowrap}.pm-chips .clan-tag{margin-left:0}";
   document.head.appendChild(css);
+  // a level shows as a tier (js/legacy/71-the-tier-...): "금빛 2", not "Lv 32"
+  const lvText = (lv) => (window.TIER ? TIER.text(lv) : "Lv " + lv);
   const chipText = (a) => {
     const i = of(a);
-    return i ? "Lv " + i.lv : "";
+    return i ? lvText(i.lv) : "";
   };
   const chipEl = (text) => {
     const s = document.createElement("span");
@@ -383,7 +385,7 @@
         (e[t] || []).forEach((m, i) => {
           const nm = m && m.lv && box && box.children[i] && box.children[i].querySelector(".lb-nm");
           nm && !nm.querySelector(".clan-tag") && tagClean(m.ct) && nm.appendChild(tagChipEl("[" + tagClean(m.ct) + "]"));
-          nm && !nm.querySelector(".lv-chip") && nm.appendChild(chipEl("Lv " + m.lv));
+          nm && !nm.querySelector(".lv-chip") && nm.appendChild(chipEl(lvText(m.lv)));
         });
       }
     } catch (err) {}

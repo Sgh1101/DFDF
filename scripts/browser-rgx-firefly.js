@@ -1,4 +1,4 @@
-// Authored after exploring the actual RGX armory card, equipped mesh and original hand sockets.
+// Covers the SGH armory card, equipped mesh, wrist binding and audio output.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{fixture}=require('./browser-fixture');
 (async()=>{
   const f=await fixture(),out=process.env.SHOT_DIR||'test-results/skin-correction/rgx';fs.mkdirSync(out,{recursive:true});
@@ -29,17 +29,42 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     const held=await p.evaluate(()=>{
       const root=VM.current,hand=root.getObjectByName('phantom-bone-righthand'),grip=__rgxIdleGrips.get(root);root.updateWorldMatrix(true,true);
       const sourceGrip=root.worldToLocal(hand.getWorldPosition(new T.Vector3()));
-      let cubes=0,maps=true,finite=true;root.traverse(n=>{if(n.userData.rgxRig)n.traverse(m=>{if(m.isMesh){cubes+=m.geometry.attributes.position.count/36;maps&&=m.material.map?.name==='rgx-firefly-original'&&m.material.color.getHex()===0xffffff;for(const v of m.geometry.attributes.position.array)finite&&=Number.isFinite(v);}});});
-      return {model:KNIVES.model(),gap:grip?sourceGrip.distanceTo(grip):null,cubes,maps,finite,bound:!!root.getObjectByName('rgx-agent-hand'),clip:RGX_FIREFLY.clip};
+      let cubes=0,maps=true,finite=true;root.traverse(n=>{if(n.userData.rgxRig)n.traverse(m=>{if(m.isMesh){cubes+=m.geometry.attributes.position.count/36;maps&&=m.material.map?.name==='sgh-butterfly'&&m.material.color.getHex()===0xffffff;for(const v of m.geometry.attributes.position.array)finite&&=Number.isFinite(v);}});});
+      return {model:KNIVES.model(),gap:grip?sourceGrip.distanceTo(grip):null,cubes,maps,finite,bound:!!root.getObjectByName('rgx-agent-hand'),clip:RGX_FIREFLY.clip,idle:root.getObjectByName('phantom-bone-up').quaternion.toArray()};
     });
-    console.log('held',JSON.stringify(held));assert.equal(held.model,'rgx_butterfly');assert.ok(held.gap!==null&&held.gap<.005,'the idle source socket must meet the existing agent grip');assert.ok(held.bound&&held.maps&&held.finite&&held.cubes>120,'the SGH butterfly model (not the loading placeholder) is held: '+held.cubes+' cubes');
-    const motion=await p.evaluate(()=>{
-      const root=VM.current,handle=root.getObjectByName('phantom-bone-up'),idle=handle.quaternion.clone();let travel=0,finite=true;
-      SKIN_PERKS.state.insp.t=0;for(let i=0;i<340;i++){tickViewmodel(.02);travel=Math.max(travel,idle.angleTo(handle.quaternion));root.traverse(n=>{if(n.userData.rgxBone)finite&&=[...n.position.toArray(),...n.quaternion.toArray()].every(Number.isFinite);});}
-      SKIN_PERKS.state.insp.t=-1;tickViewmodel(.02);
-      return {travel,finite,returnAngle:idle.angleTo(handle.quaternion),duration:KNIVES.inspD(KNIVES.model()),clip:RGX_FIREFLY.clip};
+    console.log('held',JSON.stringify(held));assert.equal(held.model,'rgx_butterfly');assert.ok(held.gap!==null&&held.gap<.005,'the SGH wrist socket meets the existing agent grip');assert.ok(held.bound&&held.maps&&held.finite&&held.cubes>120,'the held knife is the textured SGH butterfly: '+held.cubes+' cubes');
+    const sounds=await p.evaluate(async()=>{
+      const ctx=GAME_AUDIO.context(),results=[];
+      for(const [name,bytes] of RGX_FIREFLY.bytes){
+        if(!name.endsWith('.wav'))continue;
+        const decoded=await ctx.decodeAudioData(bytes.slice(0)),samples=decoded.getChannelData(0);
+        const rms=Math.sqrt(samples.reduce((sum,value)=>sum+value*value,0)/samples.length);
+        results.push({name,rms,duration:decoded.duration});
+      }
+      SETTINGS.sfx=true;
+      return results;
     });
-    console.log('motion',JSON.stringify(motion));assert.ok(motion.travel>.5&&motion.finite&&motion.returnAngle<1e-6);assert.equal(motion.duration,6.5);assert.equal(motion.clip,'static_idle');
+    assert.equal(sounds.length,8);
+    assert.ok(sounds.every(({rms,duration})=>rms>.002&&duration>.3),JSON.stringify(sounds));
+    await p.keyboard.press('y');
+    assert.ok(await p.evaluate(()=>SKIN_PERKS.state.insp.t>=0),'the inspect key starts the animation');
+    await p.evaluate(()=>{for(let i=0;i<28;i++)tickViewmodel(.02);});
+    await p.waitForFunction(()=>[...RGX_FIREFLY.voices].some(v=>Math.abs(v.buffer.duration-4.35)<.02));
+    await p.evaluate(()=>{window.__rgxProofRender();});
+    await p.screenshot({path:path.join(out,'held-inspect.png')});
+    const motion=await p.evaluate(idlePose=>{
+      const root=VM.current,handle=root.getObjectByName('phantom-bone-up'),idle=new T.Quaternion().fromArray(idlePose);
+      const socket=root.getObjectByName('phantom-bone-righthand'),hand=root.getObjectByName('rgx-agent-hand'),grip=__rgxIdleGrips.get(root);
+      const from=new T.Vector3(),to=new T.Vector3();
+      let travel=0,finite=true,maxGripGap=0;
+      for(let i=0;i<340;i++){
+        tickViewmodel(.02);travel=Math.max(travel,idle.angleTo(handle.quaternion));
+        maxGripGap=Math.max(maxGripGap,socket.getWorldPosition(from).distanceTo(hand.localToWorld(to.copy(grip))));
+        root.traverse(n=>{if(n.userData.rgxBone)finite&&=[...n.position.toArray(),...n.quaternion.toArray()].every(Number.isFinite);});
+      }
+      return {travel,finite,maxGripGap,returnAngle:idle.angleTo(handle.quaternion),duration:KNIVES.inspD(KNIVES.model()),clip:RGX_FIREFLY.clip};
+    },held.idle);
+    console.log('motion',JSON.stringify(motion));assert.ok(motion.travel>.5&&motion.finite&&motion.returnAngle<1e-6);assert.ok(motion.maxGripGap<.005);assert.equal(motion.duration,6.5);assert.equal(motion.clip,'static_idle');
     const replay=await p.evaluate(()=>{
       const root=VM.current,knifeSlot=player.slot,otherSlot=Object.keys(player.weapons).find(s=>player.weapons[s]!=='knife');
       if(!otherSlot)throw Error('A second weapon is required to verify cached re-equipment');
@@ -52,6 +77,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     });
     console.log('re-equipment and attack',JSON.stringify(replay));assert.ok(replay.cached);assert.equal(replay.draw,'draw');assert.equal(replay.third,'melee_3');assert.equal(replay.rest,'static_idle');
     await p.evaluate(()=>{followCamera(myActor(),.016);window.__rgxProofRender();});await p.screenshot({path:path.join(out,'held.png')});
-    assert.deepEqual(f.errors,[]);console.log('RGX source preview, ownership, grip alignment, original inspect and exact rest pose passed (desktop and mobile viewport)');
+    assert.deepEqual(f.errors,[]);console.log('SGH preview, ownership, grip alignment, inspect key, eight decoded WAVs and inspect playback passed (desktop and mobile viewport)');
   }finally{await f.browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

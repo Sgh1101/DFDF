@@ -9,8 +9,8 @@ const { harness } = require("../tests/api-harness");
   fs.mkdirSync(shots, { recursive: true });
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "admin-defaults" });
   const A = owner.atoken, get = async () => await h.api("a_config_get", { atoken: A });
-  // the season number and today's shop list were moved before: no button here may take them back
-  const c0 = JSON.parse(JSON.stringify(h.config)); c0.season.skip = 3; c0.season.startDay = 20260915; c0.shop.reroll = 5; c0.shop.weekly.reroll = 2;
+  // today's shop list was moved before: no button here may take it back
+  const c0 = JSON.parse(JSON.stringify(h.config)); c0.shop.reroll = 5; c0.shop.weekly.reroll = 2;
   assert.equal((await h.api("a_config_set", { atoken: A, config: c0 })).status, 200);
   const F = JSON.parse(JSON.stringify(h.config)), factory = { strength: F.aim.strength, guest: F.game.guestAllowed, note: F.game.announcement, cost: F.gacha.cost1 };
   assert.equal(factory.guest, true);
@@ -34,7 +34,7 @@ const { harness } = require("../tests/api-harness");
     };
     const kept = async (why) => {
       const c = (await get()).config;
-      assert.deepEqual([c.season.skip, c.season.startDay, c.shop.reroll, c.shop.weekly.reroll], [3, 20260915, 5, 2], "season and shop numbers stay: " + why);
+      assert.deepEqual([c.shop.reroll, c.shop.weekly.reroll], [5, 2], "the shop numbers stay: " + why);
     };
     const status = (page) => page.$eval("#cstat", (e) => e.textContent.replace(/\s+/g, " ").trim());
     const marked = (page) => page.$$eval("#cfg .f.chg input[data-k]", (l) => l.map((e) => e.dataset.k).sort());

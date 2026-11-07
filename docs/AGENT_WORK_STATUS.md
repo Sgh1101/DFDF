@@ -288,3 +288,196 @@
   - #139(축소전 시작 위치): 기록 파일만 겹친다.
   - 두 PR 모두 이 PR이 들어간 뒤에는 기록 파일 끝만 다시 맞추면 된다.
 - 이 세션의 권한 검사가 PR 병합을 막았다(검토 없는 병합). 그래서 사용자가 이 PR 하나를 병합하면 된다. 병합되면 #140~#143은 같은 커밋이 main에 들어가 병합된 것으로 표시된다.
+
+## 2026-11-06 · Claude2 · 총 개편 6/18 Rush(smg) 실총형 재제작 — 사용자 검토 대기
+
+- 사용자 지시: "하던 작업 보고 마저 진행해, 깃허브 잘 살피고". 인수인계 두 개를 읽었다. #145의 `docs/HANDOFF_CLAUDE1_2026-11-06.md`와 #146의 `docs/HANDOVER_GUN_REDESIGN_20261106.md`다. #146 3절의 Rush 지시(사용자가 붙여 넣은 것)를 따라 main에서 새로 만든다. 원격에는 이전 Rush 커밋이 없다.
+- 브랜치 `claude/adoring-dijkstra-n9rtaj`. 기준 main은 `c4241cd`(#144)다.
+- 상대 작업 확인: `git fetch origin --prune`과 GitHub 열린 PR을 확인했다.
+  - Codex #137(나비칼 모션)과 #139(축소전 시작 위치)는 main과 작업 기록 파일만 충돌한다.
+  - Claude #138은 #137 위에 쌓인 PR이다. README, `_headers`, `cloudflare/csp.mjs`, `vercel.json`, 작업 기록이 main과 충돌한다.
+  - #145(광고 단위 번호, 인수인계)와 #146(Grok 인수인계)도 열려 있다.
+  - 이번 담당 파일(`js/gun-model-smg.js` 새 파일, `play.html` 한 줄, 필요하면 뷰모델·재장전 코드의 새 총 전용 분기)과 겹치는 열린 변경은 없다. #137의 `sw.js` 변경은 건드리지 않는다.
+- 챔피언스 파일, champion 키트, 다른 총 모델, 무기 수치·가격·스킨 목록, 광고 파일은 건드리지 않는다. 병합·배포하지 않는다.
+- 구현:
+  - `js/gun-model-smg.js`(새): 롤러 지연식 9mm 기관단총이다. 밝은 회색 프레스 강판 몸통에 보강 홈과 용접 점이 있다. 고리 가늠쇠와 드럼 가늠자가 한 조준선에 있다. 홈 3줄의 폴리머 총열덮개, 손가락 굴곡과 둥근 등판·질감이 있는 날렵한 손잡이, 휜 30발 강철 탄창, 앞뒤 멜빵 고리, 밀핀, 끝마개 이음새, 두 줄 신축 개머리판이 있다. 상표·로고·각인은 없다. 메시 22개, 길이 0.706이다(검사 범위 0.6~0.8).
+  - 개머리판은 1인칭에서만 190mm 접힌다(`userData.firstPerson`). 3인칭, 떨어진 총, 무기고는 펼친 모습이다.
+  - 왼손은 총열덮개 뒤, 탄창 삽입구 앞에 둔다. 가늠쇠·총열덮개·총구를 가리지 않는다.
+  - 재장전 때 왼손이 앞쪽 장전 손잡이를 잡아 104mm 당겼다가 놓는다(`legacyAction: "charge"`).
+  - 1인칭 총구 불꽃은 이 총의 총구에서 나온다(`userData.fpFlash`). 옛 총은 그대로 눈 위치다.
+  - 표면 무늬는 이 총 전용의 이음매 없는 무늬다. 공용 무늬의 타일 테두리와 네모 얼룩 때문에 생기던 네모 자국이 없다. 옛 총은 그대로다.
+- 바꾼 공용 파일(새 총이 요청할 때만 동작): `js/legacy/54-reload-animation.js`(1인칭 부품 이동, 장전 손잡이), `js/legacy/18-gun-effects.js`(1인칭 총구 불꽃), `play.html` 한 줄, `package.json`의 `test:rush`.
+- 실제 검사(로컬):
+  - 단위 524개 중 522 통과, Redis 선택 2개 제외, 실패 0. check 213 스크립트, CSP check, 자산 50지문, 사이트 페이지 12, 광고 준비 점검 exit 0.
+  - 브라우저(한 번에 하나씩): legacy-models, reload, weapon-shop, mobile-preview, improvements, aim, graphics, startup, gun-memory, drop-skins, render-cost, champion, finisher-always, 새 `test:rush` 모두 통과.
+  - `test:rush`가 확인하는 것: 1인칭에서만 개머리판 접힘, 왼손이 가늠쇠보다 뒤, 정조준 시 가늠쇠 끝과 드럼 구멍이 화면 중앙(오차 0px), 재장전 시 손잡이 0.104 후퇴와 손 위치 오차 0.4mm 뒤 원위치, 불꽃이 총구에서 나옴(카메라가 움직인 프레임 포함), 옛 총 불꽃은 그대로.
+  - 이전/새 비교 사진을 직접 찍어 확인했다. 실기기·Android는 검증하지 않았다.
+- 남은 점: 정조준 때 접힌 개머리판 끝이 드럼 아래쪽 화면 일부를 가린다(이전 Rush의 몸통 뒤쪽도 같은 자리를 가렸다). 화면 가운데의 녹색 조준 고리(CSS)는 모든 총 공통이라 그대로 두었다. 사용자 외형 승인 후 7/18 Veil.
+
+## 2026-11-06 · Claude2 · 사용자 평가 1~4 대조 (기준 main `c4241cd`)
+
+- 근거는 현재 코드·문서·테스트를 이 세션에서 직접 읽고 실행한 결과다. 권리 허가, 실기기, 외부 네트워크는 직접 증명할 수 없어 "확인 필요"로 둔다. 법적 사용권이 확보됐다고 판단하지 않는다. 코드 대규모 변경, 광고 활성화, 병합, 배포는 하지 않았다.
+
+### 1. 아직 발로란트다 — 대부분 미해결
+- `VALORANT_DATA` 내부 이름: **미해결(의도적 유지)**. `js/valorant-data.js` 주석은 저장 기록·방·챔피언스 호환용이라고 적는다. 28곳에서 참조한다. 플레이어에게 보이는 이름은 아니다.
+- 총 수치: **미해결**. Vesper(`scout`, 챔피언스 대상)는 30발·분당 660발이고, Strife(`rifle`)는 25발·분당 585발이다. 원작 팬텀·밴달 수치와 같다. 표시 이름만 바뀌었다.
+- 네온: **이름은 해결, 구성은 미해결**. 요원 표시 이름은 "전광"이고, 요원 28명 중 원작 이름과 같은 것은 없다. 다만 내부 id는 `neon_agent`이고, `js/neon-agent.js` 주석은 "능력 4개의 동작과 수치는 사용자가 준 참고 자료를 따른다"고 적는다. 남은 "네온"은 맵·스킨·카드의 일반 단어다.
+- 황혼 지구: **미해결(권리 확인 필요)**. `docs/asset-provenance.md`는 제공된 어센트 구조를 가로·세로 1.75배, 높이 1.25배로 늘렸고 제3자 허가는 확인되지 않았다고 적는다. 맵 매니페스트도 `externalMapInput: true`다.
+- 나비칼: **미해결(권리 확인 필요)**. main은 외부 Knife Pack의 뼈대 27개·모션·소리 8개를 쓴다(`asset-provenance.md`). Codex #137(자체 뼈대·모션·소리)은 열려 있고 병합 전이다.
+- 광고: **미해결, 그리고 확인된 위험 하나**.
+  - `check-ad-readiness.js`는 `ready: false`이고 이유 12개가 남았다(`disabled`, 사이트 미승인, CMP, 권리 미검토, `asset-unverified:dusk-layout`, `asset-unverified:sgh-butterfly-retained` 등).
+  - 그런데 main의 `play.html`은 AdSense 스크립트를 조건 없이 불러오고, `js/home-ad.js`는 `ads-config.json`의 `enabled`를 보지 않는다.
+  - #145(단위 번호 `1624269865`)가 병합되면 게이트가 `ready: false`인 채로 홈에서 실제 광고를 요청한다. 사용자가 #141에서 홈 광고를 직접 요청했으므로 임의로 끄지 않았다. **#145 병합 전 사용자 결정이 필요하다.**
+- "브라우저 발로란트" 인상: 플레이어 화면에는 원작 이름이 없다(`play.html`의 "valorant"는 스크립트 파일 이름뿐, `credits.html`은 출처 표기). 규칙·수치·맵 구조가 원작을 가리킨다는 평가는 위 근거와 맞는다.
+
+### 2. 랭크는 경쟁전이 아니다 — 일부 대응, 핵심 미해결
+- 판정: **미해결**. 피격·라운드 판정은 방장 브라우저가 한다.
+- 서버 쪽 대응(**있음**): `api/v1.js`의 랭크 증명.
+  - RR·MMR을 자기 신고로 받지 않는다. 방장이 결과를 한 번 보내면 티켓을 받은 참가자들이 투표하고, 다수 이의가 있으면 RR을 주지 않는다.
+  - 잠깐 끊겼다가 재접속하면 이탈로 치지 않는다(`rank.leaveGraceS`). 방장이 사라지면 판을 무효로 한다(`ranked_void`).
+  - 코드 주석이 한계를 적는다: 방장이 자기 부계정을 같은 팀에 두면 결과를 속일 수 있다.
+- 실회선: **확인 필요**. `docs/MULTIPLAYER_VERIFICATION.md`(10/14)는 로컬 OFFER/ANSWER까지만 되고 데이터 채널은 열리지 않았다고 적는다. 운영 TURN은 확인하지 못했다. 다른 집 두 대와 휴대폰 데이터로 연결 성공률을 잰 기록은 저장소에 없다.
+- 이 세션의 재현: `test:net-wave2`가 main에서 "2 stop: holding W … not corrected"로 실패했다(손님 위치 강제 되돌림 1회, 지연 100ms 모의). 반복 결과는 아래 밤 CI 항목에 적는다.
+
+### 3. 코드 수명 — 미해결(측정치 확인됨)
+- `js/legacy/` 131개, 3.19MB. 이 중 34개 파일이 같은 전역 함수(`tickViewmodel`, `vmWithHands`, `buildProcWeapon`, `muzzleFlash`, `startGame` 등)를 덮어쓰고, 들여쓴 `이름 = function` 재정의가 447곳이다.
+- `03-engine.js` 674KB, `js/gun-designs.js` 129KB, `admin.html` 124KB, `play.html` 136KB.
+- 브라우저 검사 스크립트 165개(package.json 등록 164개), 단위 검사 파일 96개.
+- `docs/SOURCE_LAYOUT.md`는 `async`·`type="module"`·임의 순서로 바꾸면 깨진다고 적는다.
+- 밤 전체 CI가 계속 실패했다. 아래처럼 대부분은 기능을 바꾸고 테스트를 같이 고치지 않은 경우다. "검사가 방금 넣은 기능을 따라가고, 바뀐 기능은 놓친다"는 평가와 맞는다.
+- 모듈 전환이나 대규모 재작성은 시작하지 않는다. 하려면 계획부터 사용자에게 제시한다.
+
+### 4. 콘텐츠가 손맛보다 앞선다 — 미해결/확인 필요
+- 10/21 리뷰(`docs/PROJECT_REVIEW_2026-10-21.md`)의 P1 항목: QA-01(휴대폰 실기기 성능), NET-01(외부 회선·TURN), ABIL-01(43개 궁극기 대응 차이), UX-01(작은 화면 전투 정보).
+  - QA-01, NET-01: **확인 필요**. 실기기·외부 회선 기록이 없다. 이 세션에서도 증명할 수 없다.
+  - ABIL-01: **미해결**. 10/21 이후 궁극기 차이를 재심사한 커밋이나 문서가 없다.
+  - UX-01: **부분 해결**. 10/25~10/31에 작은 휴대폰의 홈·결과·터치 편집·이모트 겹침을 고친 커밋이 있다. 전투 중 정보 우선순위를 정리한 기록은 없다. `audit:ui`는 휴대폰 멀티 메뉴의 서버 칩이 터치 기준 30px보다 작다는 신호 16개를 냈다(아래에서 고침).
+  - CTF 봇 득점: **부분 해결**. `test:ctf`는 혼자 뛰는 봇이 깃발을 가져와 3점을 내는지 확인한다. 실제 5대5 교전에서 득점하는지는 증명하지 않는다고 테스트 주석이 적는다.
+- 10/22 이후 커밋 368개 중 97개의 제목이 스킨·요원·맵·모드·칼·총에 관한 것이다(제목 기준 단순 집계).
+
+### 밤 전체 CI 실패 10건 재현과 정리 (이 브랜치)
+- 마지막 밤 실행 `42135886755`는 `a09e677` 기준이다. #144 이후 main(`c4241cd`)에서는 아직 밤 실행이 없어 로컬에서 하나씩 재현했다. 재현한 뒤에만 고쳤다.
+- 오래된 기대값(기능은 의도대로 바뀌었는데 테스트를 같이 고치지 않음) 7건. 모두 테스트만 고쳤고 이 브랜치에서 통과한다.
+  - `test:chat`: 빠른 채팅이 "Plant the bomb"이다(`9a43724`).
+  - `test:admin`: 시즌 티어 이름이 자체 이름(`RANK_KO`)이다(`8345cd4`).
+  - `test:finisher`: 외부 칼 팩이 빠져 테마가 18개에서 12개가 됐다(`b479500`).
+  - `test:pwa`: 셸 캐시 이름을 `sw.js`에서 읽는다(`13-v4-neighborhood`, `372b29c`).
+  - `test:service-worker`: 매니페스트를 실제 파일과 비교한다. 황혼 지구는 `1ded7ae`부터 의도적으로 `externalMapInput: true`다.
+  - `test:bot-skill`, `test:verified-levels`(같은 스크립트): 손님 로비에 더 보이던 칩은 손님 **자기 줄**의 자기 계정 서버 레벨(30)이다. 손님이 주장한 값(20)이 아니고, 방장이 검증하지 못한 주장이 새어 나간 것도 아니다. 다른 줄에는 방장 칩만 있는지, 자기 줄에 주장값이 없는지를 보도록 고쳤다.
+- 실제 UI 문제 1건: `audit:ui` 신호 16개는 모두 휴대폰 멀티 메뉴의 서버 칩(`.mu-ch`)이었다. 높이 29px로 터치 기준 30px보다 작았다. `min-height:32px`로 고쳤고 신호는 0이 됐다.
+- 이미 해결 1건: `test:followup`은 #143에서 고쳐졌고 main에서 통과한다.
+- **미해결 1건: `test:net-wave2` "2 stop"**.
+  - main에서 3번 중 3번 실패했다. 지연 100ms 모의에서 W를 누르고 달리는 손님이 한 번 4~10m 강제로 되돌려졌다.
+  - 2번 부분만 돌리고 앞의 "2 host" 검사를 빼면 2번 중 2번 통과했다(최대 보정 0.006m).
+  - "2 host" 검사가 방장 쪽 손님 몸을 합성 입력으로 옮긴 뒤 위치·입력을 되돌리지 않던 것을 고쳤다. 그래도 전체 실행에서는 계속 실패한다.
+  - 기록해 보니 snap 때 ack는 손님 입력 기록 안에 있었다. 방장 쪽 몸은 1번 부분의 걷는 봇(6m 왕복, 7.5m 거리) 근처에서 멈췄고, 손님 예측은 계속 달렸다.
+  - 방장과 손님이 **다른 몸과 부딪힐 때** 다르게 처리하는 실제 넷코드 문제인지, 테스트 배치 문제인지는 아직 확인하지 못했다. 걷는 봇을 치우는 시도는 결과가 더 나빠져(작은 보정 17~23회) 되돌렸다. 평가 2번의 근거로 남긴다.
+- `test:chat`은 일괄 실행에서 한 번 영어 "Go A" 칩 클릭 대기로 실패했고, 혼자 다시 돌리면 통과했다. 간헐 실패로 본다. 단독으로 띄운 화면에서는 칩이 보였다.
+
+## 2026-11-07 · Claude2 · 발로란트 흔적 교체 1~3단계 (사용자: "발로란트 관련 다 우리꺼로 바꾸고 … 3번도 고쳐봐", "다음작업도 니가 해")
+
+- 브랜치 `claude/adoring-dijkstra-n9rtaj`(PR #147), 기준 main `c4241cd`. 시작 전 원격과 열린 PR을 다시 확인했다. 새 Codex 커밋은 없다.
+- 1단계 무기 데이터:
+  - `js/valorant-data.js`를 `js/weapon-data.js`로, `VALORANT_DATA`를 `WEAPON_DATA`로 바꿨다(게임, 서버 카탈로그, 테스트).
+  - 챔피언스 파일(`champion-shop.js`, `champions-phantom.js`, `phantom-audio.js`)은 **식별자 이름만** 바꿨다. 모델, 마무리, 소리, 배너, 어느 총인지는 그대로다.
+  - 원작과 같던 탄창·연사 수치를 자체 수치로 바꿨다. Axiom 15/420, Hush 11/380, Verdict 6/210, Strife 28/620·2800, Vesper 32/690, Overdrive 90/680·4000, Duplex 2/200·3600, Eclipse 4/40·4500. 피해량은 연사에 맞춰 조정했다.
+  - 원작 수치 조합을 거부하는 단위 검사를 더했다.
+- 2단계 황혼 지구(제공된 외부 맵 구조): 공개 맵 목록, 홈 버튼, 사이트 맵 페이지, 크레딧 설명에서 뺐다.
+  - 파일과 이력은 그대로 둔다. `?hidden-maps=1`(또는 localStorage `dfdf_hidden_maps=1`)로만 목록에 나온다.
+  - 이 맵을 쓰는 검사는 픽스처 옵션 `hiddenMaps`로 연다. 맵 수는 22에서 21로 바뀌었다(5대5 10, 소규모 8, 1대1 3). 홈·소개 페이지·CSP를 다시 만들었다.
+  - 광고 게이트의 `asset-unverified:dusk-layout` 항목은 Codex 게이트 설정이라 건드리지 않았다.
+- 3단계 전광: 네 능력의 동작과 수치를 자체 설계로 바꿨다.
+  - Q 이중 전격: 붙어서 두 번 터진다(튕기지 않음).
+  - C 전류 장막: 9m 앞에 가로 장막 하나를 세운다(통로 벽 두 개가 아님).
+  - E: 질주 1.3배·8초, 미끄러지기 5m, 처치할 때마다 재충전.
+  - X: 14초·32m·0.12초당 21, 8포인트.
+- 나비칼의 외부 뼈대·모션·소리는 Codex #137(자체 제작, 열린 PR)이 바꾼다. 이 브랜치에서는 손대지 않았다. 사용자가 #137을 병합하면 해결된다.
+- 검사:
+  - 단위 523 통과, check, CSP, 자산, 광고 게이트 exit 0.
+  - 브라우저(한 번에 하나씩) 통과: startup, weapon-shop, rifle-identity, champion, finisher-always, legacy-models, phantom, improvements, ability-floors, ascent-abilities, ascent-objectives, ascent, buildings, collide-equiv, english-map-names, firefight, graphics, home-layout, home-numbers, map-loading, mobile-map, original-maps, performance, public-map-online, service-worker, site-pages, neon, neon-look, neon-online.
+- 다음: 4단계 랭크 제거·티어를 레벨로, 5단계 코드 구조(평가 3번).
+
+## 2026-11-07 · Claude2 · 4단계 랭크 제거, 레벨은 티어로 보이게 (사용자: "랭크 없애고 티어를 레벨로 하자 레벨없애")
+
+- 해석: 순위를 거는 랭크전(방, RR, 배치, 시즌, AI 경쟁전)을 없앤다. 계정의 성장(경험치 레벨)은 숫자 대신 티어(구리~왕좌)로만 보인다.
+- 매핑: `js/tier-level.js`(새 파일, 게임·홈 공용). 3레벨이 한 구간, 3구간이 한 티어, 레벨 73부터 왕좌다. 단위 검사 `tests/tier-level.test.js`.
+- 지운 것(git 이력에 남음): `81` 랭크 방, `88` 시즌, `109-ranked-flow`, `122` AI 경쟁전. 검사도 지웠다: ranked, ranked-flow, ranked-away, ai-comp, season, `tests/ranked-client.test.js`, `ranked-integrity`의 클라이언트 검사 1개.
+- 남긴 것: `119`의 항복 투표. 일반 팀 모드에서 그대로 동작하고, 새 검사 `test:surrender`로 확인한다.
+- 바꾼 것:
+  - `71`: 랭크 대신 레벨로 정한 티어를 첫 화면 칩에 보인다.
+  - 이름 옆 칩, 경기 전 화면, 성장 보상 칸, 순위표(첫 탭이 티어, 시즌 랭크 탭 없음), 클랜 멤버, 홈 프로필(링 안에 티어 배지, 진행 막대는 구간 진행도), 홈 보상 목록에서 "Lv N"이 티어 이름으로 바뀌었다.
+  - 레벨업 알림은 구간이 바뀔 때 "티어 상승!"으로 나온다.
+  - 랭크 안내와 방 목록의 랭크 표시를 뺐고, 사이트 페이지(소개, 가이드, 모드, 맵, 약관)와 패치노트를 고쳤다.
+- 건드리지 않은 것(확인 필요):
+  - 서버(`api/v1.js`)는 아직 랭크 요청에 답한다. 계정의 RR, 시즌, 레벨 데이터는 지우지 않았다. 데이터 삭제는 사용자 확인이 필요하다.
+  - 관리자 화면은 숫자를 그대로 쓴다. 요원 숙련도(요원별 1~10레벨)는 그대로다.
+  - 홈 문자열 표의 쓰이지 않는 시즌·랭크 문구는 남아 있다.
+- 검사:
+  - 단위 515 통과(랭크 클라이언트 검사를 지워서 줄었다), check, CSP, 사이트 페이지, 광고 게이트 exit 0.
+  - 브라우저(한 번에 하나씩) 통과: startup, surrender, bot-skill, clans, grok-ui, home-layout, prematch, chat, aim, chest, design-polish, improvements, legacy-models, home-numbers, operator-card, guest-kit, followup, progression, mastery, audit:ui(신호 0), site-pages, public-entry.
+
+## 2026-11-07 · Claude2 · 5단계 코드 구조(평가 3번) 계획과 첫 단계
+
+- 측정: `js/legacy/`는 전역 함수 143개를 429번 덮어쓴다. 많이 덮어쓴 순서는 startRound 23, killActor 19, step 19, netStep 18, loadMap 17, drawMini 12, updateHUD 11, actorFire 11, dealDamage 10, netShutdown 10이다.
+- 방향: 전역 함수를 감싸서 다시 넣는 방식 대신 이름 붙은 시점에 일을 등록한다(`js/game-hooks.js`의 `GAME_HOOKS.on/run`, play.html에서 가장 먼저 로드).
+  - 감싸던 모듈은 등록만 하고, 엔진이 그 시점에 `run`을 부른다.
+  - 실행 순서는 로드 순서이고, 훅마다 try로 감싸 하나가 실패해도 나머지는 돈다.
+- 래칫: `tests/override-ratchet.test.js`는 덮어쓰기 수가 늘면 실패한다(지금 424). 한 사슬을 바꿀 때마다 한도를 낮춘다.
+- 첫 단계(이번): netShutdown의 정리 감싸기 10개를 훅으로 바꿨다(30 두 개, 44, 45, 55, 112, 115, 119, 123, 123b).
+  - 종료 뒤에 일하는 두 개(30의 bye, 47의 권한 해제)는 감싸기로 남겼다.
+  - 단위 검사 샌드박스 세 곳(network-lifecycle, peer-throttle, background-host)도 레지스트리를 먼저 싣는다.
+- 다음 순서(제안): gameOver(9) → netShutdown 남은 2개 → startRound(23) → killActor(19) → step/netStep.
+  - 각 사슬마다 "감싸기 전/후" 의미를 확인한다. 순서에 기대는 것은 훅을 `before`/`after`로 나눠 옮긴다.
+  - 사슬마다 관련 브라우저 검사를 돌린 뒤 한도를 낮춘다. 큰 사슬(startRound 등)은 한 번에 하나씩, 따로 PR로 낸다.
+- 모듈 전환(type=module)이나 큰 재작성은 하지 않았다.
+- 5단계 첫 단계 검사:
+  - 단위 517 통과(래칫 2개 추가).
+  - 브라우저(한 번에 하나씩) 통과: browser, startup, online, peer-throttle, ragdoll-emotes, network-recovery, owner-state, owner-grant, perm-ticket, chat, surrender, guest-kit.
+  - operator-card는 일괄 실행에서 10초 대기 시간 초과로 한 번 실패했고, 혼자 다시 돌리면 2번 중 2번 통과했다(부하 때문의 간헐 실패로 본다).
+## 2026-11-05 · Codex · SGH나비칼 자체 리그·모션·소리 재제작
+- 기준 main a09e677, codex/sgh-butterfly-motion-20261105. Claude #135를 포함하며 #136 Tempo는 별도 PR이다. 동시에 전체 검사는 기존 고정 커밋 a09e677에서 계속한다.
+- 사용자 요구에 맞춰 SGH의 기존 자체 외형을 유지하고 뼈대와 동작을 새로 저작하며, 원본 OGG 대신 결정적으로 생성한 합성음으로 교체한다. 황혼 지구는 사용자가 현 버전을 유지하기를 원하며 권한 검토는 열린 상태다.
+- 자체 뼈대 9개, 자세히 보기 6.5초, 펼치기 2초, 공격 2.5·2.5·3초와 합성음 8개를 생성한다. 구 버전 캐시의 원본 모션·음원을 제거한다. 기존 보유·장착 키와 자체 텍스처를 유지한다.
+- 로컬 단위 520개 통과, Redis 전용 2개 제외. 구문·자산 50개·광고 비활성 게이트와 Chrome 나비칼·다른 칼 모션·모바일 미리보기·서비스 워커·PWA 검사 통과. Chrome에서 8개 음원을 디코딩하고 Y 입력으로 자세히 보기 음향 재생과 손잡이 정렬을 확인했다. Android 실기기 및 실결제는 검사하지 않았다.
+
+## 2026-11-05 · Claude · SGH나비칼 4색·디자인 개선, 기본 칼 찌르기, 칼끝 올리기 — PR 대기 (#137 위)
+
+- 사용자 요청: SGH나비칼을 색깔별로 만들고 색마다 모션을 조금 다르게 한다(4색, 얻는 방법은 기존과 같음). 나비칼 디자인을 더 예쁘게 한다. 기본 칼 찌르는 모션을 손본다. 칼을 쥘 때 칼끝을 더 올린다. "코덱스가 한 작업 생각해서" 하라는 지시도 있었다.
+- 기준: Codex #137 `codex/sgh-butterfly-motion-20261105`(`156c5b4`, main `a09e677` 위). #137의 자체 뼈대 9개, 모션, 합성 WAV 8개, manifest v2를 그대로 쓴다. 이 PR은 #137이 먼저 병합되어야 한다.
+- 담당 파일:
+  - `scripts/build-sgh-butterfly.js`: 모양·텍스처 부분만 바꿨다. 뼈대·애니메이션·소리 생성은 Codex 코드 그대로다.
+  - `assets/rgx-firefly/v1/{model.json,texture*.png,manifest.json}`: animation.json과 WAV는 바이트가 같다.
+  - `js/rgx-firefly.js`: 색별 텍스처·재질, 색별 inspect·draw 속도, 자세. 파랑 텍스처 이름 `sgh-butterfly`는 유지한다.
+  - `js/legacy/58-gun-skins.js`, `api/v1.js`: 새 스킨 3종(전설, 칼 전용).
+  - 아이템 수 601→604: 홈, 운영자 페이지, README, 테스트.
+  - `js/legacy/60-skin-perks.js`, `js/legacy/67-knives.js`: 찌르기, 칼끝 +0.2rad.
+  - `monetization-review.json`: 지문만 갱신했다. 검토 상태는 바꾸지 않았다.
+- 실제 검사:
+  - 단위 521 통과(Codex 테스트 포함), 자산 지문 통과, CSP 일치
+  - 로컬 브라우저: rgx, knife, mobile-preview, weapon-shop, grok-ui 통과
+  - 4색 확대 렌더, 크림슨·블랙골드 inspect 프레임, 기본 칼 찌르기 프레임을 직접 확인했다
+
+## 2026-11-07 · Claude2 · 전광 연막 장막, 황혼 지구 복귀, 서버 랭크 데이터 삭제, 나비칼 마무리, 멀티·간헐 검사 (사용자: "전광 벽 양옆에…", "랭크는 데이터 지우고", "멀티 미해결을 니가 해결해", "간헐도 다시해", "나비칼은 니가 마무리해라")
+
+- 전광: 구슬이 지나간 길 양옆에 높이 4m 연막 장막 두 장(`NEON_EFFECTS.curtain`, 6초). 시야는 막고 앞은 열려 있다(`test:neon`, `test:neon-look`).
+- 황혼 지구(`ascent_trial`) 상시 맵으로 복귀. 구조를 우리 것으로 바꿨다: 좌우를 뒤집고(`MIRROR=-1`, 면 방향·충돌 상자도 같이), 중앙과 각 사이트 가는 길에 우리 엄폐물 8더미(상자 16개)를 놓았다. 썸네일, 사이트 문구, 크레딧도 고쳤다. 원본 사용권을 확보했다고 하지 않는다(권리 확인은 여전히 사용자 몫).
+  - 맵 검사(한 번에 하나씩) 통과. ascent-objectives, public-map-online은 뒤집힌 좌표로, graphics·performance는 충돌 상자 수(기하 + 엄폐물 16)로 고쳤다.
+- 서버 랭크 데이터 삭제(`api/v1.js`, 되돌릴 수 없음, 배포 때 적용):
+  - 랭크 요청(ranked_start/result/void/can_join, leaderboard)을 없앴다. 경기 확인표는 한 종류이고, progress는 RR·MMR·배치·시즌·AI 경쟁전 점수를 움직이지 않고 응답에도 없다. 방에 랭크 표시가 없다.
+  - 계정의 rr, mmr, placed, ssn, ssnLog, ai, aiDay, rrDay, rmDone은 다음에 읽힐 때 지운다. 그와 별도로 서버마다 1분에 한 걸음씩(요청에 답한 뒤) 먼저 시즌 순위표(lb:<번호>)와 랭크전 키(rm*:, rstart:)를 지우고, 계정 목록을 100개씩 끝까지 돈다. 진행 상황은 `purge:ranked`에 남는다. 경기 기록, 로그, 가진 스킨(월계관 포함)은 그대로다.
+  - 설정: season, aiComp 기본값을 뺐고 rank에는 자리 비움·항복 숫자만 남았다. 저장된 설정은 지우지 않았다(쓰이지 않을 뿐). 관리자 화면은 티어를 레벨로 보이고, 시즌·TP·AI 경쟁전 칸과 "티어" 설정 버튼을 뺐다. 관리자 화면에 남아 있던 발로란트 티어 이름(아이언, 레디언트 등)도 같이 없어졌다.
+  - 검사: 랭크·시즌·AI 경쟁전 검사를 지우고 `tests/ranked-removed.test.js`를 더했다. `ranked-leave.test.js`는 설정 검사만 남겨 `afk-surrender-config.test.js`로 옮겼다.
+- 나비칼: Codex #137(전용 리그·동작·소리), #138(네 가지 색)을 합쳤다(api의 SKIN_ONLY에 butterfly_crimson/emerald/blackgold). rgx, knife, mobile-preview, weapon-shop, pwa, service-worker 통과.
+- 멀티 "2 stop"(net-wave2): 원인은 예측이 아니라 시간이었다. 전체 실행에서는 W를 누르는 시점에 호스트의 라운드 시간이 0이 되어 라운드가 끝나고, 새 라운드가 몸을 출발점으로 옮긴 것을 4.8m 스냅으로 셌다. `scripts/net-lag-harness.js`의 hold()는 이제 양쪽이 라운드 진행 중이 될 때까지 기다리고 남은 시간을 60초 이상으로 늘린 뒤 잰다. 수정 뒤 전체 실행 5번 중 5번(+ 확인 1번) 통과, 보정 0.
+- 간헐:
+  - operator-card: 카드 던지기를 한 번(250ms)만 누르던 것을, 호스트가 처치할 때까지 최대 10번 다시 누르게 했다(무기 꺼내는 중에 누른 경우). 수정 뒤 2번 통과.
+  - chat(게임 쪽 작은 버그였다): 경기가 시작될 때 게임이 마우스 잠금을 요청하고, 브라우저가 그 잠금을 조금 늦게(채팅을 연 뒤) 주면 "잠금을 얻으면 게임으로 돌아간 것"이라는 규칙 때문에 방금 연 채팅이 닫혔다. 6번 중 2번 재현했다. `115-chat`은 이제 채팅을 연 뒤 채팅 밖을 클릭했을 때만 잠금으로 닫고, 클릭 없이 늦게 온 잠금은 풀고 채팅을 그대로 둔다. 수정 뒤 계측 6/6, test:chat 3/3 통과. 영어·폰 구간은 라운드도 길게 잡았다.
+- 이번 묶음 검사: 단위 476 통과, assets 53, 광고 게이트 exit 0, CSP 재생성. 브라우저(한 번에 하나씩) 통과: ascent, ascent-objectives, ascent-abilities, public-map-online, collide-equiv, mobile-map, original-maps, map-loading, graphics, buildings, improvements, home-numbers, grok-ui, followup, site-pages, english-map-names, home-layout, performance, firefight, ability-floors, service-worker, rgx, knife, mobile-preview, weapon-shop, pwa, admin, admin-defaults, operator-card, clans, perm-ticket, online, surrender, bot-skill, progression, startup, browser, chat, net-wave2, net-lag.
+- 확인 필요: 실서버의 계정 수가 많으면 삭제가 끝날 때까지 시간이 걸린다(100개/분/서버). KEYS 명령으로 키를 찾는다(Upstash 지원). 배포와 머지는 사용자가 한다.
+
+## 2026-11-07 · Claude2 · 마우스 잠금 안내는 경기 시작 때 한 번만, 채팅은 Enter (사용자: "마우스 잠금 버튼으로 기본으로 판마다 뜨는거 게임 시작할때 한번만 띄우고 엔터키 누르면 채팅되는걸로 하자")
+
+- 원인: "화면을 클릭하세요" 안내(`#lockhint`)는 마우스가 잠겨 있지 않으면 언제나 떴다. 상점이 라운드마다 마우스를 풀기 때문에 판마다 다시 떴다.
+- 바꾼 것(`js/legacy/03-engine.js`): 안내는 한 경기에 한 번이다. 경기 시작(`startGame`, 손님·방장의 `hostStartMatch`)부터 그 경기에서 마우스가 처음 잠길 때까지만 뜬다. 그 뒤로는 풀려도 안내 없이, 게임 화면을 클릭하면 다시 잠긴다. 다음 경기는 다시 안내부터.
+- 채팅: Enter(팀), Shift+Enter(전체)는 원래 있던 키다. 안내에 "Enter 채팅 · Esc 메뉴" 줄을 더했다(영어 번역 포함).
+- 검사: 새 `test:lock-hint`(옛 엔진에서는 "잠근 뒤 안내 없음"에서 실패하는 것을 확인). 단위 476, lock-hint, chat, startup, browser, ragdoll-emotes, audit:ui, prematch, online 통과.

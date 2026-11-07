@@ -1,7 +1,7 @@
 (() => {
-  // The leaderboard: the season's top 50 accounts by RR (placed accounts that
-  // played ranked this season), my row marked, and next to it the all-time boards (kills, level, wins, matches played and
-  // the clans by the XP of their members) as tabs, each with my own place even when it is outside the list. Opened from the home menu
+  // The leaderboard: the all-time boards (the tier, i.e. the account's level and XP; kills, wins, matches played and the clans by
+  // the XP of their members) as tabs, each with my own place even when it is outside the list, my row marked. (The season's
+  // ranked board went with ranked play on 2026-11-07.) Opened from the home menu
   // (home-navigation.js adds the button) or with play.html#ranks.
   if (!window.ACCOUNT || "undefined" == typeof show || "undefined" == typeof SCREENS || !document.getElementById("s-title")) return;
   const $ = (id) => document.getElementById(id),
@@ -18,13 +18,8 @@
       return null;
     }
   };
-  const tier = (t, div) => {
-    const names = (window.RANK && RANK.names) || [];
-    return (names[t] || "") + (div ? " " + div : "");
-  };
-  const badge = (t, div, px) => (window.RANK && RANK.badge ? RANK.badge(t, div, px) : "");
-  const color = (t) => (window.RANK && RANK.colors && RANK.colors[t]) || "#c9d3de";
-
+  // a level, shown as a tier (js/legacy/71-the-tier-...): ranked play and its season board were removed on 2026-11-07
+  const tierText = (lv) => (window.TIER ? TIER.text(lv) : "Lv " + lv);
   const scr = document.createElement("div");
   scr.className = "screen";
   scr.id = "s-ranks";
@@ -41,13 +36,9 @@
   $("s-title").after(scr);
   SCREENS.includes("s-ranks") || SCREENS.push("s-ranks");
 
-  let rows = [],
-    season = null,
-    state = "idle", // idle | busy | failed | ok
-    at = 0;
-  // the tabs: the season's ranked board first, then the all-time ones (api `board`)
-  const TABS = [["rank", "랭크", "Ranked"], ["kills", "킬", "Kills"], ["level", "레벨", "Level"], ["wins", "승리", "Wins"], ["matches", "경기", "Matches"], ["clan", "클랜", "Clans"]];
-  let tab = "rank";
+  // the tabs: the all-time boards (api `board`); "level" is shown as the tier
+  const TABS = [["level", "티어", "Tier"], ["kills", "킬", "Kills"], ["wins", "승리", "Wins"], ["matches", "경기", "Matches"], ["clan", "클랜", "Clans"]];
+  let tab = "level";
   const B = {}; // by tab: { rows, me, state, at, off }
   const bd = () => B[tab] || (B[tab] = { rows: [], me: null, state: "idle", at: 0, off: false });
   const num = (n) => Number(n || 0).toLocaleString();
@@ -56,23 +47,10 @@
     const u = user();
     return !!(u && !u.guest && r && String(r.name).toLowerCase() === String(u.id).toLowerCase());
   };
-  function paintMe() {
-    const u = user(),
-      el = $("lbd-me"),
-      row = rows.find(mine),
-      p = u && u.placement;
-    let h = "";
-    if (!u || u.guest) h = L("로그인한 계정만 순위에 오를 수 있습니다", "Only signed-in accounts are ranked");
-    else if (p && p.done < p.of) h = `${badge(-1, 0, 26)}<span><b>${L("배치", "Placement")} ${p.done}/${p.of}</b> · ${L("배치를 마치고 랭크전을 한 판 더 하면 순위에 오릅니다", "finish placement and play a ranked match to be listed")}</span>`;
-    else if (row) h = `${badge(row.t, row.div, 26)}<span><b>${L(`${row.pos}위`, `#${row.pos}`)}</b> · ${esc(tier(row.t, row.div))} · ${row.rr} TP</span>`;
-    else if (u.rank) h = `${badge(u.rank.t, u.rank.div, 26)}<span><b>${esc(tier(u.rank.t, u.rank.div))}</b> · ${u.rank.rr} TP · ${L(`상위 ${TOP}위 밖이거나 이번 시즌 랭크전을 아직 하지 않았습니다`, `outside the top ${TOP}, or no ranked match yet this season`)}</span>`;
-    el.innerHTML = h;
-    el.hidden = !h;
-  }
   function paintTabs() {
     $("lbd-tabs").innerHTML = TABS.map(([k, ko, en]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}" class="${k === tab ? "on" : ""}">${L(ko, en)}</button>`).join("");
   }
-  const BCOLS = { kills: ["", L("킬", "KILLS")], level: [L("레벨", "LEVEL"), "XP"], wins: ["", L("승", "WINS")], matches: ["", L("경기", "MATCHES")], clan: [L("인원", "MEMBERS"), L("경험치", "XP")] };
+  const BCOLS = { kills: ["", L("킬", "KILLS")], level: [L("티어", "TIER"), "XP"], wins: ["", L("승", "WINS")], matches: ["", L("경기", "MATCHES")], clan: [L("인원", "MEMBERS"), L("경험치", "XP")] };
   function paintBoard() {
     const body = $("lbd-body"),
       ref = $("lbd-ref"),
@@ -85,7 +63,7 @@
     let h = "";
     if ("clan" === tab && (!u || u.guest)) h = L("클랜 순위를 둘러보세요. 로그인 후 클랜에 가입할 수 있습니다.", "Browse the clan standings. Sign in to join a clan.");
     else if (!u || u.guest) h = L("로그인한 계정만 순위에 오를 수 있습니다", "Only signed-in accounts are ranked");
-    else if (b.me && b.me.pos) h = `<span><b>${L(`${b.me.pos}위`, `#${b.me.pos}`)}</b> · ${"clan" === tab ? tagChip(b.me.tag) + esc(b.me.name) : esc(b.me.name)} · ${"level" === tab ? `Lv ${b.me.lv} · ` : ""}${num(b.me.v)} ${"clan" === tab || "level" === tab ? "XP" : esc(BCOLS[tab][1])}${b.me.pos > TOP ? L(` · 상위 ${TOP}위 밖`, ` · outside the top ${TOP}`) : ""}</span>`;
+    else if (b.me && b.me.pos) h = `<span><b>${L(`${b.me.pos}위`, `#${b.me.pos}`)}</b> · ${"clan" === tab ? tagChip(b.me.tag) + esc(b.me.name) : esc(b.me.name)} · ${"level" === tab ? `${esc(tierText(b.me.lv))} · ` : ""}${num(b.me.v)} ${"clan" === tab || "level" === tab ? "XP" : esc(BCOLS[tab][1])}${b.me.pos > TOP ? L(` · 상위 ${TOP}위 밖`, ` · outside the top ${TOP}`) : ""}</span>`;
     else if ("clan" === tab) h = L("클랜에 들어가면 클랜 순위에 오릅니다 (홈페이지의 클랜 칸)", "Join a clan to be on the clan board (the Clan section of the homepage)");
     else if ("ok" === b.state) h = L("아직 순위에 없습니다. 경기를 한 판 마치면 올라갑니다", "Not listed yet. Finish a match to be listed");
     me.innerHTML = h;
@@ -98,7 +76,7 @@
     body.innerHTML = `<div class="lbd-row bd hd"><span>#</span><span>${"clan" === tab ? L("클랜", "CLAN") : L("플레이어", "PLAYER")}</span><span class="n">${BCOLS[tab][0]}</span><span class="n">${BCOLS[tab][1]}</span></div>${b.rows
       .slice(0, TOP)
       .map((r) => {
-        const extra = "level" === tab ? "Lv " + r.lv : "clan" === tab ? r.n : "";
+        const extra = "level" === tab ? tierText(r.lv) : "clan" === tab ? r.n : "";
         return `<div class="lbd-row bd${mineRow(r) ? " me" : ""}" data-pos="${r.pos}"><span class="rk">${r.pos}</span><span class="nm">${"clan" === tab ? tagChip(r.tag) + esc(r.name) : esc(r.name) + tagChip(r.clan)}${"clan" !== tab && mine(r) ? `<i>${L("나", "ME")}</i>` : ""}</span><span class="n">${extra}</span><span class="n">${num(r.v)}</span></div>`;
       })
       .join("")}`;
@@ -107,24 +85,7 @@
   }
   function paint() {
     paintTabs();
-    if ("rank" !== tab) return paintBoard();
-    const body = $("lbd-body"),
-      ref = $("lbd-ref");
-    ref.disabled = "busy" === state;
-    ref.classList.toggle("spin", "busy" === state);
-    $("lbd-season").textContent = season
-      ? L(`시즌 ${season.n} · ${Math.max(1, Math.ceil((season.end - Date.now()) / 864e5))}일 남음 · 상위 ${TOP}위`, `Season ${season.n} · ${Math.max(1, Math.ceil((season.end - Date.now()) / 864e5))} days left · top ${TOP}`)
-      : L("이번 시즌의 상위 플레이어", "This season's top players");
-    paintMe();
-    if ("failed" === state && !rows.length) return void (body.innerHTML = `<div class="mu-empty"><b>${L("순위표를 불러오지 못했습니다", "Could not load the leaderboard")}</b><span>${L("⟳ 를 눌러 다시 시도하세요", "Press ⟳ to retry")}</span></div>`);
-    if ("busy" === state && !rows.length) return void (body.innerHTML = `<div class="mu-empty">${L("불러오는 중…", "Loading…")}</div>`);
-    if (!rows.length) return void (body.innerHTML = `<div class="mu-empty"><b>${L("아직 순위에 오른 플레이어가 없습니다", "Nobody is listed yet")}</b><span>${L("배치 5판을 마치고 랭크전을 한 판 이상 하면 이름이 올라갑니다", "Finish 5 placement matches and play a ranked match to be listed")}</span></div>`);
-    body.innerHTML = `<div class="lbd-row hd"><span>#</span><span>${L("티어", "TIER")}</span><span>${L("플레이어", "PLAYER")}</span><span class="n">TP</span><span class="n">${L("승", "W")}</span><span class="n lbd-pl">${L("경기", "PLAYED")}</span></div>${rows
-      .slice(0, TOP)
-      .map((r) => `<div class="lbd-row${mine(r) ? " me" : ""}" data-pos="${r.pos}"><span class="rk">${r.pos}</span><span class="tr" style="color:${color(r.t)}">${badge(r.t, r.div, 26)}<em>${esc(tier(r.t, r.div))}</em></span><span class="nm">${esc(r.name)}${mine(r) ? `<i>${L("나", "ME")}</i>` : ""}</span><span class="n">${r.rr}</span><span class="n">${r.wins | 0}</span><span class="n lbd-pl">${r.played | 0}</span></div>`)
-      .join("")}`;
-    const m = body.querySelector(".lbd-row.me");
-    m && m.scrollIntoView && m.scrollIntoView({ block: "nearest" });
+    paintBoard();
   }
   async function loadBoard() {
     const b = bd();
@@ -145,27 +106,12 @@
     }
     scr.hidden || paint();
   }
-  async function load() {
-    if ("rank" !== tab) return loadBoard();
-    if ("busy" === state) return;
-    state = "busy";
-    paint();
-    try {
-      const j = await AC().api("leaderboard", { n: TOP });
-      rows = Array.isArray(j.rows) ? j.rows : [];
-      season = j.season || null;
-      state = "ok";
-      at = Date.now();
-    } catch (e) {
-      state = "failed";
-    }
-    scr.hidden || paint();
-  }
+  const load = () => loadBoard();
   function setTab(k) {
     if (!TABS.some((t) => t[0] === k)) return;
     tab = k;
     paint();
-    const stale = "rank" === tab ? Date.now() - at > 15000 : Date.now() - bd().at > 15000;
+    const stale = Date.now() - bd().at > 15000;
     stale && load();
   }
   $("lbd-tabs").onclick = (e) => {
@@ -175,7 +121,7 @@
   function open() {
     show("s-ranks");
     paint();
-    ("rank" === tab ? Date.now() - at > 15000 : Date.now() - bd().at > 15000) && load();
+    Date.now() - bd().at > 15000 && load();
     try {
       $("lbd-back").focus();
     } catch (e) {}

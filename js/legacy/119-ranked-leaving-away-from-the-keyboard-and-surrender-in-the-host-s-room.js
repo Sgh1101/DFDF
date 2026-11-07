@@ -13,11 +13,13 @@
   //    in a mode without rounds) a player asks, the team has rank.surrenderVoteS seconds to vote, and when more
   //    than half of its people are for it the match ends as a loss for that team. The host runs the vote and
   //    ends the match through the normal game over, so the result is attested like any other.
-  if ("undefined" == typeof room || "undefined" == typeof NET || "undefined" == typeof world || "undefined" == typeof sendEventTo || "undefined" == typeof gameOver || !window.RANKED) return;
+  if ("undefined" == typeof room || "undefined" == typeof NET || "undefined" == typeof world || "undefined" == typeof sendEventTo || "undefined" == typeof gameOver) return;
   const EN = "en" === window.GAME_LANG,
     L = (ko, en) => (EN ? en : ko);
   const $ = (id) => document.getElementById(id);
-  const RK = window.RANKED;
+  // ranked play was removed on 2026-11-07 (no room is ranked any more): the leaving and away parts below stay idle, the
+  // surrender vote works as before in every team mode
+  const RK = window.RANKED || {};
   const lc = (s) => String(s == null ? "" : s).toLowerCase();
   const isHost = () => "host" === NET.mode;
   const num = (v, d) => (Number.isFinite(+v) && null != v ? +v : d);
@@ -554,8 +556,7 @@ body.touching #sv-box .sv-btns button kbd{display:none}
       paintPause();
     } catch (e) {}
   }, 250);
-  const _sd = netShutdown;
-  netShutdown = function () {
+  GAME_HOOKS.on("netShutdown", () => {
     SV = null;
     AFK.clear();
     LV.g.clear();
@@ -565,7 +566,6 @@ body.touching #sv-box .sv-btns button kbd{display:none}
     ui.shown = "";
     afk.hidden = out.hidden = !0;
     afkUntil = 0;
-    return _sd.apply(this, arguments);
-  };
+  });
   window.RANKED_AWAY = { cfg, tally: () => (SV ? tally() : null), vote: () => SV, afk: AFK, request, cast, handOver, whyNot: (a) => whyNot(a || myActor()) };
 })();

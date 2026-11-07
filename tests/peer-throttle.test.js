@@ -13,11 +13,13 @@ function setup(mode = "host") {
   const c = {
     NET, Date: FakeDate, console: { warn: (...a) => warns.push(a.join(" ")) },
     window: { MOBILE: { peers: MOBP } },
-    netShutdown: () => { log.push(["shutdown"]); },
+    // the engine's netShutdown runs the modules' hooks first (js/game-hooks.js)
+    netShutdown: () => { c.GAME_HOOKS.run("netShutdown"); log.push(["shutdown"]); },
     setTimeout: (fn, ms) => { const t = { fn, at: now + ms, dead: false }; timers.push(t); return t; },
     clearTimeout: (t) => { t && (t.dead = true); },
   };
   vm.createContext(c);
+  vm.runInContext(fs.readFileSync("js/game-hooks.js", "utf8"), c); // loaded before js/legacy/ in play.html
   vm.runInContext(src, c);
   const advance = (ms) => {
     now += ms;

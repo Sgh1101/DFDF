@@ -112,11 +112,9 @@
     return _pg && _pg.apply(this, arguments);
   };
   if ("function" == typeof netShutdown) {
-    const _sd = netShutdown;
-    netShutdown = function () {
+    GAME_HOOKS.on("netShutdown", () => {
       clearAll();
-      return _sd.apply(this, arguments);
-    };
+    });
   }
   window.PEER_THROTTLE = { rules: RULES, take, forget, clearAll, size: () => STATE.size };
 })();

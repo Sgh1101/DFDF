@@ -1,20 +1,28 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), crypto = require('node:crypto'), path = require('node:path');
 const base = 'assets/rgx-firefly/v1';
-test('only the explicitly retained RGX butterfly is imported, with verified original bytes', () => {
-  assert.ok(fs.existsSync(base + '/manifest.json'), 'the retained RGX Firefly must have a separate, selective package');
+test('the generated SGH butterfly package has only its own geometry, motion, texture and eight WAVs', () => {
   const manifest = JSON.parse(fs.readFileSync(base + '/manifest.json'));
-  assert.equal(manifest.sourceItem, 'future_butterfly');
+  assert.equal(manifest.version, 2);
+  assert.equal(manifest.sourceItem, 'sgh_butterfly');
+  assert.equal(manifest.sourcePack, 'DFDF');
+  assert.equal(new Set(manifest.files.map(f => f.name)).size, 14, 'model, animation, four colour textures and eight sounds');
   for (const file of manifest.files) {
     assert.ok(!file.name.includes('..'));
     const bytes = fs.readFileSync(path.join(base, file.name));
     assert.equal(bytes.length, file.size);
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), file.sha256);
-    assert.ok(/^(model\.json|animation\.json|texture\.png|sounds\/future_butterfly_[a-z_0-9]+\.ogg)$/.test(file.name), file.name);
+    assert.ok(/^(model\.json|animation\.json|texture(_[a-z]+)?\.png|sounds\/sgh_(draw|inspect|melee_[123]|rotate_[123])\.wav)$/.test(file.name), file.name);
+    if (file.name.endsWith('.wav')) {
+      assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+      assert.equal(bytes.toString('ascii', 8, 12), 'WAVE');
+      assert.equal(bytes.readUInt32LE(40), bytes.length - 44);
+    }
   }
   assert.ok(manifest.files.some(f => f.name === 'model.json'));
   assert.ok(manifest.files.some(f => f.name === 'texture.png'));
   assert.ok(manifest.files.some(f => f.name === 'animation.json'));
+  assert.deepEqual(fs.readdirSync(base + '/sounds').sort(), manifest.files.filter(f => f.name.startsWith('sounds/')).map(f => path.basename(f.name)).sort());
 });
 test('RGX animation data keeps source zero scales and numeric interpolation without evaluating source expressions', () => {
   assert.ok(fs.existsSync('js/rgx-firefly-data.js'), 'the RGX-only data reader is required');

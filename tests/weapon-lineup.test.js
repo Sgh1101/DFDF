@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const D=require('../js/valorant-data'),{harness}=require('./api-harness');
+const D=require('../js/weapon-data'),{harness}=require('./api-harness');
 test('18 firearms plus a knife share the server catalog; the removed pack knives are not in it',async()=>{
- const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,19);assert.equal(c.items,601);
+ const h=harness(),c=await h.api('catalog');assert.equal(c.guns.length,19);assert.equal(c.items,604);
  for(const k of Object.keys(D.aliases))assert.ok(!c.guns.includes(k));
  for(const id of D.retiredKnives){assert.equal(c.only[id],undefined);assert.equal(c.tiers[id],undefined);}
  assert.equal(c.only.champions_atk,'scout');
@@ -9,7 +9,7 @@ test('18 firearms plus a knife share the server catalog; the removed pack knives
  for(const target of Object.values(D.aliases))assert.ok(c.guns.includes(target),'every retired weapon maps directly to an active weapon');
 });
 test('Vesper is the automatic rifle; recon and burst keep distinct fire modes',()=>{
- assert.equal(D.profiles.scout.auto,true);assert.equal(D.profiles.scout.burst,0);assert.equal(D.profiles.scout.mag,30);assert.equal(D.profiles.scout.rpm,660);
+ assert.equal(D.profiles.scout.auto,true);assert.equal(D.profiles.scout.burst,0);assert.equal(D.profiles.scout.mag,32);assert.equal(D.profiles.scout.rpm,690);
  assert.equal(D.profiles.carbine.auto,false);assert.equal(D.profiles.carbine.mag,15);
  assert.equal(D.profiles.bullpup.auto,true);assert.equal(D.names.bullpup,'Vertex');assert.equal(D.canonical('bullpup'),'bullpup');
  assert.equal(D.championsWeapon,'scout');assert.equal(D.names.scout,'Vesper','renaming the gun retains the Champions weapon key');
@@ -36,6 +36,11 @@ test('restoring firearms including Vertex returns archived skins once and preser
  await h.api('skins',{token:p.token});assert.deepEqual(h.user('oldbuyer').own.machpist,['gold']);assert.equal(h.user('oldbuyer').gold,gold);
 });
 
+test('the guns carry our own numbers: no magazine and fire rate pair copied from the reference game',()=>{
+ // [magazine, rounds per minute] of the reference game's guns the old line-up had copied
+ const copied=[[12,405],[13,405],[6,240],[25,585],[30,660],[100,720],[2,230],[5,36]];
+ for(const [key,p] of Object.entries(D.profiles))assert.ok(!copied.some(([m,r])=>p.mag===m&&p.rpm===r),key+' '+p.mag+'/'+p.rpm);
+});
 test('the guns carry our own names, and the removed pack is not loaded anywhere',()=>{
  const taken=['클래식','고스트','셰리프','밴달','저지','오딘','아웃로','오퍼레이터'];
  for(const name of Object.values(D.names))assert.ok(!taken.includes(name),name);

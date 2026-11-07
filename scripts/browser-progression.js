@@ -31,12 +31,12 @@ const ROLE = { 타격대: "duelist", 감시자: "sentinel", 척후대: "initiato
       assert.deepEqual(got.achs.map((a) => a.done), [true, false, false, false, false, false]);
       assert.equal(got.achs[1].bar, "63%", "63 of 100 kills"); assert.match(got.achs[4].t, /^2\/4/); assert.match(got.achs[5].t, /^3\/11/); assert.match(got.achs[3].t, /^3\/5/);
       if (lang === "ko") {
-        assert.equal(got.lvr, "레벨 보상"); assert.equal(got.ach, "업적"); assert.match(got.fw, /오늘의 첫 승리 보너스.*🪙 100 · 50 XP.*오늘 받음/);
-        assert.match(got.ms[0].t, /Lv 5 칭호 · 탐험가 🪙 240 달성/); assert.match(got.ms[1].t, /Lv 10 네임카드 · 네온 도시 🪙 240 3레벨 남음/);
-        assert.match(got.each, /레벨이 오를 때마다 🪙 40/); assert.match(got.achs[0].t, /첫 승리.*경기에서 처음으로 이기기.*🪙 100 달성/);
+        assert.equal(got.lvr, "성장 보상"); assert.equal(got.ach, "업적"); assert.match(got.fw, /오늘의 첫 승리 보너스.*🪙 100 · 50 XP.*오늘 받음/);
+        assert.match(got.ms[0].t, /구리 2 칭호 · 탐험가 🪙 240 달성/); assert.match(got.ms[1].t, /청동 1 네임카드 · 네온 도시 🪙 240 3칸 남음/);
+        assert.match(got.each, /경험치가 한 칸 찰 때마다 🪙 40/); assert.match(got.achs[0].t, /첫 승리.*경기에서 처음으로 이기기.*🪙 100 달성/);
       } else {
-        assert.equal(got.lvr.toLowerCase(), "level rewards"); assert.equal(got.ach.toLowerCase(), "achievements"); assert.match(got.fw, /First win of the day.*🪙 100 · 50 XP.*Taken today/);
-        assert.match(got.ms[0].t, /Lv 5 Titles · Scout 🪙 240 Reached/); assert.match(got.ms[1].t, /3 levels to go/); assert.match(got.achs[4].t, /Every role/);
+        assert.equal(got.lvr.toLowerCase(), "progress rewards"); assert.equal(got.ach.toLowerCase(), "achievements"); assert.match(got.fw, /First win of the day.*🪙 100 · 50 XP.*Taken today/);
+        assert.match(got.ms[0].t, /Copper 2 Titles · Scout 🪙 240 Reached/); assert.match(got.ms[1].t, /3 steps to go/); assert.match(got.achs[4].t, /Every role/);
       }
       lang === "ko" && (await hp.evaluate(() => document.getElementById("lvr").scrollIntoView()), await hp.waitForTimeout(300), await hp.screenshot({ path: dir + "/progression-home.png" }));
     }
@@ -124,7 +124,7 @@ const ROLE = { 타격대: "duelist", 감시자: "sentinel", 척후대: "initiato
       await page.waitForSelector("#ov-fw:not([hidden])", { timeout: 30000 });
       const c1 = await cells(page);
       assert.match(c1["ov-fw"], /🪙 \+100.*오늘의 첫 승리 보너스.*\+50 XP/, JSON.stringify(c1));
-      assert.match(c1["ov-lvr"], /🪙 \+240.*레벨 보상 · Lv 4 → 5.*획득: 칭호 탐험가/i, JSON.stringify(c1));
+      assert.match(c1["ov-lvr"], /🪙 \+240.*성장 보상 · 구리 2.*획득: 칭호 탐험가/i, JSON.stringify(c1));
       assert.match(c1["ov-ach"], /첫 승리.*업적 달성.*🪙 \+100/, JSON.stringify(c1));
       const u = f.h.user(id);
       assert.ok(u.cos.own.includes("scout")); assert.equal(u.fwDay.length, 10); assert.ok(u.ach.got.win1);

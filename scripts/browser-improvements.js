@@ -68,6 +68,6 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const definitions=await p.evaluate(()=>AGENTS.map(a=>({id:a.id,name:a.name,abilities:a.abilities.map(d=>({key:d.key,type:d.type,name:d.name,desc:d.desc,ult:!!d.ult,counterplay:d.counterplay||''}))})));
  fs.writeFileSync(path.join(dir,'ability-definitions.json'),JSON.stringify(definitions,null,2));
  fs.writeFileSync(path.join(dir,'measurements.json'),JSON.stringify({range,model,memory,budget,death,diagnostics:before.r},null,2));
- await p.locator('#go-mark-valo').click();await p.waitForFunction(()=>room.map==='ascent_trial');assert.equal(await p.evaluate(()=>room.map),'ascent_trial');
+ await p.locator('#go-mark-dusk').click();await p.waitForFunction(()=>room.map==='ascent_trial');assert.equal(await p.evaluate(()=>room.map),'ascent_trial');
  assert.deepEqual(f.errors,[]);console.log('Diagnostics privacy/focus, 568x320 guide, reward-free training, six explicit anchors, bounded preview resources and direct map entry passed');
 }finally{await f.browser.close();}})().then(()=>process.exit(0),e=>{console.error(e);process.exit(1);});

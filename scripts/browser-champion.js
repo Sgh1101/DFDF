@@ -59,7 +59,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
         const all = new T.Box3().setFromObject(g).getSize(new T.Vector3()), bare = new T.Box3().setFromObject(GUN_SKINS.buildFor(key, skin)).getSize(new T.Vector3());
         let lo = Infinity, hi = -Infinity, imported = false;
         g.traverse((o) => {
-          if (o.userData.valorantRig) imported = true;
+          if (o.userData.rgxRig) imported = true;
           if (!o.isMesh || o.userData.kit || !o.material.map) return;
           const uv = o.geometry.attributes.uv;
           for (let i = 0; i < uv.count; i++) { lo = Math.min(lo, uv.getX(i)); hi = Math.max(hi, uv.getX(i)); }

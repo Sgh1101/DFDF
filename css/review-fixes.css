@@ -147,8 +147,8 @@ body:not(.touching) #hud #klog{top:calc(var(--mini-bottom,198px) + 48px)}
 #s-title .home-guide[open]>summary::before{transform:rotate(45deg)}
 /* on a landscape phone the trial map card stood as large as 혼자 하기 next to it; it steps back to a smaller card */
 @media(orientation:landscape) and (max-height:480px){
-  #s-title #go-mark-valo{align-self:start;min-height:0!important;padding:8px 14px!important;font-size:13px!important;gap:10px}
-  #s-title #go-mark-valo img{width:48px;height:27px}
+  #s-title #go-mark-dusk{align-self:start;min-height:0!important;padding:8px 14px!important;font-size:13px!important;gap:10px}
+  #s-title #go-mark-dusk img{width:48px;height:27px}
 }
 
 /* On a laptop most of the home and select text was 9-12px; the smallest labels (agent roles, ability notes,

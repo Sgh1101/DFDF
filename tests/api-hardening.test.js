@@ -14,27 +14,17 @@ test("new accounts cannot take __proto__, constructor or prototype", async () =>
   assert.equal((await login(h, "constructors")).status, 200, "only the exact names are closed");
 });
 
-test("an old account named __proto__ still counts in the ranked team averages", async () => {
+test("an old account named __proto__ still reads as its level, and nothing of its old rank leaves the server", async () => {
   const h = harness();
-  const host = await login(h, "alpha");
-  await login(h, "bravo");
+  await login(h, "alpha");
   // such an account can only exist from before the rule: write one by hand
   const old = JSON.parse(h.db.get("user:alpha"));
-  old.id = "__proto__"; old.mmr = 1400; old.guest = undefined;
+  old.id = "__proto__"; old.mmr = 1400; old.rr = 300; old.guest = undefined;
   h.db.set("user:__proto__", JSON.stringify(old));
-  const alpha = h.user("alpha"), bravo = h.user("bravo");
-  const a = ["alpha", "__proto__"], b = ["bravo"], all = a.concat(b);
-  assert.equal((await h.api("room_up", { token: host.token, code: "RNK001", ranked: true, players: all })).status, 200);
-  const start = await h.api("ranked_start", { token: host.token, room: "RNK001", a, b });
-  assert.equal(start.status, 200);
-  assert.deepEqual(start.a, a);
-  const rec = JSON.parse(h.db.get("rm:" + start.id));
-  assert.equal(rec.mmr["__proto__"], 1400);
-  assert.equal(rec.mmr.alpha, alpha.mmr);
-  assert.ok(Number.isFinite(rec.avgA) && Number.isFinite(rec.avgB), "no NaN or null average");
-  assert.equal(rec.avgA, (alpha.mmr + 1400) / 2);
-  assert.equal(rec.avgB, bravo.mmr);
-  assert.ok(Object.hasOwn(start.lv, "__proto__") && start.lv.__proto__.level >= 1, "the Lv chip for that account is there");
+  const r = await h.api("levels", { ids: ["__proto__", "alpha"] });
+  assert.equal(r.status, 200);
+  assert.ok(Object.hasOwn(r.users, "__proto__") && r.users.__proto__.level >= 1, "the Lv chip for that account is there");
+  assert.deepEqual(Object.keys(r.users.__proto__), ["level"]);
 });
 
 // ── keys that a plain object inherits are not types, actions or items ──
@@ -165,7 +155,7 @@ test("a body that is JSON but not an object is an empty request, not a server er
       const r = await h.api(action, raw);
       assert.equal(r.status, status, action + " <- " + raw);
     }
-    assert.equal((await h.api("leaderboard", raw)).status, 200, "leaderboard <- " + raw);
+    assert.equal((await h.api("board", raw)).status, 400, "board <- " + raw);
     assert.equal((await h.api("levels", raw)).status, 200, "levels <- " + raw);
   }
   assert.equal((await h.api("me", { token: p.token })).status, 200, "a real request still works");

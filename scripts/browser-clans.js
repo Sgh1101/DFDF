@@ -62,7 +62,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     assert.equal(await P.locator("#clan .cl-tag").textContent(), "[STAR]");
     assert.equal(await P.locator("#clan .cl-name").textContent(), "별빛 클랜");
     assert.equal(await P.inputValue("#clanDescEdit"), "밤에 모여서 합니다", "the owner edits the description in place");
-    assert.deepEqual(await P.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["Lv 3 clancap 클랜장"]);
+    assert.deepEqual(await P.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["구리 1 clancap 클랜장"]);
     assert.match(await P.locator("#meGold").textContent(), /4,000/, "the cost left the wallet");
     assert.equal(h.user("clancap").gold, 4000);
     await shot(P, "home-owner");
@@ -77,7 +77,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     await shot(M, "home-search");
     await M.click("#clanResults [data-join]");
     await M.waitForSelector("#clanLeave");
-    assert.deepEqual(await M.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["Lv 3 clancap 클랜장", "Lv 2 clanmem 멤버"]);
+    assert.deepEqual(await M.$$eval("#clanMembers .cl-m", (r) => r.map((x) => x.innerText.replace(/\s+/g, " ").trim())), ["구리 1 clancap 클랜장", "구리 1 clanmem 멤버"]);
     assert.equal(await M.locator("#clanDescEdit").count(), 0, "a member does not edit the description");
     assert.equal(await M.locator("[data-kick]").count(), 0, "or kick");
     assert.equal(h.user("clanmem").clan, h.user("clancap").clan);
@@ -175,8 +175,8 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     await L.evaluate(() => { titleCam = () => {}; });
     await L.evaluate(() => LEADERBOARD.open());
     await L.waitForSelector("#lbd-tabs button");
-    assert.deepEqual(await L.$$eval("#lbd-tabs button", (b) => b.map((x) => x.textContent)), ["랭크", "킬", "레벨", "승리", "경기", "클랜"]);
-    assert.equal(await L.locator("#lbd-tabs button.on").textContent(), "랭크");
+    assert.deepEqual(await L.$$eval("#lbd-tabs button", (b) => b.map((x) => x.textContent)), ["티어", "킬", "승리", "경기", "클랜"]); // the season board went with ranked play; the level shows as a tier
+    assert.equal(await L.locator("#lbd-tabs button.on").textContent(), "티어");
     await shot(L, "lb-rank");
     const rows = (page) => page.$$eval("#lbd-body .lbd-row:not(.hd)", (r) => r.map((x) => [...x.children].map((c) => c.innerText.replace(/\s+/g, " ").trim())));
     const go = async (tab, wait) => { await L.click(`#lbd-tabs button[data-tab="${tab}"]`); await L.waitForFunction((n) => document.querySelectorAll("#lbd-body .lbd-row:not(.hd)").length >= n, wait || 1, { timeout: 15000 }); };
@@ -187,7 +187,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     await shot(L, "lb-kills");
     await go("level", 4);
     const lv = await rows(L);
-    assert.equal(lv.length, 4); assert.match(lv[0][2], /^Lv \d+$/); assert.ok(+lv[0][3].replace(/,/g, "") >= +lv[3][3].replace(/,/g, ""), "XP, highest first"); assert.match(await L.locator("#lbd-me").textContent(), /위 · lbalpha .*Lv \d+ · [\d,]+ XP/);
+    assert.equal(lv.length, 4); assert.match(lv[0][2], /^(?:(?:구리|청동|은빛|금빛|백금|비취|홍옥|금강) [1-3]|왕좌)$/); assert.ok(+lv[0][3].replace(/,/g, "") >= +lv[3][3].replace(/,/g, ""), "XP, highest first"); assert.match(await L.locator("#lbd-me").textContent(), /위 · lbalpha .*(?:(?:구리|청동|은빛|금빛|백금|비취|홍옥|금강) [1-3]|왕좌) · [\d,]+ XP/);
     await go("wins", 4); assert.deepEqual((await rows(L)).map((r) => r[3]), ["1", "1", "0", "0"]);
     await go("matches", 4); assert.deepEqual((await rows(L)).map((r) => r[3]), ["1", "1", "1", "1"]);
     await go("clan", 2);
@@ -208,7 +208,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
     const LE = await f.page("lbbravo", { width: 1280, height: 720 }, {}, { quality: false, syncSkins: false, beforeLoad: (p) => p.addInitScript(() => localStorage.setItem("lgp_lang", "en")) });
     await LE.evaluate(() => { titleCam = () => {}; LEADERBOARD.open(); });
     await LE.waitForSelector("#lbd-tabs button");
-    assert.deepEqual(await LE.$$eval("#lbd-tabs button", (b) => b.map((x) => x.textContent)), ["Ranked", "Kills", "Level", "Wins", "Matches", "Clans"]);
+    assert.deepEqual(await LE.$$eval("#lbd-tabs button", (b) => b.map((x) => x.textContent)), ["Tier", "Kills", "Wins", "Matches", "Clans"]);
     await LE.click('#lbd-tabs button[data-tab="clan"]'); await LE.waitForSelector("#lbd-body .lbd-row.bd:not(.hd)");
     assert.match(await LE.locator("#lbd-season").textContent(), /All time/);
     assert.match(await LE.locator("#lbd-me").textContent(), /#\d+ · \[BRD\]Board Club/);
@@ -254,7 +254,7 @@ const BASE = process.env.DFDF_BASE_URL || "http://127.0.0.1:3000", dir = process
       const t = await lobbyTags(page);
       assert.equal(t.filter((x) => /\[TAGS\]/.test(x)).length, 2, who + " sees two [TAGS] in the lobby: " + JSON.stringify(t));
       assert.equal(t.filter((x) => /FAKE/.test(x)).length, 0, who + ": a tag nobody's server vouched for is not shown");
-      assert.ok(t.some((x) => /^tagnone( \(나\))?\s*Lv \d+$/.test(x)), who + ": the account with no clan has only its level: " + JSON.stringify(t));
+      assert.ok(t.some((x) => /^tagnone( \(나\))?\s*(?:(?:구리|청동|은빛|금빛|백금|비취|홍옥|금강) [1-3]|왕좌)$/.test(x)), who + ": the account with no clan has only its level: " + JSON.stringify(t));
     }
     await shot(host, "game-lobby");
     await host.evaluate(() => { room.mode = "std"; room.map = "field"; hostStartMatch(); });

@@ -2,9 +2,9 @@
   'use strict';
   // The weapon line-up: retired keys point at the active weapon that replaced
   // them, and every active weapon gets its display name and handling from
-  // VALORANT_DATA (an internal name, kept so saves and skins stay valid). The
+  // WEAPON_DATA (js/weapon-data.js: our own names and numbers; saved keys stay valid). The
   // models and sounds are the game's own builders (GUN_BUILD, SFX.gun).
-  const D=VALORANT_DATA,canonical=D.canonical;
+  const D=WEAPON_DATA,canonical=D.canonical;
   // Keep legacy properties and wire indices readable, while all enumerated
   // Shopping/gacha lists expose only the distinct weapons.
   for(const [old,target] of Object.entries(D.aliases))if(WEAPONS[old])Object.defineProperty(WEAPONS,old,{value:WEAPONS[target],writable:true,configurable:true,enumerable:false});

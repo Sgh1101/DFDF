@@ -1349,6 +1349,9 @@ function curWeapon() {
 }
 const keys = {};
 let locked = !1;
+// the "click the screen" cover shows once a match: from the start until the mouse is first locked. After that (the shop
+// lets the mouse go every round) a click on the game locks it again with no cover; Enter opens the chat as before
+let lockHintSeen = !1;
 (addEventListener("keydown", (e) => {
   // keys are read by their place on the keyboard (js/keymap.js), so the Korean input method cannot hide them; what is typed
   // into a text field is not the game's (Escape still is: it closes the admin panel from its password field)
@@ -1427,6 +1430,7 @@ let locked = !1;
   document.addEventListener("pointerlockchange", () => {
     const e = locked;
     ((locked = document.pointerLockElement === canvas),
+      locked && (lockHintSeen = !0),
       e && !locked && (lockCooldown = performance.now() + 1400),
       updateLockHint(),
       // the lock lands a moment after it is asked for: if a menu opened in between (closeShop asked, then the
@@ -1647,6 +1651,7 @@ function updateLockHint() {
   const e = $("lockhint");
   if (!e) return;
   const t =
+    !lockHintSeen &&
     !IS_TOUCH &&
     !locked &&
     (FLY.on || "menu" !== world.phase) &&
@@ -18298,6 +18303,8 @@ function clientRecv(e) {
   }
 }
 function netShutdown() {
+  // what modules kept for the room goes first, while NET still says what the room was (js/game-hooks.js)
+  "undefined" != typeof GAME_HOOKS && GAME_HOOKS.run("netShutdown");
   cancelRoundEnd();
   NET.intent = (NET.intent || 0) + 1;
   netCloseTransport();
@@ -19007,7 +19014,7 @@ function hostHandleBuy(e, t) {
   // plain data first: a kind, and a key that is a string or a number (an object key threw in the shop lookup below)
   if (!t || "string" != typeof t.kind || !(null == t.key || "string" == typeof t.key || "number" == typeof t.key)) return;
   // only what the shop lists: the weapon table also holds the golden chest pistol (free, one bullet for 200)
-  if ("weapon" === t.kind && !Object.keys(WEAPONS).includes(window.VALORANT_DATA ? VALORANT_DATA.canonical(t.key) : t.key)) return;
+  if ("weapon" === t.kind && !Object.keys(WEAPONS).includes(window.WEAPON_DATA ? WEAPON_DATA.canonical(t.key) : t.key)) return;
   o &&
     "buy" === world.phase &&
     (applyPurchase(o, t.kind, t.key),
@@ -19102,6 +19109,7 @@ async function joinRoom(e) {
   }
 }
 function hostStartMatch() {
+  lockHintSeen = !1;
   for (const [e, t] of room.members)
     if (!t.agentKey) {
       const e = new Set();
@@ -21814,6 +21822,7 @@ function renderSelect() {
   GAME_PORTRAITS.set(t.querySelector(".det-img"), picked, 420, 520, true);
 }
 function startGame(e, t) {
+  lockHintSeen = !1;
   ((NET.mode = "solo"),
     NET.id || (NET.id = "solo"),
     world.entities.forEach((e) => scene.remove(e.group)),

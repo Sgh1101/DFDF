@@ -15,7 +15,7 @@ const dataFile = path.join(__dirname, "site-pages", "data.json");
   try {
     const page = await f.page("sitedump", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, quality: "visual" });
     // the maps that join the list after boot (the block-terrain map) and the server's map of the week
-    await page.waitForFunction(() => window.ASCENT_TRIAL && MAP_LIST.some((m) => m.key === "ascent_trial") && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
+    await page.waitForFunction(() => window.ASCENT_TRIAL && "listed" in ASCENT_TRIAL && window.WEEK_MAP_KEY !== undefined, null, { timeout: 60000 });
     await page.evaluate(async()=>{if(!await ASCENT_TRIAL.ensure())throw Error('Island package unavailable');});
     const data = await page.evaluate(() => {
       const week = window.WEEK_MAP_KEY || "";

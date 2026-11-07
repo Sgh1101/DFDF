@@ -3,7 +3,7 @@
   const GS = window.GUN_SKINS, A = window.PHANTOM_ASSETS;
   if (!GS || !A) return;
   const ids = ["champions_atk", "champions_def"], isSkin = (id) => ids.includes(id);
-  const championGunName = VALORANT_DATA.names[VALORANT_DATA.championsWeapon];
+  const championGunName = WEAPON_DATA.names[WEAPON_DATA.championsWeapon];
   const L = (ko, en) => window.GAME_LANG === "en" ? en : ko, $ = (id) => document.getElementById(id);
   const variant = (id) => id === ids[0] ? "attacker" : "defender";
   let assets = null, model = null, ready = false, selected = ids[0], preview = null, previewRAF = 0, generation = 0, installRevision = 0, loading = false, bannerHome = null, bundledRequest = null;
@@ -173,7 +173,7 @@
   }
   addEventListener('kill-confirmed', ({detail:e})=>{
     waves.delete(e.victim);
-    if (W && isSkin(e.skin) && e.gun === VALORANT_DATA.championsWeapon && ['gun','head'].includes(e.kind)) waves.set(e.killer,W.trigger(waves.get(e.killer),performance.now()/1000));
+    if (W && isSkin(e.skin) && e.gun === WEAPON_DATA.championsWeapon && ['gun','head'].includes(e.kind)) waves.set(e.killer,W.trigger(waves.get(e.killer),performance.now()/1000));
   });
   const start = startRound; startRound = function () { waves.clear(); return start.apply(this,arguments); };
 
@@ -339,7 +339,7 @@
       banner(selected, killPreviewCount, false); window.CHAMPIONS_AUDIO && CHAMPIONS_AUDIO.play(killPreviewCount, true);
       if (W) waves.set('preview',W.trigger(waves.get('preview'),performance.now()/1000));
     }
-    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, VALORANT_DATA.championsWeapon);
+    else if (part === "shot" || part === "fin") SOUNDPACK.preview(selected, part, WEAPON_DATA.championsWeapon);
     else if (motion()) {
       const studio = GS._pv(); if (!studio) return;
       const obj = studio.obj;
@@ -365,12 +365,12 @@
   }
   function choose(id) {
     if (id !== selected) killPreviewCount = 0;
-    stop(); selected = id; GS.open(VALORANT_DATA.championsWeapon, "champions");
-    if (GS.owns(VALORANT_DATA.championsWeapon, id)) GS.set(VALORANT_DATA.championsWeapon, id);
+    stop(); selected = id; GS.open(WEAPON_DATA.championsWeapon, "champions");
+    if (GS.owns(WEAPON_DATA.championsWeapon, id)) GS.set(WEAPON_DATA.championsWeapon, id);
     showSelected();
   }
   function showSelected() {
-    GS.preview(VALORANT_DATA.championsWeapon, selected);
+    GS.preview(WEAPON_DATA.championsWeapon, selected);
     const studio = GS._pv();
     if (studio?.obj) {
       // pvShow already measured the unparented model. A world-space box here

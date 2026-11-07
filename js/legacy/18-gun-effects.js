@@ -630,4 +630,52 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  // ── my own muzzle flash, at my gun's muzzle ──
+  // The first-person flash was a light at the eye. A gun whose model asks for it (userData.fpFlash with an anchors.muzzle:
+  // the new realistic models from gun-model-smg.js on) flashes at its own muzzle instead: the light there, and a small
+  // burst of the same flash planes the other fighters' guns show. Every other gun keeps the old flash.
+  if ("function" == typeof muzzleFlash && "undefined" != typeof VM && "undefined" != typeof FX_FLASH && "function" == typeof addFx) {
+    const MZ = new WeakMap();
+    const vmMuzzle = () => {
+      const g = VM.current;
+      if (!g || !g.visible || !VM.root.visible) return null;
+      let l = MZ.get(g);
+      if (void 0 === l) {
+        l = null;
+        g.traverse((o) => {
+          const u = o.userData;
+          !l && u && u.fpFlash && u.anchors && u.anchors.muzzle && (l = { o, p: new T.Vector3().fromArray(u.anchors.muzzle) });
+        });
+        MZ.set(g, l);
+      }
+      if (!l) return null;
+      // the gun rides the camera (tickViewmodel copies the camera's pose to VM.root each frame); a shot fired before
+      // this frame's copy would find VM.root a frame behind, so the point is taken in VM.root's frame and placed
+      // from the camera as it is now
+      l.o.updateWorldMatrix(!0, !1);
+      const q = VM.root.worldToLocal(l.o.localToWorld(l.p.clone()));
+      return q.applyMatrix4(new T.Matrix4().compose(camera.position, camera.quaternion, VM.root.scale));
+    };
+    const _mf = muzzleFlash;
+    muzzleFlash = function () {
+      let p = null;
+      try {
+        p = player && !player.ultW ? vmMuzzle() : null;
+      } catch (e) {}
+      if (!p) return _mf.apply(this, arguments);
+      fxFlash(16766602, 0.9, 14, p.x, p.y, p.z, 0.07, 1);
+      const n = FX_FLASH.get(),
+        a = n.children[0].material;
+      a.color.setHex(16768922);
+      a.opacity = 0.95;
+      n.position.copy(p);
+      n.lookAt(camera.position);
+      n.userData.r = 0.17 + 0.08 * Math.random();
+      n.scale.setScalar(n.userData.r);
+      n.traverse((c) => ((c.renderOrder = 1e3), (c.frustumCulled = !1)));
+      addFx(n, 0.05, flashFade);
+    };
+    window.GUN_FP_FLASH = { muzzle: vmMuzzle };
+  }
 })();

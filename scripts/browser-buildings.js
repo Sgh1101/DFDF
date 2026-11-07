@@ -13,7 +13,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // they do not use BUILDINGS.plan's procedural houses and towers.
     const skip = ["field", "d01", "d03", "d04", "hospital", "ascent_trial"];
     const want = maps.filter((k) => !skip.includes(k));
-    assert.equal(maps.length, 22, "current map catalog includes Hospital and Ascent");
+    assert.equal(maps.length, 22, "current map catalog includes Hospital and Dusk District");
     assert.ok(maps.includes("hospital") && maps.includes("ascent_trial"));
     const res = [];
     for (const key of want) {

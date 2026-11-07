@@ -419,6 +419,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     }
     if (live() && modal()) return !1;
     S.open = !0;
+    S.clk = !1;
     S.lob = lobbyUp();
     qmClose();
     setScope(scope || "t");
@@ -525,8 +526,15 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     const d = e.target.closest && e.target.closest("[data-q]");
     d && (qmClose(), quick(+d.dataset.q, "t"));
   });
-  // closing leaves the mouse free; a click on the game takes the lock again, and that closes the box
-  document.addEventListener("pointerlockchange", () => document.pointerLockElement && S.open && live() && close(!1));
+  // closing leaves the mouse free; a click on the game takes the lock again, and that closes the box. A lock that comes with no
+  // click outside the box since it opened is one the game asked for earlier (a match asks as it starts, and the browser can grant
+  // it a moment later, after the box was opened): the box stays open and the mouse is let go again
+  document.addEventListener("pointerdown", (e) => { S.open && !root.contains(e.target) && (S.clk = !0); }, !0);
+  document.addEventListener("pointerlockchange", () => {
+    if (!(document.pointerLockElement && S.open && live())) return;
+    if (S.clk) return close(!1);
+    try { document.exitPointerLock(); } catch (e) {}
+  });
   // the engine opens the pause menu when the lock is lost with no menu up: not while we hold the mouse on purpose
   if ("function" == typeof togglePause) {
     const _tp = togglePause;
@@ -946,8 +954,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
     return _pg && _pg.apply(this, arguments);
   };
   if ("function" == typeof netShutdown) {
-    const _sd = netShutdown;
-    netShutdown = function () {
+    GAME_HOOKS.on("netShutdown", () => {
       try {
         S.hist.length = 0;
         log.textContent = "";
@@ -956,8 +963,7 @@ body.touching #cht-qm{left:112px;bottom:auto;top:6px}
         S.open && close(!1);
         qmClose();
       } catch (e) {}
-      return _sd.apply(this, arguments);
-    };
+    });
   }
   // the page follows the owner's switch, the lobby and the mode
   function sync() {
