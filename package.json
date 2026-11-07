@@ -84,6 +84,7 @@
     "test:legacy-models": "node scripts/browser-legacy-models.js",
     "test:rush": "node scripts/browser-rush.js",
     "test:veil": "node scripts/browser-veil.js",
+    "test:impact": "node scripts/browser-impact.js",
     "test:surrender": "node scripts/browser-surrender.js",
     "test:rifle-identity": "node scripts/browser-rifle-identity.js",
     "test:public-map-online": "node scripts/browser-public-map-online.js",
