@@ -474,3 +474,10 @@
   - chat(게임 쪽 작은 버그였다): 경기가 시작될 때 게임이 마우스 잠금을 요청하고, 브라우저가 그 잠금을 조금 늦게(채팅을 연 뒤) 주면 "잠금을 얻으면 게임으로 돌아간 것"이라는 규칙 때문에 방금 연 채팅이 닫혔다. 6번 중 2번 재현했다. `115-chat`은 이제 채팅을 연 뒤 채팅 밖을 클릭했을 때만 잠금으로 닫고, 클릭 없이 늦게 온 잠금은 풀고 채팅을 그대로 둔다. 수정 뒤 계측 6/6, test:chat 3/3 통과. 영어·폰 구간은 라운드도 길게 잡았다.
 - 이번 묶음 검사: 단위 476 통과, assets 53, 광고 게이트 exit 0, CSP 재생성. 브라우저(한 번에 하나씩) 통과: ascent, ascent-objectives, ascent-abilities, public-map-online, collide-equiv, mobile-map, original-maps, map-loading, graphics, buildings, improvements, home-numbers, grok-ui, followup, site-pages, english-map-names, home-layout, performance, firefight, ability-floors, service-worker, rgx, knife, mobile-preview, weapon-shop, pwa, admin, admin-defaults, operator-card, clans, perm-ticket, online, surrender, bot-skill, progression, startup, browser, chat, net-wave2, net-lag.
 - 확인 필요: 실서버의 계정 수가 많으면 삭제가 끝날 때까지 시간이 걸린다(100개/분/서버). KEYS 명령으로 키를 찾는다(Upstash 지원). 배포와 머지는 사용자가 한다.
+
+## 2026-11-07 · Claude2 · 마우스 잠금 안내는 경기 시작 때 한 번만, 채팅은 Enter (사용자: "마우스 잠금 버튼으로 기본으로 판마다 뜨는거 게임 시작할때 한번만 띄우고 엔터키 누르면 채팅되는걸로 하자")
+
+- 원인: "화면을 클릭하세요" 안내(`#lockhint`)는 마우스가 잠겨 있지 않으면 언제나 떴다. 상점이 라운드마다 마우스를 풀기 때문에 판마다 다시 떴다.
+- 바꾼 것(`js/legacy/03-engine.js`): 안내는 한 경기에 한 번이다. 경기 시작(`startGame`, 손님·방장의 `hostStartMatch`)부터 그 경기에서 마우스가 처음 잠길 때까지만 뜬다. 그 뒤로는 풀려도 안내 없이, 게임 화면을 클릭하면 다시 잠긴다. 다음 경기는 다시 안내부터.
+- 채팅: Enter(팀), Shift+Enter(전체)는 원래 있던 키다. 안내에 "Enter 채팅 · Esc 메뉴" 줄을 더했다(영어 번역 포함).
+- 검사: 새 `test:lock-hint`(옛 엔진에서는 "잠근 뒤 안내 없음"에서 실패하는 것을 확인). 단위 476, lock-hint, chat, startup, browser, ragdoll-emotes, audit:ui, prematch, online 통과.
