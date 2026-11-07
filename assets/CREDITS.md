@@ -68,7 +68,7 @@
 
 ## SGH나비칼과 자체 칼
 
-SGH나비칼의 모양(`model.json`의 큐브)과 텍스처(`texture.png`)는 `scripts/build-sgh-butterfly.js`로 만듭니다. 사용자가 예외로 유지하도록 지정한 것은 제공된 칼 팩의 `future_butterfly` 뼈대·애니메이션·관련 소리이고, 이것들은 받은 그대로 씁니다(`assets/rgx-firefly/v1/manifest.json`에 지문과 크기를 기록합니다). 유지한 동작과 소리는 DFDF의 자체 창작물로 표시하지 않습니다. 다른 외부 칼/총 파일은 이 패키지에 포함하지 않습니다. 나머지 칼 10종은 `js/knife-designs.js`에서 생성하며 기존 손·피벗·모션을 유지합니다.
+SGH나비칼의 형상, 텍스처, 9개 뼈대, 직접 작성한 키프레임과 합성음 8개는 `scripts/build-sgh-butterfly.js`로 생성합니다. 펼치기, 자세히 보기와 세 가지 공격의 타이밍을 참고해 움직임과 음향을 새로 구성했습니다. 각 배포 파일의 지문과 크기는 `assets/rgx-firefly/v1/manifest.json`에 기록합니다. 나머지 칼 10종은 `js/knife-designs.js`에서 생성하며 기존 손·피벗·모션을 유지합니다.
 
 ## 황혼 지구 구조 복원 (2026-11-04)
 

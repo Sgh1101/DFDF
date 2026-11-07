@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),policy=require('../js/advertising-policy');
 const assetPaths={
  'dusk-layout':['assets/maps/ascent/manifest.json','assets/maps/ascent/geometry.bin','assets/maps/ascent/mobile/manifest.json','assets/maps/ascent/mobile/geometry.bin'],
- 'sgh-butterfly-retained':['manifest.json','model.json','animation.json','texture.png',...['draw','inspect','melee_1','melee_2','melee_3','rotate_1','rotate_2','rotate_3'].map(n=>'sounds/future_butterfly_'+n+'.ogg')].map(n=>'assets/rgx-firefly/v1/'+n)
+ 'sgh-butterfly-retained':['manifest.json','model.json','animation.json','texture.png',...['draw','inspect','melee_1','melee_2','melee_3','rotate_1','rotate_2','rotate_3'].map(n=>'sounds/sgh_'+n+'.wav')].map(n=>'assets/rgx-firefly/v1/'+n)
 };
 function audit(root=path.resolve(__dirname,'..')){
  const reasons=[],assetErrors=[],adIntegrations=[];let config={},review=null;

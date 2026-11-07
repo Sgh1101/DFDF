@@ -434,3 +434,25 @@
   - 단위 517 통과(래칫 2개 추가).
   - 브라우저(한 번에 하나씩) 통과: browser, startup, online, peer-throttle, ragdoll-emotes, network-recovery, owner-state, owner-grant, perm-ticket, chat, surrender, guest-kit.
   - operator-card는 일괄 실행에서 10초 대기 시간 초과로 한 번 실패했고, 혼자 다시 돌리면 2번 중 2번 통과했다(부하 때문의 간헐 실패로 본다).
+## 2026-11-05 · Codex · SGH나비칼 자체 리그·모션·소리 재제작
+- 기준 main a09e677, codex/sgh-butterfly-motion-20261105. Claude #135를 포함하며 #136 Tempo는 별도 PR이다. 동시에 전체 검사는 기존 고정 커밋 a09e677에서 계속한다.
+- 사용자 요구에 맞춰 SGH의 기존 자체 외형을 유지하고 뼈대와 동작을 새로 저작하며, 원본 OGG 대신 결정적으로 생성한 합성음으로 교체한다. 황혼 지구는 사용자가 현 버전을 유지하기를 원하며 권한 검토는 열린 상태다.
+- 자체 뼈대 9개, 자세히 보기 6.5초, 펼치기 2초, 공격 2.5·2.5·3초와 합성음 8개를 생성한다. 구 버전 캐시의 원본 모션·음원을 제거한다. 기존 보유·장착 키와 자체 텍스처를 유지한다.
+- 로컬 단위 520개 통과, Redis 전용 2개 제외. 구문·자산 50개·광고 비활성 게이트와 Chrome 나비칼·다른 칼 모션·모바일 미리보기·서비스 워커·PWA 검사 통과. Chrome에서 8개 음원을 디코딩하고 Y 입력으로 자세히 보기 음향 재생과 손잡이 정렬을 확인했다. Android 실기기 및 실결제는 검사하지 않았다.
+
+## 2026-11-05 · Claude · SGH나비칼 4색·디자인 개선, 기본 칼 찌르기, 칼끝 올리기 — PR 대기 (#137 위)
+
+- 사용자 요청: SGH나비칼을 색깔별로 만들고 색마다 모션을 조금 다르게 한다(4색, 얻는 방법은 기존과 같음). 나비칼 디자인을 더 예쁘게 한다. 기본 칼 찌르는 모션을 손본다. 칼을 쥘 때 칼끝을 더 올린다. "코덱스가 한 작업 생각해서" 하라는 지시도 있었다.
+- 기준: Codex #137 `codex/sgh-butterfly-motion-20261105`(`156c5b4`, main `a09e677` 위). #137의 자체 뼈대 9개, 모션, 합성 WAV 8개, manifest v2를 그대로 쓴다. 이 PR은 #137이 먼저 병합되어야 한다.
+- 담당 파일:
+  - `scripts/build-sgh-butterfly.js`: 모양·텍스처 부분만 바꿨다. 뼈대·애니메이션·소리 생성은 Codex 코드 그대로다.
+  - `assets/rgx-firefly/v1/{model.json,texture*.png,manifest.json}`: animation.json과 WAV는 바이트가 같다.
+  - `js/rgx-firefly.js`: 색별 텍스처·재질, 색별 inspect·draw 속도, 자세. 파랑 텍스처 이름 `sgh-butterfly`는 유지한다.
+  - `js/legacy/58-gun-skins.js`, `api/v1.js`: 새 스킨 3종(전설, 칼 전용).
+  - 아이템 수 601→604: 홈, 운영자 페이지, README, 테스트.
+  - `js/legacy/60-skin-perks.js`, `js/legacy/67-knives.js`: 찌르기, 칼끝 +0.2rad.
+  - `monetization-review.json`: 지문만 갱신했다. 검토 상태는 바꾸지 않았다.
+- 실제 검사:
+  - 단위 521 통과(Codex 테스트 포함), 자산 지문 통과, CSP 일치
+  - 로컬 브라우저: rgx, knife, mobile-preview, weapon-shop, grok-ui 통과
+  - 4색 확대 렌더, 크림슨·블랙골드 inspect 프레임, 기본 칼 찌르기 프레임을 직접 확인했다

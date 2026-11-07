@@ -1,4 +1,4 @@
-// Data-only utilities for the single retained RGX Firefly. No source expression is executed.
+// Data-only utilities for the SGH Butterfly rig. Animation values are never executed as expressions.
 (function(root){
   'use strict';
   function parse(text){
