@@ -7,7 +7,7 @@ const {fixture} = require('./browser-fixture');
  try {
   const labels = process.env.DFDF_PERF_BASELINE_ENGINE ? ['before', 'after'] : ['after'];
   for (const label of labels) {
-   const p = await f.page('mapperf' + label, {width:1280,height:720}, {}, {bootTimeout:120000,hiddenMaps:true,
+   const p = await f.page('mapperf' + label, {width:1280,height:720}, {}, {bootTimeout:120000,
     beforeLoad: label === 'before' ? async page => {
      await page.route('**/js/legacy/03-engine.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_ENGINE,contentType:'text/javascript'}));
      if(process.env.DFDF_PERF_BASELINE_HOSPITAL)await page.route('**/js/legacy/102-bots-climb-the-hospital-stairs-and-the-minimap-shows-the-floor.js', route => route.fulfill({path:process.env.DFDF_PERF_BASELINE_HOSPITAL,contentType:'text/javascript'}));

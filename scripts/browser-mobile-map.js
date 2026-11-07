@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
 // Deploy. On phones selecting a map closes that dropdown automatically.
 (async()=>{const f=await fixture();fs.mkdirSync('test-results/mobile-map',{recursive:true});try{
  const requests=[];
- const p=await f.page('mobileterrain',{width:852,height:393},{isMobile:true,hasTouch:true,deviceScaleFactor:3},{quality:false,bootTimeout:120000,hiddenMaps:true,beforeLoad:async page=>page.on('request',r=>requests.push(r.url()))});
+ const p=await f.page('mobileterrain',{width:852,height:393},{isMobile:true,hasTouch:true,deviceScaleFactor:3},{quality:false,bootTimeout:120000,beforeLoad:async page=>page.on('request',r=>requests.push(r.url()))});
  p.setDefaultTimeout(120000);
  assert.equal(await p.evaluate(()=>SETTINGS.quality),'mobile');
  await p.locator('#go-play').click();await p.locator('#sel-pick').click();await p.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();
@@ -55,7 +55,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
  await p.context().close();
  let fail=true,release,requested;
  const requestedPromise=new Promise(r=>requested=r),gate=new Promise(r=>release=r);
- const race=await f.page('mobilerace',{width:960,height:600},{},{bootTimeout:120000,hiddenMaps:true,beforeLoad:async page=>{
+ const race=await f.page('mobilerace',{width:960,height:600},{},{bootTimeout:120000,beforeLoad:async page=>{
   await page.route('**/assets/maps/ascent/geometry.bin?*',async route=>{requested();await gate;if(fail)await route.fulfill({status:503,body:'retry'});else await route.continue();});
  }});
  await race.locator('#go-play').click();await race.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();await race.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await race.locator('#sel-go').click();await race.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());

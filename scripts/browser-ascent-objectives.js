@@ -1,7 +1,7 @@
 // Actual selection/terrain were explored before these layered objective checks.
 const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=require('./browser-fixture');
 (async()=>{const f=await fixture();try{
- const p=await f.page('ascentgoals',{width:1280,height:720},{},{bootTimeout:120000,hiddenMaps:true,beforeLoad:async p=>p.on('pageerror',e=>console.error('page error:',e.message))});
+ const p=await f.page('ascentgoals',{width:1280,height:720},{},{bootTimeout:120000,beforeLoad:async p=>p.on('pageerror',e=>console.error('page error:',e.message))});
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();
  await p.evaluate(()=>{render=()=>{};titleCam=()=>{};});
  await p.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();await p.waitForFunction(()=>ASCENT_TRIAL.status==='ready');await p.locator('#sel-go').click({timeout:120000});await p.waitForFunction(()=>ASCENT_TRIAL.active&&!!myActor());

@@ -13,9 +13,8 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     // they do not use BUILDINGS.plan's procedural houses and towers.
     const skip = ["field", "d01", "d03", "d04", "hospital", "ascent_trial"];
     const want = maps.filter((k) => !skip.includes(k));
-    // Dusk District (an outside layout) left the public list on 2026-11-07: 21 maps, Hospital among them
-    assert.equal(maps.length, 21, "current map catalog includes Hospital, not Dusk District");
-    assert.ok(maps.includes("hospital") && !maps.includes("ascent_trial"));
+    assert.equal(maps.length, 22, "current map catalog includes Hospital and Dusk District");
+    assert.ok(maps.includes("hospital") && maps.includes("ascent_trial"));
     const res = [];
     for (const key of want) {
       const r = await page.evaluate((key) => {

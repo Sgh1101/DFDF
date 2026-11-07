@@ -2,7 +2,7 @@
 // assertions replace the retired external-map-specific triangle/texture constants.
 const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=require('./browser-fixture');
 (async()=>{const f=await fixture(),results=[];fs.mkdirSync('test-results/original-maps',{recursive:true});try{
- const p=await f.page('originalmaptest',{width:1280,height:720},{},{quality:'perf',bootTimeout:120000,hiddenMaps:true});
+ const p=await f.page('originalmaptest',{width:1280,height:720},{},{quality:'perf',bootTimeout:120000});
  assert.deepEqual(await p.evaluate(()=>({desert:!!MAPS.desert_town,loader:!!window.KOUR_MAP,event:!!document.getElementById('sel-event')})),{desert:false,loader:false,event:false},'Claude removal remains in effect');
  assert.equal(await p.evaluate(()=>performance.getEntriesByType('resource').filter(r=>/\/assets\/maps\/(ascent|desert|kour)\//.test(r.name)).length),0,'ordinary entry does not load either map');
  await p.locator('#go-play').click();if(await p.locator('#sel-pick').isVisible())await p.locator('#sel-pick').click();

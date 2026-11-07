@@ -14,7 +14,7 @@ const STEPS = Number(process.env.DFDF_FIGHT_STEPS) || 600, QUALITY = process.env
   try {
     for (const map of MAPS) {
       const page = await f.page("fight" + map, { width: 1280, height: 720 }, {}, {
-        bootTimeout: 120000, hiddenMaps: true, ...(QUALITY ? { quality: QUALITY } : {}),
+        bootTimeout: 120000, ...(QUALITY ? { quality: QUALITY } : {}),
         // the engine's own file lists are routed so the call counters sit inside the closures that call wallT and the casing ground query
         beforeLoad: async (p) => {
           // the game's rAF loops (tick, the gun-effects frame) are queued by hand so one "frame" runs all of them at a fixed 16.7 ms

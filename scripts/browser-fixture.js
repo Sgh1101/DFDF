@@ -34,8 +34,6 @@ async function fixture() {
       }
       if (!realRaf) { const original = requestAnimationFrame; window.requestAnimationFrame = (fn) => setTimeout(() => original(fn), 120); }
     }, { s: session, realRaf: !!(options.realRaf || process.env.DFDF_REAL_RAF) });
-    // options.hiddenMaps: maps kept out of the public list (Dusk District, js/ascent-trial.js) are listed, for their own checks
-    if (options.hiddenMaps) await page.addInitScript(() => { try { localStorage.setItem("dfdf_hidden_maps", "1"); } catch (e) {} });
     if (options.beforeLoad) await options.beforeLoad(page);
     await page.goto((process.env.DFDF_BASE_URL || "http://127.0.0.1:3000") + (options.path || "/play.html"), { waitUntil: "domcontentloaded", timeout: 120000 });
     await page.waitForFunction(() => window.GAME_BOOT && !document.documentElement.dataset.gameLoading, null, { timeout: options.bootTimeout || Number(process.env.DFDF_BOOT_TIMEOUT) || 90000 }).catch(async error => {

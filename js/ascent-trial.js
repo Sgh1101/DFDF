@@ -2,10 +2,9 @@
 (() => {
   'use strict';
   const trial=new URLSearchParams(location.search).get('ascent-trial')==='1';
-  // Dusk District is built on a layout the owner supplied (an outside game's map, permission not confirmed): since 2026-11-07
-  // it is out of the public map list, the home button and the site pages. It is still here, and listed, with ?hidden-maps=1
-  // (or localStorage dfdf_hidden_maps=1) for development and its checks; a room that still names it can load it.
-  const listed=trial||new URLSearchParams(location.search).get('hidden-maps')==='1'||(()=>{try{return localStorage.getItem('dfdf_hidden_maps')==='1';}catch(e){return false;}})();
+  // Dusk District: the supplied layout, made our own on 2026-11-07 (mirrored, with our own cover; see MIRROR and ownCover
+  // below). It was out of the public list for a day and is back in it at the owner's request.
+  const listed=true;
   const KEY='ascent_trial', S=window.ASCENT_TRIAL={status:'idle',active:false,meshes:[],meta:null,listed};
   const panel=document.createElement('section');panel.id='ascent-trial';panel.setAttribute('aria-label','황혼 지구 불러오기');
   panel.style.cssText='position:fixed;left:16px;bottom:18px;z-index:10020;max-width:380px;padding:18px;background:#101c29f2;color:#eef6ff;border:1px solid #64b8b0;border-radius:12px;font:14px/1.6 sans-serif;box-shadow:0 8px 32px #0008';
@@ -49,7 +48,11 @@
   const profileFor=mode=>mode==='mobile'?'mobile':'original';
   const on=()=>S.active&&CUR_MAP_KEY===KEY;
   const horizontalScale=()=>S.meta.horizontalScale||S.meta.scale;
-  const sourcePoint=(x,z,y=7.5)=>({x:(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*horizontalScale(),z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*horizontalScale(),y});
+  // Our own layout (2026-11-07, the owner's request: "구조만 조금 바꿔서"): the supplied terrain is drawn and collided
+  // mirrored left to right, so the sites, the spawns and every lane are on the other side, and our own cover stands in
+  // mid and on the site approaches (ownCover below). The terrain file itself is unchanged (its checks stay as they were).
+  const MIRROR=-1;
+  const sourcePoint=(x,z,y=7.5)=>({x:MIRROR*(x-S.meta.sourceCropMin[0]-S.meta.dimensions[0]/2)*horizontalScale(),z:(z-S.meta.sourceCropMin[2]-S.meta.dimensions[2]/2)*horizontalScale(),y});
   function nearby(x,z,r=PR) {
     if (CHASH.dirty||!CHASH.buckets) chashBuild();
     const found=new Set(), out=[];
@@ -105,7 +108,7 @@
     renderProfile=null;
   }
   function clear() {
-    graphicsRevision++;clearMeshes();S.graphicsMessage='';S.graphicsStatus='idle';
+    graphicsRevision++;clearMeshes();clearCover();S.graphicsMessage='';S.graphicsStatus='idle';
     if(S.active){floor.visible=true;window.SITE_ZONES?.clear();delete world.spike.y;}
     S.active=false;navHeight=null;navEdges=null;S.nav=null;
     if(previousNav){NAV.length=0;NAV.push(...previousNav);GRID.cell=previousCell;previousNav=null;}
@@ -135,11 +138,11 @@
     for(let i=0;i<n;i++) {
       const p=16+i*24, q=Array.from({length:9},(_,a)=>(a<3?d.getUint16(p+a*2,true):d.getInt16(p+a*2,true))*units[a%3]),tile=palette?d.getUint16(p+21,true):0,info=palette?.tiles[tile],transparent=!!info?.transparent,k=Math.floor(q[0]/chunkSize)+','+Math.floor(q[2]/chunkSize)+','+Math.floor(q[1]/chunkSize)+','+transparent;
       if(!chunks.has(k))chunks.set(k,{pos:[],normal:[],color:[],uv:[],atlas:[],indices:[],transparent});
-      const c=chunks.get(k),base=c.pos.length/3,u=q.slice(3,6),v=q.slice(6,9),normal=new T.Vector3(...u).cross(new T.Vector3(...v)).normalize();
+      const c=chunks.get(k),base=c.pos.length/3,u=q.slice(3,6),v=q.slice(6,9),normal=new T.Vector3(...u).cross(new T.Vector3(...v)).normalize(),drawn=new T.Vector3(MIRROR*normal.x,normal.y,normal.z);
       const color=new T.Color((d.getUint8(p+18)<<16)|(d.getUint8(p+19)<<8)|d.getUint8(p+20));
       for(const [a,b] of [[0,0],[1,0],[1,1],[0,1]]) {
-        for(let j=0;j<3;j++)c.pos.push(q[j]+a*u[j]+b*v[j]+origin[j]);
-        c.normal.push(normal.x,normal.y,normal.z);c.color.push(color.r,color.g,color.b);
+        for(let j=0;j<3;j++)c.pos.push((q[j]+a*u[j]+b*v[j]+origin[j])*(j?1:MIRROR));
+        c.normal.push(drawn.x,drawn.y,drawn.z);c.color.push(color.r,color.g,color.b);
         if(palette){
           const pos=q.slice(0,3).map((x,j)=>(x+a*u[j]+b*v[j])/(units[j]*16)),n=normal;
           let uv=Math.abs(n.y)>.9?[pos[0],n.y>0?-pos[2]:pos[2]]:Math.abs(n.x)>.9?[n.x>0?-pos[2]:pos[2],pos[1]]:[n.z>0?pos[0]:-pos[0],pos[1]];
@@ -149,7 +152,8 @@
           c.atlas.push(x+pad,palette.height-y-pad-size,size,size);
         }
       }
-      c.indices.push(base,base+1,base+2,base,base+2,base+3);
+      // a mirror turns every face's winding round: put it back, so the lit side stays the front side
+      MIRROR>0?c.indices.push(base,base+1,base+2,base,base+2,base+3):c.indices.push(base,base+2,base+1,base,base+3,base+2);
     }
     for(const c of chunks.values()) {
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(c.pos,3));g.setAttribute('normal',new T.Float32BufferAttribute(c.normal,3));g.setAttribute('color',new T.Float32BufferAttribute(c.color,3));g.setIndex(c.indices);g.computeBoundingSphere();
@@ -161,10 +165,52 @@
     let p=16+n*24;
     for(let i=0;i<count;i++,p+=12) {
       const b=Array.from({length:6},(_,a)=>d.getUint16(p+a*2,true)*units[a%3]+origin[a%3]);
-      COLLIDERS.push({minX:b[0],y0:b[1],minZ:b[2],maxX:b[3],h:b[4],maxZ:b[5],mesh:null,hp:Infinity,destructible:false,temp:false,ascent:true});
+      const x0=MIRROR>0?b[0]:-b[3],x1=MIRROR>0?b[3]:-b[0];
+      COLLIDERS.push({minX:x0,y0:b[1],minZ:b[2],maxX:x1,h:b[4],maxZ:b[5],mesh:null,hp:Infinity,destructible:false,temp:false,ascent:true});
     }
     CHASH.dirty=true;chashBuild();
   }
+  // ── our own cover: crate stacks in mid and on the way to each site, only where the floor is flat and clear ──
+  // (part of our own layout with the mirror above; placed before the bots' navigation is built, so they walk round them)
+  S.cover=[];
+  let coverMat=null,coverEdge=null;
+  function clearCover(){
+    for(const m of S.cover){scene.remove(m);m.geometry.dispose();}
+    S.cover.length=0;
+  }
+  function ownCover(){
+    clearCover();
+    coverMat||(coverMat=new T.MeshLambertMaterial({color:0x8a6b47}));coverEdge||(coverEdge=new T.MeshLambertMaterial({color:0x3b3f46}));
+    const L=S.meta.layout,mid=sourcePoint(...L.nodes.mid);
+    const sites=L.sites.map(([,x,z,y])=>sourcePoint(x,z,y)),keep=[...sites,sourcePoint(...L.attackSpawn),sourcePoint(...L.defendSpawn)];
+    const cands=[];
+    for(const d of [5,7.5])for(const s of [-1,1])cands.push({x:mid.x+s*d,z:mid.z,y:mid.y},{x:mid.x,z:mid.z+s*d,y:mid.y});
+    for(const t of sites)for(const f of [.35,.6]){
+      const len=Math.hypot(t.x-mid.x,t.z-mid.z)||1,px=-(t.z-mid.z)/len,pz=(t.x-mid.x)/len,x=mid.x+(t.x-mid.x)*f,z=mid.z+(t.z-mid.z)*f;
+      for(const s of [-1,1])cands.push({x:x+px*s*3.5,z:z+pz*s*3.5,y:mid.y+(t.y-mid.y)*f});
+    }
+    const placed=[];
+    for(const c of cands){
+      if(placed.length>=8)break;
+      const y=surface(c.x,c.z,c.y+4,1.6);
+      if(!Number.isFinite(y))continue;
+      // flat: the same floor under every corner; clear: nothing solid in the stack's room; not on a site or a spawn
+      if([[-1.2,-1.2],[1.2,-1.2],[-1.2,1.2],[1.2,1.2]].some(([dx,dz])=>Math.abs(surface(c.x+dx,c.z+dz,y+.5,.3)-y)>.3))continue;
+      if(nearby(c.x,c.z,1.8).some(b=>b.h>y+.2&&b.y0<y+2.6&&c.x+1.8>b.minX&&c.x-1.8<b.maxX&&c.z+1.8>b.minZ&&c.z-1.8<b.maxZ))continue;
+      if(keep.some(p=>Math.hypot(p.x-c.x,p.z-c.z)<6)||placed.some(p=>Math.hypot(p.x-c.x,p.z-c.z)<4.5))continue;
+      placed.push(c);
+      const boxes=[[0,0,2.2,1.5,2.2],[.35,1.5,1.2,.9,1.2]];
+      for(const [ox,oy,w,h,dpt] of boxes){
+        const cx=c.x+ox,cz=c.z+ox*.5;
+        const m=new T.Mesh(new T.BoxGeometry(w,h,dpt),coverMat);m.position.set(cx,y+oy+h/2,cz);m.userData.ascent=true;scene.add(m);S.cover.push(m);
+        const band=new T.Mesh(new T.BoxGeometry(w+.04,.12,dpt+.04),coverEdge);band.position.set(cx,y+oy+h-.06,cz);band.userData.ascent=true;scene.add(band);S.cover.push(band);
+        COLLIDERS.push({minX:cx-w/2,y0:y+oy,minZ:cz-dpt/2,maxX:cx+w/2,h:y+oy+h,maxZ:cz+dpt/2,mesh:null,hp:Infinity,destructible:false,temp:false,ascent:true,cover:true});
+      }
+    }
+    CHASH.dirty=true;chashBuild();
+    return placed.length;
+  }
+  S.ownCover=()=>S.cover.length;
   // A street under a bridge and the bridge deck are separate navigation nodes.
   // Sampling just one height per x/z disconnected the supplied map's real lanes.
   const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],REVERSE=[1,0,3,2];
@@ -338,7 +384,7 @@
     POST.tint=[1.02,1,.98];POST.lift=[0,0,0];POST.sat=.96;POST.contrast=1;POST.vignette=.12;
     hemi.color.setHex(0xdceaf4);hemi.groundColor.setHex(0xa59388);hemi.intensity=1;
     sun.color.setHex(0xffd7ae);sun.intensity=1.05;renderer.toneMappingExposure=1;
-    geometry(renderAssets.get(profileFor(SETTINGS.quality))||renderAssets.values().next().value,true);floor.visible=false;buildNav();window.SITE_ZONES?.rebuild();
+    geometry(renderAssets.get(profileFor(SETTINGS.quality))||renderAssets.values().next().value,true);floor.visible=false;S.coverPlaced=ownCover();buildNav();window.SITE_ZONES?.rebuild();
     S.applyGraphics(SETTINGS.quality);
     NAV.length=0;NAV.push(...Object.values(MAP.nodes));
     if(VM.root&&!VM.root.parent)scene.add(VM.root);

@@ -179,7 +179,7 @@ const HELPERS = () => {
     }
     // ── 황혼 지구: 44k colliders, its own box rules ──
     {
-      const page = await f.page("equivascent", { width: 1280, height: 720 }, {}, { bootTimeout: 120000, hiddenMaps: true });
+      const page = await f.page("equivascent", { width: 1280, height: 720 }, {}, { bootTimeout: 120000 });
       await page.evaluate(HELPERS);
       await page.locator("#go-play").click();
       if (await page.locator("#sel-pick").isVisible()) await page.locator("#sel-pick").click();

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),{fixture}=require('./browser-fixture');
 // The public map chip and select/back/start paths were explored in Chromium.
 (async()=>{const f=await fixture();try{
- const p=await f.page('maploading',{width:960,height:600},{},{bootTimeout:120000,hiddenMaps:true});
+ const p=await f.page('maploading',{width:960,height:600},{},{bootTimeout:120000});
  await p.evaluate(()=>{window.nativeEnsure=ASCENT_TRIAL.ensure;window.mapResumes=[];ASCENT_TRIAL.ensure=()=>new Promise(r=>mapResumes.push(r));});
  await p.locator('#go-play').click();await p.locator('#sel-maps button').filter({hasText:/^황혼 지구$/}).click();await p.locator('#sel-go').click();await p.locator('#sel-back').click();
  await p.evaluate(async()=>{for(const r of mapResumes)r(true);mapResumes=[];await Promise.resolve();});
