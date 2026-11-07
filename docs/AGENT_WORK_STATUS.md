@@ -456,3 +456,21 @@
   - 단위 521 통과(Codex 테스트 포함), 자산 지문 통과, CSP 일치
   - 로컬 브라우저: rgx, knife, mobile-preview, weapon-shop, grok-ui 통과
   - 4색 확대 렌더, 크림슨·블랙골드 inspect 프레임, 기본 칼 찌르기 프레임을 직접 확인했다
+
+## 2026-11-07 · Claude2 · 전광 연막 장막, 황혼 지구 복귀, 서버 랭크 데이터 삭제, 나비칼 마무리, 멀티·간헐 검사 (사용자: "전광 벽 양옆에…", "랭크는 데이터 지우고", "멀티 미해결을 니가 해결해", "간헐도 다시해", "나비칼은 니가 마무리해라")
+
+- 전광: 구슬이 지나간 길 양옆에 높이 4m 연막 장막 두 장(`NEON_EFFECTS.curtain`, 6초). 시야는 막고 앞은 열려 있다(`test:neon`, `test:neon-look`).
+- 황혼 지구(`ascent_trial`) 상시 맵으로 복귀. 구조를 우리 것으로 바꿨다: 좌우를 뒤집고(`MIRROR=-1`, 면 방향·충돌 상자도 같이), 중앙과 각 사이트 가는 길에 우리 엄폐물 8더미(상자 16개)를 놓았다. 썸네일, 사이트 문구, 크레딧도 고쳤다. 원본 사용권을 확보했다고 하지 않는다(권리 확인은 여전히 사용자 몫).
+  - 맵 검사(한 번에 하나씩) 통과. ascent-objectives, public-map-online은 뒤집힌 좌표로, graphics·performance는 충돌 상자 수(기하 + 엄폐물 16)로 고쳤다.
+- 서버 랭크 데이터 삭제(`api/v1.js`, 되돌릴 수 없음, 배포 때 적용):
+  - 랭크 요청(ranked_start/result/void/can_join, leaderboard)을 없앴다. 경기 확인표는 한 종류이고, progress는 RR·MMR·배치·시즌·AI 경쟁전 점수를 움직이지 않고 응답에도 없다. 방에 랭크 표시가 없다.
+  - 계정의 rr, mmr, placed, ssn, ssnLog, ai, aiDay, rrDay, rmDone은 다음에 읽힐 때 지운다. 그와 별도로 서버마다 1분에 한 걸음씩(요청에 답한 뒤) 먼저 시즌 순위표(lb:<번호>)와 랭크전 키(rm*:, rstart:)를 지우고, 계정 목록을 100개씩 끝까지 돈다. 진행 상황은 `purge:ranked`에 남는다. 경기 기록, 로그, 가진 스킨(월계관 포함)은 그대로다.
+  - 설정: season, aiComp 기본값을 뺐고 rank에는 자리 비움·항복 숫자만 남았다. 저장된 설정은 지우지 않았다(쓰이지 않을 뿐). 관리자 화면은 티어를 레벨로 보이고, 시즌·TP·AI 경쟁전 칸과 "티어" 설정 버튼을 뺐다. 관리자 화면에 남아 있던 발로란트 티어 이름(아이언, 레디언트 등)도 같이 없어졌다.
+  - 검사: 랭크·시즌·AI 경쟁전 검사를 지우고 `tests/ranked-removed.test.js`를 더했다. `ranked-leave.test.js`는 설정 검사만 남겨 `afk-surrender-config.test.js`로 옮겼다.
+- 나비칼: Codex #137(전용 리그·동작·소리), #138(네 가지 색)을 합쳤다(api의 SKIN_ONLY에 butterfly_crimson/emerald/blackgold). rgx, knife, mobile-preview, weapon-shop, pwa, service-worker 통과.
+- 멀티 "2 stop"(net-wave2): 원인은 예측이 아니라 시간이었다. 전체 실행에서는 W를 누르는 시점에 호스트의 라운드 시간이 0이 되어 라운드가 끝나고, 새 라운드가 몸을 출발점으로 옮긴 것을 4.8m 스냅으로 셌다. `scripts/net-lag-harness.js`의 hold()는 이제 양쪽이 라운드 진행 중이 될 때까지 기다리고 남은 시간을 60초 이상으로 늘린 뒤 잰다. 수정 뒤 전체 실행 5번 중 5번(+ 확인 1번) 통과, 보정 0.
+- 간헐:
+  - operator-card: 카드 던지기를 한 번(250ms)만 누르던 것을, 호스트가 처치할 때까지 최대 10번 다시 누르게 했다(무기 꺼내는 중에 누른 경우). 수정 뒤 2번 통과.
+  - chat(게임 쪽 작은 버그였다): 경기가 시작될 때 게임이 마우스 잠금을 요청하고, 브라우저가 그 잠금을 조금 늦게(채팅을 연 뒤) 주면 "잠금을 얻으면 게임으로 돌아간 것"이라는 규칙 때문에 방금 연 채팅이 닫혔다. 6번 중 2번 재현했다. `115-chat`은 이제 채팅을 연 뒤 채팅 밖을 클릭했을 때만 잠금으로 닫고, 클릭 없이 늦게 온 잠금은 풀고 채팅을 그대로 둔다. 수정 뒤 계측 6/6, test:chat 3/3 통과. 영어·폰 구간은 라운드도 길게 잡았다.
+- 이번 묶음 검사: 단위 476 통과, assets 53, 광고 게이트 exit 0, CSP 재생성. 브라우저(한 번에 하나씩) 통과: ascent, ascent-objectives, ascent-abilities, public-map-online, collide-equiv, mobile-map, original-maps, map-loading, graphics, buildings, improvements, home-numbers, grok-ui, followup, site-pages, english-map-names, home-layout, performance, firefight, ability-floors, service-worker, rgx, knife, mobile-preview, weapon-shop, pwa, admin, admin-defaults, operator-card, clans, perm-ticket, online, surrender, bot-skill, progression, startup, browser, chat, net-wave2, net-lag.
+- 확인 필요: 실서버의 계정 수가 많으면 삭제가 끝날 때까지 시간이 걸린다(100개/분/서버). KEYS 명령으로 키를 찾는다(Upstash 지원). 배포와 머지는 사용자가 한다.

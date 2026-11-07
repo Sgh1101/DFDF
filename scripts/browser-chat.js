@@ -293,7 +293,9 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
 
     // ── English: the text of the interface and the phrases ──
     const en = await f.page("chatEn", { width: 852, height: 393 }, {}, { beforeLoad: (p) => p.addInitScript(() => { try { localStorage.setItem("lgp_lang", "en"); } catch (e) {} }) });
-    await quiet(en); await en.evaluate(() => { room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; });
+    // the round is made long: the buy timer (14 s) still runs after phase is set live by hand, and on a slow machine the next
+    // round's buy phase (the shop over the chips) could come before the chip is clicked
+    await quiet(en); await en.evaluate(() => { room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; world.roundTime = 99999; ADMIN.freezeAI = true; });
     await en.waitForTimeout(800);
     await en.evaluate(() => { CHAT.open("t"); });
     const ui = await en.evaluate(() => ({ tabs: [...document.querySelectorAll(".cht-tabs button")].map((b) => b.textContent), send: document.getElementById("cht-send").textContent, chips: [...document.querySelectorAll("#cht-qc button")].map((b) => b.textContent), ph: document.getElementById("cht-in").placeholder, close: document.getElementById("cht-x").textContent, qm: document.getElementById("cht-qm").textContent, tb: [document.getElementById("tb-chat").textContent, document.getElementById("tb-ping").textContent] }));
@@ -307,7 +309,7 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
 
     // ── a phone: the two buttons are in the layout editor and work ──
     const phone = await f.page("chatPhone", { width: 740, height: 360 }, { hasTouch: true, isMobile: true });
-    await phone.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; ADMIN.freezeAI = true; document.body.classList.add("touching"); });
+    await phone.evaluate(() => { titleCam = () => {}; room.mode = "std"; room.map = "field"; startGame(AGENTS[0], false); closeShop(); world.phase = "live"; world.roundTime = 99999; ADMIN.freezeAI = true; document.body.classList.add("touching"); });
     await phone.waitForTimeout(1200);
     const boxes = await phone.evaluate(() => ["tb-chat", "tb-ping"].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), getComputedStyle(document.getElementById(id)).display]; }));
     for (const [id, l, t, w, h, d] of boxes) { assert.ok(w >= 40 && h >= 40 && l >= 0 && t >= 0 && l + w <= 740 && t + h <= 360 && d !== "none", `${id} sits on the screen: ${[l, t, w, h, d]}`); }

@@ -109,6 +109,11 @@ async function measure(f, { seconds = 8, scenarios = Object.keys(SCENARIOS) } = 
 // key is released (the body creeping on after it had stopped).
 async function hold(pair, oneWay, { holdMs = 2000 } = {}) {
   const { host, guest, transport } = pair;
+  // the round must outlast the measurement: a run that starts late in it (after other checks, at about 100 s a round) sees the
+  // round end and the next one put the body back at its spawn, a teleport that reads as a snap and has nothing to do with prediction
+  // (between rounds, wait for the next one first: a buy phase that turns live during the hold changes the run as well)
+  for (const p of [host, guest]) await p.waitForFunction(() => world.phase === 'live', null, { timeout: 40000 }).catch(() => {});
+  await host.evaluate(() => { world.roundTime = Math.max(world.roundTime, 60); });
   transport.seed(5); transport.shape('state', { delay: oneWay }); transport.shape('event', { delay: oneWay });
   await sleep(2500);
   const dir = await guest.evaluate(() => {
