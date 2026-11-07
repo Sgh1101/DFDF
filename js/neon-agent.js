@@ -2,14 +2,14 @@
   "use strict";
   // 전광 (internal id neon_agent): a striker made of speed and current. Everything here is this game's own: the look, the portrait, the
   // first-person arms and their motions, the icons, the bolt, charge, lane and spark effects, the slide pose, and since
-  // 2026-11-07 what the four abilities do and their numbers too: the bolt sticks and pulses twice (no bounce), the wall is
-  // one curtain across the way ahead (not a lane of two walls), the sprint and the beam have their own numbers.
+  // 2026-11-07 what the four abilities do and their numbers too: the bolt sticks and pulses twice (no bounce), the walls are
+  // two curtains of smoke you cannot see through (not glowing sheets), the sprint and the beam have their own numbers.
   if (AGENTS.some((a) => a.id === "neon_agent")) return;
   // what the abilities do: sprint, slide, the curtain wall, the sticking bolt and its two pulses, the ultimate beam
   const C = Object.freeze({
     sprintMultiplier: 1.3, sprintDuration: 8, slideDistance: 5, slideDuration: 0.7, killsPerSlide: 1,
-    // the curtain: the orb runs curtainDistance ahead, then a wall curtainWidth wide stands across the way
-    curtainDistance: 9, curtainWidth: 14, wallHeight: 3.5, wallDuration: 6, wallGap: 2.4, laneSpeed: 30,
+    // the curtains: the orb runs wallLength ahead, then a curtain of smoke stands along each side of its path, wallGap apart
+    wallLength: 22, wallHeight: 4, wallDuration: 6, wallGap: 3, laneSpeed: 40,
     boltSpeed: 34, boltGravity: 6, boltLife: 2, boltDelay: 0.3,
     // the bolt sticks where it lands and pulses twice: two stuns of its own length, pulseGap apart
     concussDelay: 0.5, concussRadius: 4, concussDuration: 1, pulseGap: 1.2,
@@ -21,11 +21,11 @@
   const agent = {
     id: "neon_agent", key: "neon_agent", codename: "SURGE", name: "전광", role: "타격대", color: "#41cfff", accent: "#f7ef69",
     quote: "멈추면 지는 거야.",
-    desc: "몸에 전류를 두른 배달원 출신 돌격수. 붙는 전극탄으로 두 번 흔들고, 전류 장막으로 앞을 가리고, 질주와 미끄러지기로 누구보다 먼저 닿는다.",
+    desc: "몸에 전류를 두른 배달원 출신 돌격수. 붙는 전극탄으로 두 번 흔들고, 양옆에 연막 장막을 세우고, 질주와 미끄러지기로 누구보다 먼저 닿는다.",
     abilities: [
       A("Q", "이중 전격", "neon_relay", 200, 2, 0, "닿은 곳에 붙는 전극탄. 0.5초 뒤와 1.2초 더 뒤, 두 번 반경 4m에 전기가 터져 각각 1초 뇌진탕. 튕기지 않고, 벽 너머의 적에게는 닿지 않는다."),
       A("E", "질주 회로", "neon_gear", 0, 1, 30, "8초간 이동 속도 +30%. 좌클릭(모바일 사격)으로 5m 미끄러지며 질주를 끝내고 무기로 돌아온다. 처치할 때마다 미끄러지기가 다시 찬다."),
-      A("C", "전류 장막", "neon_lane", 300, 1, 0, "구슬이 9m 앞까지 달려가 그 자리에 폭 14m, 높이 3.5m 전류 장막을 가로로 세운다. 6초간 앞쪽 시야를 막는다."),
+      A("C", "전류 장막", "neon_lane", 300, 1, 0, "구슬이 앞으로 22m를 달리며 그 길 양옆에 높이 4m 연막 장막을 세운다. 6초간 양옆이 보이지 않는다. 가운데 3m 길로 지나가며 쏠 수 있다."),
       A("X", "과충전", "neon_overdrive", 0, 1, 0, "14초 동안 총 대신 손끝에서 32m 전기 빔을 쏜다. 0.12초마다 피해 21. 궁극기 중 좌클릭은 빔, 우클릭은 미끄러지기.", 8),
     ],
   };
@@ -237,25 +237,23 @@
     const actor = player, yaw = actor.yaw || 0, dx = -Math.sin(yaw), dz = -Math.cos(yaw), px = -dz, pz = dx;
     startClip(actor, "lane");
     const orb = { id: actor.id, startX: actor.pos.x, startY: actor.y || 0, startZ: actor.pos.z, dirX: dx, dirZ: dz, curX: actor.pos.x, curZ: actor.pos.z };
-    // one trail, not the two rails of a lane
-    const preview = NEON_EFFECTS.preview(orb, 0); scene.add(preview.root); let age = 0;
+    const preview = NEON_EFFECTS.preview(orb, C.wallGap); scene.add(preview.root); let age = 0;
     abilSpawn({ update(dt) {
-      age += dt; const length = Math.min(C.curtainDistance, age * C.laneSpeed);
+      age += dt; const length = Math.min(C.wallLength, age * C.laneSpeed);
       orb.curX = orb.startX + dx * length; orb.curZ = orb.startZ + dz * length; preview.updateAge(age);
-      if (length < C.curtainDistance) return true;
+      if (length < C.wallLength) return true;
       finalWalls(); return false;
     }, dispose() { preview.dispose(); } });
     function finalWalls() {
-      // one curtain, across the way: from the left end to the right end, curtainDistance ahead
-      {
-        const half = C.curtainWidth / 2, dx = px, dz = pz;
-        const x = orb.startX + orb.dirX * C.curtainDistance - px * half, z = orb.startZ + orb.dirZ * C.curtainDistance - pz * half;
-        const levels = Array.from({ length: C.curtainWidth }, (_, i) => groundAt(x + dx * (i + 0.5), z + dz * (i + 0.5), orb.startY + 3));
+      // a curtain of smoke along each side of the path
+      for (const side of [-1, 1]) {
+        const x = orb.startX + px * side * C.wallGap / 2, z = orb.startZ + pz * side * C.wallGap / 2;
+        const levels = Array.from({ length: C.wallLength }, (_, i) => groundAt(x + dx * (i + 0.5), z + dz * (i + 0.5), orb.startY + 3));
         // the wall follows the ground in pieces of one level each
         for (let begin = 0; begin < levels.length;) {
           let end = begin + 1; while (end < levels.length && Math.abs(levels[end] - levels[begin]) < 0.5) end++;
           const wall = { startX: x + dx * begin, startY: levels[begin], startZ: z + dz * begin, endX: x + dx * end, endY: levels[begin], endZ: z + dz * end, height: C.wallHeight };
-          const fx = NEON_EFFECTS.lane(wall, 0, C.wallDuration); scene.add(fx.root);
+          const fx = NEON_EFFECTS.curtain(wall, 0, C.wallDuration); scene.add(fx.root);
           const blockers = [];
           for (let i = begin + 0.5; i < end; i += 1) {
             const mesh = new T.Group(); scene.add(mesh);

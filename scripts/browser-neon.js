@@ -54,12 +54,11 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
       foe.alive = true; botCast(foe, "neon_gear", def("neon_gear")); step(0.01); out.copiedGear = foe.__neonGear > 0; NEON_AGENT.clear(foe);
       resetPos(); cast("neon_lane");
       abilTick(.31); abilTick(.31);
-      out.walls = scene.children.filter(o => o.name === "neon-fastlane").length;
-      // our own curtain: one wall across the way 9 m ahead; the view ahead past it is blocked, the near ground and the sides are not
-      out.visionBlocked = rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + dx * 13, 1.4, me.pos.z + dz * 13);
+      out.walls = scene.children.filter(o => o.name === "neon-curtain").length;
+      // our own curtains: smoke along both sides of the path, 3 m apart; the sides are hidden, the path ahead is open
+      out.visionBlocked = rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + -dz * 5, 1.4, me.pos.z + dx * 5) && rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + dz * 5, 1.4, me.pos.z - dx * 5);
       out.forwardClear = !rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + dx * 6, 1.4, me.pos.z + dz * 6);
-      out.sideClear = !rayBlocked(me.pos.x, 1.4, me.pos.z, me.pos.x + -dz * 5, 1.4, me.pos.z + dx * 5);
-      abilClear(); out.wallsGone = scene.children.every(o => o.name !== "neon-fastlane");
+      abilClear(); out.wallsGone = scene.children.every(o => o.name !== "neon-curtain");
       // our own bolt: it sticks where it lands and pulses twice (the second stun comes after the first has worn off)
       putFoe(5); me.pitch = -0.45; cast("neon_relay");
       let first = -1, pulses = 0, was = false;
@@ -79,7 +78,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.equal(result.gear, 8); assert.ok(result.fast > result.normal * 1.2);
     assert.equal(result.slide, true); assert.equal(result.doubleSlide, false); assert.ok(Math.abs(result.slideDistance - 5) < 0.15); assert.equal(result.slideEnded, true); assert.equal(result.refilled, true);
     assert.equal(result.stoppedAtWall, true); assert.equal(result.copiedGear, true);
-    assert.ok(result.walls >= 1); assert.equal(result.visionBlocked, true); assert.equal(result.forwardClear, true); assert.equal(result.sideClear, true); assert.equal(result.wallsGone, true);
+    assert.ok(result.walls >= 2); assert.equal(result.visionBlocked, true); assert.equal(result.forwardClear, true); assert.equal(result.wallsGone, true);
     assert.ok(result.concuss > 0); assert.equal(result.pulses, 2, "two pulses"); assert.equal(result.relayNoDamage, true);
     assert.equal(result.ultName, "과충전"); assert.equal(result.ultDuration, 14); assert.equal(result.ultDamage, 21); assert.equal(result.clientDamage, 0);
     assert.equal(result.snapshot[4], 14); assert.equal(result.ourArms, true);
