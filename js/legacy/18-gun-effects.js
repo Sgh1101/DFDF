@@ -645,7 +645,7 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
         l = null;
         g.traverse((o) => {
           const u = o.userData;
-          !l && u && u.fpFlash && u.anchors && u.anchors.muzzle && (l = { o, p: new T.Vector3().fromArray(u.anchors.muzzle) });
+          !l && u && u.fpFlash && u.anchors && u.anchors.muzzle && (l = { o, p: new T.Vector3().fromArray(u.anchors.muzzle), quiet: !!u.fpFlash.quiet });
         });
         MZ.set(g, l);
       }
@@ -655,7 +655,10 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
       // from the camera as it is now
       l.o.updateWorldMatrix(!0, !1);
       const q = VM.root.worldToLocal(l.o.localToWorld(l.p.clone()));
-      return q.applyMatrix4(new T.Matrix4().compose(camera.position, camera.quaternion, VM.root.scale));
+      q.applyMatrix4(new T.Matrix4().compose(camera.position, camera.quaternion, VM.root.scale));
+      // a suppressed gun (fpFlash.quiet, Veil): the can takes most of the flash, so it is small and dim
+      q.quiet = l.quiet;
+      return q;
     };
     const _mf = muzzleFlash;
     muzzleFlash = function () {
@@ -664,14 +667,15 @@ body.ads-on #cross{opacity:0!important;transition:opacity .1s}`;
         p = player && !player.ultW ? vmMuzzle() : null;
       } catch (e) {}
       if (!p) return _mf.apply(this, arguments);
-      fxFlash(16766602, 0.9, 14, p.x, p.y, p.z, 0.07, 1);
+      const quiet = !!p.quiet;
+      fxFlash(16766602, quiet ? 0.22 : 0.9, quiet ? 5 : 14, p.x, p.y, p.z, 0.07, 1);
       const n = FX_FLASH.get(),
         a = n.children[0].material;
       a.color.setHex(16768922);
-      a.opacity = 0.95;
+      a.opacity = quiet ? 0.35 : 0.95;
       n.position.copy(p);
       n.lookAt(camera.position);
-      n.userData.r = 0.17 + 0.08 * Math.random();
+      n.userData.r = quiet ? 0.05 + 0.02 * Math.random() : 0.17 + 0.08 * Math.random();
       n.scale.setScalar(n.userData.r);
       n.traverse((c) => ((c.renderOrder = 1e3), (c.frustumCulled = !1)));
       addFx(n, 0.05, flashFade);
