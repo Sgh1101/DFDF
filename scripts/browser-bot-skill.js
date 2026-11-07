@@ -129,12 +129,12 @@ const { PeerServer } = require(process.env.DFDF_PEER_SERVER_MODULE || "peer");
     // a human the host's scoreboard shows is verified too
     const hostBoard = await host.evaluate(() => { QOL.openBoard("sb", true); return [...document.querySelectorAll("#bd-body .bd-row:not(.hd) .lv-chip")].map((c) => c.textContent).sort(); });
     assert.deepEqual(hostBoard, ["구리 2", "금빛 1"]); // the levels show as tiers (js/tier-level.js)
-    // an account with a hidden tier counts as Iron in a ranked room; once placed, the SERVER's tier counts (the guest claimed Iron)
+    // ranked play is gone: an account that still carries an old rank on the server hands the host no tier, only its level
     const placed = f.h.user("skillguest"); placed.placed = 5; placed.rr = 1800; f.h.db.set("user:skillguest", JSON.stringify(placed));
     await host.evaluate(() => { LV_CHIP.verified.clear(); return LV_CHIP.ask(); });
     await host.waitForFunction(() => LV_CHIP.verified.size === 1, null, { timeout: 15000 });
-    const ranked = await host.evaluate(() => { room.ranked = true; LV_CHIP.refresh(); const s = BOT_RT.skill; room.ranked = false; LV_CHIP.refresh(); return s; });
-    assert.equal(ranked, BS.roomSkill([{ tier: 2 }, { tier: 6 }], true), "ranked: the server's tier for the guest (Ascendant), not its claimed Iron");
+    const told = await host.evaluate(() => { const v = [...LV_CHIP.verified.values()][0]; return { lv: v.lv, tr: v.tr == null ? null : v.tr }; });
+    assert.deepEqual(told, { lv: 30, tr: 0 }, "the server's level for the guest and no tier from it (0, the bottom, read by ranked rooms only, which are gone)");
     // a late join into a match under way is verified and announced to the others as soon as the server answers (see below too)
     await host.evaluate(() => netShutdown()); await guest.evaluate(() => netShutdown());
 

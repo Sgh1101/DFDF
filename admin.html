@@ -977,7 +977,7 @@ VIEWS.config = async () => {
     await call("a_config_default_set", { config: collect() }); toast("저장하고 기본값으로 정했습니다"); VIEWS.config();
   };
   $("#crst").onclick = async () => {
-    if (!confirm(saved ? `모든 설정을 저장해 둔 기본값(${when(saved.t)})으로 되돌릴까요? 시즌 번호와 오늘 상점 목록은 그대로입니다.` : "모든 설정을 게임 처음 값으로 되돌릴까요? 시즌 번호와 오늘 상점 목록은 그대로입니다.")) return;
+    if (!confirm(saved ? `모든 설정을 저장해 둔 기본값(${when(saved.t)})으로 되돌릴까요? 오늘 상점 목록은 그대로입니다.` : "모든 설정을 게임 처음 값으로 되돌릴까요? 오늘 상점 목록은 그대로입니다.")) return;
     await call("a_config_reset"); toast(saved ? "저장해 둔 기본값으로 되돌렸습니다" : "처음 값으로 되돌렸습니다"); VIEWS.config();
   };
   saved && ($("#cfac").onclick = async () => {

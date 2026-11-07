@@ -401,7 +401,7 @@ async function purgeRankedStep() {
     for (const pat of RANKED_KEYS) for (const k of (await redis(["KEYS", pat])) || []) (!k.startsWith("lb:") || /^lb:\d+$/.test(k)) && keys.add(k);
     const list = [...keys];
     for (let i = 0; i < list.length; i += 500) await redis(["DEL", ...list.slice(i, i + 500)]);
-    return void (await log("admin", `랭크 데이터 삭제: 시즌 순위표와 랭크전 기록 ${list.length}개`));
+    return void (list.length && (await log("admin", `랭크 데이터 삭제: 시즌 순위표와 랭크전 기록 ${list.length}개`)));
   }
   const at = Math.max(0, st.at | 0), ids = (await redis(["ZRANGE", "users", String(at), String(at + RANK_PURGE_N - 1)])) || [];
   const raws = ids.length ? (await redis(["MGET", ...ids.map(userKey)])) || [] : [];
@@ -417,7 +417,7 @@ async function purgeRankedStep() {
   const users = (st.users | 0) + fixed;
   if (ids.length < RANK_PURGE_N) {
     await setJ(RANK_PURGE, { done: 1, users, t: now() });
-    await log("admin", `랭크 데이터 삭제 끝: 계정 ${users}개에서 지움`);
+    users && (await log("admin", `랭크 데이터 삭제 끝: 계정 ${users}개에서 지움`));
     rankPurgeNext = Infinity;
   } else await setJ(RANK_PURGE, { at: at + ids.length, users, t: st.t });
 }

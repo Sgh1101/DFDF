@@ -30,7 +30,7 @@ const { harness } = require("../tests/api-harness");
       kpis: document.querySelectorAll(".kpis .kpi").length,
       bars: document.querySelectorAll(".bars b").length,
       ranks: document.querySelectorAll(".hbar").length,
-      season: !!document.querySelector("#ssn") || /시즌|TP/.test(document.querySelector("#main").textContent),
+      season: !!document.querySelector("#ssn, #ssn-end, [data-q^='season.'], [data-q^='rank.win']") || /시즌|TP/.test([...document.querySelectorAll(".kpis, .qc, #db-sw, .hbars")].map((e) => e.textContent).join(" ")),
       chips: [...document.querySelectorAll("#db-sw .chip")].map((c) => c.textContent.trim()),
       top: [...document.querySelectorAll(".mini")].map((t) => t.textContent).join(" "),
       quick: document.querySelectorAll(".qc [data-q]").length,
