@@ -283,26 +283,29 @@
     // the post: a tapered blade up to the sight line, in the middle of the hood
     return sectionGeo([[-1.9, 34.5], [1.9, 34.5], [1.3, SL], [-1.3, SL]], 47, 50.2);
   }
-  function cockingTubeGeo() {
+  // the cocking tube and its handle: Rush's over the barrel; Veil's (VEIL_TUBE) higher and shorter, over its can
+  const RUSH_TUBE = { y: TUBE_Y, r: TUBE_R, x0: 58, x1: 232, handle: 86, travel: 104 };
+  function cockingTubeGeo(c = RUSH_TUBE) {
     const g = [];
-    g.push(tube(TUBE_R, TUBE_R, 58, 232, TUBE_Y, 24));
-    g.push(ringGeo(0, TUBE_R, 58, TUBE_Y, 0, 24)); // its front plug
+    g.push(tube(c.r, c.r, c.x0, c.x1, c.y, 24));
+    g.push(ringGeo(0, c.r, c.x0, c.y, 0, 24)); // its front plug
     return merged(g);
   }
   // the handle's slot on the left of the tube
-  const HANDLE = { x: 86, travel: 104 };
-  function slotGeo() {
-    return boxGeo(0.8, 4.6, HANDLE.travel + 14, HANDLE.x + HANDLE.travel / 2, TUBE_Y + 1.5, -(TUBE_R - 0.2));
+  const HANDLE = { x: RUSH_TUBE.handle, travel: RUSH_TUBE.travel };
+  function slotGeo(c = RUSH_TUBE) {
+    return boxGeo(0.8, 4.6, c.travel + 14, c.handle + c.travel / 2, c.y + 1.5, -(c.r - 0.2));
   }
   // the charging handle, folded forward: a stem out of the slot and a round knob, angled up off the tube
-  function handleGeo() {
-    const g = [];
-    g.push(sideGeo([[HANDLE.x - 5, TUBE_Y - 1], [HANDLE.x + 5, TUBE_Y - 1], [HANDLE.x + 6, TUBE_Y + 5], [HANDLE.x - 4, TUBE_Y + 5]], 20, { s: -(TUBE_R + 9), bevel: 0.8, segments: 1 }));
-    g.push(cylGeo(4.6, 4.6, 11, 14, 'x', HANDLE.x + 1, TUBE_Y + 3, -(TUBE_R + 22)));
-    for (let i = 0; i < 4; i++) g.push(cylGeo(5, 5, 0.8, 14, 'x', HANDLE.x + 1, TUBE_Y + 3, -(TUBE_R + 18) - i * 2.6)); // grip rings
+  function handleGeo(c = RUSH_TUBE) {
+    const g = [], x = c.handle, y = c.y, r = c.r;
+    g.push(sideGeo([[x - 5, y - 1], [x + 5, y - 1], [x + 6, y + 5], [x - 4, y + 5]], 20, { s: -(r + 9), bevel: 0.8, segments: 1 }));
+    g.push(cylGeo(4.6, 4.6, 11, 14, 'x', x + 1, y + 3, -(r + 22)));
+    for (let i = 0; i < 4; i++) g.push(cylGeo(5, 5, 0.8, 14, 'x', x + 1, y + 3, -(r + 18) - i * 2.6)); // grip rings
     return merged(g);
   }
-  const HANDLE_GRIP = [S(-(TUBE_R + 22)), Y(TUBE_Y + 3), Z(HANDLE.x + 1)];
+  const handleGrip = (c = RUSH_TUBE) => [S(-(c.r + 22)), Y(c.y + 3), Z(c.handle + 1)];
+  const HANDLE_GRIP = handleGrip();
 
   // ── the handguard: black polymer, three flutes down each side ──
   const HG = { x0: 62, x1: 226, w: 21.5, bottom: -32 };
@@ -366,11 +369,11 @@
     for (const x of [246, 262, 278]) for (const side of [-1, 1]) g.push(cylGeo(1.9, 1.9, 0.6, 10, 'x', x, -36, side * 15.8));
     return merged(g);
   }
-  function receiverDarkGeo() {
+  function receiverDarkGeo(c = RUSH_TUBE) {
     const g = [];
     // the bolt seen through the port, the cocking handle's slot, the end cap's seam
     g.push(boxGeo(0.6, 11, PORT[1] - PORT[0] - 0.6, (PORT[0] + PORT[1]) / 2, 0.75, RW - 9.3));
-    g.push(slotGeo());
+    g.push(slotGeo(c));
     g.push(sectionGeo(RECV_SECTION(false), 469.4, 470.4, { sx: 1.012 }));
     return merged(g);
   }
@@ -431,7 +434,7 @@
     }
     return merged(g);
   }
-  function controlsGeo() {
+  function controlsGeo(rearSight = true) {
     const g = [];
     // the trigger: a curved blade on its pivot
     g.push(sideGeo([[344, -31], [351, -31], [350.4, -38], [349, -45], [349.6, -51.5], [347.8, -55.5], [344.6, -55.6], [344, -52.6], [345, -46], [344.6, -39], [343.4, -34]], 7, { bevel: 0.6 }));
@@ -445,8 +448,10 @@
     g.push(sectionGeo(RECV_SECTION(false).map(([s, y]) => [s * 1.02, y + (y > 0 ? 0.4 : -0.3)]), 470.4, 484, { back: (y) => -Math.max(0, y - 20) * 0.35 }));
     g.push(boxGeo(10, 6, 9, 480, -10, 0));
     // the rear sight: a drum on a short block, with guard ears on both sides
-    g.push(sideGeo([[434, RTOP + 3], [462, RTOP + 3], [462, RTOP + 6], [434, RTOP + 6]], 14));
-    for (const s of [-1, 1]) g.push(sideGeo([[440, RTOP + 4], [458, RTOP + 4], [456, SL + 9], [444, SL + 9]], 2.4, { s: s * 9.2, bevel: 0.4, segments: 1 }));
+    if (rearSight) {
+      g.push(sideGeo([[434, RTOP + 3], [462, RTOP + 3], [462, RTOP + 6], [434, RTOP + 6]], 14));
+      for (const s of [-1, 1]) g.push(sideGeo([[440, RTOP + 4], [458, RTOP + 4], [456, SL + 9], [444, SL + 9]], 2.4, { s: s * 9.2, bevel: 0.4, segments: 1 }));
+    }
     return merged(g);
   }
   // the drum rear sight: a short drum across the line of sight, its peep hole on the line
@@ -528,6 +533,182 @@
     g.translate(0, Y(MAG.top + 4.6), Z(spine[0].x - 2));
     return g;
   }
+
+  // ════════ Veil (key "whisper"): the same 9 mm family with an integral suppressor ════════
+  // The barrel, front sight base, cocking tube and handguard of Rush give way to one thick can that runs from the muzzle
+  // to the receiver (the can is the handguard); the cocking tube, its handle and the front sight ride higher, on top of
+  // the can. A tube red dot sits on a claw mount over the receiver, high enough that the front post shows in the lower
+  // third of its window. Olive-drab receiver and end cap, black can, polymer, optic and magazine. The receiver, the lower
+  // and grip, the controls (without the drum rear sight), the stock and the magazine are Rush's. No maker's name or marking.
+  // the can reaches 80 mm past where Rush's muzzle is (an integrally suppressed gun is that much longer): x0 is negative
+  const CAN = { r: 21, x0: -80, x1: 228, grooves: [40, 140] };
+  const VEIL_TUBE = { y: 31, r: 9.5, x0: 100, x1: 232, handle: 112, travel: 98 };
+  const VFS = 56; // the front post's tip above the bore
+  const DOT = 70; // the red dot's centre above the bore: the aiming line
+  const OPT = { lens: 326, x0: 340, x1: 392, r: 15 };
+  function veilMaterials() {
+    const tone = (m, color, rough, metal) => {
+      if (m.userData && m.userData.finished) m.map = finish(m.userData.kind === 'polymer' || m.userData.kind === 'rubber' ? 'poly' : 'metal');
+      m.color.setHex(color);
+      m.roughness = rough;
+      m.metalness = metal;
+      m.needsUpdate = true;
+      return m;
+    };
+    return {
+      receiver: tone(GUNMAT.gunmetal(), 0x5c5f45, 0.62, 0.3), // olive-drab painted steel
+      weld: tone(GUNMAT.gunmetal(), 0x4e5139, 0.66, 0.32),
+      poly: tone(GUNMAT.polymer(), 0x252628, 0.8, 0.05),
+      grip: tone(GUNMAT.rubber(), 0x1a1b1d, 0.95, 0),
+      steel: tone(GUNMAT.steel(), 0x585c62, 0.4, 0.8),
+      dark: tone(GUNMAT.blued(), 0x19191c, 0.5, 0.5),
+      can: tone(GUNMAT.blued(), 0x262729, 0.72, 0.35), // the can: matte black finish
+      optic: Object.assign(tone(GUNMAT.blued(), 0x1b1c1f, 0.55, 0.45), { side: T.DoubleSide }), // open tube: its inside shows
+      bore: Object.assign(tone(GUNMAT.rubber(), 0x050506, 1, 0), { side: T.DoubleSide }),
+      mag: tone(GUNMAT.blued(), 0x26282c, 0.52, 0.55),
+      butt: tone(GUNMAT.blued(), 0x222326, 0.58, 0.45),
+      pad: tone(GUNMAT.rubber(), 0x161718, 0.97, 0),
+      round: tone(GUNMAT.brass(), 0xc9a24e, 0.32, 0.85),
+      dot: GUNMAT.glow ? GUNMAT.glow(0xff2d1e) : new T.MeshBasicMaterial({ color: 0xff2d1e }),
+      // a plain material: a skin's glass is nearly opaque and would blind the aiming line (as on Tempo)
+      lens: new T.MeshStandardMaterial({ color: 0x9ec9a8, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.18, side: T.DoubleSide, depthWrite: false }),
+    };
+  }
+  // the can: a front cap with the bore, two shallow grooves, a collar where it meets the receiver
+  function canGeo() {
+    const g = [], [g1, g2] = CAN.grooves;
+    const f = CAN.x0;
+    g.push(tube(19.4, CAN.r, f, f + 14, 0, 32)); // the front cap, its edge rounded off
+    g.push(ringGeo(5.4, 19.4, f, 0, 0, 32)); // its face round the bore
+    for (const [a, b] of [[f + 14, g1 - 1], [g1 + 1, g2 - 1], [g2 + 1, 214]]) g.push(tube(CAN.r, CAN.r, a, b, 0, 32));
+    for (const x of [g1, g2]) g.push(tube(CAN.r - 0.8, CAN.r - 0.8, x - 1, x + 1, 0, 32));
+    g.push(tube(22, 22, 214, CAN.x1, 0, 32)); // the collar
+    g.push(ringGeo(CAN.r, 22, 214, 0, 0, 32));
+    return merged(g);
+  }
+  function canBoreGeo() {
+    return merged([cylGeo(5.4, 5.4, 7, 16, 'z', CAN.x0 + 3.5, 0, 0, true), ringGeo(0, 5.45, CAN.x0 + 7, 0, 0, 16)]);
+  }
+  // pins and sling loops: the lower's pins; the front loop on the can's collar, the rear on the end cap (both left)
+  function veilPinsGeo() {
+    return merged([cylGeo(2.8, 2.8, 41, 12, 'x', 302, -24, 0), cylGeo(2.8, 2.8, 41, 12, 'x', 446, -24, 0), loopGeo(221, 8, -23.8), loopGeo(476, 6, -20.6)]);
+  }
+  // the front sight on the cocking tube's front: a welded base, a ring hood, the post (dark, separate)
+  function veilFrontSightGeo() {
+    const g = [], c = VEIL_TUBE, top = c.y + c.r;
+    g.push(sectionGeo([[-7, c.y], [7, c.y], [7.5, top + 4], [-7.5, top + 4]], c.x0 + 2, c.x0 + 24, { front: (y) => Math.max(0, y - top) * 0.6 }));
+    g.push(sectionGeo(arc(0, VFS, 11.5, 0, 2 * Math.PI, 20).slice(0, -1), c.x0 + 6, c.x0 + 19, { holes: [arc(0, VFS, 8.8, 0, 2 * Math.PI, 20).slice(0, -1)] }));
+    // the tube sits on the can in a welded saddle at both ends
+    for (const [a, b] of [[c.x0 + 2, c.x0 + 20], [210, 226]]) g.push(sectionGeo([[-6, CAN.r - 2], [6, CAN.r - 2], [6, c.y], [-6, c.y]], a, b));
+    return merged(g);
+  }
+  function veilPostGeo() {
+    const c = VEIL_TUBE, top = c.y + c.r + 4;
+    return sectionGeo([[-1.9, top - 0.5], [1.9, top - 0.5], [1.3, VFS], [-1.3, VFS]], c.x0 + 11, c.x0 + 14.2);
+  }
+  // the claw mount: a base on the receiver's top, claws down both sides, a riser, two rings round the tube
+  function mountGeo() {
+    const g = [], ring = DOT - OPT.r;
+    g.push(sectionGeo([[-14, RTOP - 1], [14, RTOP - 1], [13, RTOP + 6], [-13, RTOP + 6]], 318, 408));
+    for (const [a, b] of [[322, 338], [390, 406]]) {
+      for (const sd of [-1, 1]) g.push(sectionGeo([[RW - 0.5, 18], [RW + 3.5, 18], [RW + 3.5, RTOP + 5], [RW - 0.5, RTOP + 5]].map(([x, y]) => [sd * x, y]), a, b));
+      g.push(sectionGeo([[-7, RTOP + 6], [7, RTOP + 6], [5.5, ring + 2], [-5.5, ring + 2]], a + 3, b - 3)); // the riser, a slim web
+      g.push(sectionGeo(arc(0, DOT, OPT.r + 2, 0, 2 * Math.PI, 28).slice(0, -1), a + 4.5, b - 4.5, { holes: [arc(0, DOT, OPT.r + 0.2, 0, 2 * Math.PI, 28).slice(0, -1)] }));
+    }
+    g.push(cylGeo(4.5, 4.5, 5, 14, 'x', 330, 26, -(RW + 6))); // the claws' lever on the left
+    return merged(g);
+  }
+  // the optic: an open tube, a wider objective bell with the lens at the front, an eyepiece, two turrets
+  function opticGeo() {
+    const g = [];
+    g.push(tube(18, 16, 322, OPT.x0, DOT, 32, true)); // the objective bell
+    g.push(ringGeo(15.6, 18, 322, DOT, 0, 32)); // its rim, round the lens
+    g.push(tube(OPT.r, OPT.r, OPT.x0, OPT.x1, DOT, 32, true));
+    g.push(tube(15.5, 16.5, OPT.x1, 410, DOT, 32, true)); // the eyepiece
+    g.push(cylGeo(6, 6, 8, 16, 'y', 366, DOT + OPT.r + 4, 0)); // elevation turret
+    g.push(cylGeo(6, 6, 8, 16, 'x', 366, DOT, OPT.r + 4)); // windage turret
+    g.push(cylGeo(4.4, 4.4, 6, 14, 'x', 352, DOT, -(OPT.r + 3))); // the brightness knob on the left
+    return merged(g);
+  }
+  function lensGeo() {
+    return ringGeo(0, 15.7, OPT.lens - 1, DOT, 0, 32);
+  }
+  function dotGeo() {
+    const d = new T.CircleGeometry(S(0.9), 14); // faces back, toward the eye
+    d.translate(0, Y(DOT), Z(OPT.lens) + S(0.3));
+    return d;
+  }
+
+  GUN_BUILD.whisper = () => {
+    const b = GunBuilder();
+    const root = b.group;
+    const m = veilMaterials();
+    root.name = 'dfdf-whisper';
+    root.userData.weaponModel = 'dfdf-whisper';
+    root.userData.modelRevision = 1;
+    // its first-person flash is at its muzzle, small and dim: the can takes most of it (18-gun-effects.js)
+    root.userData.fpFlash = { quiet: true };
+    root.userData.anchors = {
+      right: [0.004, Y(-60), Z(416)],
+      // the left hand on the front of the magazine well, behind the can: clear of the sights, the can and the muzzle
+      // (the hand rig grips about 13 mm ahead of this point, so it is set back from the can's rear at 228)
+      left: [S(-6), Y(-54), Z(246)],
+      muzzle: [0, Y(0), Z(CAN.x0 - 1)],
+      // the line of sight: the red dot's centre (ADS puts it on the screen centre)
+      sight: [0, Y(DOT), Z(OPT.lens) + S(0.3)],
+    };
+    const add = (name, geo, mat, parent = root) => {
+      const mesh = new T.Mesh(geo, mat);
+      mesh.name = name;
+      parent.add(mesh);
+      return mesh;
+    };
+    add('whisper-receiver', receiverGeo(), m.receiver);
+    add('whisper-spot-welds', weldGeo(), m.weld);
+    add('whisper-can', canGeo(), m.can);
+    add('whisper-front-sight', veilFrontSightGeo(), m.receiver);
+    add('whisper-cocking-tube', cockingTubeGeo(VEIL_TUBE), m.receiver);
+    add('whisper-lower', lowerGeo(), m.poly);
+    add('whisper-grip-texture', gripPanelGeo(), m.grip);
+    add('whisper-controls', controlsGeo(false), m.dark);
+    add('whisper-front-post', veilPostGeo(), m.dark);
+    add('whisper-mount', mountGeo(), m.dark);
+    add('whisper-optic', opticGeo(), m.optic);
+    add('whisper-optic-lens', lensGeo(), m.lens);
+    add('whisper-red-dot', dotGeo(), m.dot);
+    add('whisper-pins', veilPinsGeo(), m.steel);
+    add('whisper-bolt', boltGeo(), m.steel);
+    add('whisper-dark', receiverDarkGeo(VEIL_TUBE), m.bore);
+    add('whisper-bore', canBoreGeo(), m.bore);
+    const handle = new T.Group();
+    handle.name = 'whisper-charging-handle';
+    handle.userData.legacyAction = 'charge';
+    handle.userData.travel = S(VEIL_TUBE.travel);
+    handle.userData.reload = { grip: handleGrip(VEIL_TUBE) };
+    root.add(handle);
+    add('whisper-handle', handleGeo(VEIL_TUBE), m.dark, handle).userData.live = true;
+    // the stock: extended, collapsed in first person (off the bottom of the screen)
+    const stock = new T.Group();
+    stock.name = 'whisper-stock';
+    stock.userData.firstPerson = { position: [0, 0, -S(STOCK.collapse)] };
+    root.add(stock);
+    add('whisper-stock-struts', strutGeo(), m.steel, stock);
+    add('whisper-stock-butt', buttGeo(), m.butt, stock);
+    add('whisper-stock-pad', padGeo(), m.pad, stock);
+    const magPart = (name, geo, mat) => {
+      const mesh = b.mag(mat, S(1), S(1), S(1), 0, 0, 0, 0);
+      mesh.geometry.dispose();
+      mesh.geometry = geo;
+      mesh.name = name;
+      return mesh;
+    };
+    magPart('whisper-magazine', magBodyGeo(), m.mag);
+    magPart('whisper-magazine-floorplate', magPlateGeo(), m.mag);
+    magPart('whisper-magazine-round', roundGeo(), m.round);
+    return root;
+  };
+  // for the checks: the front post's tip and the optic's window (its eyepiece's inner radius, at its rear)
+  window.GUN_MODEL_WHISPER = { revision: 1, mm: K, post: [0, Y(VFS), Z(VEIL_TUBE.x0 + 12.6)], window: { r: S(15.5), at: [0, Y(DOT), Z(410)] }, canRear: Z(CAN.x1) };
 
   GUN_BUILD.smg = () => {
     const b = GunBuilder();
