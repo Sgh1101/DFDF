@@ -27,7 +27,7 @@ const {fixture} = require('./browser-fixture');
     const times=[];
     for (let i=0;i<120;i++) {world.phase='live';world.roundTime=999;const start=performance.now();step(.016);times.push(performance.now()-start);}
     times.sort((a,b)=>a-b);
-    const result={colliders:COLLIDERS.length,textures:ASCENT_TRIAL.textureCount,medianMs:times[60],p95Ms:times[114],totalMs:times.reduce((a,b)=>a+b,0)};
+    const result={colliders:COLLIDERS.length,cover:COLLIDERS.filter((c)=>c.cover).length,textures:ASCENT_TRIAL.textureCount,medianMs:times[60],p95Ms:times[114],totalMs:times.reduce((a,b)=>a+b,0)};
     drawMini();drawTac(); // step() no longer draws the maps (the frame does, on a clock): warm both terrain images here
     const fill=CanvasRenderingContext2D.prototype.fillRect, counts={mini:0,terrain:0};
     CanvasRenderingContext2D.prototype.fillRect=function(){if(this.canvas===mini)counts.mini++;else if(this.canvas!==tac)counts.terrain++;return fill.apply(this,arguments);};
@@ -49,7 +49,7 @@ const {fixture} = require('./browser-fixture');
    });
    results[label]=result;console.log(label,JSON.stringify(result));
    fs.writeFileSync('test-results/performance.json',JSON.stringify(results,null,2));
-   assert.equal(result.colliders,require('../assets/maps/ascent/manifest.json').colliders);assert.equal(result.textures,239);
+   assert.equal(result.colliders,require('../assets/maps/ascent/manifest.json').colliders+result.cover);assert.ok(result.cover>=8,'our own cover stands '+result.cover);assert.equal(result.textures,239);
    if(label==='after'){
     assert.ok(result.rects.mini<100,JSON.stringify(result));assert.equal(result.rects.terrain,0,'warm terrain stays cached');
     assert.equal(result.pixelDifferences,0,'all source wall pixels match the original draw');

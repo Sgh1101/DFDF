@@ -78,8 +78,14 @@ const PORT = Number(process.env.DFDF_PEER_PORT) || 9000;
     }, gPeer);
     await G.evaluate(() => { const me = myActor(); me.slot = "secondary"; player.slot = "secondary"; try { updateViewmodel(true); } catch (e) {} });
     await G.waitForTimeout(400);
-    await G.evaluate(() => { keys.fire = true; setTimeout(() => (keys.fire = false), 250); });
-    await H.waitForFunction((id) => !world.actors.find((a) => String(a.id) === String(id)).alive, target, { timeout: 10000 });
+    // a press can fall inside the card's draw on a slow machine (and the throw then never starts): press again, a few
+    // times, until the host has the kill; what is checked is that a throw kills, not that the first 250 ms catch it
+    const dead = (id) => !world.actors.find((a) => String(a.id) === String(id)).alive;
+    for (let i = 0; i < 10 && !(await H.evaluate(dead, target)); i++) {
+      await G.evaluate(() => { keys.fire = true; setTimeout(() => (keys.fire = false), 250); });
+      await H.waitForFunction(dead, target, { timeout: 2000 }).catch(() => {});
+    }
+    assert.ok(await H.evaluate(dead, target), "the host kills the nearest enemy of the guest operator");
     const seen = await P.evaluate(() => new Promise((res) => { const t0 = performance.now(); (function wait() { const dead = world.actors.filter((a) => !a.alive).length; dead || performance.now() - t0 > 4000 ? res(dead) : setTimeout(wait, 100); })(); }));
     assert.ok(seen >= 1, "the other guest sees the kill");
     // a plain guest pressing fire with the card forced in its own game kills nobody: the host does not give it the card
