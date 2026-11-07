@@ -24,8 +24,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{fixture}=requi
   out.preview=corners.map(p=>p.project(previewCam)).every(p=>Math.abs(p.x)<.94&&Math.abs(p.y)<.94&&p.z>-1&&p.z<1);
   const before=new Set(scene.children);world.spike.state='planted';world.over=false;detonate();out.blast=scene.children.filter(m=>!before.has(m)&&['RingGeometry','SphereGeometry'].includes(m.geometry?.type)).map(m=>({type:m.geometry.type,y:m.position.y}));
   keys.f=keys['4']=false;world.spike.state='carried';a.hasSpike=player.hasSpike=false;world.over=false;world.phase='live';
-  // Both decks at this real source position are connected to the main graph.
-  const goal={x:-114.625,z:55.125},from=MAP.attackSpawn,bot=world.actors.find(q=>q.ai);bot.pos.set(from.x,from.y,from.z);bot.y=from.y;bot.ai.path=null;
+  // Both decks at this point (the map is mirrored left to right since 2026-11-07) are connected to the main graph.
+  const goal={x:114.625,z:55.125},from=MAP.attackSpawn,bot=world.actors.find(q=>q.ai);bot.pos.set(from.x,from.y,from.z);bot.y=from.y;bot.ai.path=null;
   navNext(bot,goal.x,goal.z,.05,13.75);const low=bot.ai.path.at(-1)?.y;
   navNext(bot,goal.x,goal.z,.05,18.75);out.layer={low,high:bot.ai.path.at(-1)?.y,goalY:bot.ai.pathGoal?.y};
   world.spike.state='dropped';world.spike.x=goal.x;world.spike.z=goal.z;world.spike.y=18.75;bot.team='atk';bot.hasSpike=false;
