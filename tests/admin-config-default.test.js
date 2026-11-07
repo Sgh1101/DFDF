@@ -61,13 +61,12 @@ test("with nothing saved, a_config_reset gives the built-in values and says so",
   assert.equal(g.saved, null);
 });
 
-test("both kinds of reset keep the season clock and number and today's and this week's shop numbers", async () => {
+test("both kinds of reset keep today's and this week's shop numbers", async () => {
   const { h, A, get } = await setup();
-  const dflt = clone(h.config); dflt.aim.strength = 77; dflt.season.startDay = 20260101; dflt.season.skip = 1; dflt.shop.reroll = 2; dflt.shop.weekly.reroll = 3;
+  const dflt = clone(h.config); dflt.aim.strength = 77; dflt.shop.reroll = 2; dflt.shop.weekly.reroll = 3;
   await h.api("a_config_default_set", { atoken: A, config: dflt });
-  const cur = clone(dflt); cur.aim.strength = 5; cur.season.startDay = 20261020; cur.season.skip = 4; cur.shop.reroll = 8; cur.shop.weekly.reroll = 9;
+  const cur = clone(dflt); cur.aim.strength = 5; cur.shop.reroll = 8; cur.shop.weekly.reroll = 9;
   const keep = (g, why) => {
-    assert.equal(g.config.season.startDay, 20261020, why); assert.equal(g.config.season.skip, 4, why);
     assert.equal(g.config.shop.reroll, 8, why); assert.equal(g.config.shop.weekly.reroll, 9, why);
   };
   await h.api("a_config_set", { atoken: A, config: cur });
@@ -81,7 +80,7 @@ test("both kinds of reset keep the season clock and number and today's and this 
   await h2.api("a_config_set", { atoken: A2, config: cur });
   keep(await h2.api("a_config_reset", { atoken: A2 }), "nothing saved"); keep(await get2(), "nothing saved, read back");
   // the built-in values are not touched by any of it
-  assert.equal(h.config.season.skip, 0); assert.equal(h.config.shop.reroll, 0); assert.equal(h.config.shop.weekly.reroll, 0);
+  assert.equal(h.config.shop.reroll, 0); assert.equal(h.config.shop.weekly.reroll, 0);
 });
 
 test("settings that do not pass the checks are refused and neither the config nor the default changes", async () => {
@@ -141,7 +140,7 @@ test("config_get and the resets leave the built-in values alone for the next req
   const { h, A } = await setup();
   const before = JSON.stringify(h.config);
   await h.api("a_config_reset", { atoken: A });
-  const c = clone(h.config); c.season.skip = 3; c.shop.reroll = 4;
+  const c = clone(h.config); c.shop.reroll = 4;
   await h.api("a_config_default_set", { atoken: A, config: c });
   await h.api("a_config_reset", { atoken: A, to: "factory" });
   await h.api("a_config_reset", { atoken: A });

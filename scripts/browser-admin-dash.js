@@ -7,8 +7,8 @@ const { harness } = require("../tests/api-harness");
   const h = harness({ now: Date.now() }), errors = [];
   const owner = await h.api("auth", { id: "owner", pw: "owner-password", device: "admin-dash" });
   for (const id of ["alpha", "bravo", "charlie"]) await h.api("auth", { id, pw: "password", device: "dev-" + id });
-  await h.api("a_user_set", { atoken: owner.atoken, id: "alpha", op: "rr", rr: 1250 });
-  await h.api("a_user_set", { atoken: owner.atoken, id: "bravo", op: "rr", rr: 420 });
+  // the tier shown is the level's (ranked play and its points are gone): alpha at level 30 is 금빛 1
+  await h.api("a_user_set", { atoken: owner.atoken, id: "alpha", op: "level", level: 30 });
   const browser = await chromium.launch({ ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}), headless: true, args: ["--no-sandbox"] });
   try {
     const open = async (viewport) => {
@@ -30,12 +30,14 @@ const { harness } = require("../tests/api-harness");
       kpis: document.querySelectorAll(".kpis .kpi").length,
       bars: document.querySelectorAll(".bars b").length,
       ranks: document.querySelectorAll(".hbar").length,
+      season: !!document.querySelector("#ssn") || /시즌|TP/.test(document.querySelector("#main").textContent),
       chips: [...document.querySelectorAll("#db-sw .chip")].map((c) => c.textContent.trim()),
-      top: document.querySelector(".mini") && document.querySelector(".mini").textContent,
+      top: [...document.querySelectorAll(".mini")].map((t) => t.textContent).join(" "),
       quick: document.querySelectorAll(".qc [data-q]").length,
     }));
     console.log(JSON.stringify(dash));
-    assert.ok(dash.kpis >= 14 && dash.bars === 14 && dash.ranks >= 9 + 6 && dash.quick >= 12, "the dashboard has its cards, the 14-day chart, the tier and grant bars, the quick controls");
+    assert.ok(dash.kpis >= 13 && dash.bars === 14 && dash.ranks >= 6 && dash.quick >= 9, "the dashboard has its cards, the 14-day chart, the grant bars, the quick controls");
+    assert.equal(dash.season, false, "no season, no rank points");
     assert.ok(dash.chips.includes("PC 에임 보정 켬") && dash.chips.includes("점검 모드 끔"));
     assert.match(dash.top, /alpha/);
     await page.screenshot({ path: process.env.SHOT_DIR ? process.env.SHOT_DIR + "/admin-dash.png" : "/tmp/admin-dash.png", fullPage: true });
@@ -51,19 +53,11 @@ const { harness } = require("../tests/api-harness");
     await page.waitForFunction(() => /주말 이벤트/.test(document.querySelector("#main").textContent) && document.querySelector('[data-q="aim.strength"]').value === "55");
     const cfg = (await h.api("a_config_get", { atoken: owner.atoken })).config;
     assert.equal(cfg.aim.strength, 55); assert.equal(cfg.gacha.cost1, 250); assert.equal(cfg.game.announcement, "주말 이벤트");
-    // the season: its rewards, and ending it now
-    const n0 = await page.evaluate(() => +document.querySelector("#ssn h3").textContent.match(/시즌 (\d+)/)[1]);
-    await page.fill('[data-q="season.gold.gold"]', "900");
-    await page.selectOption('[data-q="season.skinTier"]', "5");
-    await page.click("#ssn-save");
-    await page.waitForFunction(() => document.querySelector('[data-q="season.gold.gold"]').value === "900" && new RegExp(RANK_KO[5] + " 이상은 전용 스킨").test(document.querySelector("#ssn").textContent));
-    let sc = (await h.api("a_config_get", { atoken: owner.atoken })).config.season;
-    assert.equal(sc.gold.gold, 900); assert.equal(sc.skinTier, 5);
-    await page.click("#ssn-end");
-    await page.waitForFunction((n) => new RegExp("시즌 " + (n + 1) + " ").test(document.querySelector("#ssn h3").textContent), n0);
-    sc = (await h.api("a_config_get", { atoken: owner.atoken })).config.season;
-    const today = new Date(Date.now() + 9 * 36e5);
-    assert.equal(sc.skip, n0); assert.equal(sc.startDay, today.getUTCFullYear() * 1e4 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate());
+    // the accounts list: the tier from the level
+    await page.click('#nav button[data-v="users"]');
+    await page.waitForSelector('tr[data-id="alpha"]');
+    assert.match(await page.textContent('tr[data-id="alpha"]'), /금빛 1/);
+    assert.equal(await page.$('tr[data-id="alpha"] button[data-op="rr"]'), null, "no rank points to set");
     // one account: aim assist on a computer for 7 days
     await page.click('#nav button[data-v="users"]');
     await page.waitForSelector('tr[data-id="bravo"] button[data-op="aim"]');
