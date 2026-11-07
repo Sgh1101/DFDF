@@ -454,13 +454,17 @@
     try {
       // a part drawn otherwise in first person (gun-model-smg.js: its stock collapsed) is moved before anything is
       // measured; the gun on the floor, in the armory and in other fighters' hands is a different build and keeps it
+      // (or left out: firstPerson.remove, gun-model-shotgun.js's fixed stock, which would fill the aiming view)
+      const drop = [];
       g.traverse((n) => {
         const fp = n.userData.firstPerson;
         if (fp && fp.position && !n.userData.fpDone) {
           n.userData.fpDone = !0;
           n.position.add(V(...fp.position));
         }
+        fp && fp.remove && drop.push(n);
       });
+      for (const n of drop) n.parent && n.parent.remove(n);
       // the gun alone (the hands and arms are added next and baked in with it)
       g.updateMatrixWorld(!0);
       BUILD.gunBox = new T.Box3().setFromObject(g);
@@ -796,7 +800,8 @@
         cue("sh" + i, k, a0 + ((i + 0.5) / n) * (a1 - a0), () => SND.shell());
       } else {
         rl.shell && (rl.shell.visible = !1);
-        const pumpBack = P0.clone().add(V(0, -0.004, 0.065));
+        // the hand pulls the fore-end as far back as it goes (its own travel, gun-model-shotgun.js; the old pump's 65 mm)
+        const pa = (rl.actions || []).find((x) => "pump" === x.kind), pumpBack = P0.clone().add(V(0, -0.004, (pa && pa.node.userData.travel) || 0.065));
         path(H, k, low, [
           [0.84, P0],
           [0.9, pumpBack, out3],
@@ -886,7 +891,7 @@
   }
 
   // a pistol slide cycles with each shot: straight back with the kick, then home as the kick dies away
-  function cycle(rl) {
+  function cycle(rl, a) {
     if (!rl.actions || !rl.actions.length) return;
     const f = Math.min(1, Math.max(0, (VM.kick || 0) / 0.85));
     if (!f) return;
@@ -899,6 +904,16 @@
       else if (action.kind === "hammer") n.rotation.x = action.rotation.x + (u.cock || 0.5) * pull;
       else if (action.kind === "trigger") n.rotation.x = action.rotation.x - (u.pull || 0.3) * pull;
       else if (action.kind === "cylinder") n.rotation.z = action.rotation.z + (u.spin || 0) * sm(1 - f);
+      // a pump gun (one whose fore-end says how far it travels: gun-model-shotgun.js) is worked after every shot:
+      // the fore-end goes back and forward again, and the left hand, which holds it, goes with it
+      else if (action.kind === "pump" && u.travel) {
+        n.position.z = action.position.z + u.travel * Math.sin(Math.PI * (1 - f));
+        if (a && rl.lh && rl.lh0 && n.parent) {
+          n.parent.updateWorldMatrix(!0, !1);
+          const p0 = a.worldToLocal(n.parent.localToWorld(action.position.clone())), p1 = a.worldToLocal(n.parent.localToWorld(n.position.clone()));
+          rl.lh.position.copy(rl.lh0).add(p1.sub(p0));
+        }
+      }
     }
   }
   const _tick = tickViewmodel;
@@ -917,7 +932,7 @@
       if (!rel) RL.on = !1;
       RL.last = rel ? player.reloading : 0;
       if (!a || !rl || !rl.style) return r;
-      if (!RL.on || RL.key !== rl.key) return rest(rl), cycle(rl), r;
+      if (!RL.on || RL.key !== rl.key) return rest(rl), cycle(rl, a), r;
       if (!player.alive || !VM.root.visible || !a.visible) return r; // not posed this frame
       const k = Math.min(1, Math.max(0, 1 - player.reloading / RL.D));
       const o = pose(a, rl, k);
@@ -925,7 +940,12 @@
         action.node.position.copy(action.position);
         action.node.rotation.copy(action.rotation);
         if (action.kind === "break") action.node.rotation.x -= .55 * sm(seg(k, .1, .2)) * (1 - sm(seg(k, .63, .72)));
-        if (action.kind === "pump") action.node.position.z += .065 * Math.sin(Math.PI * seg(k, .78, .94));
+        // the pump: a fore-end that says its travel is carried by the hand at the end (the hand's own way back and forward);
+        // the old pump keeps its fixed stroke
+        if (action.kind === "pump") {
+          const tv = action.node.userData.travel;
+          action.node.position.z += tv && rl.lh && rl.lh0 ? (k >= 0.84 ? Math.max(0, Math.min(tv, rl.lh.position.z - rl.lh0.z)) : 0) : .065 * Math.sin(Math.PI * seg(k, .78, .94));
+        }
         // a pistol slide: pulled back once the fresh magazine is in, then let go
         if (action.kind === "slide") action.node.position.z += (action.node.userData.travel || .06) * sm(seg(k, .55, .6)) * (1 - sm(seg(k, .61, .64)));
         // a charging handle: the left hand pulls it all the way back, then lets it fly home (the hand follows it)

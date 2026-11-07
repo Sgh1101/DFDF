@@ -87,7 +87,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.ok(out.fpStock < -0.15, "the stock is collapsed in first person " + out.fpStock);
     assert.ok(out.thumb > 1000, "the armory thumbnail renders");
     assert.ok(out.left && out.left[2] > out.frontSightZ + 0.15, "the left hand is well behind the front sight " + JSON.stringify(out.left));
-    assert.ok(Math.hypot(...out.post) < 3, "aiming puts the post's tip on the screen centre " + JSON.stringify(out.post));
+    assert.ok(Math.abs(out.post[0]) < 2 && out.post[1] < -4 && out.post[1] > -30, "aiming puts the post's tip just under the screen centre (the aim point stays clear) " + JSON.stringify(out.post));
     assert.ok(Math.hypot(out.hole[0] - out.post[0], out.hole[1] - out.post[1]) < 1.5, "the drum's peep hole is round the post " + JSON.stringify(out));
     assert.ok(out.handleBack > 0.09, "the reload pulls the charging handle back " + out.handleBack);
     assert.ok(out.handToHandle < 0.03, "the left hand is on the handle " + out.handToHandle);
