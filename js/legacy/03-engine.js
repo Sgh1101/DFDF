@@ -11761,7 +11761,10 @@ function updateViewmodel(e) {
     return;
   VM.current && VM.root.remove(VM.current);
   const a = getVMFor(t);
-  ((a.userData.key = t),
+  // a new viewmodel starts where the swap starts it (low at the hip), not at the eye: a frame drawn before its first tick
+  // would otherwise show the gun over the whole view
+  (a.position.lengthSq() < 1e-9 && (a.position.set(0.3, -0.38, -0.66), a.rotation.set(0, 0.04, 0)),
+    (a.userData.key = t),
     (a.userData.aid = o),
     (VM.current = a),
     VM.root.add(a),
@@ -11772,6 +11775,66 @@ function isScoped() {
   if (player && player.ultW) return !1;
   const e = WEAPONS[curWeaponKey()];
   return player.ads && e && !!SCOPE_FOV[curWeaponKey()];
+}
+// ── the aim point stays clear: no gun covers the screen centre when aiming ──
+// A gun lined up on its sight (a front post's tip, a bead) or held in the fixed aiming pose would cover the very point the
+// shots go to. The first time a gun is aimed, it is posed at rest in its aiming place and rays go through the screen centre
+// and a ring of points AIM_CLEAR_PX round it: while any of them meets the gun or the hands, the gun is tipped down a step
+// about the eye (not lowered: the eye stays on the sight line, so a rear aperture and the front post stay lined up). The
+// angle is kept on the gun (userData.adsTilt) and used every frame, so an iron sight sits just under the aim point (a six
+// o'clock hold). Only what is drawn counts: hits nearer than the camera's near plane (an arm reaching behind the eye) do not. A red dot's own dot (a mesh named "...red-dot") and see-through glass do not count:
+// the dot is the aiming mark, so for a gun that has one only the centre itself (AIM_DOT_PX) must be clear: its window may be
+// smaller than the ring, and lowering it would take the dot off the aim point.
+const AIM_DOT_PX = 2;
+// the search keeps AIM_CLEAR_MARGIN px more than it promises: the pose a frame ends with differs a little from the one
+// measured (the aiming bob and sway, idle motions other modules add after the tick: about 5 mm, 4 to 5 px)
+const AIM_CLEAR_PX = 5, AIM_CLEAR_MARGIN = 4, AIM_TILT_STEP = 0.0015, AIM_TILT_MAX = 0.2;
+const aimRay = new T.Raycaster();
+function aimCovered(g, px = AIM_CLEAR_PX) {
+  const W = Math.max(1, innerWidth), H = Math.max(1, innerHeight), rx = (2 * px) / W, ry = (2 * px) / H;
+  const pts = [[0, 0]];
+  for (let i = 0; i < 8; i++) pts.push([Math.cos((i * Math.PI) / 4) * rx, Math.sin((i * Math.PI) / 4) * ry]);
+  camera.updateMatrixWorld(!0);
+  let n = 0;
+  for (const [x, y] of pts) {
+    aimRay.setFromCamera(new T.Vector2(x, y), camera);
+    aimRay.near = camera.near || 0.01;
+    const hit = aimRay.intersectObject(g, !0).some((h) => {
+      const o = h.object, m = o.material;
+      if (!o.visible || /red-dot/.test(o.name || "")) return !1;
+      for (let p = o; p; p = p.parent) if (!p.visible) return !1;
+      return !(m && !Array.isArray(m) && m.transparent && m.opacity < 0.5);
+    });
+    hit && n++;
+  }
+  return n;
+}
+// the gun's aiming place (x, y, z: its position in front of the eye) turned down by `t` about the eye
+const aimTilted = (x, y, z, t) => [x, Math.cos(t) * y + Math.sin(t) * z, -Math.sin(t) * y + Math.cos(t) * z];
+function aimTiltFor(a, x, y, z) {
+  if (void 0 !== a.userData.adsTilt) return a.userData.adsTilt;
+  const p = a.position.clone(), r = a.rotation.clone(), fov = camera.fov;
+  let t = 0, dot = !1;
+  a.traverse((o) => /red-dot/.test(o.name || "") && (dot = !0));
+  try {
+    // measured at the aiming field of view (aiming zooms in over a few frames; the narrower view makes the same angle more
+    // pixels), not at whatever the view is on the first aimed frame
+    camera.fov = ("undefined" != typeof SCOPE_FOV && SCOPE_FOV[curWeaponKey()]) || 58;
+    camera.updateProjectionMatrix();
+    for (; t <= AIM_TILT_MAX; t += AIM_TILT_STEP) {
+      a.position.set(...aimTilted(x, y, z, t));
+      a.rotation.set(-t, 0, 0);
+      VM.root.updateMatrixWorld(!0);
+      if (!aimCovered(a, dot ? AIM_DOT_PX : AIM_CLEAR_PX + AIM_CLEAR_MARGIN)) break;
+    }
+  } catch (e) {
+    t = 0;
+  }
+  a.position.copy(p);
+  a.rotation.copy(r);
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+  return (a.userData.adsTilt = Math.min(t, AIM_TILT_MAX));
 }
 function tickViewmodel(e) {
   if (!player.alive) return void (VM.root.visible = !1);
@@ -11789,8 +11852,10 @@ function tickViewmodel(e) {
   const n = player.ads && !player.ultW,
     sv = n && a.userData.sight,
     r = n ? (sv ? -sv.x : 0) : 0.3,
-    s = n ? (sv ? -sv.y : -0.075) : -0.24,
-    i = n ? -0.72 : -0.66,
+    s0 = n ? (sv ? -sv.y : -0.075) : -0.24,
+    i0 = n ? -0.72 : -0.66,
+    tilt = n ? aimTiltFor(a, r, s0, i0) : 0,
+    [, s, i] = tilt ? aimTilted(r, s0, i0, tilt) : [r, s0, i0],
     l = Math.hypot(player.vel.x, player.vel.z);
   VM.bobT += e * (2.2 + 1.1 * l);
   const c = (n ? 0.1 : 1) * Math.min(l / 7, 1),
@@ -11834,11 +11899,27 @@ function tickViewmodel(e) {
     i + VM.kick * (w ? -0.09 : 0.07),
   ),
     a.rotation.set(
-      VM.kickRot * (w ? 0.15 : 0.5) + y + 1.6 * u - 1.4 * M,
+      VM.kickRot * (w ? 0.15 : 0.5) + y + 1.6 * u - 1.4 * M - tilt,
       -2.2 * p + (n ? 0 : 0.04) + (VM.kickSide || 0) * VM.kickRot * 0.07,
       1.1 * p + 0.4 * y + 0.6 * M,
     ),
     a.userData.anim && a.userData.anim(e, player.ultW));
+}
+// While aiming at rest, every 5th frame, on the pose as the frame leaves it (called after tickViewmodel and every module
+// that wraps it has moved the gun: idle motions, skins): if anything still touches the kept-clear ring, the gun is tipped a
+// little further. The angle only grows.
+function aimKeepClear() {
+  const a = VM.current;
+  if (!a || !player || !player.alive || !player.ads || player.ultW || !VM.root.visible || !a.visible) return;
+  if (VM.kick || VM.swapT || player.reloading > 0 || 0 != (VM.aimTick = ((VM.aimTick || 0) + 1) % 5)) return;
+  const tilt = a.userData.adsTilt || 0;
+  if (tilt >= AIM_TILT_MAX) return;
+  try {
+    VM.root.updateMatrixWorld(!0);
+    let dot = !1;
+    a.traverse((o) => /red-dot/.test(o.name || "") && (dot = !0));
+    aimCovered(a, dot ? AIM_DOT_PX : AIM_CLEAR_PX + 1) && (a.userData.adsTilt = Math.min(AIM_TILT_MAX, tilt + 2 * AIM_TILT_STEP));
+  } catch (e) {}
 }
 const VM_KICK = {
   저격총: [1.6, 0.95],
@@ -21000,6 +21081,7 @@ function step(e) {
       ((bannerT -= e), bannerT <= 0 && $("banner").classList.remove("show")),
     flashLight && (flashLight.intensity *= 0.82));
   (tickViewmodel(e),
+    aimKeepClear(),
     tickKillFx(e),
     tickDmgNums(e),
     tickEdge(e),

@@ -89,7 +89,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs"), path = re
     assert.deepEqual(out.actions, ["pump"], "one moving part: the pump");
     assert.ok(out.meshes <= 30 && out.thumb > 1000 && out.thirdPerson, "a bounded model, a thumbnail and a world template " + out.meshes);
     assert.ok(out.left[2] > out.foreEnd[0] && out.left[2] < out.foreEnd[1] + 0.02 && out.left[1] < out.boreY, "the left hand is on the fore-end, under the barrel " + JSON.stringify([out.left, out.foreEnd]));
-    assert.ok(Math.hypot(...out.bead) < 3, "aiming puts the bead on the screen centre " + JSON.stringify(out.bead));
+    assert.ok(Math.abs(out.bead[0]) < 2 && out.bead[1] < -4 && out.bead[1] > -30, "aiming puts the bead just under the screen centre (the aim point stays clear) " + JSON.stringify(out.bead));
     assert.ok(out.top[1] < out.bead[1] && out.bead[1] - out.top[1] < 40 && Math.abs(out.top[0]) < 2, "the receiver's top shows just below the bead " + JSON.stringify(out.top));
     assert.ok(!out.stock.fp && !out.stock.fpGroup && out.stock.fpWrist && out.stock.tp, "the whole stock is left out of first person (the wrist stays), and kept elsewhere " + JSON.stringify(out.stock));
     assert.ok(out.below.filter(Boolean).length <= 1, "the aiming view below the bead is clear of the stock " + JSON.stringify(out.below));
