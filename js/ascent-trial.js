@@ -368,7 +368,7 @@
   const oldRespawn=respawnAll;
   respawnAll=function(){const r=oldRespawn.apply(this,arguments);if(on())placeActors();return r;};
   const oldRound=startRound;
-  startRound=function(){const r=oldRound.apply(this,arguments);if(on())placeActors();return r;};
+  startRound=function(){const r=oldRound.apply(this,arguments);if(on()&&room.mode!=='zone')placeActors();return r;};
   const oldCreate=createActor;
   createActor=function(){const a=oldCreate.apply(this,arguments);if(on()){const p=safe(a.pos);a.y=p.y;a.pos.y=p.y;}return a;};
   const oldLoad=loadMap;
