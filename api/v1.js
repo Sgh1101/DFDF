@@ -143,43 +143,24 @@ const DEFAULT_CONFIG = {
   // weekly: next to it, from Monday (Korea) a few epic and legendary skins at off% off for
   // the whole week; its own reroll number
   shop: { on: !0, mix: { common: 7, rare: 6, epic: 4, legendary: 3 }, price: { common: 1200, rare: 3000, epic: 7000, legendary: 15000 }, knife: 1.5, reroll: 0, weekly: { on: !0, mix: { epic: 2, legendary: 3 }, off: 30, reroll: 0 } },
-  // the rank (tier): rating points (RR) after each match. A win adds win + perKill
-  // a kill (up to maxKill); a loss takes loss, less half the kill bonus (never
-  // under half of loss). 100 RR a division, three divisions a tier; a day's
-  // gain has a ceiling, as the result is what the game reports (0 = none). RR moves
-  // only in a ranked room (admin and cheats off) and with at least minHumans people.
-  // Leaving a counted ranked match (on the roster, took a ticket, not there at the end) is a loss for
-  // that account plus leaveRR more; a drop that is back within leaveGraceS seconds is not leaving.
-  // The host watches for a player with no input change for afkWarnS seconds (a warning on his screen),
-  // then afkLeaveS seconds later he is handed to a bot and counts as having left (0 = no AFK check;
-  // ranked rooms only). A team can vote to surrender from round surrenderRound on (the mode's first
-  // surrenderS seconds in the modes without rounds): surrenderVoteS seconds to vote, then surrenderCoolS
-  // before the next try; surrenderRound 0 = no surrender.
-  rank: { win: 20, loss: 12, perKill: 1, maxKill: 8, maxPerDay: 300, minHumans: 3, leaveRR: 8, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
-  // the AI competitive match in solo (a rating of its own, u.ai, on the same tier scale; the real rank, seasons and the
-  // leaderboard never move for it). A solo match with a valid ticket, std mode, a 5v5 map, played to 13 rounds counts: a win
-  // adds win + perKill a kill (up to maxKill), a loss takes loss, less half the kill bonus (never under half of loss). A day's
-  // gain has a ceiling, as the result is what the game reports (0 = none). on: switches the whole thing
-  aiComp: { on: !0, win: 18, loss: 10, perKill: 1, maxKill: 8, maxPerDay: 150 },
+  // Ranked play and its rating were removed on 2026-11-07 (the owner's call): what is left under `rank` is what a
+  // game needs for leaving, AFK and surrender. The host watches for a player with no input change for afkWarnS
+  // seconds (a warning on his screen), then afkLeaveS seconds later he is handed to a bot (0 = no AFK check). A team
+  // can vote to surrender from round surrenderRound on (the mode's first surrenderS seconds in the modes without
+  // rounds): surrenderVoteS seconds to vote, then surrenderCoolS before the next try; surrenderRound 0 = no surrender.
+  rank: { minHumans: 3, leaveGraceS: 60, afkWarnS: 90, afkLeaveS: 30, surrenderRound: 5, surrenderS: 240, surrenderVoteS: 15, surrenderCoolS: 60 },
   // profile cosmetics (titles, name cards, kill effects) bought with gold: the price of one by
   // its tier (1 common … 4 legendary); on switches the whole thing
   cos: { on: !0, price: { 1: 600, 2: 1800, 3: 4500, 4: 10000 } },
   // clans: a clan costs `cost` gold to make and holds `max` members at most (2 to 50); on switches the whole thing
   // (the homepage section, the tags beside names in a game and the clan board)
   clan: { on: !0, cost: 1000, max: 50 },
-  // seasons: every `weeks` weeks from startDay (a date in Korea, YYYYMMDD) a season ends.
-  // Each account keeps keep% of its RR; whoever played at least minPlay counted ranked
-  // matches in it gets the gold of the tier it finished on, and from skinTier up (0 iron …
-  // 8 radiant, 9 nobody) the season's own skin, 월계관, on every gun. skip: seasons the
-  // owner ended early (the panel's "end it now" moves startDay to today and raises skip)
-  season: { on: !0, weeks: 4, startDay: 20261001, skip: 0, keep: 50, minPlay: 3, skinTier: 3, gold: { iron: 100, bronze: 200, silver: 400, gold: 700, platinum: 1000, diamond: 1500, ascendant: 2200, immortal: 3000, radiant: 5000 } },
   // daily and weekly missions: how many (matches, kills, wins) and the gold each pays
   // when claimed. Counted here from the match reports; a day starts at midnight in
   // Korea, a week on Monday. 0 turns a mission off.
   // aim assist: on phones free for everyone (a switch in the game's settings), on a
-  // computer only for accounts the owner opened it for (or in admin mode), never in a
-  // ranked room on a computer. strength in %, range in metres, cone in degrees;
-  // ranked: phones keep it in ranked rooms
+  // computer only for accounts the owner opened it for (or in admin mode). strength in %, range in metres, cone in
+  // degrees; `ranked` is from when there were ranked rooms and changes nothing now
   aim: { mobile: !0, pc: !0, strength: 35, range: 45, cone: 8, ranked: !0 },
   mission: { dPlay: 3, dPlayGold: 100, dKill: 15, dKillGold: 150, dWin: 1, dWinGold: 150, wPlay: 15, wPlayGold: 500, wKill: 100, wKillGold: 700, wWin: 7, wWinGold: 800 },
   channels: [
@@ -392,69 +373,54 @@ const activePerm = (u) => {
 // where the account's own cheats live: under the full set admin mode lends (permBefore), or in perm itself
 const ownPerm = (u) => (u.permAdmin ? u.permBefore || null : u.perm || null);
 const setOwnPerm = (u, p) => (u.permAdmin ? (u.permBefore = p) : (u.perm = p));
-// the tiers, low to high: 3 divisions of 100 rr each, then the top tier from 2400 rr. These keys are stored
-// (config season.gold.*); the names players see are the game's own (구리 ... 왕좌, js/legacy/71-…)
-const RANKS = ["iron", "bronze", "silver", "gold", "platinum", "diamond", "ascendant", "immortal", "radiant"];
-const rankOf = (rr) => {
-  rr = Math.max(0, Math.round(+rr || 0));
-  const d = Math.floor(rr / 100);
-  return d >= 24 ? { rr, t: 8, tier: RANKS[8], div: 0, into: rr - 2400 } : { rr, t: Math.floor(d / 3), tier: RANKS[Math.floor(d / 3)], div: (d % 3) + 1, into: rr % 100 };
-};
-// ── hidden MMR and placement ──
-// Every account carries a hidden `mmr` (an Elo rating) next to the visible RR. The
-// first PLACE_N counted ranked matches are placement: MMR swings hard (K_PLACE), the
-// tier stays hidden, and after the last one RR is set from MMR. After that RR moves by the
-// base win/loss value scaled by how strong the other team was (see rrDelta).
-const MMR_BASE = 1000, // MMR of 0 RR; one RR is one MMR point when an account is first read
-  ELO_SCALE = 400,
-  PLACE_N = 5,
-  K_PLACE = 120,
-  K_RANKED = 32,
-  RANGE_BASE = 150, // a ranked room takes players within this many MMR of its average...
-  RANGE_STEP = 50, // ...plus this much for every minute the room has been open...
-  RANGE_MAX = 600, // ...up to this
-  BAND = 50; // the room's average MMR is shown rounded to this
-const mmrFromRR = (rr) => MMR_BASE + Math.max(0, Math.round(+rr || 0));
-const rrFromMMR = (m) => Math.max(0, Math.round((+m || 0) - MMR_BASE));
-// chance (0..1) that a team averaging `mine` beats one averaging `theirs`
-const eloExpected = (mine, theirs) => 1 / (1 + Math.pow(10, ((+theirs || 0) - (+mine || 0)) / ELO_SCALE));
-const mmrAfter = (mmr, expected, score, placing) => Math.max(0, Math.min(9999, Math.round((+mmr || 0) + (placing ? K_PLACE : K_RANKED) * (score - expected))));
-// RR change after placement: the base win/loss value times a factor in [0.5, 1.5] from the
-// opponent's strength (beat a stronger team: more; lose to a weaker one: more), plus the kill
-// bonus as before (a win adds it; a loss takes less, never under half the loss)
-function rrDelta(R, win, expected, kills) {
-  const kb = Math.max(0, Math.min(+R.maxKill || 0, (kills | 0) * (+R.perKill || 0))),
-    clamp = (x) => Math.max(0.5, Math.min(1.5, x));
-  if (win) return Math.round((+R.win || 0) * clamp(0.5 + (1 - expected))) + kb;
-  const loss = (+R.loss || 0) * clamp(0.5 + expected);
-  return -Math.max(Math.ceil(loss / 2), Math.round(loss - kb / 2));
+// Ranked play was removed (2026-11-07): an account has no RR, MMR, placement, season or AI rating any more, and what
+// an older account still carries of them is deleted the next time it is read (rankPurge); the season boards and the
+// ranked-match keys go once, on the first request after the update (purgeRankedKeys). The tier a player sees is his
+// level (js/tier-level.js).
+const RANK_FIELDS = ["rr", "mmr", "placed", "ssn", "ssnLog", "ai", "aiDay", "rrDay", "rmDone"];
+function rankPurge(u) {
+  let changed = !1;
+  for (const k of RANK_FIELDS) Object.hasOwn(u, k) && (delete u[k], (changed = !0));
+  return changed;
 }
-const joinRange = (ageMs) => Math.min(RANGE_MAX, RANGE_BASE + RANGE_STEP * Math.floor(Math.max(0, +ageMs || 0) / 60000));
-const bandOf = (mmr) => Math.round(mmr / BAND) * BAND;
-// May this account (its mmr) join that ranked room (its average mmr, when it opened)? The
-// owner and any room without a measured average are open. Only the answer leaves the server.
-function canJoinRanked(account, room, t = now()) {
-  const range = joinRange(t - ((room && +room.created) || t));
-  if (!room || !room.ranked || account.owner || !Number.isFinite(room.mmr)) return { ok: !0, range };
-  return { ok: Math.abs(account.mmr - room.mmr) <= range, range };
+// The rest goes in small steps, at most one a minute on each server, after a request has been answered: first the season
+// boards (lb:<season number>) and what ranked matches kept (rm*:), then the accounts, RANK_PURGE_N at a time, from the start
+// of the account list to its end (an account that changed meanwhile is skipped: its next read deletes the fields anyway).
+// Where it is lives in `purge:ranked` ({ at, users } and then { done }). Nothing else is touched: match history, logs and the
+// skins an account owns (월계관 too) stay.
+const RANK_PURGE = "purge:ranked", RANK_PURGE_N = 100, RANKED_KEYS = ["lb:*", "rm:*", "rmres:*", "rmroom:*", "rmt:*", "rmv:*", "rmvoid:*", "rmopen:*", "rstart:*"];
+let rankPurgeNext = 0;
+async function purgeRankedStep() {
+  if (now() < rankPurgeNext) return;
+  rankPurgeNext = now() + 60000;
+  const st = await getJ(RANK_PURGE);
+  if (st && st.done) return void (rankPurgeNext = Infinity);
+  if (!st) {
+    if ((await redis(["SET", RANK_PURGE, JSON.stringify({ at: 0, users: 0, t: now() }), "NX"])) === null) return;
+    const keys = new Set();
+    for (const pat of RANKED_KEYS) for (const k of (await redis(["KEYS", pat])) || []) (!k.startsWith("lb:") || /^lb:\d+$/.test(k)) && keys.add(k);
+    const list = [...keys];
+    for (let i = 0; i < list.length; i += 500) await redis(["DEL", ...list.slice(i, i + 500)]);
+    return void (await log("admin", `랭크 데이터 삭제: 시즌 순위표와 랭크전 기록 ${list.length}개`));
+  }
+  const at = Math.max(0, st.at | 0), ids = (await redis(["ZRANGE", "users", String(at), String(at + RANK_PURGE_N - 1)])) || [];
+  const raws = ids.length ? (await redis(["MGET", ...ids.map(userKey)])) || [] : [];
+  let fixed = 0;
+  for (const raw of raws) {
+    if (!raw) continue;
+    let u;
+    try { u = JSON.parse(raw); } catch (e) { continue; }
+    if (!isObj(u) || !rankPurge(u)) continue;
+    Object.defineProperty(u, SNAPSHOT, { value: raw, writable: true });
+    try { await saveUser(u); fixed++; } catch (e) {}
+  }
+  const users = (st.users | 0) + fixed;
+  if (ids.length < RANK_PURGE_N) {
+    await setJ(RANK_PURGE, { done: 1, users, t: now() });
+    await log("admin", `랭크 데이터 삭제 끝: 계정 ${users}개에서 지움`);
+    rankPurgeNext = Infinity;
+  } else await setJ(RANK_PURGE, { at: at + ids.length, users, t: st.t });
 }
-// an account from before MMR counts as placed when it already has RR or ranked history
-const legacyPlaced = (u) => (+u.rr || 0) > 0 || (isObj(u.ssn) && (u.ssn.played | 0) > 0) || (Array.isArray(u.hist) && u.hist.some((m) => m && m.rk));
-const placedOf = (u) => (Number.isFinite(u.placed) ? Math.max(0, Math.min(PLACE_N, u.placed | 0)) : legacyPlaced(u) ? PLACE_N : 0);
-const mmrOf = (u) => (Number.isFinite(u.mmr) ? u.mmr : mmrFromRR(u.rr));
-// first read of an older account: MMR from its RR, placement already done if it has played ranked
-function rankInit(u) {
-  if (u.guest || (Number.isFinite(u.mmr) && Number.isFinite(u.placed))) return !1;
-  u.placed = placedOf(u);
-  u.mmr = mmrOf(u);
-  return !0;
-}
-// what the account shows: the tier while placing is hidden
-const rankView = (u) => (!u.guest && placedOf(u) < PLACE_N ? Object.assign(rankOf(0), { hidden: !0 }) : rankOf(u.rr));
-// ── the AI competitive rating (u.ai = {rr, played, w, best}): the tier scale of the real rank, a number of its own ──
-const aiOf = (u) => (isObj(u.ai) ? u.ai : { rr: 0, played: 0, w: 0, best: 0 });
-const aiView = (u) => { if (u.guest) return null; const a = aiOf(u), rr = Math.max(0, Math.round(+a.rr) || 0); return Object.assign(rankOf(rr), { played: a.played | 0, w: a.w | 0, best: Math.max(rr, Math.round(+a.best) || 0) }); };
-const AIC = { target: 13, players: 10, minMs: 150 * 1000 };
 // ── mastery of each agent (u.mast[agentId] = {xp, m: matches, w: wins, k: kills}) ──
 const MAST_MAX = 10;
 // the owner's numbers, as the last loadConfig() read them (publicUser has no config to hand)
@@ -516,7 +482,7 @@ function achAward(u, win, mode, agent) {
 }
 const publicUser = (u, per) => {
   const lv = levelOf(u.xp || 0, per);
-  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || u.operator || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, operator: !!(u.operator && !u.owner), adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, rank: rankView(u), ai: aiView(u), mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, placement: u.guest ? null : { done: placedOf(u), of: PLACE_N }, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u), season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, need: u.ssn.need | 0, last: (Array.isArray(u.ssnLog) && u.ssnLog[0]) || null } : null };
+  return { id: u.id, guest: !!u.guest, xp: u.xp || 0, level: lv.level, into: lv.into, need: lv.need, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, admin: !!(u.owner || u.operator || (u.adminUntil && u.adminUntil > now())), owner: !!u.owner, operator: !!(u.operator && !u.owner), adminUntil: u.adminUntil || 0, created: u.created, perm: activePerm(u), adminAllow: isObj(u.adminAllow) ? u.adminAllow : null, gold: "number" == typeof u.gold ? u.gold : 0, championCoins: Number.isSafeInteger(u.championCoins) ? u.championCoins : 0, owned: ownedCount(u), items: ITEMS, pulls: u.pulls || 0, mast: mastView(u), ach: achView(u), fw: u.fwDay === kstDay(now()) ? 1 : 0, misReady: (isObj(u.mis) && u.mis.ready) || 0, aim: aimOf(u), cos: cosOf(u) };
 };
 const userKey = (id) => "user:" + id.toLowerCase();
 const guestKey = (dev) => "guest:" + String(dev || "").slice(0, 64);
@@ -585,13 +551,13 @@ const ownerKey = (u) => (u.guest ? "g:" + String(u.dev || "").slice(0, 64) : "u:
 // ── gun skins: what there is to win ──
 // One item is one skin on one gun. The lists must match the game's (its
 // WEAPONS table and GUN_SKINS.list); a test compares them.
-const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
+const SKIN_TIER = { snow: 1, jungle: 1, desert: 1, urban: 1, navy: 1, carbon: 2, tiger: 2, sakura: 2, celadon: 2, marble: 2, hex: 2, wave: 2, dancheong: 3, ink: 3, gold: 3, neon: 3, circuit: 3, dragon: 3, aurora: 3, lava: 4, galaxy: 4, phoenix: 4, storm: 4, flip: 2, tanto: 3, kukri: 3, karambit: 4, butterfly: 4, butterfly_crimson: 4, butterfly_emerald: 4, butterfly_blackgold: 4, bayonet: 1, gut: 1, bowie: 2, kunai: 3, stiletto: 4, koi: 3, kintsugi: 3, prism: 3, abyss: 4, synth: 4, opal: 4, laurel: 4, champion: 4 };
 const WEAPON_DATA = require('../js/weapon-data');
 SKIN_TIER.champions_atk = SKIN_TIER.champions_def = 5;
-// skins no pull or shop gives: only the end of a season (or the owner)
+// skins no pull or shop gives: 월계관 was the end of a season's (there are no seasons now: only the owner gives it)
 const EXCLUSIVE = { laurel: "season", champions_atk: "coins", champions_def: "coins" };
 // skins only one gun can wear (the knives that are other knives)
-const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
+const SKIN_ONLY = { flip: "knife", tanto: "knife", kukri: "knife", karambit: "knife", butterfly: "knife", butterfly_crimson: "knife", butterfly_emerald: "knife", butterfly_blackgold: "knife", bayonet: "knife", gut: "knife", bowie: "knife", kunai: "knife", stiletto: "knife" };
 SKIN_ONLY.champions_atk = SKIN_ONLY.champions_def = WEAPON_DATA.championsWeapon;
 const fits = (s, g) => !SKIN_ONLY[s] || SKIN_ONLY[s] === g;
 const SKIN_IDS = Object.keys(SKIN_TIER);
@@ -699,57 +665,9 @@ function ensureWallet(u, c) {
     u.gold = Math.min(9e6, u.gold + back);
     u.refunded = (u.refunded || 0) + back;
   }
-  rankInit(u) && (changed = !0);
-  seasonRoll(u, c) && (changed = !0);
+  rankPurge(u) && (changed = !0);
   changed && trimPicks(u);
   return changed;
-}
-// ── seasons ──
-// Which season it is: counted in whole seasons from the first day (midnight in Korea).
-const KST_MS = 9 * 36e5;
-const ymdStart = (v) => {
-  const n = Math.round(+v) || 20261001;
-  return Date.UTC(Math.floor(n / 1e4), (Math.floor(n / 100) % 100) - 1, n % 100) - KST_MS;
-};
-function seasonNow(c, t = now()) {
-  const S = (c && c.season) || {},
-    len = Math.max(1, Math.round(+S.weeks || 4)) * 7 * 864e5,
-    st = ymdStart(S.startDay),
-    k = Math.max(0, Math.floor((t - st) / len));
-  return { n: 1 + k + Math.max(0, Math.round(+S.skip || 0)), start: st + k * len, end: st + (k + 1) * len, on: !!S.on };
-}
-// what an account's RR would be after the seasons it has not been seen in
-const keepOf = (c) => Math.max(0, Math.min(100, +c.season.keep || 0)) / 100;
-const seasonRR = (u, c, cur) => (c.season.on && isObj(u.ssn) && u.ssn.n < cur.n ? Math.round(Math.max(0, +u.rr || 0) * Math.pow(keepOf(c), cur.n - u.ssn.n)) : Math.max(0, Math.round(+u.rr || 0)));
-// An account seen after its season ended: the reward for the tier it finished on (if it
-// played enough), then the RR cut, once for every season that went by. Guests have no rank.
-function seasonRoll(u, c) {
-  if (!c.season || !c.season.on || u.guest) return !1;
-  const cur = seasonNow(c),
-    need = Math.max(1, Math.round(+c.season.minPlay || 0));
-  if (!isObj(u.ssn)) return (u.ssn = { n: cur.n, end: cur.end, played: 0, need }), !0;
-  if (u.ssn.n >= cur.n) return u.ssn.end !== cur.end || u.ssn.need !== need ? ((u.ssn.end = cur.end), (u.ssn.need = need), !0) : !1;
-  const S = c.season,
-    rk = rankOf(u.rr),
-    played = u.ssn.played | 0;
-  if (played > 0 || rk.rr > 0) {
-    const rec = { n: u.ssn.n, t: rk.t, tier: rk.tier, div: rk.div, rr: rk.rr, played, gold: 0, skin: 0, at: now() };
-    if (played > 0 && played >= Math.max(0, +S.minPlay || 0)) {
-      rec.gold = Math.max(0, Math.round(+(isObj(S.gold) && S.gold[rk.tier]) || 0));
-      u.gold = Math.min(9e6, (+u.gold || 0) + rec.gold);
-      if ((S.skinTier | 0) <= 8 && rk.t >= (S.skinTier | 0)) {
-        isObj(u.own) || (u.own = {});
-        for (const g of GUNS) if (fits("laurel", g) && !hasItem(u, g, "laurel")) ((u.own[g] = Array.isArray(u.own[g]) ? u.own[g] : []).push("laurel"), rec.skin++);
-      }
-    }
-    const cut = c.season.on && u.ssn.n < cur.n ? Math.pow(keepOf(c), cur.n - u.ssn.n) : 1;
-    Number.isFinite(u.mmr) && (u.mmr = Math.round(MMR_BASE + (u.mmr - MMR_BASE) * cut));
-    u.rr = seasonRR(u, c, cur);
-    rec.after = u.rr;
-    u.ssnLog = [rec].concat(Array.isArray(u.ssnLog) ? u.ssnLog : []).slice(0, 12);
-  }
-  u.ssn = { n: cur.n, end: cur.end, played: 0, need };
-  return !0;
 }
 const ownedCount = (u) => {
   let n = 0;
@@ -803,8 +721,7 @@ function trimPicks(u) {
 
 // ── public actions ──
 const A = {};
-// the rank settings a game needs to run leaving, AFK and surrender (not the RR numbers)
-const publicAiComp = (A) => ({ on: !!A.on, win: Math.max(0, Math.round(+A.win) || 0), loss: Math.max(0, Math.round(+A.loss) || 0), perKill: Math.max(0, Math.round(+A.perKill) || 0), maxKill: Math.max(0, Math.round(+A.maxKill) || 0), maxPerDay: Math.max(0, Math.round(+A.maxPerDay) || 0) });
+// the rank settings a game needs to run leaving, AFK and surrender
 const publicRank = (R) => { const o = {}; for (const k of ["minHumans", "leaveGraceS", "afkWarnS", "afkLeaveS", "surrenderRound", "surrenderS", "surrenderVoteS", "surrenderCoolS"]) o[k] = Math.max(0, Math.round(+R[k]) || 0); return o; };
 // the map of the week for the time (Korea's Monday 0:00 starts a week): { key, week, until } or null when it is switched off
 const weekMapOf = (c, t) => {
@@ -813,7 +730,7 @@ const weekMapOf = (c, t) => {
 };
 A.config = async () => {
   const c = await loadConfig();
-  return { config: { game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, aiComp: publicAiComp(c.aiComp), rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
+  return { config: { game: c.game, weekMap: weekMapOf(c, now()), cheat: c.cheat, room: c.room, xp: c.xp, gold: c.gold, gacha: Object.assign({ items: ITEMS, guns: GUNS.length, skins: SKIN_IDS.length }, c.gacha), aim: c.aim, shop: c.shop, mastery: { on: !!c.mastery.on }, rewards: { lv: { on: !!c.lvReward.on, gold: c.lvReward.gold, milestoneGold: c.lvReward.milestoneGold, ms: milestonesOf(c) }, firstWin: { on: !!c.firstWin.on, gold: c.firstWin.gold, xp: c.firstWin.xp }, ach: { on: !!c.ach.on } }, rank: publicRank(c.rank), channels: c.channels }, store: !!RURL };
 };
 A.auth = async (q, b, req) => {
   const c = await loadConfig(),
@@ -946,12 +863,10 @@ A.owner_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
   if (!ownerScope(b.room, b.p)) throw fail(400, "방 또는 연결 정보가 이상합니다");
-  // cheats are shut in a ranked room for everyone but the operator, whose matches count for RR as usual
-  const rmo = await getJ("room:" + roomOf(b.room));
   const boss = u.owner && isOwnerId(u.id) && u._s.o === 1,
-    // an account the owner made an operator gets the owner's in-game powers too, but not in a ranked room
-    operator = !boss && !u.guest && !!u.operator && !(rmo && rmo.ranked);
-  if (!boss && !operator) return rmo && rmo.ranked ? { ticket: null, ranked: !0 } : { ticket: null };
+    // an account the owner made an operator gets the owner's in-game powers too
+    operator = !boss && !u.guest && !!u.operator;
+  if (!boss && !operator) return { ticket: null };
   const exp = Math.min(u._s.exp, now() + 5 * 60000);
   return { ticket: sign({ k: "owner", id: u.id, room: b.room, p: b.p, v: u.sessionVersion, exp, ...(operator ? { op: 1 } : {}) }), exp };
 };
@@ -975,8 +890,6 @@ const roomOf = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").sl
 A.perm_ticket = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  const rmp = await getJ("room:" + roomOf(b.room));
-  if (rmp && rmp.ranked) return { ticket: null, ranked: !0 };
   return peerOk(b.p) && activePerm(u) ? { ticket: sign({ k: "perm", id: u.id, room: roomOf(b.room), p: b.p, exp: now() + 6 * 36e5 }) } : { ticket: null };
 };
 A.perm_check = async (q, b) => {
@@ -1588,31 +1501,10 @@ const MATCH_MIN_MS = 60 * 1000, // shortest match that earns kill/win rewards
 A.match_start = async (q, b) => {
   const u = await who(b.token);
   if (!u) throw fail(401, "다시 로그인해 주세요");
-  // a ranked match: only from an account in the roster the host attested (ranked_start) for
-  // this room. One ticket per account per match: asking again hands back the same one.
-  let ranked = 0, m = "", n = crypto.randomBytes(12).toString("hex"), t0 = now(), fresh = !0;
-  if (b.ranked) {
-    if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
-    const code = roomOf(b.room), rm = await getJ("room:" + code);
-    if (!rm || !rm.ranked) throw fail(409, "랭크전 방이 아닙니다");
-    m = (await redis(["GET", "rmroom:" + code])) || "";
-    const rec = m && (await getJ("rm:" + m));
-    if (!rec) throw fail(409, "랭크전이 아직 시작되지 않았습니다");
-    if (!rec.a.includes(u.id) && !rec.b.includes(u.id)) throw fail(403, "이 랭크전의 참가자가 아닙니다");
-    await leaveSweep(u, m);
-    ranked = 1;
-    t0 = rec.t0;
-    const had = await redis(["GET", "rmt:" + m + ":" + u.id]);
-    had && ((n = had), (fresh = !1));
-  }
-  // only a new ticket counts towards the limit: a refused ask (the client asks a few times before the
-  // host has opened a ranked match) or the same ranked ticket asked again does not use it up
-  if (fresh && (await limited("mstart:" + u.id, 12, 600))) throw fail(429, "너무 자주 보냈습니다");
-  if (ranked && fresh && (await redis(["SET", "rmt:" + m + ":" + u.id, n, "NX", "EX", String(RESULT_TTL)])) === null) ((n = await redis(["GET", "rmt:" + m + ":" + u.id])), (fresh = !1));
-  fresh && (await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]));
-  // the match this account sits in until he settles it (see leaveSweep)
-  ranked && (await redis(["SET", rmOpenKey(u.id), m, "EX", String(RESULT_TTL)]));
-  return { ticket: sign(Object.assign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS, r: ranked }, m ? { m } : {})), ranked: !!ranked };
+  const n = crypto.randomBytes(12).toString("hex"), t0 = now();
+  if (await limited("mstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
+  await redis(["SET", "mt:" + n, String(u.id), "EX", String(Math.ceil(MATCH_MAX_MS / 1000))]);
+  return { ticket: sign({ k: "match", u: String(u.id), v: u.sessionVersion, n, t0, exp: t0 + MATCH_MAX_MS }) };
 };
 // how much of a reported result to trust: kills and the win only with a valid,
 // unused ticket from a long enough match; kills no faster than the clock allows
@@ -1623,237 +1515,13 @@ async function matchTrust(u, ticket) {
   if (ms < MATCH_MIN_MS) return { ok: !1, why: "too_short" };
   // Consumed with the wallet update and replayable receipt in one transaction.
   if (await redis(["GET", "mt:" + t.n]) !== String(u.id)) return { ok: !1, why: "used" };
-  return { ok: !0, ranked: 1 === t.r, m: String(t.m || ""), key: "mt:" + t.n, receipt: "mr:" + t.n, ms, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
+  return { ok: !0, key: "mt:" + t.n, receipt: "mr:" + t.n, ms, maxKills: Math.floor(ms / KILL_EVERY_MS) + 1 };
 }
-// ── ranked match attestation ──
-// RR and MMR are never taken from what a player reports about himself. The host of a ranked
-// room opens the match with ranked_start (the roster per team; the server keeps each account's
-// MMR as it was then) and gets a signed ticket. When the match is over the host sends the
-// result with ranked_result (winning team, kills per account), once. Every player then settles
-// his own match through `progress` with the ticket match_start gave him; RR/MMR come from the
-// attested result and the team he was put in. The rule:
-//  - humans = roster accounts that fetched their ticket (bots never count); fewer than
-//    rank.minHumans, a draw, a match shorter than a minute: played, but no RR;
-//  - a player's own `win`/`outcome` must equal the attested one, else the report is refused
-//    (409) and counts as a dissent. The match is disputed, and nobody settled afterwards gets RR,
-//    when a strict majority of the winning team's non-host players (those that took a ticket)
-//    dissent, or when a strict majority of the losing team's do and no non-host winner confirms
-//    the result: a loser saying he won is what a sore loser says too, so it only counts when
-//    nobody but the host stands by the result;
-//  - nobody is credited before every ticketed non-host player has voted, or RANKED_GRACE_MS
-//    has passed since the host's result (progress answers 425 meanwhile, without using up its
-//    rate limit); a report with giveUp settles with the votes cast so far;
-//  - a team's strength (the Elo expectation) is the average MMR of its ticketed accounts only,
-//    a team with none takes the other's;
-//  - kills for the bonus are the host's count, lowered to the player's own if he reports fewer;
-//  - an account settles a match once (its ticket is one per match, and the match id is kept
-//    on the account); the daily RR cap still applies.
-// Known limit: a host with accounts of his own can still lie about a match: one of them on his
-// team standing by the result outweighs the other team saying it won.
-const RESULT_TTL = 86400, // a day: a player who left is judged at his next ranked start (leaveSweep)
-  // how long after the host's result a player's settlement waits for the others' votes (the client gives up at 120 s)
-  RANKED_GRACE_MS = 60 * 1000;
-// Reads a ranked match for one of its players and records his vote (first one stands). The
-// ticketed humans are the accounts that took a ranked ticket: the roster alone proves nothing,
-// the host may list accounts that never sat in the room.
-async function rankedTally(u, m, b) {
-  const [rec, res] = (await pipe([["GET", "rm:" + m], ["GET", "rmres:" + m]])).map((v) => (v ? JSON.parse(v) : null));
-  const team = rec && (rec.a.includes(u.id) ? "a" : rec.b.includes(u.id) ? "b" : "");
-  if (!rec || !team) return { rec: null };
-  if (!res) return { rec, team, res: null };
-  const outcome = res.w === "draw" ? "draw" : res.w === team ? "win" : "loss";
-  const said = b.outcome === "draw" ? "draw" : b.win === undefined ? outcome : b.win ? "win" : "loss";
-  const ids = rec.a.concat(rec.b), others = ids.filter((id) => id !== rec.host);
-  const got = await pipe([["SET", "rmv:" + m + ":" + u.id, said === outcome ? "1" : "0", "NX", "EX", String(RESULT_TTL)]].concat(ids.map((id) => ["GET", "rmt:" + m + ":" + id]), others.map((id) => ["GET", "rmv:" + m + ":" + id])));
-  const ticketed = new Set(ids.filter((id, i) => got[1 + i])), votes = new Map(others.map((id, i) => [id, got[1 + ids.length + i]]));
-  // everybody who took a ticket and is not the host must have voted, or the grace has passed (a player the host
-  // reported as having left is not waited for)
-  const gone = Array.isArray(res.lv) ? res.lv : [];
-  const pending = others.filter((id) => ticketed.has(id) && votes.get(id) == null && !gone.includes(id));
-  return { rec, res, team, outcome, said, ids, ticketed, votes, ready: !pending.length || now() - (+res.at || 0) >= RANKED_GRACE_MS };
-}
-function teamAverages(rec, ticketed) {
-  const mean = (list) => {
-    const mm = list.filter((id) => ticketed.has(id) && Object.hasOwn(rec.mmr || {}, id) && Number.isFinite(+rec.mmr[id])).map((id) => +rec.mmr[id]);
-    return mm.length ? mm.reduce((s, v) => s + v, 0) / mm.length : null;
-  };
-  return [mean(rec.a) ?? mean(rec.b) ?? rec.avgA, mean(rec.b) ?? mean(rec.a) ?? rec.avgB];
-}
-async function rankedVerdict(u, trust, b) {
-  const t = await rankedTally(u, trust.m, b), { rec, res, team } = t;
-  if (!rec || !team) return { attested: !1, counted: !1, why: "no_match" };
-  if (!res) {
-    if (!b.giveUp) throw fail(425, "경기 결과를 기다리는 중입니다");
-    return { attested: !1, counted: !1, why: "no_result" };
-  }
-  const { outcome, said, ticketed, votes } = t;
-  if (said !== outcome) throw fail(409, "보고한 결과가 경기 기록과 다릅니다");
-  // dissent: more than half of a team's ticketed non-host players said "0"; confirmed: one of them said "1"
-  const voters = (list) => list.filter((id) => id !== rec.host && ticketed.has(id) && !(Array.isArray(res.lv) && res.lv.includes(id)));
-  const dissent = (list) => voters(list).filter((id) => votes.get(id) === "0").length * 2 > voters(list).length;
-  const confirmed = (list) => voters(list).some((id) => votes.get(id) === "1");
-  // a team's strength is the MMR (kept at ranked_start) of the accounts that really sat in the match
-  const [avgA, avgB] = teamAverages(rec, ticketed);
-  const won = "b" === res.w ? rec.b : rec.a,
-    lost = "b" === res.w ? rec.a : rec.b;
-  const disputed = dissent(won) || (dissent(lost) && !confirmed(won));
-  return {
-    attested: !0,
-    outcome,
-    counted: outcome !== "draw" && !disputed,
-    why: outcome === "draw" ? "draw" : disputed ? "disputed" : "",
-    kills: Math.max(0, Math.min(60, +(res.k && res.k[u.id]) | 0)),
-    humans: ticketed.size,
-    // he left (the host said so): his loss was applied by leaveApply, the report only pays the plain reward
-    left: !!(Array.isArray(res.lv) && res.lv.includes(u.id)),
-    mine: team === "a" ? avgA : avgB,
-    enemy: team === "a" ? avgB : avgA,
-    m: trust.m,
-  };
-}
-A.ranked_start = async (q, b) => {
-  const u = await who(b.token);
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
-  if (await limited("rstart:" + u.id, 12, 600)) throw fail(429, "너무 자주 보냈습니다");
-  const code = roomOf(b.room), room = await getJ("room:" + code);
-  if (!room || !room.ranked || room.host !== u.id) throw fail(409, "내가 연 랭크전 방이 아닙니다");
-  await leaveSweep(u, "");
-  const list = (v) => (Array.isArray(v) ? v : []).slice(0, 12).map((x) => String(x || "").toLowerCase()).filter((x) => ID_OK.test(x));
-  const ta = list(b.a), tb = list(b.b), all = ta.concat(tb);
-  if (new Set(all).size !== all.length) throw fail(400, "같은 계정이 두 번 들어 있습니다");
-  // only accounts that exist, are not guests and are not banned stay in the roster
-  const recs = (await pipe(all.map((id) => ["GET", userKey(id)]))).map((x) => (x ? JSON.parse(x) : null));
-  const ok = new Map(recs.filter((x) => x && !x.guest && !(x.ban && (!x.ban.until || x.ban.until > now()))).map((x) => [x.id.toLowerCase(), x]));
-  const side = (t) => t.filter((id) => ok.has(id)).map((id) => ok.get(id).id);
-  const a = side(ta), bb = side(tb), mmr = Object.create(null);
-  if (!a.concat(bb).includes(u.id)) throw fail(400, "방장이 참가자에 없습니다");
-  const per = (await loadConfig()).xp.perLevel, lv = Object.create(null);
-  for (const x of ok.values()) ((mmr[x.id] = mmrOf(x)), (lv[x.id] = lvInfo(x, per)));
-  await clanTagsInto([...ok.values()].map((x) => [x, lv[x.id]]), await loadConfig());
-  const avg = (t) => (t.length ? t.reduce((s, id) => s + mmr[id], 0) / t.length : null);
-  // a team with no human takes the other's average (bots are the same strength)
-  const avgA = avg(a) ?? avg(bb), avgB = avg(bb) ?? avg(a);
-  const id = crypto.randomBytes(12).toString("hex"), t0 = now();
-  const rec = { id, room: code, host: u.id, t0, a, b: bb, mmr, avgA, avgB, ownerPlayed: [...ok.values()].some((x) => x.owner && isOwnerId(x.id)) };
-  await pipe([["SET", "rm:" + id, JSON.stringify(rec), "EX", String(RESULT_TTL)], ["SET", "rmroom:" + code, id, "EX", String(RESULT_TTL)]]);
-  return { id, t0, lv, rm: sign({ k: "rmatch", m: id, u: u.id, room: code, t0, exp: t0 + MATCH_MAX_MS }), a, b: bb, ownerPlayed: rec.ownerPlayed };
-};
-// ── leaving a ranked match ──
-// A player on the roster who took a ticket and was not there at the end gets a loss from the server, and
-// rank.leaveRR more. The host, who sees the links close and open, reports per roster account how long he was
-// away at the longest and whether he was away at the end (ranked_result's `gone`); the server decides: away at
-// the end, or away for rank.leaveGraceS seconds or more, is leaving; a reconnect inside the window is not.
-// Only an account that took a ticket (so really sat in the room) can be named, never the host himself, and only
-// in a match with at least rank.minHumans of them. If the result never comes, leaveSweep judges the player at
-// his next ranked start: still unsettled then (match_start keeps `rmopen:<id>` until his report is accepted).
-const LEAVE_MAX_S = 14400, rmOpenKey = (id) => "rmopen:" + String(id).toLowerCase();
-async function rankedTicketed(rec, m) {
-  const ids = rec.a.concat(rec.b), got = await pipe(ids.map((id) => ["GET", "rmt:" + m + ":" + id]));
-  return new Set(ids.filter((id, i) => got[i]));
-}
-// the account's loss for the match he left, once (u.rmDone); false when there was nothing to apply
-async function leaveApply(id, m, rec, ticketed, c) {
-  const R = c.rank, extra = Math.max(0, Math.round(+R.leaveRR || 0));
-  for (let attempt = 0; ; attempt++) {
-    const u = await getJ(userKey(id));
-    if (!u || u.guest || !(rec.a.includes(u.id) || rec.b.includes(u.id)) || (Array.isArray(u.rmDone) && u.rmDone.includes(m))) return !1;
-    ensureWallet(u, c);
-    const [avgA, avgB] = teamAverages(rec, ticketed), a = rec.a.includes(u.id);
-    const rr0 = Math.max(0, Math.round(+u.rr || 0)), mmr0 = mmrOf(u), placed0 = placedOf(u), placing = placed0 < PLACE_N, E = eloExpected(a ? avgA : avgB, a ? avgB : avgA), rb = rankView(u);
-    u.rr = rr0;
-    u.mmr = Math.max(0, mmrAfter(mmr0, E, 0, placing) - extra);
-    if (placing) {
-      u.placed = placed0 + 1;
-      u.placed >= PLACE_N && (u.rr = rrFromMMR(u.mmr));
-    } else u.rr = Math.max(0, rr0 + rrDelta(R, !1, E, 0) - extra);
-    u.rmDone = [m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
-    isObj(u.ssn) && (u.ssn.played = (u.ssn.played | 0) + 1);
-    try { await saveUser(u); } catch (e) { if (e.retryUser && attempt < 4) continue; throw e; }
-    if ((await redis(["GET", rmOpenKey(u.id)])) === m) await redis(["DEL", rmOpenKey(u.id)]);
-    if (placedOf(u) >= PLACE_N && isObj(u.ssn)) { try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {} }
-    await ulog(u.id, "match", `랭크 이탈 · 패배 처리 (TP ${rr0} → ${u.rr})`, { rk: 1, ok: 1, left: 1, why: "left", rr: [rr0, u.rr], mmr: [mmr0, u.mmr], pl: u.placed });
-    const p = rankView(u);
-    p.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.tier} ${p.div}`, { user: u.id }));
-    return !0;
-  }
-}
-// At his next ranked start (match_start, or ranked_start for a host): the match this account took a ticket for
-// and never settled. With the host's result, he left if it names him (the penalty may not have gone through at
-// the time); with none, once the match is old enough that the result would be in, he left too, unless the
-// host is gone for everybody (a ticketed player said so: ranked_void), when only the host's own leaving counts.
-async function leaveSweep(u, current) {
-  const key = rmOpenKey(u.id), m = await redis(["GET", key]);
-  if (!m || m === current) return;
-  const drop = async () => { (await redis(["GET", key])) === m && (await redis(["DEL", key])); };
-  const rec = await getJ("rm:" + m);
-  if (!rec || !(rec.a.includes(u.id) || rec.b.includes(u.id))) return drop();
-  const c = await loadConfig(), res = await getJ("rmres:" + m), ticketed = await rankedTicketed(rec, m);
-  let left = !1;
-  if (res) left = Array.isArray(res.lv) && res.lv.includes(u.id);
-  else if (ticketed.size >= Math.max(0, +c.rank.minHumans || 0) && now() - rec.t0 >= MATCH_MIN_MS + RANKED_GRACE_MS) {
-    const claims = await pipe(rec.a.concat(rec.b).filter((id) => id !== rec.host && ticketed.has(id)).map((id) => ["GET", "rmvoid:" + m + ":" + id]));
-    left = !claims.some(Boolean) || u.id === rec.host;
-  }
-  if (left) await leaveApply(u.id, m, rec, ticketed, c);
-  await drop();
-}
-// a ticketed player says the host went away before the match ended (no result will come)
-A.ranked_void = async (q, b) => {
-  const u = await who(b.token);
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  if (u.guest) throw fail(403, "랭크전은 계정으로 로그인해야 합니다");
-  const m = (await redis(["GET", "rmroom:" + roomOf(b.room)])) || "";
-  if (!m || (await redis(["GET", "rmt:" + m + ":" + u.id])) === null) throw fail(409, "이 랭크전의 참가자가 아닙니다");
-  await redis(["SET", "rmvoid:" + m + ":" + u.id, "1", "EX", String(RESULT_TTL)]);
-  return { ok: !0 };
-};
-// the host's result, once: w = "a" | "b" | "draw", k = kills per account, gone = per account who was away
-// ({ id: { s: longest absence in seconds, end: 1 if away at the end } })
-A.ranked_result = async (q, b) => {
-  const u = await who(b.token);
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  const t = verify(b.rm);
-  if (!t || "rmatch" !== t.k || t.u !== u.id) throw fail(409, "유효한 랭크전 확인표가 없습니다");
-  const rec = await getJ("rm:" + t.m);
-  if (!rec || rec.host !== u.id) throw fail(409, "없는 랭크전입니다");
-  const ms = now() - rec.t0;
-  if (ms < MATCH_MIN_MS) throw fail(409, "경기가 너무 짧습니다");
-  if (!["a", "b", "draw"].includes(b.w)) throw fail(400, "결과가 이상합니다");
-  const cap = Math.min(60, Math.floor(ms / KILL_EVERY_MS) + 1), k = Object.create(null);
-  for (const id of rec.a.concat(rec.b)) isObj(b.k) && (k[id] = Math.max(0, Math.min(cap, b.k[id] | 0)));
-  const c = await loadConfig(), grace = Math.max(0, +c.rank.leaveGraceS || 0), canon = new Map(rec.a.concat(rec.b).map((id) => [id.toLowerCase(), id]));
-  const ticketed = await rankedTicketed(rec, t.m), lv = [];
-  if (isObj(b.gone) && ticketed.size >= Math.max(0, +c.rank.minHumans || 0))
-    for (const key of Object.keys(b.gone).slice(0, 24)) {
-      const id = canon.get(String(key).toLowerCase()), g = b.gone[key];
-      if (!id || id === rec.host || !ticketed.has(id) || !isObj(g) || lv.includes(id)) continue;
-      (g.end || Math.max(0, Math.min(LEAVE_MAX_S, +g.s || 0)) >= grace) && lv.push(id);
-    }
-  // the first result stands; a second one is ignored
-  const first = (await redis(["SET", "rmres:" + t.m, JSON.stringify({ w: b.w, k, at: now(), lv }), "NX", "EX", String(RESULT_TTL)])) !== null;
-  const res = first ? { w: b.w, lv } : JSON.parse(await redis(["GET", "rmres:" + t.m]));
-  // a loss for each who left; one that cannot be saved now is judged again at his next ranked start
-  let applied = 0;
-  for (const id of res.lv || []) { try { (await leaveApply(id, t.m, rec, ticketed, c)) && applied++; } catch (e) {} }
-  return { accepted: first, duplicate: !first, w: res.w, left: (res.lv || []).length, applied };
-};
-// may this account walk into that ranked room? Only the answer and the room's rounded band leave
-A.ranked_can_join = async (q, b) => {
-  const u = await who(b.token);
-  if (!u) throw fail(401, "다시 로그인해 주세요");
-  const room = await getJ("room:" + roomOf(b.code));
-  if (!room) throw fail(404, "없는 방입니다");
-  const r = canJoinRanked({ mmr: mmrOf(u), owner: !!u.owner }, room);
-  return { ranked: !!room.ranked, ok: r.ok, range: r.range, band: room.ranked && Number.isFinite(room.mmr) ? bandOf(room.mmr) : null };
-};
-// What the room host may know about a player, to set the bots' skill and show a Lv chip: the account level, and the
-// tier once placement is over. A guest, an unknown name and a malformed id all read the same (nulls), so this is not a
-// way to find out who has an account. Never MMR, RR, email, tokens, IP or device.
+// What the room host may know about a player, to set the bots' skill and show a Lv chip: the account level. A guest, an unknown name and a malformed id all read the same (nulls), so this is not a
+// way to find out who has an account. Never email, tokens, IP or device.
 const lvInfo = (x, per) => {
-  if (!x || x.guest) return { level: null, t: null, tier: null, div: null, placed: false };
-  const placed = placedOf(x) >= PLACE_N, r = rankOf(x.rr);
-  const out = { level: levelOf(x.xp || 0, per).level, t: placed ? r.t : null, tier: placed ? r.tier : null, div: placed ? r.div : null, placed };
+  if (!x || x.guest) return { level: null };
+  const out = { level: levelOf(x.xp || 0, per).level };
   // mastery level of each agent played (an agent missing is level 1); left out when there is none
   const mv = mastView(x), ids = Object.keys(mv);
   if (ids.length) { out.mast = {}; for (const id of ids) out.mast[id] = mv[id].lv; }
@@ -1870,24 +1538,6 @@ A.levels = async (q, b) => {
   valid.forEach((id, i) => (users[id] = lvInfo(recs[i], per)));
   await clanTagsInto(valid.map((id, i) => [recs[i], users[id]]), await loadConfig());
   return { users };
-};
-// the season's top accounts by RR: only placed accounts that played ranked this season
-const LB_MAX = 100;
-let lbCache = null;
-A.leaderboard = async (q, b) => {
-  const c = await loadConfig(), cur = seasonNow(c), n = Math.max(1, Math.min(LB_MAX, Math.round(+b.n) || 50));
-  if (lbCache && lbCache.until > now() && lbCache.n === cur.n && lbCache.size >= n) return { ...lbCache.out, rows: lbCache.out.rows.slice(0, n) };
-  const ids = (await redis(["ZRANGE", "lb:" + cur.n, "0", String(n * 2 - 1), "REV"])) || [];
-  const rows = (await pipe(ids.map((id) => ["GET", userKey(id)])))
-    .map((x) => (x ? JSON.parse(x) : null))
-    .filter((x) => x && !x.guest && placedOf(x) >= PLACE_N && isObj(x.ssn) && x.ssn.n === cur.n && !(x.ban && (!x.ban.until || x.ban.until > now())))
-    .map((x) => ({ name: x.id, rank: rankOf(x.rr), wins: x.ssn.w | 0, played: x.ssn.played | 0 }))
-    .sort((p, r) => r.rank.rr - p.rank.rr || r.wins - p.wins || (p.name < r.name ? -1 : 1))
-    .slice(0, n)
-    .map((x, i) => ({ pos: i + 1, name: x.name, tier: x.rank.tier, t: x.rank.t, div: x.rank.div, rr: x.rank.rr, wins: x.wins, played: x.played }));
-  const out = { season: { n: cur.n, end: cur.end }, rows };
-  lbCache = { out, n: cur.n, size: n, until: now() + 10000 };
-  return out;
 };
 // the milestone levels of the owner's lvReward.milestones ("5:scout,10:neoncity"), a cosmetic id that is not one left out
 function milestonesOf(c) {
@@ -1942,16 +1592,6 @@ function masteryAward(u, c, name, win, kills, left) {
   const gold = up > 0 ? Math.max(0, Math.min(up * Math.max(0, +M.gold || 0), Math.max(0, +M.maxGold || 0), left)) : 0;
   return { id, gain: Math.floor(gain), lv, before, up, gold };
 }
-// The AI competitive match counts for the AI rating when: the client reports it as one (match.aic), it is a solo match (no
-// ranked ticket, no roster of humans), standard mode on a 5v5 map (ten in the match), played to the end (one side at 13
-// rounds, the other under it, and the report's win is that side's) and long enough for that many rounds. Guests have no rating.
-function aiCompVerdict(u, c, trust, b, rkv, win, quit) {
-  const A = c.aiComp, m = b.match;
-  if (!A || !A.on || !isObj(m) || m.aic !== 1) return null;
-  const s = Array.isArray(m.s) ? [Math.round(+m.s[0]), Math.round(+m.s[1])] : [NaN, NaN], top = Math.max(s[0], s[1]);
-  const why = u.guest ? "guest" : trust.ranked || rkv || b.humans ? "not_solo" : quit ? "left" : "std" !== m.mode ? "mode" : m.n !== AIC.players ? "size" : !(top === AIC.target && Math.min(s[0], s[1]) >= 0 && Math.min(s[0], s[1]) < AIC.target) ? "unfinished" : trust.ms < AIC.minMs ? "too_short" : win !== s[0] > s[1] ? "mismatch" : "";
-  return { ok: !why, why };
-}
 A.progress = async (q, b) => {
   const c = await loadConfig(),
     u = await who(b.token);
@@ -1963,33 +1603,18 @@ A.progress = async (q, b) => {
       const user = publicUser(u, c.xp.perLevel), cap = Math.max(0, +c.gold.maxPerDay || 0);
       const used = u.goldDay && u.goldDay.d === kstDay(now()) ? u.goldDay.n || 0 : 0;
       if (cap > 0) user.goldLeft = Math.max(0, cap - used);
-      return { ...receipt, user, goldLeft: cap > 0 ? user.goldLeft : null, hist: histOf(u), missions: misState(u, c), rank: rankView(u) };
-    }
-  }
-  // a ranked match whose result the host has not sent yet: wait (425), without using up the rate limit
-  // Then, once it is in, wait for the others' votes (the host's too must not settle before anyone could dispute):
-  // record this player's vote first so the others can see it, then 425 until every ticketed player has voted or
-  // the grace since the result has passed. A player whose own report disagrees is not made to wait (409 below).
-  if (ticket && ticket.k === "match" && 1 === ticket.r && ticket.m && String(ticket.u) === String(u.id) && ticket.v === u.sessionVersion && !b.giveUp) {
-    const t = await rankedTally(u, ticket.m, b);
-    if (t.rec && t.team) {
-      if (!t.res) throw fail(425, "경기 결과를 기다리는 중입니다");
-      if (t.said === t.outcome && "draw" !== t.outcome && !t.ready) throw fail(425, "다른 플레이어의 결과 확인을 기다리는 중입니다");
+      return { ...receipt, user, goldLeft: cap > 0 ? user.goldLeft : null, hist: histOf(u), missions: misState(u, c) };
     }
   }
   if (await limited("prog:" + u.id, 1, 20)) throw fail(429, "너무 자주 보냈습니다");
   // Every award requires a valid ticket; replay returns the committed receipt.
   const trust = await matchTrust(u, b.mt);
   if (!trust.ok) throw fail(409, trust.why === "too_short" ? "경기가 너무 짧아 보상을 받을 수 없습니다" : "유효한 경기 확인표가 없습니다");
-  // ranked: the win/draw is the host's attested result for the team the server put him in
-  // (a report that differs is refused); RR/MMR never read `humans` or `win` from the player
-  const rkv = trust.ranked ? await rankedVerdict(u, trust, b) : null;
   // a free-for-all (the server's own list, GAME_RULES.ffaMode) has no sides: its s is [my kills, the top kills], so equal kills
   // is not a draw there; the placing decides, as the game reports it
-  const draw = rkv && rkv.attested ? rkv.outcome === "draw" : b.outcome === "draw" || (b.match && !GAME_RULES.ffaMode(b.match.mode) && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
-  const quit = !!(rkv && rkv.left);
-  const kills = trust.ok && !quit ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
-    win = trust.ok && !draw && !quit && (rkv && rkv.attested ? rkv.outcome === "win" : !!b.win);
+  const draw = b.outcome === "draw" || (b.match && !GAME_RULES.ffaMode(b.match.mode) && Array.isArray(b.match.s) && b.match.s[0] === b.match.s[1]);
+  const kills = trust.ok ? Math.max(0, Math.min(60, trust.maxKills, b.kills | 0)) : 0,
+    win = trust.ok && !draw && !!b.win;
   const before = levelOf(u.xp || 0, c.xp.perLevel).level;
   ensureWallet(u, c);
   // the day's ceilings, counted from midnight in Korea: gold, XP and Champion coins each have their own
@@ -2020,61 +1645,10 @@ A.progress = async (q, b) => {
   u.championCoins += coinGain;
   u.coinDay.n = (u.coinDay.n || 0) + coinGain;
   u.goldDay.n = (u.goldDay.n || 0) + gold + (mastery ? mastery.gold : 0) + (lvAward ? lvAward.gold : 0) + fwGold;
-  // the rank: up with a win (more with kills), down a little with a loss
-  const R = c.rank,
-    kb = Math.max(0, Math.min(+R.maxKill || 0, kills * (+R.perKill || 0))),
-    rr0 = Math.max(0, Math.round(+u.rr || 0)),
-    rcap = Math.max(0, +R.maxPerDay || 0);
-  (isObj(u.rrDay) && u.rrDay.d === day) || (u.rrDay = { d: day, n: 0 });
-  // RR and MMR move only for a ranked match the host attested (see rankedVerdict), with at
-  // least minHumans real accounts in it; a draw, a disputed match or a missing result moves nothing
-  let drr = 0;
-  const rb = rankView(u),
-    humans = rkv ? rkv.humans : 0,
-    dup = !!(rkv && Array.isArray(u.rmDone) && u.rmDone.includes(rkv.m)),
-    rankedOk = !!(rkv && rkv.counted && !dup && !quit && humans >= Math.max(0, +R.minHumans || 0)),
-    rankedWhy = rkv ? (quit ? "left" : dup ? "duplicate" : rkv.counted && !rankedOk ? "few_humans" : rkv.why || "") : "";
-  const mmr0 = mmrOf(u);
-  if (rankedOk) {
-    u.rr = rr0;
-    const placed0 = placedOf(u),
-      placing = placed0 < PLACE_N,
-      E = eloExpected(rkv.mine, rkv.enemy);
-    u.mmr = mmrAfter(mmrOf(u), E, win ? 1 : 0, placing);
-    if (placing) {
-      // placement: the tier stays hidden; after the last match RR is set from MMR
-      u.placed = placed0 + 1;
-      u.placed >= PLACE_N && (u.rr = rrFromMMR(u.mmr));
-    } else {
-      drr = rrDelta(R, win, E, Math.min(kills, rkv.kills));
-      drr > 0 && rcap > 0 && (drr = Math.min(drr, Math.max(0, rcap - (u.rrDay.n || 0))));
-      u.rr = Math.max(0, rr0 + drr);
-    }
-    drr = u.rr - rr0;
-    drr > 0 && !placing && (u.rrDay.n = (u.rrDay.n || 0) + drr);
-    u.rmDone = [rkv.m].concat(Array.isArray(u.rmDone) ? u.rmDone : []).slice(0, 20);
-    isObj(u.ssn) && ((u.ssn.played = (u.ssn.played | 0) + 1), win && (u.ssn.w = (u.ssn.w | 0) + 1));
-  }
-  // the AI competitive rating: only for a solo match the client reports as one and the server finds whole (see aiCompVerdict);
-  // it reads nothing the real rank reads and writes none of it
-  const aiV = aiCompVerdict(u, c, trust, b, rkv, win, quit), aiBefore = aiV ? aiView(u) : null;
-  let aiD = 0, aiRaw = 0;
-  if (aiV && aiV.ok) {
-    const a = aiOf(u), a0 = Math.max(0, Math.round(+a.rr) || 0), A = c.aiComp, acap = Math.max(0, +A.maxPerDay || 0);
-    (isObj(u.aiDay) && u.aiDay.d === day) || (u.aiDay = { d: day, n: 0 });
-    aiD = aiRaw = rrDelta(A, win, 0.5, kills);
-    aiD > 0 && acap > 0 && (aiD = Math.min(aiD, Math.max(0, acap - (u.aiDay.n || 0))));
-    const rr1 = Math.max(0, a0 + aiD);
-    aiD = rr1 - a0;
-    aiD > 0 && (u.aiDay.n = (u.aiDay.n || 0) + aiD);
-    u.ai = { rr: rr1, played: (a.played | 0) + 1, w: (a.w | 0) + (win ? 1 : 0), best: Math.max(rr1, Math.round(+a.best) || 0) };
-  }
   u.xp = (u.xp || 0) + gain + fwXp;
   u.xpDay.n = (u.xpDay.n || 0) + gain + fwXp;
   const m = cleanMatch(b.match, win, kills);
-  m && trust.ranked && (m.rk = 1);
-  m && aiV && aiV.ok && (m.ac = 1);
-  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain, rr: drr })].concat(histOf(u)).slice(0, HIST_MAX));
+  m && (u.hist = [Object.assign(m, { t: now(), xp: gain, gold, coinGain })].concat(histOf(u)).slice(0, HIST_MAX));
   u.kills = (u.kills || 0) + kills;
   u.wins = (u.wins || 0) + (win ? 1 : 0);
   u.matches = (u.matches || 0) + 1;
@@ -2083,20 +1657,12 @@ A.progress = async (q, b) => {
   const ach = achAward(u, win, mode, agent);
   const p = publicUser(u, c.xp.perLevel);
   cap > 0 && (p.goldLeft = Math.max(0, cap - u.goldDay.n));
-  const out = { trusted: trust.ok, ranked: !!trust.ranked, rankedCounted: rankedOk, rankedWhy, placement: p.placement, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, rr: drr, rank: p.rank, rankBefore: rb, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach, ai: aiV ? { counted: !!aiV.ok, why: aiV.why || "", rr: aiD, before: aiBefore, after: aiView(u), capped: !!aiV.ok && aiD < aiRaw } : null };
+  const out = { trusted: trust.ok, gain, gold, coinGain, goldLeft: cap > 0 ? p.goldLeft : null, user: p, levelUp: p.level > before, hist: histOf(u), missions: mis, mastery, lvReward: lvAward, firstWin: fwOn ? { gold: fwGold, xp: fwXp } : null, ach };
   await saveUser(u, { ticketKey: trust.key, key: trust.receipt, value: out });
-  // settled: this match no longer waits to be judged as a leave
-  trust.ranked && (await redis(["GET", rmOpenKey(u.id)])) === trust.m && (await redis(["DEL", rmOpenKey(u.id)]));
-  // the season board: a placed account that counted a ranked match this season
-  if (rankedOk && placedOf(u) >= PLACE_N && isObj(u.ssn)) {
-    try { await pipe([["ZADD", "lb:" + u.ssn.n, String(u.rr), u.id.toLowerCase()], ["EXPIRE", "lb:" + u.ssn.n, String(120 * 86400)]]); } catch (e) {}
-  }
   // the all-time boards (kills, XP, wins, matches played) and the clan's XP
   await boardsAfterMatch(u, gain + fwXp);
-  // the account's own log gets the hidden MMR too: it is read on the owner page only
-  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${trust.ranked ? " · 랭크" + (rankedOk ? "" : " 미반영(" + (rankedWhy || "?") + ")") : ""}${aiV ? " · AI경쟁전" + (aiV.ok ? " " + (aiD >= 0 ? "+" : "") + aiD : " 미반영(" + aiV.why + ")") : ""}${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, rk: trust.ranked ? 1 : 0, ok: rankedOk ? 1 : 0, why: rankedWhy || undefined, rr: rankedOk ? [rr0, u.rr] : undefined, mmr: rankedOk ? [mmr0, u.mmr] : undefined, pl: rankedOk ? u.placed : undefined, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ai: aiV && aiV.ok ? [aiBefore.rr, u.ai.rr] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
+  await ulog(u.id, "match", `${draw ? "무승부" : win ? "승리" : "패배"} · ${kills}킬${m ? " · " + m.mode + " " + m.map : ""}`, { win: win ? 1 : 0, draw: draw ? 1 : 0, k: kills, xp: gain, dg: gold, gold: u.gold, lv: p.level, lg: lvAward && lvAward.gold || undefined, lc: lvAward && lvAward.cos.length ? lvAward.cos : undefined, fw: fwOn ? [fwGold, fwXp] : undefined, ach: ach.length ? ach.map((x) => x.id) : undefined });
   p.level > before && (await log("level", `${u.id} 레벨 ${p.level}`, { user: u.id }));
-  p.rank.t !== rb.t && (await log("rank", `${u.id} ${rb.tier} ${rb.div} → ${p.rank.tier} ${p.rank.div}`, { user: u.id }));
   return out;
 };
 // relay servers for players whose networks cannot connect directly (Cloudflare
@@ -2162,7 +1728,7 @@ A.rooms = async () => {
   // scored by the last heartbeat: the newest 200, not the 200 that went quiet first
   const codes = await redis(["ZRANGE", "rooms", "0", "199", "REV"]);
   const rows = await pipe(codes.map((k) => ["GET", "room:" + k]));
-  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created, ranked, mmr }) => ({ code, name, ch, mode, map, ranked: !!ranked, band: ranked && Number.isFinite(mmr) ? bandOf(mmr) : null, range: ranked ? joinRange(now() - created) : null, n: (players || []).length, max, state, host, created }));
+  const rooms = rows.filter(Boolean).map((r) => JSON.parse(r)).filter((r) => !r.private).map(({ code, name, ch, mode, map, players, max, state, host, created }) => ({ code, name, ch, mode, map, n: (players || []).length, max, state, host, created }));
   roomsCache = { rooms, until: now() + 5000 };
   return { rooms };
 };
@@ -2187,8 +1753,6 @@ A.room_up = async (q, b, req) => {
     players,
     max: Math.min(c.game.maxRoomPlayers, Math.max(2, b.max | 0 || 10)),
     private: !!b.private,
-    // a ranked room can only be opened by an account (never a guest) and is always public
-    ranked: !!b.ranked && !u.guest,
     state: String(b.state || "lobby").slice(0, 10),
     host: u.id,
     hostKey: ownerKey(u),
@@ -2197,16 +1761,6 @@ A.room_up = async (q, b, req) => {
     seen: now(),
     banAt: (prev && prev.banAt) || 0,
   };
-  // a ranked room's average MMR (kept private; the list shows it rounded): measured when the
-  // players change, and again every five minutes
-  if (room.ranked) {
-    const same = prev && prev.mmrAt && now() - prev.mmrAt < 300000 && JSON.stringify(prev.players) === JSON.stringify(players);
-    if (same) ((room.mmr = prev.mmr), (room.mmrAt = prev.mmrAt));
-    else {
-      const ms = (await pipe(players.map((p) => ["GET", userKey(p)]))).map((x) => (x ? JSON.parse(x) : null)).filter((x) => x && !x.guest).map(mmrOf);
-      ((room.mmr = ms.length ? ms.reduce((a, v) => a + v, 0) / ms.length : null), (room.mmrAt = now()));
-    }
-  }
   const fresh = players.filter((p) => !(prev && (prev.players || []).includes(p)));
   const checkAll = now() - room.banAt > 60000;
   checkAll && (room.banAt = now());
@@ -2231,8 +1785,7 @@ A.room_up = async (q, b, req) => {
       x.ban && (!x.ban.until || x.ban.until > now()) && banned.push(toCheck[i]);
     });
   }
-  // the owner's room commands (kick, cheats, messages) do not run in a ranked room
-  return { cmds: room.ranked ? [] : (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room }, band: room.ranked && Number.isFinite(room.mmr) ? bandOf(room.mmr) : null, range: room.ranked ? joinRange(now() - room.created) : null };
+  return { cmds: (cmds || []).map((x) => JSON.parse(x)), banned, config: { game: c.game, cheat: c.cheat, room: c.room } };
 };
 A.room_down = async (q, b) => {
   const u = await who(b.token);
@@ -2283,10 +1836,8 @@ ADMIN.summary = async () => {
     week = t - 7 * 864e5;
   const ids = ((await redis(["ZRANGE", "users", "0", "-1", "REV"])) || []).slice(0, 2000);
   const recs = ids.length ? (await redis(["MGET", ...ids.map((k) => "user:" + k)])) || [] : [];
-  const S = { users: ids.length, scanned: 0, bought: 0, spent: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, ranked: 0, ranks: Array(RANKS.length).fill(0), signups: Array(14).fill(0) };
-  const top = [],
-    cur = seasonNow(c, t);
-  S.season = Object.assign({}, cur, { players: 0 });
+  const S = { users: ids.length, scanned: 0, bought: 0, spent: 0, new1: 0, new7: 0, act1: 0, act7: 0, gold: 0, pulls: 0, owned: 0, matches: 0, kills: 0, wins: 0, admins: 0, perms: 0, aimPc: 0, aimMobileOff: 0, banned: 0, signups: Array(14).fill(0) };
+  const top = [];
   const d0 = new Date(t);
   d0.setHours(0, 0, 0, 0);
   for (const r of recs) {
@@ -2317,15 +1868,10 @@ ADMIN.summary = async () => {
     a.pc && S.aimPc++;
     a.mobile || S.aimMobileOff++;
     u.ban && (!u.ban.until || u.ban.until > t) && S.banned++;
-    const rk = rankOf(seasonRR(u, c, cur));
-    isObj(u.ssn) && u.ssn.n === cur.n && (u.ssn.played | 0) > 0 && S.season.players++;
-    S.ranks[rk.t]++;
-    (u.rr || 0) > 0 && S.ranked++;
     const ago = Math.floor((d0.getTime() + 864e5 - 1 - (u.created || 0)) / 864e5);
     ago >= 0 && ago < 14 && S.signups[13 - ago]++;
-    top.push({ id: u.id, rr: rk.rr, rank: rk, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, level: levelOf(u.xp || 0, c.xp.perLevel).level });
+    top.push({ id: u.id, kills: u.kills || 0, wins: u.wins || 0, matches: u.matches || 0, level: levelOf(u.xp || 0, c.xp.perLevel).level });
   }
-  S.topRR = top.slice().sort((a, b) => b.rr - a.rr).slice(0, 5);
   S.topKills = top.slice().sort((a, b) => b.kills - a.kills).slice(0, 5);
   // the last day of the log, by kind, and the owner's latest operations
   const L = { login: 0, join: 0, guest: 0, auth: 0, room: 0, gacha: 0, shop: 0 },
@@ -2343,14 +1889,13 @@ ADMIN.summary = async () => {
   await redis(["ZREMRANGEBYSCORE", "rooms", "-inf", String(t - ROOM_TTL * 1000)]);
   const codes = (await redis(["ZRANGE", "rooms", "0", "-1"])) || [];
   const rows = (codes.length ? await pipe(codes.map((k) => ["GET", "room:" + k])) : []).filter(Boolean).map((r) => JSON.parse(r));
-  const R = { open: rows.length, people: 0, ranked: 0, playing: 0, modes: {} };
+  const R = { open: rows.length, people: 0, playing: 0, modes: {} };
   for (const r of rows) {
     R.people += (r.players || []).length;
-    r.ranked && R.ranked++;
     "lobby" !== r.state && R.playing++;
     R.modes[r.mode || "?"] = (R.modes[r.mode || "?"] || 0) + 1;
   }
-  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop, season: c.season }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), weekly: c.shop.on ? weeklyOf(c, kstWeek(t)) : [], weeklyReset: nextKstMonday(t), t };
+  return { summary: S, logs: L, recent, rooms: R, items: ITEMS, config: { game: c.game, aim: c.aim, gacha: c.gacha, gold: c.gold, rank: c.rank, shop: c.shop }, shop: c.shop.on ? shopOf(c, kstDay(t)) : [], shopReset: nextKstMidnight(t), weekly: c.shop.on ? weeklyOf(c, kstWeek(t)) : [], weeklyReset: nextKstMonday(t), t };
 };
 ADMIN.users = async (q, b) => {
   const c = await loadConfig();
@@ -2388,15 +1933,15 @@ function adminCheats(u) {
   }
 }
 // the owner's changes to an account, as its own log shows them
-const OP_KO = { operator: "운영자 권한", ban: "차단", unban: "차단 해제", admin: "관리자 모드", xp: "경험치 설정", level: "레벨 설정", password: "비밀번호 변경", note: "메모", perm: "치트 권한", aim: "에임 보정", gold: "골드 설정", rr: "티어 점수 설정", grant: "스킨 지급" };
-const opNote = (b, u, was) => ("operator" === b.op ? (b.on ? " 줌" : " 뺌") : "ban" === b.op ? (b.days > 0 ? ` ${b.days}일` : " 영구") + (b.reason ? ` (${String(b.reason).slice(0, 60)})` : "") : "gold" === b.op ? ` ${was.gold ?? 0} → ${u.gold}` : "rr" === b.op ? ` ${was.rr || 0} → ${u.rr}` : "grant" === b.op ? (b.remove ? " 회수 " : " ") + (Array.isArray(b.items) ? b.items.length + "개" : b.item === "all" ? "전부" : String(b.item || "").slice(0, 40)) : "level" === b.op || "xp" === b.op ? ` ${was.xp || 0} → ${u.xp} xp` : "");
+const OP_KO = { operator: "운영자 권한", ban: "차단", unban: "차단 해제", admin: "관리자 모드", xp: "경험치 설정", level: "레벨 설정", password: "비밀번호 변경", note: "메모", perm: "치트 권한", aim: "에임 보정", gold: "골드 설정", grant: "스킨 지급" };
+const opNote = (b, u, was) => ("operator" === b.op ? (b.on ? " 줌" : " 뺌") : "ban" === b.op ? (b.days > 0 ? ` ${b.days}일` : " 영구") + (b.reason ? ` (${String(b.reason).slice(0, 60)})` : "") : "gold" === b.op ? ` ${was.gold ?? 0} → ${u.gold}` : "grant" === b.op ? (b.remove ? " 회수 " : " ") + (Array.isArray(b.items) ? b.items.length + "개" : b.item === "all" ? "전부" : String(b.item || "").slice(0, 40)) : "level" === b.op || "xp" === b.op ? ` ${was.xp || 0} → ${u.xp} xp` : "");
 ADMIN.user_set = async (q, b) => {
   const id = cleanId(b.id),
     u = await getJ(userKey(id));
   if (!u) throw fail(404, "없는 아이디");
   const c = await loadConfig(),
     d = b.days > 0 ? now() + b.days * 864e5 : 0,
-    was = { gold: u.gold, rr: u.rr, xp: u.xp };
+    was = { gold: u.gold, xp: u.xp };
   switch (b.op) {
     case "ban":
       u.ban = { reason: String(b.reason || "").slice(0, 200), until: d, at: now() };
@@ -2445,11 +1990,6 @@ ADMIN.user_set = async (q, b) => {
       ensureWallet(u, c);
       u.gold = Math.max(0, Math.min(9e6, Math.round(+b.gold || 0)));
       break;
-    case "rr":
-      u.rr = Math.max(0, Math.min(99999, Math.round(+b.rr || 0)));
-      u.mmr = mmrFromRR(u.rr); // the hidden rating follows; RR given by hand counts as placed
-      u.rr > 0 && (u.placed = PLACE_N);
-      break;
     case "grant": {
       // item "gun|skin" or "all", or items: a list of "gun|skin" (the owner page's table); remove takes them back
       ensureWallet(u, c);
@@ -2478,7 +2018,7 @@ ADMIN.user_set = async (q, b) => {
   }
   await saveUser(u);
   await ulog(u.id, "admin", "운영자: " + (OP_KO[b.op] || b.op) + opNote(b, u, was), { op: b.op, days: b.days > 0 ? +b.days : undefined, why: "ban" === b.op ? String(b.reason || "").slice(0, 80) : undefined, gold: "gold" === b.op ? [was.gold, u.gold] : undefined, rr: "rr" === b.op ? [was.rr || 0, u.rr] : undefined, xp: "xp" === b.op || "level" === b.op ? [was.xp || 0, u.xp] : undefined, n: "grant" === b.op ? (Array.isArray(b.items) ? b.items.length : "all" === b.item ? "all" : 1) : undefined, rm: "grant" === b.op && b.remove ? 1 : undefined, perm: "perm" === b.op ? { on: ownPerm(u).on ? 1 : 0, sw: PERM_SW.filter((k) => ownPerm(u)[k]).join(","), sp: ownPerm(u).speed, ff: ownPerm(u).fastFire, bf: ownPerm(u).buff, until: ownPerm(u).until } : undefined, until: "admin" === b.op ? u.adminUntil || 0 : undefined });
-  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"rr" === b.op ? " " + u.rr : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}${"aim" === b.op ? ` PC ${b.pc ? "켬" : "끔"} · 모바일 ${!1 !== b.mobile ? "켬" : "끔"}` : ""}`);
+  await log("admin", `계정 ${id}: ${b.op}${b.days ? " " + b.days + "일" : ""}${b.reason ? " (" + b.reason + ")" : ""}${"gold" === b.op ? " " + u.gold : ""}${"grant" === b.op ? " " + (Array.isArray(b.items) ? b.items.length + "개" : b.item) + (b.remove ? " 회수" : "") : ""}${"aim" === b.op ? ` PC ${b.pc ? "켬" : "끔"} · 모바일 ${!1 !== b.mobile ? "켬" : "끔"}` : ""}`);
   return { ok: !0 };
 };
 // one account's skins, for the owner page's grant table
@@ -2554,7 +2094,6 @@ ADMIN.user_profile = async (q, b) => {
   const out = { id: u ? u.id : id, found: !!u, log: timeline.slice(0, 900), since, capped: own.length >= ULOG_MAX, agg, feedback, t };
   if (!u) return { profile: out };
   const lv = levelOf(u.xp || 0, c.xp.perLevel),
-    cur = seasonNow(c, t),
     tiers = {},
     guns = {};
   if (isObj(u.own)) for (const g in u.own) if (Array.isArray(u.own[g])) for (const s of u.own[g]) SKIN_TIER[s] && (tiers[SKIN_TIER[s]] = (tiers[SKIN_TIER[s]] || 0) + 1, guns[g] = (guns[g] || 0) + 1);
@@ -2567,14 +2106,10 @@ ADMIN.user_profile = async (q, b) => {
     owner: !!u.owner, operator: !!u.operator, admin: !!(u.owner || u.operator || (u.adminUntil && u.adminUntil > t)), adminUntil: u.adminUntil || 0, adminAllow: isObj(u.adminAllow) ? u.adminAllow : null,
     permActive: !!activePerm(u), permLegacy: !!(isObj(u.perm) && u.perm.on && !permMarked(u.perm)), perm: u.perm || null, aim: aimOf(u), ban, note: u.note || "",
     // the hidden rating is for the owner page only
-    rank: { rr: Math.max(0, Math.round(+u.rr || 0)), now: rankOf(seasonRR(u, c, cur)), shown: rankView(u), placed: u.guest ? 0 : placedOf(u), of: PLACE_N, mmr: u.guest ? null : mmrOf(u) },
-    ai: aiView(u),
-    season: isObj(u.ssn) ? { n: u.ssn.n, end: u.ssn.end, played: u.ssn.played | 0, wins: u.ssn.w | 0, need: u.ssn.need | 0, cur: cur.n } : null,
-    seasonLog: Array.isArray(u.ssnLog) ? u.ssnLog.slice(0, 12) : [],
     owned: { total: ownedCount(u), items: ITEMS, byTier: tiers, byGun: guns },
     equipped: (u.skins && isObj(u.skins.m) && u.skins.m) || {},
     wish: cleanWish(u), missions: misState(u, c), cos: cosOf(u),
-    goldDay: isObj(u.goldDay) ? u.goldDay : null, xpDay: isObj(u.xpDay) ? u.xpDay : null, coinDay: isObj(u.coinDay) ? u.coinDay : null, rrDay: isObj(u.rrDay) ? u.rrDay : null,
+    goldDay: isObj(u.goldDay) ? u.goldDay : null, xpDay: isObj(u.xpDay) ? u.xpDay : null, coinDay: isObj(u.coinDay) ? u.coinDay : null,
     hist: histOf(u),
   };
   return { profile: Object.assign(out, { acct }) };
@@ -2694,13 +2229,12 @@ ADMIN.config_default_set = async (q, b) => {
   await log("admin", "설정을 기본값으로 저장");
   return { config: c, saved };
 };
-// back to the owner's saved default (b.to "factory": the built-in values). The season clock and number and the
-// shop's reroll numbers stay as they are: older ones would move the season or bring back an earlier shop list.
+// back to the owner's saved default (b.to "factory": the built-in values). The shop's reroll numbers stay as they
+// are: older ones would bring back an earlier shop list.
 ADMIN.config_reset = async (q, b) => {
   const factory = b.to === "factory", saved = factory ? null : await readDefault();
   const cur = merge(DEFAULT_CONFIG, (await getJ("config")) || {});
   const c = JSON.parse(JSON.stringify(saved ? saved.config : DEFAULT_CONFIG)); // a copy: merge() shares the nested objects it does not change
-  c.season.startDay = cur.season.startDay; c.season.skip = cur.season.skip;
   c.shop.reroll = cur.shop.reroll; c.shop.weekly.reroll = cur.shop.weekly.reroll;
   saved && validateConfig(c);
   await setJ("config", c);
@@ -2711,7 +2245,7 @@ ADMIN.config_reset = async (q, b) => {
 
 const MIN_AGENTS_ON = 10;
 function validateConfig(c) {
-  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "season.weeks": [1, 26], "season.startDay": [20200101, 20991231], "season.skip": [0, 9999], "season.keep": [0, 100], "season.minPlay": [0, 1000], "season.skinTier": [0, 9], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000], "aiComp.win": [0, 1000], "aiComp.loss": [0, 1000], "aiComp.perKill": [0, 100], "aiComp.maxKill": [0, 1000], "aiComp.maxPerDay": [0, 100000] };
+  const ranges = { "xp.perLevel": [1, 1000000], "mastery.step": [1, 100000], "mastery.perMatch": [0, 10000], "mastery.perWin": [0, 10000], "mastery.perKill": [0, 10000], "mastery.maxPerMatch": [0, 10000], "mastery.gold": [0, 10000], "mastery.maxGold": [0, 100000], "game.maxRoomPlayers": [2, 12], "gacha.botMaxTier": [0, SKIN_TIERS.max], "room.run": [0, 50], "room.jumpV": [0, 50], "room.gravity": [0, 100], "room.aiSpeed": [0, 50], "aim.strength": [0, 100], "aim.range": [5, 150], "aim.cone": [1, 30], "shop.mix.common": [0, 20], "shop.mix.rare": [0, 20], "shop.mix.epic": [0, 20], "shop.mix.legendary": [0, 20], "shop.knife": [1, 10], "cos.price.1": [0, 1e6], "cos.price.2": [0, 1e6], "cos.price.3": [0, 1e6], "cos.price.4": [0, 1e6], "shop.weekly.off": [0, 90], "shop.weekly.mix.epic": [0, 10], "shop.weekly.mix.legendary": [0, 10], "mission2.dCount": [0, 4], "mission2.wCount": [0, 4], "lvReward.gold": [0, 100000], "lvReward.maxGold": [0, 1000000], "lvReward.milestoneGold": [0, 100000], "firstWin.gold": [0, 100000], "firstWin.xp": [0, 100000] };
   const walk = (base, value, prefix = "") => {
     for (const k of Object.keys(base)) {
       const path = prefix ? prefix + "." + k : k, v = value[k];
@@ -2731,7 +2265,7 @@ function validateConfig(c) {
   c.clan.on = !!c.clan.on;
   if (c.clan.max < 2 || c.clan.max > 50) throw fail(400, "설정 범위를 확인해 주세요: clan.max");
   c.mastery.on = !!c.mastery.on;
-  for (const k of ["lvReward", "firstWin", "mission2", "ach", "aiComp"]) c[k].on = !!c[k].on;
+  for (const k of ["lvReward", "firstWin", "mission2", "ach"]) c[k].on = !!c[k].on;
   for (const part of String(c.lvReward.milestones).split(",").map((x) => x.trim()).filter(Boolean)) {
     const [lv, id] = part.split(":");
     if (!/^\d{1,3}$/.test(lv) || +lv < 2 || (id !== undefined && !COS_BY[id.trim()])) throw fail(400, "레벨 보상 목록을 확인해 주세요 (예: 5:scout,10:neoncity): " + part);
@@ -3169,6 +2703,7 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
         catch (e) { if (!e.retryUser || attempt >= 4) throw e; }
       }
     }
+    try { await purgeRankedStep(); } catch (e) {}
     RURL && (await flushUse());
     res.statusCode = 200;
     res.end(JSON.stringify(Object.assign({ ok: !0 }, out)));
@@ -3185,8 +2720,6 @@ module.exports = async (req, res) => requestState.run(new Map([["requestIp", ipO
   }
 });
 module.exports.DEFAULT_CONFIG = DEFAULT_CONFIG;
-// the pure rating helpers, for the tests
-module.exports.rankMath = { MMR_BASE, PLACE_N, mmrFromRR, rrFromMMR, eloExpected, mmrAfter, rrDelta, joinRange, bandOf, canJoinRanked };
 module.exports.CATALOG = { guns: GUNS, tiers: SKIN_TIER, only: SKIN_ONLY, items: ITEMS };
 module.exports.COS = COS;
 module.exports.FB_TYPES = FB_TYPES;

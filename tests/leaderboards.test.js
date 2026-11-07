@@ -194,10 +194,3 @@ test("the clan tag is on the rows of the player boards, from the clan the server
   const k = await board(h, "kills");
   assert.deepEqual(k.rows.map((r) => [r.name, r.clan]), [["tagged", "TAG"], ["plain2", undefined]]);
 });
-
-test("the season board is as it was", async () => {
-  const h = harness(), a = await acct(h, "ranker");
-  const r = await h.api("leaderboard", { n: 5 });
-  assert.equal(r.status, 200); assert.deepEqual(r.rows, []); assert.ok(r.season.n >= 1);
-  assert.equal(JSON.stringify(Object.keys(r).sort()), JSON.stringify(["ok", "rows", "season", "status"]));
-});

@@ -271,10 +271,18 @@
             setTimeout(swish, 110);
           } else {
             M.alt ^= 1;
-            M.knife = M.alt ? { t: 0, D: 0.26, kind: "slash" } : { t: 0, D: 0.22, kind: "stab" };
+            M.knife = M.alt ? { t: 0, D: 0.26, kind: "slash" } : { t: 0, D: 0.26, kind: "stab" };
             swish();
           }
+        } else {
+          // the plain knife: a real stab (it used to get only the guns' recoil, which pulled it back toward you)
+          M.twirl.t = -1;
+          M.idleT = 0;
+          M.knife = { t: 0, D: 0.3, kind: "stab" };
+          swish();
         }
+        // a knife's own cut moves it: the guns' recoil (back toward you, tipped up) is not added on top
+        if (M.knife.t === 0 && window.KNIVES && KNIVES.cut) VM.kick = VM.kickRot = 0;
       } else if (t >= 3) ember(accentOf(me()) || GS.of(key()).glow);
     } catch (e) {}
     return r;

@@ -132,7 +132,7 @@ const assert = require("node:assert/strict"), { fixture } = require("./browser-f
     assert.ok(out.karambit.ringDist < 0.01, "the karambit turns about its ring (" + out.karambit.ringDist + ")");
     assert.equal(out.karambit.ghosts, 3);
     assert.ok(out.karambit.reach.rx >= 6 && out.karambit.reach.ry >= 3.5 && out.karambit.reach.py >= 0.12, "the karambit chain: spins, a flat helicopter, a toss " + JSON.stringify(out.karambit.reach));
-    // RGX retains its supplied source motion and is checked by browser-rgx-firefly.js.
+    // SGH Butterfly has its own rig and is checked by browser-rgx-firefly.js.
     assert.ok(out.flip.reach.blade >= 0.95, "the flipper shuts and opens");
     assert.ok(out.tanto.reach.rx >= 1.9, "the tanto goes into a reverse grip and back");
     assert.ok(out.run.trail > 0.1 && out.run.maxY > 0.12 && out.run.ended && !out.run.err, "the karambit run shows trails and a toss: " + JSON.stringify(out.run));

@@ -123,9 +123,9 @@ test("a cheat ticket is for the peer that asked: another guest, an old client or
   const legacy = h.sign({ k: "perm", id: "bobby", room: "ROOM01", exp: h.now() + 36e5 });
   assert.equal((await h.api("perm_check", { ticket: legacy, room: "ROOM01", p: "guest-1" })).perm, null);
   assert.equal((await h.api("perm_check", { ticket: legacy, room: "ROOM01" })).perm, null);
-  // a ranked room still hands out nothing
+  // a room that an old client still marks ranked is a room like any other (there is no ranked play)
   assert.equal((await h.api("room_up", { token: p.token, code: "RNK001", ranked: true, players: ["bobby"] })).status, 200);
-  assert.equal((await h.api("perm_ticket", { token: p.token, room: "RNK001", p: "guest-1" })).ticket, null);
+  assert.equal(typeof (await h.api("perm_ticket", { token: p.token, room: "RNK001", p: "guest-1" })).ticket, "string");
 });
 
 test("a banned account has no cheats at once, even with a ticket that has not run out; unbanning gives them back", async () => {

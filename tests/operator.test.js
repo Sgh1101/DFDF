@@ -38,14 +38,14 @@ test("the owner makes an account an operator: the owner's in-game panel, not the
   assert.equal((await h.api("owner_ticket", { token: op.token, room: "ABC123", p: "peer-1" })).ticket, null);
 });
 
-test("an operator has nothing in a ranked room, and a banned one nothing anywhere", async () => {
+test("an operator has his powers in any room (there are no ranked rooms), and a banned one nothing anywhere", async () => {
   const h = harness(), owner = await login(h, "owner"), op = await login(h, "helper1");
   await h.api("a_user_set", { atoken: owner.atoken, id: "helper1", op: "operator", on: true });
+  // an old client may still mark its room ranked: it changes nothing
   assert.equal((await h.api("room_up", { token: op.token, code: "RNK001", ranked: true, players: ["helper1"] })).status, 200);
   const r = await h.api("owner_ticket", { token: op.token, room: "RNK001", p: "peer-1" });
-  assert.equal(r.ticket, null);
-  assert.equal(r.ranked, true);
-  // the owner keeps his
+  assert.equal(typeof r.ticket, "string");
+  assert.equal("ranked" in r, false);
   assert.equal(typeof (await h.api("owner_ticket", { token: owner.token, room: "RNK001", p: "peer-1" })).ticket, "string");
   // a ticket from before a ban counts for nothing
   const t = await h.api("owner_ticket", { token: op.token, room: "ABC123", p: "peer-1" });

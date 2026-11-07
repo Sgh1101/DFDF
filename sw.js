@@ -2,7 +2,7 @@
 // update reaches the app at once. Without a connection the game cannot run
 // (the 3D engine and multiplayer live online), so pages show a friendly
 // "connect and retry" screen instead of a broken one; icons stay cached.
-const CACHE = "13-v4-neighborhood";
+const CACHE = "13-v5-sgh-motion";
 // photo materials and skies never change under the same name: kept after the
 // first download so a phone does not fetch them again every match
 const ASSETS = "13-assets-v2-original-maps";
@@ -17,7 +17,8 @@ self.addEventListener("install", (e) => {
 });
 // files the game no longer has (a third-party weapon pack, the block map's old textures): taken out of the asset cache
 const REMOVED = /^\/assets\/valorant-packs\/|^\/assets\/maps\/kour\/|^\/assets\/maps\/ascent\/(vanilla\/|vanilla-)|^\/assets\/maps\/ascent\/.*[?&]v=(vanilla2|mobile1|mobile2|blocks1|blocks2|mobile3|original-1|neighborhood-2)(&|$)|^\/assets\/ui\/ascent-preview-v[123]|^\/assets\/site\/maps\/(ascent_trial|desert_town)\.webp($|[?](?!v=district-ascent-1))/;
-const purge = () => caches.open(ASSETS).then((c) => c.keys().then((rs) => Promise.all(rs.filter((r) => { const u = new URL(r.url); return REMOVED.test(u.pathname + u.search); }).map((r) => c.delete(r))))).catch(() => {});
+const OLD_SGH = /^\/assets\/rgx-firefly\/v1\/(?:sounds\/future_butterfly_[a-z0-9_]+\.ogg(?:\?|$)|(?:model|animation)\.json(?:$|\?sha256=(?:d7fb9f3c|d415254c)[a-f0-9]{56}(?:&|$)))/;
+const purge = () => caches.open(ASSETS).then((c) => c.keys().then((rs) => Promise.all(rs.filter((r) => { const u = new URL(r.url), path = u.pathname + u.search; return REMOVED.test(path) || OLD_SGH.test(path); }).map((r) => c.delete(r))))).catch(() => {});
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== ASSETS).map((k) => caches.delete(k)))).then(purge).then(() => self.clients.claim()));
 });

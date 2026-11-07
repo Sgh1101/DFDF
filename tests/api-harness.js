@@ -68,7 +68,7 @@ function harness(options = {}) {
         expires.set(key, at);
         return 1;
       }
-      case "DEL": { const had = db.delete(key); expires.delete(key); return +had; }
+      case "DEL": { let n = 0; for (const k of [key, ...args]) { n += +db.delete(k); expires.delete(k); } return n; }
       case "EVAL": {
         // the clans' compare-and-set over several keys (api/v1.js MULTI_CAS): the keys it read must still be as read, then every command runs
         if (key.includes("-- multi-cas")) {
@@ -118,6 +118,6 @@ function harness(options = {}) {
   }
   const sign = (value) => { const p = Buffer.from(JSON.stringify(value)).toString("base64url"); return p + "." + crypto.createHmac("sha256", "test-secret").update(p).digest("base64url"); };
   // redis: one command on the in-memory store, for a stand-in of the Upstash REST API (scripts/browser-cloudflare.js)
-  return { api, redis: (cmd) => command(cmd), db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, dropExpires: (n = 1) => droppedExpires = n, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG, rankMath: sandbox.module.exports.rankMath };
+  return { api, redis: (cmd) => command(cmd), db, sign, advance: (ms) => clock += ms, now: () => clock, failCommit: () => commitFailure = true, failPipeline: () => pipelineFailure = true, dropExpires: (n = 1) => droppedExpires = n, user: (id) => JSON.parse(db.get("user:" + id)), config: sandbox.module.exports.DEFAULT_CONFIG };
 }
 module.exports = { harness };
